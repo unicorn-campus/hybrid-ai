@@ -1,0 +1,31 @@
+# 하이브리드 AI 실습 공통 정형 DB (전 교육 과정 공용)
+# 기동: docker compose -f rdb/compose.yml up -d
+# 초기화 스크립트는 pgdata 볼륨이 비어 있을 때 한 번만 실행됨.
+services:
+  rdb:
+    image: postgres:18-alpine
+    container_name: hybrid-ai-lab-rdb
+    environment:
+      POSTGRES_DB: cardlab
+      POSTGRES_USER: cardlab
+      POSTGRES_PASSWORD: cardlab
+      # 교육용 합성 데이터 전용이므로 로케일은 고정값을 씀.
+      LANG: ko_KR.utf8
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      # Windows 바인드 마운트는 데이터 디렉터리 권한 문제를 일으키므로 명명 볼륨을 씀.
+      # postgres:18부터는 /var/lib/postgresql/data가 아니라 상위 디렉터리를 마운트함.
+      - pgdata:/var/lib/postgresql
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cardlab -d cardlab"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    name: hybrid-ai-lab-pgdata

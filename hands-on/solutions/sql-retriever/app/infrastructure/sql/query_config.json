@@ -1,0 +1,96 @@
+{
+  "logical_schema": "app",
+  "scope_settings": {
+    "member": "app.member_id",
+    "base_date": "app.base_date",
+    "coverage_start": "app.coverage_start"
+  },
+  "logical_views": [
+    {
+      "name": "customer_profile",
+      "columns": ["join_date", "age_band"],
+      "source_tables": ["public.member"]
+    },
+    {
+      "name": "customer_cards",
+      "columns": [
+        "card_ref",
+        "product_id",
+        "product_name",
+        "brand",
+        "issue_date",
+        "current_status",
+        "product_effective_date",
+        "is_product_effective_on_base_date",
+        "annual_fee"
+      ],
+      "source_tables": ["public.card", "public.product", "public.product_annual_fee"]
+    },
+    {
+      "name": "monthly_usage",
+      "columns": [
+        "card_ref",
+        "month",
+        "period_start",
+        "period_end",
+        "approved_amount",
+        "transaction_count"
+      ],
+      "source_tables": ["public.card_txn", "public.card"]
+    },
+    {
+      "name": "merchant_usage",
+      "columns": [
+        "card_ref",
+        "month",
+        "period_start",
+        "period_end",
+        "merchant_name",
+        "category",
+        "first_approved_date",
+        "last_approved_date",
+        "approved_amount",
+        "transaction_count"
+      ],
+      "source_tables": ["public.card_txn", "public.card", "public.merchant"]
+    },
+    {
+      "name": "customer_daily_usage",
+      "columns": ["usage_date", "approved_amount", "transaction_count"],
+      "source_tables": ["public.member", "public.card_txn", "public.card"]
+    },
+    {
+      "name": "customer_delinquency",
+      "columns": [
+        "base_month",
+        "as_of_date",
+        "overdue_amount",
+        "overdue_days",
+        "overdue_count_12m"
+      ],
+      "source_tables": ["public.delinquency"]
+    },
+    {
+      "name": "customer_delinquency_history",
+      "columns": [
+        "base_month",
+        "as_of_date",
+        "overdue_amount",
+        "overdue_days",
+        "overdue_count_12m"
+      ],
+      "source_tables": ["public.delinquency"]
+    }
+  ],
+  "sql_files": {
+    "member_select": "member_select.sql",
+    "metadata_select": "metadata_select.sql",
+    "profile_select": "profile_select.sql",
+    "cards_select": "cards_select.sql",
+    "usage_select": "usage_select.sql",
+    "delinquency_select": "delinquency_select.sql",
+    "search_metadata_select": "search_metadata_select.sql",
+    "guarded_query": "guarded_query.sql",
+    "schema_columns_select": "schema_columns_select.sql"
+  }
+}
