@@ -1,0 +1,3 @@
+logs/*
+!logs/results-sample.json
+__pycache__/

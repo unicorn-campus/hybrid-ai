@@ -1,0 +1,4 @@
+# 실행이 만드는 결과물(Chroma 저장 폴더, chunks.json). 저장소에 올리지 않음
+data/
+data-limit/
+__pycache__/

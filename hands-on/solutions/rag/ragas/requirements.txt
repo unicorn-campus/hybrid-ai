@@ -1,0 +1,12 @@
+# RAGAS 채점 전용 패키지. 인덱싱, 검색 가상환경과 따로 설치함
+# 이유: ragas 0.4.3은 import 때 langchain_community 0.3 계열(chat_models.vertexai)을 부르는데
+#       langchain 1.x와 함께 깔리는 langchain-community 0.4에는 그 모듈이 없어 import가 실패함(2026-10-21 실측)
+ragas==0.4.3
+langchain-community==0.3.31
+# ragas의 평가자(llm_factory)는 instructor를 거치며 instructor 1.12는 openai 2.x를 지원하지 않음 → 1.109.1로 고정
+openai==1.109.1
+# AnswerRelevancy 임베딩(Cohere embed-v5.0-fast)은 ragas의 LiteLLMEmbeddings로 부름.
+# litellm 1.81 이후는 openai 2.x를 요구해 위 고정과 충돌하므로 1.80.0으로 고정함(2026-10-21 실측)
+litellm==1.80.0
+pandas==2.3.3
+python-dotenv==1.2.3
