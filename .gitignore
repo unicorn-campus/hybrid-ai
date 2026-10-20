@@ -34,3 +34,6 @@ desktop.ini
 
 # Claude Code 개인 설정
 .claude/settings.local.json
+
+# PPT 미리보기 산출물 (scripts/render-pptx.py)
+research/build/preview/

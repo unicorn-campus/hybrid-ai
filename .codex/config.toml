@@ -1,0 +1,36 @@
+# Codex 프로젝트 설정. 아래 마커 사이는 scripts/sync-agents.py 가 관리함.
+# 마커 밖에는 팀 공용 설정을 자유롭게 추가할 수 있음.
+
+# >>> sync-agents (자동 생성 구간 시작 — 손으로 고치지 않음)
+# .codex/agents/<이름>.toml 을 Codex 커스텀 에이전트로 등록함.
+# 2026-09-03 실측: .codex/agents/ 드롭인·[agents.*] 인라인 정의는 인식되지 않고 config_file 등록만 동작함.
+# config_file 의 상대경로는 이 파일(.codex/config.toml) 기준으로 풀림.
+
+[agents.connectni]
+description = "도구 연동 엔지니어 커넥니. MCP 서버, A2A, 외부 시스템 커넥터, 인증·권한·시크릿, 도구 오류 처리 설계 전문가. 에이전트가 외부 세계와 연결되는 지점을 설계할 때 사용."
+config_file = "agents/connectni.toml"
+
+[agents.eduni]
+description = "기술 교육·문서 엔지니어 에듀니. 예제 코드를 그 언어를 모르는 사람에게 쉬운 한국어로 풀어 설명하는 해설 콘텐츠(처리 흐름·함수별 요약·동작 원리·줄별 풀이·용어사전) 작성 전문가. 코드 해설 페이지, 학습 자료, 초보자·비개발자용 설명이 필요할 때 사용."
+config_file = "agents/eduni.toml"
+
+[agents.flonie]
+description = "오케스트레이션 엔지니어 플로니. LangChain/LangGraph 그래프 설계, 상태·메모리·체크포인트, 재시도·타임아웃·휴먼인루프, Harness(실행 런타임) 구성 전문가. 에이전트 실행 흐름을 코드 수준으로 설계할 때 사용."
+config_file = "agents/flonie.toml"
+
+[agents.jisikni]
+description = "지식·데이터 엔지니어 지식니. RAG, GraphRAG, 온톨로지, NL2SQL 설계 전문가. \"이 질문을 어떤 지식 경로로 답할 것인가\"를 결정하고 검색 품질 평가 기준을 세울 때 사용."
+config_file = "agents/jisikni.toml"
+
+[agents.modalni]
+description = "멀티모달 엔지니어 모달니. 요약, STT(음성인식), TTS(음성합성), VLM(이미지·문서 이해) 파이프라인 설계와 지연·비용·품질 측정 전문가. 텍스트 외 입출력을 다룰 때 사용."
+config_file = "agents/modalni.toml"
+
+[agents.opsni]
+description = "플랫폼·배포 엔지니어 옵스니. 물리 배치도, 컨테이너 이미지·실행 매니페스트, 비밀값 주입 경로, 상태 확인(Health Check), 되돌리기(롤백) 절차, 배포 실행 입력값 설계·구현 전문가. 구성요소를 실행환경에 놓고 묶어 올리고 되돌리는 일을 다룰 때 사용."
+config_file = "agents/opsni.toml"
+
+[agents.stackni]
+description = "API·UI 엔지니어 스택니. 웹 프레임워크(FastAPI 등) 진입 API, SSE 스트리밍, 계층형 백엔드(표현·응용 계층), React/Vue/Next.js + TypeScript 프론트엔드 구현 전문가. 안에서 만든 에이전트 흐름을 바깥이 부를 수 있게 API와 화면으로 여는 코드를 만들 때 사용."
+config_file = "agents/stackni.toml"
+# <<< sync-agents (자동 생성 구간 끝)

@@ -1,0 +1,22 @@
+# 도구별 모델·권한 매핑표
+# 원본 에이전트(.agents/agents/<이름>.md)의 프론트매터는 절대값 대신 범주만 가짐
+#   tier:        top | standard        (모델 등급)
+#   permissions: write | readonly       (파일 쓰기 허용 여부)
+# scripts/sync-agents.py가 이 표로 범주를 도구별 값으로 바꿔 생성물을 만듦
+# 값을 바꾼 뒤에는 스크립트를 다시 실행함
+
+[claude.model]            # .claude/agents/<이름>.md 의 model 필드 (Cursor도 이 파일을 읽음)
+top = "claude-opus-5"
+standard = "claude-sonnet-5"
+
+[codex.model]             # .codex/agents/<이름>.toml 의 model 필드
+top = "gpt-5.6-sol"       # 2026-09-03 실측: Plus 계정에서 gpt-5.6-sol 지원
+standard = "gpt-5.6-terra"
+
+[codex.reasoning_effort]  # .codex/agents/<이름>.toml 의 model_reasoning_effort
+top = "high"
+standard = "medium"
+
+[codex.sandbox_mode]      # .codex/agents/<이름>.toml 의 sandbox_mode
+write = "workspace-write"
+readonly = "read-only"

@@ -14,7 +14,7 @@
 - 독자: 강사 
 
 [입력]
-- {example_dir}: ~/class/design-agentic-ai/hybrid-ai-lab
+- {example_dir}: ~/class/hybrid-ai/hybrid-ai-lab
 - 교재: `~/Documents/강의/신한카드/신한카드 하이브리드AI_W01~W04.pptx` (3/4주차의 RAG만 참조)
 - 주석가이드: references/dev-comment-guide.md
 - RAG 인덱싱: {example_dir}/indexer/vector-bm25
