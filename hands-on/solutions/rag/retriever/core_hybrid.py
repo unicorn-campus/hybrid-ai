@@ -242,7 +242,7 @@ def rerank(
 
 
 def member_pseudonym(member_id: str) -> str:
-    """회원번호를 되돌릴 수 없는 가명 ID로 바꿈(인덱서 core_chunking.member_pseudonym과 같은 식).
+    """회원번호를 되돌릴 수 없는 가명 ID로 바꿈(인덱서 core_indexing.member_pseudonym과 같은 식).
 
     목적: 색인에는 회원번호가 없고 가명 ID만 있으므로, 검색기도 같은 식으로 가명 ID를 만들어 필터에 씀.
     반환값: "m_" + SHA-256 16진수 앞 16자리. 예: "M-1042" → "m_59853c3d8e1e3c25"

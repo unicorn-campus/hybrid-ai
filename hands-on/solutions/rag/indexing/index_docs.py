@@ -1,7 +1,10 @@
-"""RAG 인덱싱 예제 main: 원천 문서를 로드 → 정제 → 가명처리 → 청킹 → 임베딩 → 벡터DB 적재 순서로 처리함."""
+"""RAG 인덱싱 예제 main: 원천 문서를 로드 → 정제 → 가명처리 → 청킹 → 임베딩 → 벡터DB 적재 순서로 처리함.
+
+핵심 4단계(정제, 청킹, 임베딩, 적재)의 알맹이는 core_indexing.py의 함수 4개가 맡고,
+이 파일은 설정값, 로더, 단계별 출력과 점검을 맡음.
+"""
 
 import argparse
-import json
 import os
 import re
 import shutil
@@ -9,7 +12,6 @@ import sys
 import time
 from pathlib import Path
 
-import chromadb
 import cohere
 import pymupdf
 from dotenv import load_dotenv
@@ -17,7 +19,7 @@ from langchain_chroma import Chroma
 from langchain_cohere import CohereEmbeddings
 from langchain_core.documents import Document
 
-import core_chunking as chunking  # 교육생: 본인 코드로 바꾸려면 "import my_chunking as chunking"
+import core_indexing as indexing  # 교육생: 본인 코드로 바꾸려면 "import my_indexing as indexing"
 
 sys.stdout.reconfigure(encoding="utf-8")  # Windows 콘솔에서 한글이 깨지지 않게 함
 
@@ -211,7 +213,7 @@ def build_consult_body(record: dict) -> str:
             continue
         body_lines.append(line)
     body_text = "\n".join(body_lines)
-    return chunking.mask_private_info(body_text)
+    return indexing.clean_document(body_text, mask_private=True)  # 정제(가명처리)
 
 
 def build_card_name_table(cleaned_pages: list[str]) -> dict:
@@ -293,12 +295,12 @@ def step_clean(pdf_pages_by_file: dict) -> tuple[dict, dict]:
     for file_path, page_texts in pdf_pages_by_file.items():
         doc_id = file_path.name[:2]  # 파일명 앞 두 글자("D1", "D2")가 문서 ID임
         setting = DOC_SETTINGS[doc_id]
-        repeated_lines = chunking.find_repeated_lines(page_texts, min_pages=2)
+        repeated_lines = indexing.find_repeated_lines(page_texts, min_pages=2)
         print(f"  {file_path.name}: 반복 줄 {len(repeated_lines)}개 → {sorted(repeated_lines)}")
 
         cleaned_pages = []
         for page_number, page_text in enumerate(page_texts, start=1):
-            cleaned_text = chunking.clean_page_text(page_text, repeated_lines)
+            cleaned_text = indexing.clean_document(page_text, repeated_lines)  # 정제(쪽)
             cleaned_pages.append(cleaned_text)
             if cleaned_text == "":
                 continue  # 표지처럼 내용이 다 지워진 쪽은 청크를 만들지 않음
@@ -351,7 +353,7 @@ def step_mask(consult_records_by_file: dict) -> list[Document]:
                 "record_id": header["record_id"],
                 "consult_date": header["consult_date"],
                 "channel": header["channel"],
-                "member_pseudo_id": chunking.member_pseudonym(header["member_id"]),
+                "member_pseudo_id": indexing.member_pseudonym(header["member_id"]),
             }
             consult_documents.append(Document(page_content=body_text, metadata=metadata))
             if len(consult_documents) == 1:
@@ -420,7 +422,7 @@ def print_chunk_samples(chunks: list[dict]) -> None:
 
 
 def step_chunk(page_documents: dict, consult_documents: list[Document], card_names: dict) -> list[dict]:
-    """문서 유형별 구분자로 청크를 만들고 chunk_id를 붙임. 길이는 count_tokens(Cohere 토크나이저)로 셈.
+    """문서 유형별 구분자로 청크를 만들고 chunk_id를 붙임. 핵심 함수 chunk_document가 나누고 길이는 count_tokens로 셈.
 
     반환값: {"chunk_id", "text", "metadata"} dict의 목록. 검색기가 읽는 chunks.json과 같은 꼴임.
     """
@@ -435,7 +437,7 @@ def step_chunk(page_documents: dict, consult_documents: list[Document], card_nam
 
         sequence = 0
         for document in documents:
-            pieces = chunking.split_into_chunks(
+            pieces = indexing.chunk_document(
                 document.page_content, document.metadata, setting["separators"], count_tokens, chunk_size, CHUNK_OVERLAP
             )
             for piece in pieces:
@@ -455,7 +457,7 @@ def step_chunk(page_documents: dict, consult_documents: list[Document], card_nam
 # 단계 5. 임베딩
 # ---------------------------------------------------------------------------
 def step_embed(chunks: list[dict]) -> tuple[CohereEmbeddings, list[list[float]]]:
-    """Cohere API로 모든 청크 본문을 벡터로 바꿈. 96건씩 나눠 보내고 호출 횟수를 셈.
+    """Cohere API로 모든 청크 본문을 벡터로 바꿈. 핵심 함수 embed_chunks가 96건씩 나눠 보냄.
 
     반환값: (임베딩 객체, 청크 순서와 같은 벡터 목록). 임베딩 객체는 적재 뒤 검색기 방식의 읽기 확인에 다시 씀.
     예외: 호출 한도 초과(429)나 그 밖의 API 오류면 안내를 출력하고 종료함.
@@ -467,15 +469,9 @@ def step_embed(chunks: list[dict]) -> tuple[CohereEmbeddings, list[list[float]]]
     texts = []
     for chunk in chunks:
         texts.append(chunk["text"])
-    vectors = []
-    api_calls = 0
     started_at = time.time()
     try:
-        for start in range(0, len(texts), EMBED_BATCH_SIZE):
-            batch_vectors = embeddings.embed_documents(texts[start : start + EMBED_BATCH_SIZE])
-            vectors.extend(batch_vectors)
-            api_calls = api_calls + 1
-            print(f"  API 호출 {api_calls}회: {len(batch_vectors)}건 ({time.time() - started_at:.1f}초 경과)")
+        vectors, api_calls = indexing.embed_chunks(texts, embeddings, EMBED_BATCH_SIZE)  # 임베딩
     except cohere.TooManyRequestsError:
         print("  Cohere 호출 한도 초과(429). 잠시 뒤 다시 실행할 것")
         sys.exit(1)
@@ -496,29 +492,19 @@ def step_embed(chunks: list[dict]) -> tuple[CohereEmbeddings, list[list[float]]]
 # 단계 6. 적재
 # ---------------------------------------------------------------------------
 def step_store(chunks: list[dict], vectors: list, embeddings: CohereEmbeddings, data_dir: Path) -> None:
-    """벡터를 Chroma에 넣고 chunks.json을 씀. 부수효과: data_dir 아래 chroma/ 와 chunks.json을 만듦."""
+    """벡터를 Chroma에 넣고 chunks.json을 씀. 핵심 함수 store_chunks가 맡고, 여기서는 건수를 확인함.
+
+    부수효과: data_dir 아래 chroma/ 와 chunks.json을 만듦.
+    """
     print_step(6, "적재 — Chroma 저장과 chunks.json 기록")
     chroma_dir = data_dir / CHROMA_DIR_NAME
     chunks_json_path = data_dir / CHUNKS_JSON_NAME
     data_dir.mkdir(parents=True, exist_ok=True)
 
-    # 벡터를 이미 계산했으므로 chromadb 클라이언트로 직접 넣음(langchain의 add_documents는 다시 임베딩함)
-    client = chromadb.PersistentClient(path=str(chroma_dir))
-    collection = client.get_or_create_collection(name=COLLECTION_NAME, metadata=COLLECTION_METADATA)
-    for start in range(0, len(chunks), LOAD_BATCH_SIZE):
-        ids = []
-        documents = []
-        metadatas = []
-        for chunk in chunks[start : start + LOAD_BATCH_SIZE]:
-            ids.append(chunk["chunk_id"])
-            documents.append(chunk["text"])
-            metadatas.append(chunk["metadata"])
-        batch_vectors = vectors[start : start + LOAD_BATCH_SIZE]
-        collection.add(ids=ids, documents=documents, embeddings=batch_vectors, metadatas=metadatas)
-    print(f"  Chroma 저장 건수: {collection.count()} (collection={COLLECTION_NAME}, {chroma_dir})")
-
-    with open(chunks_json_path, "w", encoding="utf-8") as file:
-        json.dump(chunks, file, ensure_ascii=False, indent=2)
+    stored_count = indexing.store_chunks(  # 적재
+        chunks, vectors, chroma_dir, chunks_json_path, COLLECTION_NAME, COLLECTION_METADATA, LOAD_BATCH_SIZE
+    )
+    print(f"  Chroma 저장 건수: {stored_count} (collection={COLLECTION_NAME}, {chroma_dir})")
     print(f"  chunks.json 건수: {len(chunks)} ({chunks_json_path})")
 
     # 검색기가 쓰는 방식(langchain_chroma)으로 다시 열어 같은 건수가 읽히는지 확인함

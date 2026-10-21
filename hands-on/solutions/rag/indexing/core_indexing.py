@@ -1,8 +1,24 @@
-"""인덱싱 핵심 모듈: PDF 쪽 정제, 상담 가명처리, 토큰 기준 청킹 함수 5개(교육생 클론 코딩 대상)임."""
+"""인덱싱 핵심 모듈: 정제 → 청킹 → 임베딩 → 적재 4단계 함수와 보조 함수 4개(교육생 클론 코딩 대상)임.
+
+핵심 함수 4개(단계 이름 그대로)
+- clean_document  : 정제. PDF 쪽의 머리말·꼬리말·쪽번호 삭제, 상담 건의 개인정보 가명처리
+- chunk_document  : 청킹. 구분자 우선순위와 토큰 상한으로 본문을 청크로 나눔
+- embed_chunks    : 임베딩. 청크 본문을 배치로 나눠 임베딩 API에 보내고 벡터를 모음
+- store_chunks    : 적재. 벡터와 메타데이터를 Chroma에 넣고 chunks.json을 씀
+
+보조 함수 4개(핵심 함수가 안에서 부름)
+- find_repeated_lines, clean_page_text : 정제가 씀
+- mask_private_info, member_pseudonym  : 가명처리가 씀(member_pseudonym은 main이 메타데이터를 만들 때 직접 부름)
+
+로드(PDF 읽기, 상담 파일 나누기)는 라이브러리 호출뿐이라 main(index_docs.py)에 둠.
+"""
 
 import hashlib
+import json
 import re
+from pathlib import Path
 
+import chromadb
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -32,6 +48,9 @@ PRIVATE_PATTERNS = [
 AGE_PATTERN = re.compile(r"만\s*(\d{1,3})세")  # "만 35세" → 연령대로 바꿀 대상
 
 
+# ---------------------------------------------------------------------------
+# 보조 함수: 정제와 가명처리의 부품
+# ---------------------------------------------------------------------------
 def find_repeated_lines(pages: list[str], min_pages: int = 2) -> set[str]:
     """여러 쪽에 반복되는 머리말·꼬리말 줄을 찾음.
 
@@ -126,7 +145,32 @@ def member_pseudonym(member_id: str) -> str:
     return "m_" + digest[:16]
 
 
-def split_into_chunks(
+# ---------------------------------------------------------------------------
+# 핵심 함수 1. 정제
+# ---------------------------------------------------------------------------
+def clean_document(text: str, repeated_lines: set[str] | None = None, mask_private: bool = False) -> str:
+    """문서 한 단위(PDF 한 쪽 또는 상담 한 건)의 본문을 정제함.
+
+    목적: 청킹 전에 검색에 쓸모없는 줄을 걷어내고, 개인정보는 색인에 남기지 않기 위함.
+    방법: PDF 쪽이면 repeated_lines를 넘겨 머리말·꼬리말·쪽번호를 지움(clean_page_text).
+          상담 건이면 mask_private=True로 개인정보를 유형 토큰으로 바꿈(mask_private_info).
+          둘 다 켜면 순서대로 둘 다 적용함.
+    인자: repeated_lines는 find_repeated_lines가 돌려준 집합. None이면 쪽 정제를 건너뜀.
+          mask_private가 True면 가명처리를 함.
+    반환값: 정제된 본문. 모든 줄이 지워지면 빈 문자열임.
+    """
+    cleaned_text = text
+    if repeated_lines is not None:
+        cleaned_text = clean_page_text(cleaned_text, repeated_lines)
+    if mask_private:
+        cleaned_text = mask_private_info(cleaned_text)
+    return cleaned_text
+
+
+# ---------------------------------------------------------------------------
+# 핵심 함수 2. 청킹
+# ---------------------------------------------------------------------------
+def chunk_document(
     text: str,
     metadata: dict,
     separators: list[str],
@@ -153,3 +197,68 @@ def split_into_chunks(
     )
     documents = splitter.create_documents([text], metadatas=[metadata])
     return documents
+
+
+# ---------------------------------------------------------------------------
+# 핵심 함수 3. 임베딩
+# ---------------------------------------------------------------------------
+def embed_chunks(texts: list[str], embeddings, batch_size: int) -> tuple[list[list[float]], int]:
+    """청크 본문 목록을 배치로 나눠 임베딩 API에 보내고, 입력 순서 그대로 벡터 목록을 만듦.
+
+    목적: API는 한 요청에 넣을 수 있는 건수에 상한이 있고, 한 번에 다 보내면 실패 시 전부 잃으므로 나눠 보냄.
+    방법: start를 0, batch_size, 2*batch_size ... 로 옮기며 texts[start : start + batch_size]를 잘라
+          embeddings.embed_documents(배치)로 벡터를 받고 vectors 뒤에 이어 붙임.
+    인자: embeddings는 embed_documents(list[str]) -> list[list[float]] 메서드를 가진 객체(main이 만듦).
+          batch_size는 한 요청에 넣을 최대 건수임(Cohere는 96).
+    반환값: (벡터 목록, API 호출 횟수). 벡터 목록의 i번째는 texts의 i번째 본문의 벡터임.
+    예외: API 오류(호출 한도 초과 등)는 여기서 잡지 않고 main이 잡아 안내함.
+    """
+    vectors = []
+    api_calls = 0
+    for start in range(0, len(texts), batch_size):
+        batch_texts = texts[start : start + batch_size]
+        batch_vectors = embeddings.embed_documents(batch_texts)
+        vectors.extend(batch_vectors)
+        api_calls = api_calls + 1
+    return vectors, api_calls
+
+
+# ---------------------------------------------------------------------------
+# 핵심 함수 4. 적재
+# ---------------------------------------------------------------------------
+def store_chunks(
+    chunks: list[dict],
+    vectors: list[list[float]],
+    chroma_dir: Path,
+    chunks_json_path: Path,
+    collection_name: str,
+    collection_metadata: dict,
+    batch_size: int,
+) -> int:
+    """청크와 벡터를 Chroma collection에 넣고, 청크 목록을 chunks.json으로 씀.
+
+    목적: 검색기가 벡터 검색(Chroma)과 BM25·본문 표시(chunks.json) 두 가지를 읽을 수 있게 저장함.
+    방법: ① PersistentClient로 chroma_dir을 열고 collection을 만듦(거리 방식과 HNSW 값은 collection_metadata).
+          ② chunks와 vectors를 같은 자리끼리 batch_size개씩 묶어 collection.add(ids, documents, embeddings, metadatas).
+             벡터를 이미 계산했으므로 chromadb 클라이언트로 직접 넣음(langchain의 add_documents는 다시 임베딩함).
+          ③ chunks 목록을 그대로 JSON으로 씀(ensure_ascii=False라 한글이 그대로 보임).
+    인자: chunks는 {"chunk_id", "text", "metadata"} dict 목록. vectors는 chunks와 길이·순서가 같아야 함.
+    반환값: collection에 저장된 건수. chunks 수와 같아야 정상임.
+    """
+    client = chromadb.PersistentClient(path=str(chroma_dir))
+    collection = client.get_or_create_collection(name=collection_name, metadata=collection_metadata)
+    for start in range(0, len(chunks), batch_size):
+        ids = []
+        documents = []
+        metadatas = []
+        for chunk in chunks[start : start + batch_size]:
+            ids.append(chunk["chunk_id"])
+            documents.append(chunk["text"])
+            metadatas.append(chunk["metadata"])
+        batch_vectors = vectors[start : start + batch_size]
+        collection.add(ids=ids, documents=documents, embeddings=batch_vectors, metadatas=metadatas)
+
+    with open(chunks_json_path, "w", encoding="utf-8") as file:
+        json.dump(chunks, file, ensure_ascii=False, indent=2)
+
+    return collection.count()

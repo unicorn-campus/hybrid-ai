@@ -39,8 +39,8 @@ hands-on/solutions/rag/
 ├─ .venv/                     인덱싱과 검색 공용 가상환경
 ├─ indexing/
 │  ├─ index_docs.py           main: 로드 → 정제 → 가명처리 → 청킹 → 임베딩 → Chroma 적재(단계별 함수)
-│  ├─ core_chunking.py        핵심(클론 코딩 대상): 반복 줄 찾기, 정제, 가명처리, 가명 ID, 청크 분할
-│  ├─ my_chunking.py          교육생 작업 파일(함수 뼈대와 정규식 상수 제공)
+│  ├─ core_indexing.py        핵심(클론 코딩 대상): 핵심 4개(정제, 청킹, 임베딩, 적재) + 보조 4개
+│  ├─ my_indexing.py          교육생 작업 파일(함수 뼈대와 정규식 상수 제공, 임베딩과 적재는 빈칸 채우기)
 │  ├─ data/                   전체 실행 결과: chroma/, chunks.json (검색기가 읽음)
 │  └─ data-limit/             --limit 실행 결과(빠른 확인용, 검색기는 읽지 않음)
 ├─ retriever/
@@ -83,29 +83,32 @@ hands-on/solutions/rag/
 
 | 순서 | 핵심 파일 | 직접 쓰는 함수 수 | 개념 | 교시 |
 |---|---|---|---|---|
-| 1 | `core_chunking.py` | 5개 | 가명 ID(해시), 구분자 우선순위와 토큰 기준 크기, 머리말과 꼬리말 제거, 개인정보 치환 | W3 3-2 |
+| 1 | `core_indexing.py` | 8개(6개는 직접, 2개는 빈칸 채우기) | 가명 ID(해시), 구분자 우선순위와 토큰 기준 크기, 머리말과 꼬리말 제거, 개인정보 치환, 임베딩 배치 호출, Chroma 적재 | W3 3-2 |
 | 2 | `core_hybrid.py` | 3개 | 형태소 분석과 내용어 선택, BM25 점수, 정규화 가중합 | W4 4-2 |
 | 3 | `core_scoring.py` | 3개 | 결과 정보 4칸, 4지표 `ascore`, 평균 집계 | W4 4-3 |
 
 직접 쓰는 함수(쉬운 것부터)와 읽고 복사하는 것
 
-- `core_chunking.py`: `member_pseudonym` → `split_into_chunks` → `clean_page_text` → `find_repeated_lines`  
-  → `mask_private_info`.  
+- `core_indexing.py`: `member_pseudonym` → `chunk_document` → `clean_page_text` → `find_repeated_lines`  
+  → `mask_private_info` → `clean_document`(여기까지 6개는 직접 씀)  
+  → `embed_chunks`(빈칸 2곳) → `store_chunks`(빈칸 3곳)(뒤 2개는 거의 완성된 코드의 빈칸만 채움).  
+  임베딩은 API를 쓰므로 `--limit 8` 로 먼저 확인.  
   정규식 상수(`PRIVATE_PATTERNS` 등)는 뼈대에 완성본으로 제공
 - `core_hybrid.py`: `tokenize_korean` → `search_bm25` → `fuse_weighted`.  
   `build_tokenizer`, `fuse_rrf`, `rerank`, `member_pseudonym`과 가중합 보조 함수 4개는 읽고 복사
 - `core_scoring.py`: `select_rows` → `score_row` → `summarize`. 평가자 생성(`build_metrics`)은 main이 제공
 
-클론 코딩 대상에서 뺀 것(강사 제공, 읽기만): PDF 로더, Chroma 적재와 검색 호출, 답변 프롬프트와 LLM 호출, 결과 로그 저장.  
+클론 코딩 대상에서 뺀 것(강사 제공, 읽기만): PDF 로더, 검색 호출, 답변 프롬프트와 LLM 호출, 결과 로그 저장.  
+Chroma 적재는 빈칸 채우기 방식으로 클론 코딩에 포함함(`store_chunks`).  
 이유: 라이브러리 호출법이 대부분이라 직접 쳐도 개념 이해에 보탬이 적음. 대신 main 코드를 줄 단위 주석으로 읽게 함.
 
 ## 5. 교체 방법(클론 코딩 → 본인 코드 실행)
 
-1. `my_chunking.py`(뼈대)에 강사 시연을 보며 같은 이름, 같은 인자의 함수를 채움. 미완성 함수는 `NotImplementedError`가 나서 어디가 비었는지 바로 보임
+1. `my_indexing.py`(뼈대)에 강사 시연을 보며 같은 이름, 같은 인자의 함수를 채움. 미완성 함수는 `NotImplementedError`가 나서 어디가 비었는지 바로 보임
 2. main 파일의 import 한 줄을 바꿈
    ```python
-   import core_chunking as chunking   # 강사 코드로 실행
-   import my_chunking as chunking     # 본인 코드로 실행 (이 줄만 바꿈)
+   import core_indexing as indexing   # 강사 코드로 실행
+   import my_indexing as indexing     # 본인 코드로 실행 (이 줄만 바꿈)
    ```
 3. 같은 명령으로 다시 실행해 단계별 출력(청크 수, 토큰 길이, 샘플)을 강사 결과와 비교함
 4. 막히면 import를 되돌려 강사 코드로 뒤 단계를 계속 진행함(실습이 멈추지 않음)
@@ -145,7 +148,7 @@ hands-on/solutions/rag/
 | 교시 | 커리큘럼 | 내용 | 방식 | 시간 |
 |---|---|---|---|---|
 | 3-1 | S3.1 | 교재 114 ~ 132쪽 이론. 예제 전체 구조 소개(폴더, main과 core, 교체 방법, 두 가상환경) | 이론 | 1.0H |
-| 3-2 | S3.1 | 강사 시연 `--limit 8`(결과 `data-limit/`) → `my_chunking.py` 클론 코딩(4장 순서) → 교체 실행 | 이론+실습 | 1.0H |
+| 3-2 | S3.1 | 강사 시연 `--limit 8`(결과 `data-limit/`) → `my_indexing.py` 클론 코딩(4장 순서) → 교체 실행 | 이론+실습 | 1.0H |
 | 3-3 | S3.2 | 전체 인덱싱(1분) → 적재와 검색 코드 읽기 → `--mode vector` 실행과 권한 필터 확인 | 실습 | 1.0H |
 | 3-4 | S3.2 | 답변 프롬프트와 `확인 필요:` 분기 읽기 → 질의응답 5건 산출 → 조 간 코드 리뷰 | 실습(멘토링) | 1.0H |
 
@@ -182,7 +185,7 @@ hands-on/solutions/rag/
 
 | 실습 | 완료 기준 |
 |---|---|
-| 인덱싱 | `my_chunking.py`로 교체 실행한 청크 수(260)와 800토큰 초과 0개가 강사 결과와 같음 |
+| 인덱싱 | `my_indexing.py`로 교체 실행한 청크 수(260)와 800토큰 초과 0개가 강사 결과와 같음 |
 | 검색 | `my_hybrid.py`로 교체한 4모드 비교표 1장, 조별 가중치와 선택 근거 1줄 |
 | 평가 | `my_scoring.py`로 채점한 문항 × 4지표 표, 0.7 미만 문항의 원인 분류(검색 쪽 또는 답변 쪽) |
 
@@ -231,6 +234,7 @@ hands-on/solutions/rag/
 | 임베딩 변경(계속) | 청킹 토큰은 Cohere 토크나이저(오프라인), RAGAS 임베딩은 LiteLLM 경유. 재색인과 종단간 재검증 수행 |
 | 결정 확정 | 강사가 D2 ~ D6을 클로니 최종안대로 확정(D1 임베딩, D7 인덱싱 시간은 앞서 종결). 남은 결정 없음 |
 | 임베딩 변경 검증 | 청크 260개, 인덱싱 12초. run_eval Hit@5 17/17, 확인 필요 5/5. RAGAS 17행 전부 채점(AnswerRelevancy는 분포 변화로 낮아짐) |
+| 인덱싱 핵심 모듈 재편 | 2026-10-21 강사 지시로 core_chunking(5개) → core_indexing(핵심 4개 정제, 청킹, 임베딩, 적재 + 보조 4개). 임베딩과 적재는 빈칸 채우기 뼈대. 전체 재실행으로 청크 260개와 chunks.json 내용 동일 확인 |
 
 ## 14. 산출물 목록
 

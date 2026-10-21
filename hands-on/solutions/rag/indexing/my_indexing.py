@@ -1,11 +1,26 @@
-"""교육생용 뼈대: core_chunking.py와 같은 이름·같은 인자의 함수 5개를 본인 코드로 채우는 파일임."""
+"""교육생용 뼈대: core_indexing.py와 같은 이름·같은 인자의 함수 8개를 본인 코드로 채우는 파일임.
 
-# 사용법: 아래 함수를 채운 뒤 index_docs.py의 import 한 줄을 "import my_chunking as chunking"으로 바꿈
+채우는 순서(쉬운 것부터). 앞의 6개는 직접 쓰고, 뒤의 2개는 거의 완성된 코드의 빈칸만 채움
+  1 member_pseudonym   (보조) 가명 ID 2줄
+  2 chunk_document     (핵심) 분할기 만들기
+  3 clean_page_text    (보조) 줄 걸러내기
+  4 find_repeated_lines(보조) 반복 줄 세기
+  5 mask_private_info  (보조) 정규식 치환
+  6 clean_document     (핵심) 위 보조 함수를 순서대로 부르기
+  7 embed_chunks       (핵심) 빈칸 2곳: 배치 슬라이싱, 벡터 이어 붙이기
+  8 store_chunks       (핵심) 빈칸 3곳: 배치 슬라이싱, collection.add 인자, JSON 쓰기
+"""
+
+# 사용법: 아래 함수를 채운 뒤 index_docs.py의 import 한 줄을 "import my_indexing as indexing"으로 바꿈
 # 정규식과 상수는 학습 목표가 아니므로 완성본을 그대로 줌. 교육생은 이 값을 "쓰는" 코드만 작성함
+# 임베딩(7)은 API를 부르므로 먼저 "--limit 8"로 실행해 호출 횟수가 적을 때 맞는지 확인한 뒤 전체를 돌림
 
 import hashlib
+import json
 import re
+from pathlib import Path
 
+import chromadb
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -31,6 +46,9 @@ PRIVATE_PATTERNS = [
 AGE_PATTERN = re.compile(r"만\s*(\d{1,3})세")  # "만 35세" → 연령대로 바꿀 대상. group(1)이 나이 숫자임
 
 
+# ---------------------------------------------------------------------------
+# 보조 함수 4개: 정제와 가명처리의 부품
+# ---------------------------------------------------------------------------
 def find_repeated_lines(pages: list[str], min_pages: int = 2) -> set[str]:
     """여러 쪽에 반복되는 머리말·꼬리말 줄을 찾음.
 
@@ -79,7 +97,25 @@ def member_pseudonym(member_id: str) -> str:
     raise NotImplementedError("여기에 본인 코드를 작성함")
 
 
-def split_into_chunks(
+# ---------------------------------------------------------------------------
+# 핵심 함수 1. 정제
+# ---------------------------------------------------------------------------
+def clean_document(text: str, repeated_lines: set[str] | None = None, mask_private: bool = False) -> str:
+    """문서 한 단위(PDF 한 쪽 또는 상담 한 건)의 본문을 정제함.
+
+    인자: repeated_lines가 None이 아니면 쪽 정제(clean_page_text)를 함. mask_private가 True면 가명처리를 함.
+    반환값: 정제된 본문. main은 PDF 쪽에는 repeated_lines를, 상담 건에는 mask_private=True를 넘김.
+    """
+    # 할 일 1: repeated_lines가 None이 아니면 clean_page_text(text, repeated_lines)로 바꿈
+    # 할 일 2: mask_private가 True면 mask_private_info(...)로 한 번 더 바꿈
+    # 할 일 3: 결과를 돌려줌(둘 다 해당 없으면 입력 그대로)
+    raise NotImplementedError("여기에 본인 코드를 작성함")
+
+
+# ---------------------------------------------------------------------------
+# 핵심 함수 2. 청킹
+# ---------------------------------------------------------------------------
+def chunk_document(
     text: str,
     metadata: dict,
     separators: list[str],
@@ -97,3 +133,65 @@ def split_into_chunks(
     # 할 일 2: chunk_size, chunk_overlap, separators, is_separator_regex=True, keep_separator="start"도 함께 넘김
     # 할 일 3: splitter.create_documents([text], metadatas=[metadata])의 결과를 그대로 돌려줌
     raise NotImplementedError("여기에 본인 코드를 작성함")
+
+
+# ---------------------------------------------------------------------------
+# 핵심 함수 3. 임베딩 (빈칸 채우기)
+# ---------------------------------------------------------------------------
+def embed_chunks(texts: list[str], embeddings, batch_size: int) -> tuple[list[list[float]], int]:
+    """청크 본문 목록을 배치로 나눠 임베딩 API에 보내고, 입력 순서 그대로 벡터 목록을 만듦.
+
+    인자: embeddings는 embed_documents(list[str]) -> list[list[float]] 메서드를 가진 객체(main이 만듦).
+    반환값: (벡터 목록, API 호출 횟수). 벡터 목록의 i번째는 texts의 i번째 본문의 벡터임.
+    """
+    vectors = []
+    api_calls = 0
+    for start in range(0, len(texts), batch_size):
+        batch_texts = None  # 빈칸 1: texts에서 start부터 batch_size개를 슬라이싱해 넣음
+        if batch_texts is None:
+            raise NotImplementedError("빈칸 1을 채울 것")
+        batch_vectors = embeddings.embed_documents(batch_texts)
+        # 빈칸 2: batch_vectors를 vectors 뒤에 이어 붙임(append가 아니라 목록을 통째로 잇는 메서드)
+        raise NotImplementedError("빈칸 2를 채우고 이 줄을 지울 것")
+        api_calls = api_calls + 1
+    return vectors, api_calls
+
+
+# ---------------------------------------------------------------------------
+# 핵심 함수 4. 적재 (빈칸 채우기)
+# ---------------------------------------------------------------------------
+def store_chunks(
+    chunks: list[dict],
+    vectors: list[list[float]],
+    chroma_dir: Path,
+    chunks_json_path: Path,
+    collection_name: str,
+    collection_metadata: dict,
+    batch_size: int,
+) -> int:
+    """청크와 벡터를 Chroma collection에 넣고, 청크 목록을 chunks.json으로 씀.
+
+    인자: chunks는 {"chunk_id", "text", "metadata"} dict 목록. vectors는 chunks와 길이·순서가 같아야 함.
+    반환값: collection에 저장된 건수.
+    """
+    client = chromadb.PersistentClient(path=str(chroma_dir))
+    collection = client.get_or_create_collection(name=collection_name, metadata=collection_metadata)
+    for start in range(0, len(chunks), batch_size):
+        ids = []
+        documents = []
+        metadatas = []
+        for chunk in chunks[start : start + batch_size]:
+            ids.append(chunk["chunk_id"])
+            documents.append(chunk["text"])
+            metadatas.append(chunk["metadata"])
+        batch_vectors = None  # 빈칸 1: vectors에서 같은 자리(start부터 batch_size개)를 슬라이싱해 넣음
+        if batch_vectors is None:
+            raise NotImplementedError("빈칸 1을 채울 것")
+        # 빈칸 2: collection.add(ids=..., documents=..., embeddings=..., metadatas=...)를 위 네 목록으로 부름
+        raise NotImplementedError("빈칸 2를 채우고 이 줄을 지울 것")
+
+    with open(chunks_json_path, "w", encoding="utf-8") as file:
+        # 빈칸 3: json.dump(...)로 chunks를 file에 씀. 한글이 그대로 보이게 ensure_ascii=False, 보기 좋게 indent=2
+        raise NotImplementedError("빈칸 3을 채우고 이 줄을 지울 것")
+
+    return collection.count()

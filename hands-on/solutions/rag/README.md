@@ -19,7 +19,7 @@ flowchart LR
 
 | 폴더 | main | 핵심 모듈(클론 코딩 대상) | 교육생 작업 파일 | 만드는 것 |
 |---|---|---|---|---|
-| `indexing/` | `index_docs.py` | `core_chunking.py` | `my_chunking.py` | `data/chroma/`, `data/chunks.json` |
+| `indexing/` | `index_docs.py` | `core_indexing.py` | `my_indexing.py` | `data/chroma/`, `data/chunks.json` |
 | `retriever/` | `search_docs.py`, `run_eval.py` | `core_hybrid.py` | `my_hybrid.py` | 검색 결과 화면, `logs/results.json` |
 | `ragas/` | `evaluate_ragas.py` | `core_scoring.py` | `my_scoring.py` | 채점 표, `logs/ragas-*.json` |
 
@@ -128,7 +128,7 @@ cd ../ragas
 ## 6. 교육생 교체 방법(공통)
 
 1. `my_*.py` 뼈대 파일에 강사 시연을 보며 같은 이름, 같은 인자의 함수를 채움
-2. main 파일의 import 한 줄을 바꿈. 예: `import core_chunking as chunking` → `import my_chunking as chunking`
+2. main 파일의 import 한 줄을 바꿈. 예: `import core_indexing as indexing` → `import my_indexing as indexing`
 3. 같은 명령으로 다시 실행해 단계별 출력을 강사 결과와 비교함
 4. 막히면 import를 되돌려 강사 코드로 뒤 단계를 계속 진행함
 

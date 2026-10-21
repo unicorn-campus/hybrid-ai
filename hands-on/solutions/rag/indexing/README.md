@@ -35,16 +35,20 @@ flowchart TD
     G --> I[data/chroma/]
 ```
 
-단계별 호출 함수. main(`index_docs.py`)의 단계 함수가 핵심 모듈(`core_chunking.py`)의 함수를 부름
+단계별 호출 함수. main(`index_docs.py`)의 단계 함수가 핵심 모듈(`core_indexing.py`)의 함수를 부름
 
 | 단계 | main의 단계 함수 | main의 보조 함수 | 핵심 모듈 함수 |
 |---|---|---|---|
-| 1 로드 | `step_load` | `load_pdf_pages`, `load_consult_records` | 없음 |
-| 2 정제 | `step_clean` | `build_card_name_table` | `find_repeated_lines`, `clean_page_text` |
-| 3 가명처리 | `step_mask` | `build_consult_body`, `print_mask_sample` | `mask_private_info`, `member_pseudonym` |
-| 4 청킹 | `step_chunk` | `count_tokens`, `attach_card_header`, 통계와 샘플 출력 함수 | `split_into_chunks` |
-| 5 임베딩 | `step_embed` | 없음(`CohereEmbeddings.embed_documents`를 96건씩 호출) | 없음 |
-| 6 적재 | `step_store` | 없음(`chromadb` collection에 저장, `chunks.json` 기록) | 없음 |
+| 1 로드 | `step_load` | `load_pdf_pages`, `load_consult_records` | 없음(로드는 main에 있고 클론 코딩 대상이 아님) |
+| 2 정제 | `step_clean` | `build_card_name_table` | `find_repeated_lines`(보조), `clean_document` |
+| 3 가명처리 | `step_mask` | `build_consult_body`, `print_mask_sample` | `clean_document`(`mask_private=True`), `member_pseudonym`(보조) |
+| 4 청킹 | `step_chunk` | `count_tokens`, `attach_card_header`, 통계와 샘플 출력 함수 | `chunk_document` |
+| 5 임베딩 | `step_embed` | 없음(API 오류 처리와 시간 측정) | `embed_chunks` |
+| 6 적재 | `step_store` | 없음(적재 뒤 `langchain_chroma`로 다시 읽어 건수 확인) | `store_chunks` |
+
+핵심 함수는 4개(`clean_document`, `chunk_document`, `embed_chunks`, `store_chunks`)이고, 단계 이름과 같음.  
+보조 함수는 4개임. `find_repeated_lines`, `clean_page_text`는 `clean_document`가 부르고,  
+`mask_private_info`, `member_pseudonym`은 가명처리가 씀(`member_pseudonym`은 main이 메타데이터를 만들 때도 직접 부름)
 
 실행 전 점검 함수: `check_docs_dir`(원천 폴더 확인), `check_secrets`(`secrets/.env`와 `COHERE_API_KEY` 확인),  
 `remove_old_chroma`(지난 결과 삭제. 임베딩 전에 지움). 작은 도우미: `make_chunk_id`, `print_step`, `print_lines`
@@ -62,8 +66,8 @@ hands-on/solutions/rag/
 ├── README.md              # 공통 안내(가상환경 설정은 여기 3절)
 ├── indexing/              # 이 폴더
 │   ├── index_docs.py      # main. 설정 상수, 로더, 단계 함수 6개
-│   ├── core_chunking.py   # 핵심 모듈(교육생 클론 코딩 대상). 함수 5개
-│   ├── my_chunking.py     # 교육생용 뼈대. 같은 함수 5개의 서명과 "할 일" 힌트
+│   ├── core_indexing.py   # 핵심 모듈(교육생 클론 코딩 대상). 핵심 함수 4개와 보조 함수 4개
+│   ├── my_indexing.py     # 교육생용 뼈대. 같은 함수 8개의 서명과 "할 일" 힌트(뒤 2개는 빈칸 채우기)
 │   ├── README.md
 │   ├── .gitignore         # data/, data-limit/ 를 저장소에 올리지 않음
 │   ├── data/              # 전체 실행이 만듦(검색기가 읽음)
@@ -172,18 +176,22 @@ Chroma collection 설정(`COLLECTION_METADATA`)
 
 ## 7. 교육생 교체 방법
 
-1. `my_chunking.py` 의 함수 5개를 채움. 각 함수 안의 `# 할 일 n:` 줄이 순서대로 할 일을 알려 줌  
-   (`find_repeated_lines`, `clean_page_text`, `mask_private_info`, `member_pseudonym`, `split_into_chunks`).  
+1. `my_indexing.py` 의 함수 8개를 채움(핵심 4개 + 보조 4개). 파일 맨 위 설명에 채우는 순서가 있음  
+   (`member_pseudonym` → `chunk_document` → `clean_page_text` → `find_repeated_lines` → `mask_private_info`  
+   → `clean_document` → `embed_chunks` → `store_chunks`).  
+   앞 6개는 `NotImplementedError` 뼈대에 직접 쓰고, 뒤 2개는 거의 완성된 코드의 빈칸만 채움  
+   (`embed_chunks`는 빈칸 2곳, `store_chunks`는 빈칸 3곳).  
+   임베딩은 API를 부르므로 `--limit 8` 로 먼저 확인한 뒤 전체를 돌림.  
    정규식과 여백 줄 수 상수는 파일 맨 위에 완성본으로 있으므로 그대로 쓰고, 그 값을 쓰는 코드만 작성함
 2. `index_docs.py` 의 import 한 줄을 바꿈
 
    ```python
-   import core_chunking as chunking   # 이 줄을
-   import my_chunking as chunking     # 이렇게 바꿈
+   import core_indexing as indexing   # 이 줄을
+   import my_indexing as indexing     # 이렇게 바꿈
    ```
 
 3. `--limit 8` 로 먼저 실행해 오류가 없는지 본 뒤(결과는 `data-limit/`) 전체 실행함(결과는 `data/`)
-4. 결과 비교: 단계 4의 청크 수와 토큰 길이, 단계 6의 건수가 `core_chunking.py` 결과와 같은지 봄.  
+4. 결과 비교: 단계 4의 청크 수와 토큰 길이, 단계 6의 건수가 `core_indexing.py` 결과와 같은지 봄.  
    `data/chunks.json` 을 열어 `가상고객`, `@example`, `0000-0000-` 이 남아 있지 않은지 검색해 봄  
    (`010-` 으로 찾으면 카드 코드 `D2-C010-` 이 걸리므로 상담 청크인지 확인함)
 
