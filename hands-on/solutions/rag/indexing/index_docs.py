@@ -155,8 +155,8 @@ def remove_old_outputs(data_dir: Path) -> None:
     """지난 실행의 결과(Chroma 폴더, BM25 색인 폴더, 예전 버전 파일)를 지움. 실패하면 안내하고 종료함.
 
     목적: 실행마다 전체 재색인하므로 지난 청크가 섞이지 않게 함.
-    방법: 임베딩(수 분)보다 먼저 지움. 뒤에서 지우다 실패하면 임베딩 결과를 통째로 잃기 때문임.
-          Windows는 다른 프로그램(검색기)이 폴더를 열고 있으면 PermissionError로 삭제가 막힘.
+    방법: Chroma 폴더, BM25 색인 폴더, 예전 버전 파일을 지움.
+          Windows는 검색기가 폴더를 열고 있으면 PermissionError로 삭제가 막히므로 안내 후 종료함.
     """
     try:
         for dir_name in [CHROMA_DIR_NAME, BM25_DIR_NAME]:
@@ -641,11 +641,20 @@ def step_bm25_index(chunks: list[dict], data_dir: Path) -> None:
     print_step(7, f"BM25 색인 — Kiwi 토큰화 + bm25s (k1={BM25_K1}, b={BM25_B}, {indexing.BM25_METHOD})")
     index_dir = data_dir / BM25_DIR_NAME
 
-    # 사전 두 가지: 별칭 사전(별칭 → 정식명)과 사용자 사전(Kiwi가 이름을 쪼개지 않게 함)
+    # ===== 사용자 사전, 별칭 사전을 만들고 Kiwi 형태소 분석기에 고유명사로 등록 ====
+    # 사전자 사전 만들기: 청크에서 카드명만 모아 정식명 목록을 만듦
     card_names = collect_card_names(chunks)
+    
+    # 별칭 사전 만들기: 정식명을 키로 별칭을 값으로 하는 dict
     aliases, review = indexing.make_alias_table(card_names, load_approved_aliases())
+    
+    # 별칭 사전을 뒤집어 역방향 대응표 {별칭: 정식명}을 만듦.
     alias_to_name = indexing.build_alias_lookup(aliases)
+    
+    # Kiwi 형태소 분석기를 만들고 사용자 사전과 별칭사전을 고유명사(NNP)로 등록함
     kiwi = indexing.build_tokenizer(card_names, aliases)
+    # ============================================================================
+    
     alias_count = 0
     for alias_list in aliases.values():
         alias_count = alias_count + len(alias_list)
@@ -656,7 +665,9 @@ def step_bm25_index(chunks: list[dict], data_dir: Path) -> None:
     print("  자가 테스트: 네 가지 표기의 질문")
     run_alias_self_test(kiwi, alias_to_name)
 
-    # 청크 토큰화   
+    
+    # ============= 청크 본문을 Kiwi로 토큰화하고 bm25s 색인을 만듦 =============
+    # 청크 토큰화하면서 별칭 사전의 역방향 대응표(alias_to_name)를 적용함. 청크 ID도 함께 모음
     started_at = time.time()
     chunk_tokens = []
     chunk_ids = []
@@ -671,7 +682,9 @@ def step_bm25_index(chunks: list[dict], data_dir: Path) -> None:
     
     # BM25 색인 만들기(점수화 포함) 후 저장    
     doc_count = indexing.build_bm25_index(chunk_tokens, chunk_ids, index_dir, BM25_K1, BM25_B)  # bm25s 색인
+    # ===========================================================================
     
+    # ============== 검색을 위한 중요 정보 저장 및 색인 검증 ==============
     # 색인 폴더에 사전(dictionary.json), 검수 목록(aliases_review.json), 요약(manifest.json) 저장 : 검색 시 필요한 정보라 저장함   
     write_bm25_sidecars(index_dir, card_names, aliases, review, len(chunks))
 
@@ -682,7 +695,7 @@ def step_bm25_index(chunks: list[dict], data_dir: Path) -> None:
         print("  오류: 색인 문서 수가 청크 수와 다름 → 색인을 다시 만들어야 함")
         sys.exit(1)
     print(f"  저장 위치: {index_dir} (bm25s 점수표, chunk_ids.json, dictionary.json, aliases_review.json, manifest.json)")
-
+    #==========================================================================
 
 # ---------------------------------------------------------------------------
 # main: 점검 뒤 7단계를 순서대로 실행함
@@ -705,7 +718,8 @@ def main() -> None:
         print(f"--limit {limit}: 결과는 {data_dir} 에 씀(검색기는 data/ 를 읽으므로 영향 없음)")
         if limit < D2_CARD_INDEX_LAST_PAGE:
             print(f"--limit 가 {D2_CARD_INDEX_LAST_PAGE} 미만이면 카드명 표(3 ~ 6쪽)를 다 읽지 못해 일부 카드 머리말이 안 붙음(단계 7 자가 테스트도 실패로 표시될 수 있음)")
-    remove_old_outputs(data_dir)  # 임베딩(수 분)보다 먼저 지워 삭제 실패로 결과를 잃지 않게 함
+
+    remove_old_outputs(data_dir)  # 지난 실행 결과를 지움. 실패하면 안내하고 종료함
 
     # 1 로드: PDF(D1, D2)는 쪽 단위로, 상담 파일(D3)은 상담 건 단위로 원문 텍스트를 꺼냄
     pdf_pages_by_file, consult_records_by_file = step_load(limit)

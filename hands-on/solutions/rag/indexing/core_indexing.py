@@ -37,8 +37,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 # 머리말·꼬리말 후보로 보는 영역. PyMuPDF의 get_text()는 글자 좌표를 주지 않으므로
 # "쪽 위쪽 몇 줄, 아래쪽 몇 줄"을 머리말·꼬리말 영역으로 봄(교육용 단순화)
 # 쪽 전체 줄로 반복을 세면 D2 표의 "항목"·"혜택" 같은 본문 머리글까지 지워지므로 영역을 제한함
-MARGIN_TOP_LINES = 4  # 쪽 위쪽에서 머리말 후보로 보는 줄 수
 MARGIN_BOTTOM_LINES = 2  # 쪽 아래쪽에서 꼬리말 후보로 보는 줄 수
+MARGIN_TOP_LINES = 4  # 쪽 위쪽에서 머리말 후보로 보는 줄 수
 
 PAGE_NUMBER_PATTERN = re.compile(r"^-\s*\d+\s*-$")  # "- 3 -" 꼴 쪽번호 줄
 DIGITS_ONLY_PATTERN = re.compile(r"^\d+$")  # "17" 처럼 숫자만 있는 줄(D2 쪽번호. 표 칸의 한 자리 숫자 줄도 함께 지워짐)
@@ -83,6 +83,8 @@ def find_repeated_lines(pages: list[str], min_pages: int = 2) -> set[str]:
         # 같은 쪽 안에서 두 번 나와도 한 쪽으로 세야 하므로 set으로 묶음
         margin_lines = set(lines[:MARGIN_TOP_LINES] + lines[-MARGIN_BOTTOM_LINES:])
         for line in margin_lines:
+            # 예: count_by_line["한빛카드 개인회원 이용약관"] = 3 처럼 머리말 또는 꼬리말 줄을 키로,
+            # 그 줄이 나온 쪽 수를 값으로 둠. 처음 나온 쪽에서 1, 다음 쪽에서 또 나오면 2, ...
             if line in count_by_line:
                 count_by_line[line] = count_by_line[line] + 1
             else:
@@ -250,7 +252,7 @@ def store_chunks(
 
     목적: 검색기가 벡터 검색과 본문 표시를 모두 Chroma 한 곳에서 읽게 함(본문과 메타데이터의 단일 출처).
     방법: ① PersistentClient로 chroma_dir을 열고 collection을 만듦(거리 방식과 HNSW 값은 collection_metadata).
-          ② chunks와 vectors를 같은 자리끼리 batch_size개씩 묶어 collection.add(ids, documents, embeddings, metadatas).
+          ② chunks와 vectors를 같은 자리끼리 batch_size개씩 묶어 collection.upsert(ids, documents, embeddings, metadatas).
              벡터를 이미 계산했으므로 chromadb 클라이언트로 직접 넣음(langchain의 add_documents는 다시 임베딩함).
     인자: chunks는 {"chunk_id", "text", "metadata"} dict 목록. vectors는 chunks와 길이·순서가 같아야 함.
     반환값: collection에 저장된 건수. chunks 수와 같아야 정상임.
@@ -266,7 +268,7 @@ def store_chunks(
             documents.append(chunk["text"])
             metadatas.append(chunk["metadata"])
         batch_vectors = vectors[start : start + batch_size]
-        collection.add(ids=ids, documents=documents, embeddings=batch_vectors, metadatas=metadatas)
+        collection.upsert(ids=ids, documents=documents, embeddings=batch_vectors, metadatas=metadatas)
 
     return collection.count()
 
@@ -329,6 +331,8 @@ def make_alias_table(card_names: list[str], approved: dict | None = None) -> tup
     """
     base_kiwi = Kiwi()  # 사용자 사전이 없는 기본 분석기. 걸러내기 ①에만 씀
     candidates = {}  # 별칭 → 그 별칭이 가리키는 정식명 집합
+
+    # ===== 1) 별칭 후보 모으기: 별칭을 키로, 그 별칭이 가리키는 정식명 집합을 값으로 둠 =====
     # 아래 주석의 예시는 card_name = "한빛 통신할부 A" 한 건을 따라감
     for card_name in card_names:
         canonical = canonical_card_name(card_name)  # 예: "한빛통신할부a" (소문자, 띄어쓰기 없음)
@@ -336,6 +340,7 @@ def make_alias_table(card_names: list[str], approved: dict | None = None) -> tup
         short_name = full_name  # 예: 접두어가 없을 때를 대비해 일단 "한빛 통신할부 a"로 둠
         if full_name.startswith(CARD_NAME_PREFIX):  # 예: "한빛 "으로 시작하므로 참
             short_name = full_name[len(CARD_NAME_PREFIX):]  # 예: 앞 3글자 "한빛 "을 떼어 "통신할부 a"
+
         # 예: {"한빛 통신할부 a", "통신할부 a", "통신할부a"}. 이름이 같아지면 set이라 하나만 남음
         base_forms = {full_name, short_name, short_name.replace(" ", "")}
         forms = set()
@@ -345,12 +350,15 @@ def make_alias_table(card_names: list[str], approved: dict | None = None) -> tup
             forms.add(form + " " + CARD_WORD)  # 예: "통신할부a 카드"
         # 여기까지 후보 최대 3 × 3 = 9개(띄어쓰기 없는 카드명은 형태가 겹쳐 6개)
         forms.discard(canonical)  # 정식명 자체는 별칭이 아님. 예: "한빛통신할부a"는 후보에 없으므로 그대로 9개
+
+        # 별칭마다 정식명을 집합에 넣음(같은 별칭을 여러 카드가 만들면 집합에 정식명이 쌓임)
         for alias in forms:  # 예: alias = "통신할부a카드"일 때
             if alias not in candidates:  # 예: 처음 나온 별칭이면
                 candidates[alias] = set()  # 예: candidates["통신할부a카드"] = set()
             candidates[alias].add(canonical)  # 예: candidates["통신할부a카드"] = {"한빛통신할부a"}
             # 다른 카드도 같은 별칭을 만들면 집합에 정식명이 2개가 되어 아래 걸러내기 ②에 걸림
 
+    # ===== 2) 별칭 사전 만들기: 후보를 걸러 정식명을 키로, 별칭 목록을 값으로 둠 =====
     aliases = {}
     review = []
     # 아래 주석의 예시는 통과하는 "가게모음카드"와 걸러지는 "대중교통카드"를 따라감
@@ -367,6 +375,7 @@ def make_alias_table(card_names: list[str], approved: dict | None = None) -> tup
             # 예: {"alias": "대중교통카드", "canonical": "한빛대중교통", "reason": "일반 명사와 겹침"}
             review.append({"alias": alias, "canonical": sorted(canonicals)[0], "reason": reason})
             continue
+
         canonical = sorted(canonicals)[0]  # 통과했으면 정식명이 1개뿐임. 예: "한빛가게모음"
         if canonical not in aliases:  # 예: 이 정식명의 첫 별칭이면 빈 목록부터 만듦
             aliases[canonical] = []
@@ -384,6 +393,8 @@ def make_alias_table(card_names: list[str], approved: dict | None = None) -> tup
                 alias = alias.strip().lower()  # 사람이 적은 값이라 앞뒤 공백과 대소문자를 위 규칙과 맞춤
                 if alias not in aliases[canonical]:  # 이미 있는 별칭은 두 번 넣지 않음
                     aliases[canonical].append(alias)  # 예: aliases["한빛수소길"] = [..., "수소길카드"]
+
+    # ===== 3) 검수 목록 정리: 사람이 이미 승인한 별칭은 검수 목록에서 뺌 =====
     # 승인된 별칭은 이미 사람이 검수를 마친 것이므로 검수 목록에서 뺌
     approved_set = set()
     if approved is not None:
@@ -394,6 +405,7 @@ def make_alias_table(card_names: list[str], approved: dict | None = None) -> tup
     for item in review:
         if item["alias"] not in approved_set:
             remaining_review.append(item)
+    
     return aliases, remaining_review
 
 
@@ -479,14 +491,36 @@ def tokenize_korean(kiwi: Kiwi, text: str, alias_to_name: dict) -> list[str]:
     예시: "모아생활 카드의 포인트" → ["한빛모아생활", "포인트"]
           (별칭 "모아생활 카드"가 사용자 사전에 있어 한 토큰으로 잡힌 뒤 정식명이 되므로 "카드"는 따로 남지 않음)
     """
+    
+    # 숫자안의 콤마 제거, 소문자 변환 
     normalized = NUMBER_COMMA_PATTERN.sub("", text).lower()
 
     tokens = []
+    
+    # 코드(D2-C001 꼴)를 통째로 토큰에 추가. Kiwi는 이런 코드를 "D", "2", "-", "C", "001"로 쪼개므로 정규식으로 따로 뽑음
     for code in CODE_PATTERN.findall(normalized):
         tokens.append(code)
+    
+    # Kiwi 형태소 분석 뒤 내용어(CONTENT_TAGS)만 남김. 불규칙 활용 태그는 앞부분만 봄
+    """
+    불규칙 활용: 동사, 형용사가 모양을 바꿀 때 어간(낱말의 앞부분) 자체가 바뀌는 경우.
+      - 규칙 활용   : 먹다 → 먹어서     (어간 "먹"이 그대로)
+      - 불규칙 활용 : 걷다 → 걸어서     (어간 "걷"이 "걸"로 바뀜)
+    Kiwi는 바뀐 어간을 원래 모양으로 되돌려 주고, 품사 태그 뒤에 "-I"(Irregular)를 붙임.
+      - "먹어서"   → ("먹", "VV")      동사
+      - "걸어서"   → ("걷", "VV-I")    불규칙 동사
+      - "가까워서" → ("가깝", "VA-I")  불규칙 형용사
+      - "파래서"   → ("파랗", "VA-I")  불규칙 형용사
+    같은 어간이 규칙, 불규칙 둘 다 될 수 있으면 규칙 쪽에는 "-R"(Regular)을 붙여 구별함.
+      - "물어서"(묻다: 질문) → ("묻", "VV-I"),  "묻어서"(묻다: 땅에) → ("묻", "VV-R")
+    CONTENT_TAGS에는 "VV", "VA"만 있으므로 "VV-I"를 그대로 비교하면 "걷", "가깝"이 토큰에서 빠짐.
+    그래서 tag.split("-")[0]으로 "-" 앞부분만 떼어 비교함. 예: "VV-I" → "VV", "NNG" → "NNG"(그대로)
+    토큰으로는 되돌린 어간(token.form)이 들어가므로 "걸어서"와 "걷는"이 모두 "걷"으로 맞춰짐.
+    """
     for token in kiwi.tokenize(normalized):
-        if token.tag.split("-")[0] in CONTENT_TAGS:  # "VV-R" 같은 불규칙 활용 태그는 앞부분 "VV"로 봄
+        if token.tag.split("-")[0] in CONTENT_TAGS:  # "VV-I"(걷다→걸어), "VA-I"(가깝다→가까워) 같은 불규칙 활용 태그는 앞부분 "VV", "VA"로 봄
             tokens.append(token.form)
+    
     return apply_aliases(tokens, alias_to_name)
 
 
