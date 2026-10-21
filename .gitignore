@@ -6,6 +6,9 @@ secrets/
 *.pem
 *.key
 
+# MS Office가 파일을 열어 둘 때 만드는 잠금 파일
+~$*
+
 # Python
 .venv/
 venv/

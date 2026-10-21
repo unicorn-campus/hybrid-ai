@@ -163,6 +163,8 @@ hits = col.query(query_embeddings=q.tolist(), n_results=5)
 | 2차 | Visual Late Chunking (초록) | https://arxiv.org/abs/2604.10167 |
 | 2차 | Graph-Aware Late Chunking (초록) | https://arxiv.org/abs/2603.22633 |
 | 2차 | Weaviate 블로그 (2024.9.5, 일부) | https://weaviate.io/blog/late-chunking |
+| 2차 | voyage-context-3 문서 (Voyage AI, 2025.7) | https://docs.voyageai.com/docs/contextualized-chunk-embeddings |
+| 2차 | voyage-context-4 발표 글 (Voyage AI, MongoDB, 2026.6) | https://mongodb.com/company/blog/product-release-announcements/voyage-context-4-stop-worrying-about-chunking-with-our-best-performing-model |
 
 - Chroma `add` 인자와 sentence-transformers `output_value` 시그니처는 context7 문서 조회로 확인
 

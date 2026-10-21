@@ -162,6 +162,11 @@ Late 0.294로 Contextual이 높았고 계산 비용도 더 컸음(소규모).
 - Late Chunking 논문(초록): https://arxiv.org/abs/2409.04701
 - ConTEB 논문(초록): https://arxiv.org/abs/2505.24782
 
+2차(2026년 후속 연구, 초록만 확인)  
+- Adaptive Chunking(2026.3): https://arxiv.org/abs/2603.25333
+- SCAR(2026.6): https://arxiv.org/abs/2606.16661
+- 청킹 가치 평가(2026.8): https://arxiv.org/abs/2608.16586
+
 ## 12. 확인하지 못한 항목
 - 블로그 부록(이미지): 도메인별, 임베딩별 수치와 예시 질문
 - Medium 비판 글 본문(403), LlamaIndex 구현 노트북(검색 결과에서만 확인)

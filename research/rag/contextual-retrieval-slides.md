@@ -28,7 +28,7 @@
   - 평가셋으로 기준선과 비교 후 채택
 - 중앙 배지: 처리 절차
 - 처리 절차:
-  1. 문서를 청크로 나눔(실습 4단계와 같음)
+  1. 문서를 청크로 나눔
   2. 문서 전체와 청크를 LLM에 주고 50 ~ 100토큰 문맥 생성
   3. "문맥 + 청크"를 임베딩과 BM25 양쪽에 색인
   4. 두 검색 결과를 순위 융합해 150개를 뽑고, 리랭킹해 상위 20개를 전달
@@ -48,7 +48,7 @@
   - Anthropic 자체 실험 수치. 내 데이터로 다시 측정
 - 콜아웃: 지식베이스가 20만 토큰(약 500쪽) 미만이면 RAG 없이 통째로 넣는 편이 낫다고 Anthropic이 안내합니다.
 - 상세 보기 링크: https://github.com/unicorn-campus/hybrid-ai/blob/main/research/rag/contextual-retrieval.md
-- 화면 출처: Anthropic, Introducing Contextual Retrieval (2024-09-19). Anthropic 쿡북 contextual-embeddings 노트북
+- 화면 출처: Anthropic, Introducing Contextual Retrieval (2024-09-19). Anthropic 쿡북 contextual-embeddings 노트북. 후속 연구: Adaptive Chunking, SCAR, 청킹 가치 평가 (arXiv 2026)
 - 발표자 노트:
   - 핵심 한 줄: 청크를 자르면 "무엇에 대한 말인지"가 청크 밖에 남습니다. LLM이 그 빠진 문맥을 50에서 100토큰으로 써서 청크 앞에 붙이는 전처리입니다.
   - 원문 예시: SEC 공시 모음에서 "ACME Corp의 2023년 2분기 매출 성장률은?"을 물으면 정답 청크는 "The company's revenue grew by 3% over the previous quarter."뿐입니다. 변환 결과는 "This chunk is from an SEC filing on ACME corp's performance in Q2 2023; the previous quarter's revenue was $314 million."을 청크 앞에 붙인 것입니다.
