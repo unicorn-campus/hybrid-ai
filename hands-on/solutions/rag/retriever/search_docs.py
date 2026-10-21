@@ -15,7 +15,6 @@ from langchain_cohere import CohereEmbeddings
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
-from rank_bm25 import BM25Okapi
 
 import core_hybrid as hybrid  # 교육생: 본인 코드로 바꾸려면 "import my_hybrid as hybrid"
 
@@ -27,10 +26,16 @@ sys.stdout.reconfigure(encoding="utf-8")  # Windows 콘솔에서 한글이 깨�
 BASE_DIR = Path(__file__).resolve().parent  # 이 파일이 있는 retriever 폴더
 RAG_DIR = BASE_DIR.parent  # indexing·retriever·ragas가 함께 있는 rag 폴더
 ROOT_DIR = BASE_DIR.parents[3]  # retriever → rag → solutions → hands-on → 저장소 루트
-INDEX_DATA_DIR = RAG_DIR / "indexing" / "data"  # 인덱서가 만든 결과 폴더(여기서는 읽기만 함)
-CHROMA_DIR = INDEX_DATA_DIR / "chroma"  # Chroma 저장 폴더
-CHUNKS_JSON_PATH = INDEX_DATA_DIR / "chunks.json"  # BM25 색인과 본문 표시에 쓰는 청크 목록
+INDEXING_DIR = RAG_DIR / "indexing"  # 인덱서 폴더. 질문 토큰화 함수를 인덱서 모듈에서 가져옴(색인과 같은 규칙이어야 함)
+INDEX_DATA_DIR = INDEXING_DIR / "data"  # 인덱서가 만든 결과 폴더(여기서는 읽기만 함)
+CHROMA_DIR = INDEX_DATA_DIR / "chroma"  # Chroma 저장 폴더(본문, 메타데이터, 벡터)
+BM25_DIR = INDEX_DATA_DIR / "bm25"  # BM25 색인 폴더(bm25s 점수표, chunk_ids.json, dictionary.json, manifest.json)
 SECRETS_ENV_PATH = ROOT_DIR / "secrets" / ".env"  # GROQ_API_KEY, COHERE_API_KEY가 든 파일(값은 절대 출력하지 않음)
+
+# 인덱서 모듈을 불러옴. 색인을 만든 모듈과 같은 모듈로 질문을 토큰화해야 토큰이 같아짐
+# 교육생: 색인을 my_indexing.py로 만들었으면 아래 import도 "import my_indexing as indexing"으로 바꿈
+sys.path.insert(0, str(INDEXING_DIR))
+import core_indexing as indexing  # noqa: E402
 
 COLLECTION_NAME = "card_docs"  # Chroma collection 이름(인덱서와 약속한 값)
 # Chroma collection 설정. 인덱서 index_docs.py의 COLLECTION_METADATA와 같아야 함(다르면 다른 색인으로 봄).
@@ -165,15 +170,16 @@ def check_secrets(need_cohere: bool, need_answer: bool) -> None:
 
 
 def check_index_files() -> None:
-    """인덱서 결과(chunks.json, chroma 폴더)가 있는지 검사하고, 없으면 인덱싱 실행을 안내한 뒤 종료함.
+    """인덱서 결과(chroma 폴더, bm25 폴더)가 있는지 검사하고, 없으면 인덱싱 실행을 안내한 뒤 종료함.
 
     목적: Chroma는 없는 폴더를 빈 색인으로 새로 만들어 버리므로, 열기 전에 존재를 확인해야 "0건" 혼란을 막음.
     """
     missing = []
-    if not CHUNKS_JSON_PATH.exists():
-        missing.append(str(CHUNKS_JSON_PATH))
     if not CHROMA_DIR.is_dir():
         missing.append(str(CHROMA_DIR))
+    for file_name in ["chunk_ids.json", "dictionary.json", "manifest.json"]:
+        if not (BM25_DIR / file_name).is_file():
+            missing.append(str(BM25_DIR / file_name))
     if len(missing) > 0:
         print("  오류: 인덱싱 결과가 없음")
         for path in missing:
@@ -183,22 +189,49 @@ def check_index_files() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 준비: 색인 열기, 토크나이저·BM25 재료 만들기, 외부 서비스 연결
+# 준비: 색인 열기(Chroma, BM25), 질문 토크나이저 준비, 외부 서비스 연결
 # ---------------------------------------------------------------------------
-def load_chunks() -> list[dict]:
-    """인덱서가 만든 chunks.json을 읽어 청크 목록({"chunk_id", "text", "metadata"})을 돌려줌."""
-    with open(CHUNKS_JSON_PATH, "r", encoding="utf-8") as file:
-        chunks = json.load(file)
+def load_chunks_from_chroma(store: Chroma, chunk_ids: list[str]) -> list[dict]:
+    """Chroma에 저장된 본문과 메타데이터를 꺼내 BM25 색인과 같은 순서의 청크 목록({"chunk_id", "text", "metadata"})을 만듦.
+
+    목적: 본문과 메타데이터의 출처를 Chroma 한 곳으로 두고, BM25 점수(색인 순서)와 청크를 번호로 맞추기 위함.
+    방법: store.get()은 저장 순서를 보장하지 않으므로 chunk_id로 dict를 만든 뒤 chunk_ids 순서대로 다시 늘어놓음.
+    """
+    stored = store.get(include=["documents", "metadatas"])
+    by_id = {}
+    for index in range(len(stored["ids"])):
+        by_id[stored["ids"][index]] = {
+            "chunk_id": stored["ids"][index],
+            "text": stored["documents"][index],
+            "metadata": stored["metadatas"][index],
+        }
+    chunks = []
+    for chunk_id in chunk_ids:
+        if chunk_id not in by_id:
+            print(f"  오류: BM25 색인의 chunk_id {chunk_id} 가 Chroma에 없음 → 인덱싱을 전체 실행해 두 색인을 맞출 것")
+            sys.exit(1)
+        chunks.append(by_id[chunk_id])
     return chunks
 
 
-def collect_card_names(chunks: list[dict]) -> list[str]:
-    """청크 메타데이터의 card_name 값을 중복 없이 모음. 토크나이저 사용자 사전에 등록할 목록임."""
-    names = set()
-    for chunk in chunks:
-        if "card_name" in chunk["metadata"]:
-            names.add(chunk["metadata"]["card_name"])
-    return sorted(names)
+def load_dictionary() -> dict:
+    """인덱서가 색인 폴더에 둔 사전(카드명 목록, 별칭 사전)을 읽음. 질문도 색인과 같은 사전으로 토큰화해야 함."""
+    with open(BM25_DIR / "dictionary.json", "r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def check_manifest(chroma_count: int) -> None:
+    """색인 요약(manifest.json)과 현재 환경을 대조해 어긋나면 경고함(교재 130쪽 "검색과 일치")."""
+    with open(BM25_DIR / "manifest.json", "r", encoding="utf-8") as file:
+        manifest = json.load(file)
+    if manifest["tokenizer_module"] != indexing.__name__:
+        print(
+            f"  경고: 색인은 {manifest['tokenizer_module']} 로 토큰화했는데 검색기는 {indexing.__name__} 를 씀"
+            " → 두 import를 같은 모듈로 맞출 것(토큰 규칙이 다르면 BM25가 못 맞춤)"
+        )
+    if manifest["chunk_count"] != chroma_count:
+        print(f"  경고: BM25 색인 청크 수 {manifest['chunk_count']} 와 Chroma 건수 {chroma_count} 가 다름 → 인덱싱을 전체 실행할 것")
+    print(f"  BM25 색인: {manifest['chunk_count']}개 청크, k1={manifest['k1']}, b={manifest['b']}, {manifest['method']}, 생성 {manifest['created_at']}")
 
 
 def load_embeddings() -> CohereEmbeddings:
@@ -210,31 +243,18 @@ def load_embeddings() -> CohereEmbeddings:
 def load_resources(mode: str, need_answer: bool) -> dict:
     """검색에 필요한 재료를 한 번에 준비해 dict로 돌려줌.
 
-    목적: 청크 토큰화와 Chroma 열기를 질문마다 되풀이하지 않기 위함. run_eval.py도 이 함수를 한 번만 불러 재사용함.
-    방법: 시작 검사(비밀값, 색인 파일) → chunks.json → 카드명 → Kiwi → 청크 토큰(BM25 재료) → Cohere 임베딩 객체
-          → Chroma 열기 → 필요할 때만 Cohere 리랭크·Groq 연결. Chroma 건수와 chunks.json 건수가 다르면 경고함.
+    목적: 색인 열기와 사전 준비를 질문마다 되풀이하지 않기 위함. run_eval.py도 이 함수를 한 번만 불러 재사용함.
+    방법: 시작 검사(비밀값, 색인 파일) → Chroma 열기 → BM25 색인과 chunk_id 순서 읽기 → Chroma에서 청크 본문 꺼내기
+          → 사전(카드명, 별칭)으로 질문용 Kiwi 준비 → manifest 대조 → 필요할 때만 Cohere 리랭크·Groq 연결.
     인자: mode가 hybrid_rerank면 Cohere 리랭크 클라이언트를 만듦. need_answer가 False면 Groq 키 없이도 돌아감.
           COHERE_API_KEY는 벡터 검색(질문 임베딩)에도 쓰므로 bm25 모드가 아니면 항상 있어야 함.
-    반환값: 키 chunks, chunk_tokens, kiwi, embeddings, store, cohere_client(없으면 None), llm(없으면 None)인 dict임.
+    반환값: 키 chunks, bm25, kiwi, alias_to_name, embeddings, store, cohere_client(없으면 None), llm(없으면 None)인 dict임.
     부수효과: secrets/.env를 읽어 환경변수에 올림. 검사에 실패하면 안내문을 찍고 프로그램을 종료함.
     """
     need_rerank = mode == "hybrid_rerank"
     need_cohere = mode != "bm25"  # bm25 모드만 임베딩도 리랭크도 없음
     check_secrets(need_cohere, need_answer)
     check_index_files()
-
-    print("  청크 목록 읽는 중...")
-    chunks = load_chunks()
-    card_names = collect_card_names(chunks)
-    kiwi = hybrid.build_tokenizer(card_names)
-
-    # BM25 색인은 저장하지 않고 실행 때 메모리에서 만듦(262개라 1초 안팎). 청크 토큰을 미리 만들어 두면
-    # 질문마다 역할·회원 필터로 거른 청크 목록 위에 BM25를 바로 다시 만들 수 있음
-    started_at = time.time()
-    chunk_tokens = []
-    for chunk in chunks:
-        chunk_tokens.append(hybrid.tokenize_korean(kiwi, chunk["text"]))
-    print(f"  청크 {len(chunks)}개, 카드명 {len(card_names)}개 등록, 토큰화 {time.time() - started_at:.1f}초")
 
     print(f"  임베딩: Cohere {EMBEDDING_MODEL}({EMBEDDING_DIMENSION}차원, API). 모델 적재 없음, 질문마다 API를 1번 부름")
     embeddings = load_embeddings()
@@ -244,10 +264,19 @@ def load_resources(mode: str, need_answer: bool) -> dict:
         persist_directory=str(CHROMA_DIR),
         collection_metadata=COLLECTION_METADATA,  # 인덱서 COLLECTION_METADATA와 같아야 함
     )
-    chroma_count = len(store.get()["ids"])
-    print(f"  Chroma 저장 건수 {chroma_count}, chunks.json 건수 {len(chunks)}")
-    if chroma_count != len(chunks):
-        print("  경고: 두 건수가 다름 → 부분 색인 의심. indexing/index_docs.py 를 --limit 없이 전체 실행해야 함")
+
+    # BM25 색인은 인덱서가 미리 계산해 저장한 것을 읽기만 함(교재 130쪽 "검색 전에 미리 저장")
+    started_at = time.time()
+    bm25, chunk_ids = indexing.load_bm25_index(BM25_DIR)
+    chunks = load_chunks_from_chroma(store, chunk_ids)
+    dictionary = load_dictionary()
+    alias_to_name = indexing.build_alias_lookup(dictionary["aliases"])
+    kiwi = indexing.build_tokenizer(dictionary["card_names"], dictionary["aliases"])  # 질문도 색인과 같은 사전으로 토큰화
+    alias_count = 0
+    for alias_list in dictionary["aliases"].values():
+        alias_count = alias_count + len(alias_list)
+    print(f"  Chroma 저장 건수 {len(chunks)}, 카드명 {len(dictionary['card_names'])}개, 별칭 {alias_count}개, 준비 {time.time() - started_at:.1f}초")
+    check_manifest(len(chunks))
 
     cohere_client = None
     if need_rerank:
@@ -259,8 +288,9 @@ def load_resources(mode: str, need_answer: bool) -> dict:
 
     return {
         "chunks": chunks,
-        "chunk_tokens": chunk_tokens,
+        "bm25": bm25,
         "kiwi": kiwi,
+        "alias_to_name": alias_to_name,
         "embeddings": embeddings,
         "store": store,
         "cohere_client": cohere_client,
@@ -301,18 +331,20 @@ def is_chunk_allowed(metadata: dict, role: str, member_pseudo_id: str | None) ->
     return True
 
 
-def filter_chunks(chunks: list[dict], chunk_tokens: list[list[str]], role: str, member_pseudo_id: str | None) -> tuple:
-    """권한에 맞는 청크와 그 토큰 목록을 같은 순서로 골라 (청크 목록, 토큰 목록) 쌍으로 돌려줌.
+def build_weight_mask(chunks: list[dict], role: str, member_pseudo_id: str | None) -> tuple:
+    """BM25용 권한 마스크를 만듦. 청크마다 권한이 있으면 1.0, 없으면 0.0인 배열(순서는 chunks와 같음).
 
-    반환값: 두 값을 쌍(tuple)으로 돌려주며, 받는 쪽에서 `a, b = filter_chunks(...)` 꼴로 두 변수에 나눠 받음.
+    목적: BM25 색인은 전체 청크로 미리 만들어 두므로, 검색 뒤 점수에 마스크를 곱해 권한 밖 청크를 0점으로 만듦.
+          벡터 검색의 Chroma filter와 같은 규칙(is_chunk_allowed)을 쓰므로 두 검색의 권한이 어긋나지 않음.
+    반환값: (마스크 배열, 권한 있는 청크 수) 쌍. 받는 쪽에서 `a, b = build_weight_mask(...)` 꼴로 나눠 받음.
     """
-    allowed_chunks = []
-    allowed_tokens = []
+    mask = np.zeros(len(chunks), dtype=np.float32)
+    allowed_count = 0
     for index in range(len(chunks)):
         if is_chunk_allowed(chunks[index]["metadata"], role, member_pseudo_id):
-            allowed_chunks.append(chunks[index])
-            allowed_tokens.append(chunk_tokens[index])
-    return allowed_chunks, allowed_tokens
+            mask[index] = 1.0
+            allowed_count = allowed_count + 1
+    return mask, allowed_count
 
 
 # ---------------------------------------------------------------------------
@@ -407,15 +439,13 @@ def resolve_member(role: str, member_id: str | None) -> tuple:
 def step_conditions(
     resources: dict, question: str, top_k: int, mode: str, role: str, member_id: str | None, fusion: str, show: bool
 ) -> dict:
-    """단계 1: 검색 조건(권한 필터, 후보 수)을 정하고 BM25 대상 청크를 거름.
+    """단계 1: 검색 조건(권한 필터, 후보 수)을 정하고 BM25용 권한 마스크를 만듦.
 
-    반환값: 키 chroma_filter, allowed_chunks, allowed_tokens, candidate_count, fused_count, show_count인 dict임.
+    반환값: 키 chroma_filter, weight_mask, allowed_count, candidate_count, fused_count, show_count인 dict임.
     """
     member_pseudo_id, member_note = resolve_member(role, member_id)
     chroma_filter = build_chroma_filter(role, member_pseudo_id)
-    allowed_chunks, allowed_tokens = filter_chunks(
-        resources["chunks"], resources["chunk_tokens"], role, member_pseudo_id
-    )
+    weight_mask, allowed_count = build_weight_mask(resources["chunks"], role, member_pseudo_id)
     candidate_count = top_k * CANDIDATE_MULTIPLIER
     fused_count = top_k * FUSED_MULTIPLIER
 
@@ -427,14 +457,14 @@ def step_conditions(
         if member_note != "":
             print(f"  {member_note}")
         print(f"  Chroma filter: {chroma_filter}")
-        print(f"  BM25 대상 청크: {len(allowed_chunks)}개 (전체 {len(resources['chunks'])}개 중 권한 필터 통과)")
-        if len(allowed_chunks) == 0:
+        print(f"  BM25 대상 청크: {allowed_count}개 (전체 {len(resources['chunks'])}개 중 권한 마스크 통과)")
+        if allowed_count == 0:
             print("  경고: 대상 청크 0개 → 회원번호를 확인함(예: M-1042). 검색 결과가 비게 됨")
 
     return {
         "chroma_filter": chroma_filter,
-        "allowed_chunks": allowed_chunks,
-        "allowed_tokens": allowed_tokens,
+        "weight_mask": weight_mask,
+        "allowed_count": allowed_count,
         "candidate_count": candidate_count,
         "fused_count": fused_count,
         "show_count": fused_count,  # 화면에는 후보 전부 대신 상위 top_k × 2만 보여 줌
@@ -463,24 +493,26 @@ def step_vector(resources: dict, question: str, mode: str, conditions: dict, sho
 def step_bm25(resources: dict, question: str, mode: str, conditions: dict, show: bool) -> tuple:
     """단계 3: BM25 검색. vector 모드거나 대상 청크가 0개면 건너뜀.
 
-    방법: 권한 필터를 통과한 청크만으로 BM25Okapi 색인을 만듦. 청크가 0개면 BM25Okapi가 0으로 나누므로 만들지 않음.
+    방법: 질문을 색인과 같은 규칙(인덱서의 tokenize_korean, 같은 사전)으로 토큰화하고, 미리 저장된 bm25s 색인에서
+          전체 청크 점수를 받은 뒤 권한 마스크를 곱해 권한 밖 청크를 0점으로 만듦(검색 뒤 거르기).
     반환값: (질문 토큰 목록, BM25 결과 목록) 쌍. 건너뛰면 둘 다 빈 목록임.
     """
     if mode == "vector":
         if show:
             print_step(3, "BM25 검색 — 건너뜀 (vector 모드)")
         return [], []
-    if len(conditions["allowed_chunks"]) == 0:
+    if conditions["allowed_count"] == 0:
         if show:
             print_step(3, "BM25 검색 — 건너뜀 (대상 청크 0개, 회원번호 확인)")
         return [], []
 
-    query_tokens = hybrid.tokenize_korean(resources["kiwi"], question)
-    bm25 = BM25Okapi(conditions["allowed_tokens"])
-    bm25_hits = hybrid.search_bm25(bm25, conditions["allowed_chunks"], query_tokens, conditions["candidate_count"])
+    query_tokens = indexing.tokenize_korean(resources["kiwi"], question, resources["alias_to_name"])
+    bm25_hits = hybrid.search_bm25(
+        resources["bm25"], resources["chunks"], query_tokens, conditions["candidate_count"], conditions["weight_mask"]
+    )
     if show:
         shown = bm25_hits[: conditions["show_count"]]
-        print_step(3, f"BM25 검색 (Kiwi + rank_bm25) — 후보 {len(bm25_hits)}개 중 상위 {len(shown)}")
+        print_step(3, f"BM25 검색 (Kiwi + bm25s 저장 색인) — 후보 {len(bm25_hits)}개 중 상위 {len(shown)}")
         print(f"  질문 토큰: {query_tokens}")
         print_hits(shown, "score", False)
     return query_tokens, bm25_hits

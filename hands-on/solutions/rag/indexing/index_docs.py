@@ -1,15 +1,18 @@
-"""RAG 인덱싱 예제 main: 원천 문서를 로드 → 정제 → 가명처리 → 청킹 → 임베딩 → 벡터DB 적재 순서로 처리함.
+"""RAG 인덱싱 예제 main: 원천 문서를 로드 → 정제 → 가명처리 → 청킹 → 임베딩 → 벡터DB 적재 → BM25 색인 순서로 처리함.
 
-핵심 4단계(정제, 청킹, 임베딩, 적재)의 알맹이는 core_indexing.py의 함수 4개가 맡고,
+핵심 단계(정제, 청킹, 임베딩, 적재, BM25 색인)의 알맹이는 core_indexing.py의 함수가 맡고,
 이 파일은 설정값, 로더, 단계별 출력과 점검을 맡음.
 """
 
 import argparse
+import json
 import os
 import re
 import shutil
 import sys
 import time
+from datetime import datetime
+from importlib.metadata import version as package_version
 from pathlib import Path
 
 import cohere
@@ -31,8 +34,10 @@ ROOT_DIR = BASE_DIR.parents[3]  # indexing → rag → solutions → hands-on �
 DOCS_DIR = ROOT_DIR / "docs"  # 원천 문서 폴더
 DATA_DIR = BASE_DIR / "data"  # 전체 실행 결과 폴더(검색기가 읽음)
 DATA_LIMIT_DIR = BASE_DIR / "data-limit"  # --limit 실행 결과 폴더. 전체 결과를 부분 결과로 덮어쓰지 않기 위해 분리함
-CHROMA_DIR_NAME = "chroma"  # 결과 폴더 안의 Chroma 저장 폴더 이름
-CHUNKS_JSON_NAME = "chunks.json"  # 결과 폴더 안의 청크 목록 파일 이름. 검색기가 BM25 색인과 본문 표시에 씀
+CHROMA_DIR_NAME = "chroma"  # 결과 폴더 안의 Chroma 저장 폴더 이름(본문, 메타데이터, 벡터)
+BM25_DIR_NAME = "bm25"  # 결과 폴더 안의 BM25 색인 폴더 이름(bm25s 점수표, chunk_ids.json, dictionary.json, manifest.json)
+STALE_FILES = ["chunks.json"]  # 예전 버전이 만들던 파일. 남아 있으면 지움(검색기는 본문을 Chroma에서 읽음)
+ALIASES_APPROVED_PATH = BASE_DIR / "aliases_approved.json"  # 사람 검수를 통과한 별칭(강사 제공). {정식명: [별칭, ...]}
 SECRETS_PATH = ROOT_DIR / "secrets" / ".env"  # API 키가 든 파일. 키 값은 코드·주석·README에 절대 적지 않음
 COHERE_API_KEY_NAME = "COHERE_API_KEY"  # secrets/.env 안의 변수 이름(검색기의 리랭커와 같은 키)
 
@@ -44,6 +49,15 @@ CHUNK_SIZE = 800  # 청크 토큰 상한(Cohere 토크나이저 기준)
 CHUNK_OVERLAP = 200  # 앞뒤 청크가 겹치는 토큰 수
 CARD_HEADER_TOKEN_BUDGET = 40  # D2 청크 앞에 붙일 "[카드: ...]" 머리말 몫. 미리 빼 두어야 800을 넘지 않음
 LOAD_BATCH_SIZE = 100  # Chroma에 한 번에 넣는 건수
+
+# BM25 색인 설정(교재 130쪽 "우리 코드의 설정값"). 검색기는 저장된 색인을 그대로 읽으므로 여기만 바꾸면 됨
+BM25_K1 = 1.5  # 한 청크 안에서 같은 단어가 반복될 때 점수가 더 오르는 정도
+BM25_B = 0.75  # 긴 청크의 점수를 깎는 정도
+# 단계 7 출력용. 교재 130쪽 예시 문장이 색인 단어가 되는 과정을 보여 줌
+TRACE_SENTENCE = "한빛 가족돌봄 카드로 30,000원 이상 결제하면 KB-PAY 할인을 받습니다."
+# 단계 7 자가 테스트. 네 가지 표기가 모두 같은 정식명 토큰으로 모이는지 확인함(교재 131쪽 "✓ 일치")
+SELF_TEST_QUESTIONS = ["모아생활 연회비 안 내려면?", "모아생활카드 연회비", "한빛모아생활 연회비", "한빛 모아생활 카드 연회비"]
+SELF_TEST_EXPECTED = "한빛모아생활"
 
 # Chroma collection 설정. 거리 방식과 HNSW(근사 최근접 이웃 그래프) 값을 적음(교재 127 ~ 128쪽)
 # 검색기가 같은 값으로 collection을 열므로 바꾸면 검색기 상수도 함께 바꿈
@@ -78,7 +92,8 @@ DOC_SETTINGS = {
     },
 }
 
-# D2 「카드 찾아보기」 표가 있는 쪽 범위(1부터). 여기서 {카드ID: 카드명} 표를 만듦
+# D2 「카드 찾아보기」 표가 있는 쪽 범위(1부터). 원본문서의 3~6페이지에 카드 목록표가 있음. 
+# 이 목록표를 이용하여 {카드ID: 카드명} 리스트를 만듦
 D2_CARD_INDEX_FIRST_PAGE = 3
 D2_CARD_INDEX_LAST_PAGE = 6
 CARD_CODE_PATTERN = re.compile(r"D2-C\d{3}")  # 청크 본문에서 카드 코드를 찾는 정규식
@@ -136,19 +151,22 @@ def check_secrets() -> None:
         sys.exit(1)
 
 
-def remove_old_chroma(chroma_dir: Path) -> None:
-    """지난 실행의 Chroma 폴더를 지움. 실패하면 안내하고 종료함.
+def remove_old_outputs(data_dir: Path) -> None:
+    """지난 실행의 결과(Chroma 폴더, BM25 색인 폴더, 예전 버전 파일)를 지움. 실패하면 안내하고 종료함.
 
     목적: 실행마다 전체 재색인하므로 지난 청크가 섞이지 않게 함.
     방법: 임베딩(수 분)보다 먼저 지움. 뒤에서 지우다 실패하면 임베딩 결과를 통째로 잃기 때문임.
           Windows는 다른 프로그램(검색기)이 폴더를 열고 있으면 PermissionError로 삭제가 막힘.
     """
-    if not chroma_dir.exists():
-        return
     try:
-        shutil.rmtree(chroma_dir)
+        for dir_name in [CHROMA_DIR_NAME, BM25_DIR_NAME]:
+            if (data_dir / dir_name).exists():
+                shutil.rmtree(data_dir / dir_name)
+        for file_name in STALE_FILES:
+            if (data_dir / file_name).exists():
+                (data_dir / file_name).unlink()
     except PermissionError:
-        print(f"지난 결과 폴더를 지울 수 없음: {chroma_dir}")
+        print(f"지난 결과 폴더를 지울 수 없음: {data_dir}")
         print("검색 프로그램(search_docs.py, run_eval.py) 창을 모두 닫고 다시 실행할 것")
         sys.exit(1)
 
@@ -172,6 +190,8 @@ def load_consult_records(txt_path: Path, limit: int | None) -> list[dict]:
 
     방법: "====" 구분 줄로 블록을 나누고, "[상담ID]" 줄이 있는 블록만 상담 건으로 봄(파일 머리 설명은 버림).
     반환값: 상담 건마다 {"raw_lines": 원문 줄 목록, "header": 상담ID 줄에서 읽은 값 dict}인 목록임.
+    예시: "[상담ID] C-20260314-001 | 2026-03-14 | 채널: 앱 채팅 | 회원번호: M-1001" 줄의 header는
+          {"record_id": "C-20260314-001", "consult_date": "2026-03-14", "channel": "앱 채팅", "member_id": "M-1001"}
     """
     text = txt_path.read_text(encoding="utf-8")
     records = []
@@ -237,12 +257,17 @@ def build_card_name_table(cleaned_pages: list[str]) -> dict:
 def count_tokens(text: str) -> int:
     """본문의 토큰 수를 Cohere 토크나이저로 셈. 분할기의 length_function으로 넘겨 청크 크기의 기준이 됨.
 
-    방법: offline=True라 처음 한 번만 토크나이저 파일을 받아 캐시하고, 이후에는 API 호출 없이 로컬에서 셈.
+    방법: offline=True라 실행할 때마다 처음 한 번만 토크나이저 파일(tokenizer.json. 글자 조각을 토큰 번호로
+          바꾸는 사전과 규칙)을 받아 메모리에 캐시하고, 이후에는 API 호출 없이 로컬에서 셈.
           청크 통계와 머리말 몫 계산에도 같은 함수를 써야 상한 검증 기준이 맞음.
     """
     if text == "":
         return 0  # 분할기가 빈 조각의 길이도 물어봄. 빈 글은 토크나이저에 보내지 않음
+
+    # 입력 text를 토큰(자주 쓰는 글자 조각)으로 쪼개고, 조각마다 tokenizer.json 사전의 번호로 바꿈
     response = cohere_client.tokenize(text=text, model=EMBEDDING_MODEL, offline=True)
+
+    # response.tokens는 글자 조각이 아니라 사전 번호 목록임. 개수만 필요하므로 길이를 셈
     return len(response.tokens)
 
 
@@ -371,12 +396,20 @@ def attach_card_header(text: str, metadata: dict, card_names: dict) -> str:
     목적: 카드 청크 본문에는 카드명이 없어 카드명으로 검색이 안 됨(교재 "본문에 메타데이터 삽입").
     반환값: 머리말이 붙은 본문. 카드 코드가 없거나 표에 없는 코드면 원래 본문 그대로임.
     """
+    
+    # 본문에서 카드ID를 찾음   
     match = CARD_CODE_PATTERN.search(text)
+    
     if match is None or match.group(0) not in card_names:
         return text
+    
     card_id = match.group(0)
+    
+    # metadata에 카드ID와 카드명을 넣음
     metadata["card_id"] = card_id
     metadata["card_name"] = card_names[card_id]
+    
+    # 본문 앞에 "[카드: 카드명 (카드ID)]" 머리말을 붙임
     return f"[카드: {card_names[card_id]} ({card_id})]\n" + text
 
 
@@ -424,7 +457,7 @@ def print_chunk_samples(chunks: list[dict]) -> None:
 def step_chunk(page_documents: dict, consult_documents: list[Document], card_names: dict) -> list[dict]:
     """문서 유형별 구분자로 청크를 만들고 chunk_id를 붙임. 핵심 함수 chunk_document가 나누고 길이는 count_tokens로 셈.
 
-    반환값: {"chunk_id", "text", "metadata"} dict의 목록. 검색기가 읽는 chunks.json과 같은 꼴임.
+    반환값: {"chunk_id", "text", "metadata"} dict의 목록. 적재(Chroma)와 BM25 색인이 같은 목록을 같은 순서로 씀.
     """
     print_step(4, f"청킹 — {CHUNK_SIZE}토큰, 중첩 {CHUNK_OVERLAP}토큰")
     documents_by_doc_id = {"D1": page_documents["D1"], "D2": page_documents["D2"], "D3": consult_documents}
@@ -443,8 +476,11 @@ def step_chunk(page_documents: dict, consult_documents: list[Document], card_nam
             for piece in pieces:
                 text = piece.page_content
                 metadata = piece.metadata
+                
+                # D2 카드 청크는 "[카드: ...]" 머리말을 붙이고 card_id·card_name 메타데이터를 넣음
                 if doc_id == "D2":
                     text = attach_card_header(text, metadata, card_names)
+                
                 sequence = sequence + 1
                 chunks.append({"chunk_id": make_chunk_id(doc_id, sequence), "text": text, "metadata": metadata})
 
@@ -492,20 +528,18 @@ def step_embed(chunks: list[dict]) -> tuple[CohereEmbeddings, list[list[float]]]
 # 단계 6. 적재
 # ---------------------------------------------------------------------------
 def step_store(chunks: list[dict], vectors: list, embeddings: CohereEmbeddings, data_dir: Path) -> None:
-    """벡터를 Chroma에 넣고 chunks.json을 씀. 핵심 함수 store_chunks가 맡고, 여기서는 건수를 확인함.
+    """본문, 메타데이터, 벡터를 Chroma에 넣음. 핵심 함수 store_chunks가 맡고, 여기서는 건수를 확인함.
 
-    부수효과: data_dir 아래 chroma/ 와 chunks.json을 만듦.
+    부수효과: data_dir 아래 chroma/ 를 만듦.
     """
-    print_step(6, "적재 — Chroma 저장과 chunks.json 기록")
+    print_step(6, "적재 — Chroma 저장(본문, 메타데이터, 벡터)")
     chroma_dir = data_dir / CHROMA_DIR_NAME
-    chunks_json_path = data_dir / CHUNKS_JSON_NAME
     data_dir.mkdir(parents=True, exist_ok=True)
 
     stored_count = indexing.store_chunks(  # 적재
-        chunks, vectors, chroma_dir, chunks_json_path, COLLECTION_NAME, COLLECTION_METADATA, LOAD_BATCH_SIZE
+        chunks, vectors, chroma_dir, COLLECTION_NAME, COLLECTION_METADATA, LOAD_BATCH_SIZE
     )
-    print(f"  Chroma 저장 건수: {stored_count} (collection={COLLECTION_NAME}, {chroma_dir})")
-    print(f"  chunks.json 건수: {len(chunks)} ({chunks_json_path})")
+    print(f"  Chroma 저장 건수: {stored_count} / 청크 {len(chunks)}개 (collection={COLLECTION_NAME}, {chroma_dir})")
 
     # 검색기가 쓰는 방식(langchain_chroma)으로 다시 열어 같은 건수가 읽히는지 확인함
     store = Chroma(
@@ -519,11 +553,138 @@ def step_store(chunks: list[dict], vectors: list, embeddings: CohereEmbeddings, 
 
 
 # ---------------------------------------------------------------------------
-# main: 점검 뒤 6단계를 순서대로 실행함
+# 단계 7. BM25 색인
+# ---------------------------------------------------------------------------
+def collect_card_names(chunks: list[dict]) -> list[str]:
+    """청크 메타데이터의 card_name 값을 중복 없이 모음. 사용자 사전과 별칭 사전의 정식명 목록이 됨."""
+    names = set()
+    for chunk in chunks:
+        if "card_name" in chunk["metadata"]:
+            names.add(chunk["metadata"]["card_name"])
+    return sorted(names)
+
+
+def load_approved_aliases() -> dict:
+    """사람 검수를 통과한 별칭 파일(강사 제공)을 읽음. 없으면 빈 dict임."""
+    if not ALIASES_APPROVED_PATH.is_file():
+        return {}
+    with open(ALIASES_APPROVED_PATH, "r", encoding="utf-8") as file:
+        approved = json.load(file)
+    result = {}
+    for canonical, alias_list in approved.items():
+        if not canonical.startswith("_"):  # "_설명" 같은 설명 키는 건너뜀
+            result[canonical] = alias_list
+    return result
+
+
+def print_tokenize_trace(kiwi, alias_to_name: dict, sentence: str) -> None:
+    """교재 130쪽 표처럼 한 문장이 색인 단어가 되는 과정을 단계별로 보여 줌."""
+    normalized = indexing.NUMBER_COMMA_PATTERN.sub("", sentence).lower()
+    kept = []
+    dropped = []
+    for token in kiwi.tokenize(normalized):
+        if token.tag in indexing.CONTENT_TAGS:
+            kept.append(token.form)
+        else:
+            dropped.append(f"{token.form}/{token.tag}")
+    codes = indexing.CODE_PATTERN.findall(normalized)
+    final_tokens = indexing.tokenize_korean(kiwi, sentence, alias_to_name)
+    print(f"  원문        | {sentence}")
+    print(f"  ① 표기 통일 | {normalized}")
+    print(f"  ② 남긴 단어 | {kept}")
+    print(f"  ③ 버린 조각 | {dropped}")
+    print(f"  ④ 코드 추가 | {codes} (코드 꼴이 없으면 빈 목록)")
+    print(f"  ⑤ 별칭 치환 | {final_tokens}  → {len(final_tokens)}개 단어를 bm25s가 점수 계산")
+
+
+def run_alias_self_test(kiwi, alias_to_name: dict) -> None:
+    """네 가지 표기의 질문이 모두 같은 정식명 토큰으로 모이는지 확인함(교재 131쪽 "✓ 일치")."""
+    all_passed = True
+    for question in SELF_TEST_QUESTIONS:
+        tokens = indexing.tokenize_korean(kiwi, question, alias_to_name)
+        passed = SELF_TEST_EXPECTED in tokens
+        all_passed = all_passed and passed
+        print(f"  {'✓' if passed else '✗'} {question!r} → {tokens}")
+    print(f"  자가 테스트 {'통과' if all_passed else '실패'}: 모든 질문에 {SELF_TEST_EXPECTED!r} 토큰이 {'있음' if all_passed else '없음'}")
+
+
+def write_bm25_sidecars(index_dir: Path, card_names: list[str], aliases: dict, review: list[dict], chunk_count: int) -> None:
+    """색인 폴더에 사전(dictionary.json), 검수 목록(aliases_review.json), 요약(manifest.json)을 씀.
+
+    목적: 검색기가 색인과 "같은 사전"으로 질문을 토큰화하게 하고, 사람이 색인 내용을 검토할 수 있게 함.
+    """
+    with open(index_dir / "dictionary.json", "w", encoding="utf-8") as file:
+        json.dump({"card_names": card_names, "aliases": aliases}, file, ensure_ascii=False, indent=2)
+    with open(index_dir / "aliases_review.json", "w", encoding="utf-8") as file:
+        json.dump(review, file, ensure_ascii=False, indent=2)
+    manifest = {
+        "chunk_count": chunk_count,
+        "k1": BM25_K1,
+        "b": BM25_B,
+        "method": indexing.BM25_METHOD,
+        "tokenizer_module": indexing.__name__,  # 검색기가 같은 모듈로 질문을 토큰화해야 함(core_indexing 또는 my_indexing)
+        "kiwipiepy": package_version("kiwipiepy"),
+        "bm25s": package_version("bm25s"),
+        "created_at": datetime.now().isoformat(timespec="seconds"),
+    }
+    with open(index_dir / "manifest.json", "w", encoding="utf-8") as file:
+        json.dump(manifest, file, ensure_ascii=False, indent=2)
+
+
+def step_bm25_index(chunks: list[dict], data_dir: Path) -> None:
+    """청크 본문을 Kiwi로 토큰화해 bm25s 색인을 만들고 저장함. 핵심 함수 4개(사전, 별칭, 토큰화, 색인)가 맡음.
+
+    방법: 카드명 → 별칭 사전(규칙 생성 + 걸러내기 + 승인분) → 사용자 사전(Kiwi) → 청크 토큰화 → bm25s 점수표 저장
+          → 다시 읽어 문서 수가 청크 수와 같은지 검증(교재 130쪽 ④ "저장·검증").
+    부수효과: data_dir 아래 bm25/ 를 만듦.
+    """
+    print_step(7, f"BM25 색인 — Kiwi 토큰화 + bm25s (k1={BM25_K1}, b={BM25_B}, {indexing.BM25_METHOD})")
+    index_dir = data_dir / BM25_DIR_NAME
+
+    # 사전 두 가지: 별칭 사전(별칭 → 정식명)과 사용자 사전(Kiwi가 이름을 쪼개지 않게 함)
+    card_names = collect_card_names(chunks)
+    aliases, review = indexing.make_alias_table(card_names, load_approved_aliases())
+    alias_to_name = indexing.build_alias_lookup(aliases)
+    kiwi = indexing.build_tokenizer(card_names, aliases)
+    alias_count = 0
+    for alias_list in aliases.values():
+        alias_count = alias_count + len(alias_list)
+    print(f"  카드명 {len(card_names)}개 → 별칭 {alias_count}개 등록, 검수 대상 {len(review)}개 (예: {review[:2]})")
+
+    print("  예시: 한 문장이 색인 단어가 되기까지")
+    print_tokenize_trace(kiwi, alias_to_name, TRACE_SENTENCE)
+    print("  자가 테스트: 네 가지 표기의 질문")
+    run_alias_self_test(kiwi, alias_to_name)
+
+    # 청크 토큰화 → 점수표 계산과 저장
+    started_at = time.time()
+    chunk_tokens = []
+    chunk_ids = []
+    for chunk in chunks:
+        chunk_tokens.append(indexing.tokenize_korean(kiwi, chunk["text"], alias_to_name))  # Kiwi 토큰화
+        chunk_ids.append(chunk["chunk_id"])
+    token_total = 0
+    for tokens in chunk_tokens:
+        token_total = token_total + len(tokens)
+    print(f"  청크 {len(chunks)}개 토큰화 {time.time() - started_at:.1f}초, 청크당 평균 {token_total / len(chunks):.0f} 토큰")
+    doc_count = indexing.build_bm25_index(chunk_tokens, chunk_ids, index_dir, BM25_K1, BM25_B)  # bm25s 색인
+    write_bm25_sidecars(index_dir, card_names, aliases, review, len(chunks))
+
+    # 검증: 저장한 색인을 다시 읽어 문서 수와 ID 수가 청크 수와 같은지 봄
+    bm25, loaded_ids = indexing.load_bm25_index(index_dir)
+    print(f"  색인 문서 수: {doc_count}, 다시 읽은 문서 수: {bm25.scores['num_docs']}, chunk_id 수: {len(loaded_ids)} (청크 {len(chunks)}개)")
+    if bm25.scores["num_docs"] != len(chunks) or len(loaded_ids) != len(chunks):
+        print("  오류: 색인 문서 수가 청크 수와 다름 → 색인을 다시 만들어야 함")
+        sys.exit(1)
+    print(f"  저장 위치: {index_dir} (bm25s 점수표, chunk_ids.json, dictionary.json, aliases_review.json, manifest.json)")
+
+
+# ---------------------------------------------------------------------------
+# main: 점검 뒤 7단계를 순서대로 실행함
 # ---------------------------------------------------------------------------
 def main() -> None:
-    """명령행 옵션을 읽고 인덱싱 6단계를 실행함. 전체 실행은 data/, --limit 실행은 data-limit/ 에 씀."""
-    parser = argparse.ArgumentParser(description="RAG 인덱싱 예제: 로드 → 정제 → 가명처리 → 청킹 → 임베딩 → 적재")
+    """명령행 옵션을 읽고 인덱싱 7단계를 실행함. 전체 실행은 data/, --limit 실행은 data-limit/ 에 씀."""
+    parser = argparse.ArgumentParser(description="RAG 인덱싱 예제: 로드 → 정제 → 가명처리 → 청킹 → 임베딩 → 적재 → BM25 색인")
     parser.add_argument("--limit", type=int, default=None, help="문서마다 앞 N쪽(또는 N건)만 처리해 빨리 확인함")
     args = parser.parse_args()
     limit = args.limit
@@ -539,14 +700,29 @@ def main() -> None:
         print(f"--limit {limit}: 결과는 {data_dir} 에 씀(검색기는 data/ 를 읽으므로 영향 없음)")
         if limit < D2_CARD_INDEX_LAST_PAGE:
             print(f"--limit 가 {D2_CARD_INDEX_LAST_PAGE} 미만이면 카드명 표(3 ~ 6쪽)를 못 읽어 카드 머리말이 안 붙음")
-    remove_old_chroma(data_dir / CHROMA_DIR_NAME)  # 임베딩(수 분)보다 먼저 지워 삭제 실패로 결과를 잃지 않게 함
+    remove_old_outputs(data_dir)  # 임베딩(수 분)보다 먼저 지워 삭제 실패로 결과를 잃지 않게 함
 
+    # 1 로드: PDF(D1, D2)는 쪽 단위로, 상담 파일(D3)은 상담 건 단위로 원문 텍스트를 꺼냄
     pdf_pages_by_file, consult_records_by_file = step_load(limit)
+    
+    # 2 정제: 검색에 쓸모없는 머리말, 꼬리말, 쪽번호를 지우고 D2 카드명 표를 만듦
     page_documents, card_names = step_clean(pdf_pages_by_file)
+    
+    # 3 가명처리: 상담 본문의 개인정보 줄을 지우고 이름, 전화번호 등을 토큰으로 바꿔 색인에 남기지 않음
     consult_documents = step_mask(consult_records_by_file)
+    
+    # 4 청킹: 검색 단위가 되도록 문서 유형별 구분자로 잘게 나누고, D2 청크에는 카드명 머리말을 붙임
     chunks = step_chunk(page_documents, consult_documents, card_names)
+    
+    # 5 임베딩: 의미가 비슷한 글을 찾을 수 있도록 청크 본문을 Cohere API로 벡터(숫자 목록)로 바꿈
     embeddings, vectors = step_embed(chunks)
+    
+    # 6 적재: 검색기가 읽도록 본문, 메타데이터, 벡터를 Chroma에 저장함
     step_store(chunks, vectors, embeddings, data_dir)
+
+    # 7 BM25 색인: 카드 사용자 사전과 별칭 사전으로 청크를 Kiwi 토큰화하고 bm25s 점수표를 미리 계산해 저장함
+    step_bm25_index(chunks, data_dir)
+
     print("=" * 60)
     print("완료")
 

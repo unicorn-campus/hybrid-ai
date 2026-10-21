@@ -8,8 +8,8 @@
 
 ```mermaid
 flowchart LR
-    DOCS[docs/<br/>약관 pdf, 혜택 pdf, 상담 txt] --> IDX[indexing/index_docs.py<br/>로드, 정제, 가명처리, 청킹, 임베딩, 적재]
-    IDX --> DATA[(indexing/data/<br/>chroma/, chunks.json)]
+    DOCS[docs/<br/>약관 pdf, 혜택 pdf, 상담 txt] --> IDX[indexing/index_docs.py<br/>로드, 정제, 가명처리, 청킹, 임베딩, 적재, BM25 색인]
+    IDX --> DATA[(indexing/data/<br/>chroma/, bm25/)]
     DATA --> RET[retriever/search_docs.py<br/>벡터 + BM25, 융합, 리랭크, 답변]
     EVAL[ragas/eval-set.json<br/>22문항] --> RUN[retriever/run_eval.py]
     DATA --> RUN
@@ -19,7 +19,7 @@ flowchart LR
 
 | 폴더 | main | 핵심 모듈(클론 코딩 대상) | 교육생 작업 파일 | 만드는 것 |
 |---|---|---|---|---|
-| `indexing/` | `index_docs.py` | `core_indexing.py` | `my_indexing.py` | `data/chroma/`, `data/chunks.json` |
+| `indexing/` | `index_docs.py` | `core_indexing.py` | `my_indexing.py` | `data/chroma/`, `data/bm25/` |
 | `retriever/` | `search_docs.py`, `run_eval.py` | `core_hybrid.py` | `my_hybrid.py` | 검색 결과 화면, `logs/results.json` |
 | `ragas/` | `evaluate_ragas.py` | `core_scoring.py` | `my_scoring.py` | 채점 표, `logs/ragas-*.json` |
 
@@ -32,6 +32,7 @@ flowchart LR
 | LLM | Groq `openai/gpt-oss-120b` (답변 생성, RAGAS 채점) |
 | 리랭커 | Cohere `rerank-v4.0-fast` (API) |
 | 형태소 분석 | Kiwi(`kiwipiepy`, 로컬. BM25 토큰화) |
+| BM25 색인 | `bm25s`(로컬. Lucene 방식, k1 1.5, b 0.75). 인덱싱이 점수표를 미리 계산해 `indexing/data/bm25/`에 저장하고, 검색기는 읽기만 함 |
 | API 키 | 저장소 루트 `secrets/.env` 에 `GROQ_API_KEY=...`, `COHERE_API_KEY=...` 두 줄. 다른 곳에 적지 않음 |
 | 로컬 모델 | 없음. 임베딩과 리랭크가 모두 API라 GPU, torch, 모델 다운로드가 필요 없음 |
 
@@ -77,7 +78,7 @@ python3.13 -m venv .venv
 설치 확인
 
 ```bash
-.venv/Scripts/python.exe -c "import langchain, chromadb, kiwipiepy, cohere; print('ok')"
+.venv/Scripts/python.exe -c "import langchain, chromadb, kiwipiepy, cohere, bm25s; print('ok')"
 ragas/.venv/Scripts/python.exe -c "import ragas; print(ragas.__version__)"
 ```
 
@@ -89,7 +90,7 @@ ragas/.venv/Scripts/python.exe -c "import ragas; print(ragas.__version__)"
 ## 4. 실행 순서
 
 ```bash
-# 1) 인덱싱 — 처음엔 --limit 8 로 빨리 확인(결과는 data-limit/). 검색 전에는 전체 실행(data/, 약 1분)
+# 1) 인덱싱(7단계, 마지막이 BM25 색인) — 처음엔 --limit 8 로 빨리 확인(결과는 data-limit/). 검색 전에는 전체 실행(data/, 약 1분)
 cd indexing
 ../.venv/Scripts/python.exe index_docs.py --limit 8
 ../.venv/Scripts/python.exe index_docs.py
@@ -108,7 +109,7 @@ cd ../ragas
 ```
 
 인덱싱이 도는 동안에는 검색 프로그램을 실행하지 않음(같은 Chroma 폴더를 두 프로그램이 열면 결과가 흔들림).  
-인덱싱이 안 되는 PC는 강사가 배포하는 `indexing/data/`(chromadb 1.5.9 기준)를 복사해 검색부터 시작해도 됨.
+인덱싱이 안 되는 PC는 강사가 배포하는 `indexing/data/`(`chroma/`와 `bm25/` 두 폴더 모두. chromadb 1.5.9 기준)를 복사해 검색부터 시작해도 됨.
 
 각 단계의 자세한 옵션과 출력 읽는 법은 폴더별 README에 있음:
 [indexing](indexing/README.md), [retriever](retriever/README.md), [ragas](ragas/README.md).
@@ -131,6 +132,9 @@ cd ../ragas
 2. main 파일의 import 한 줄을 바꿈. 예: `import core_indexing as indexing` → `import my_indexing as indexing`
 3. 같은 명령으로 다시 실행해 단계별 출력을 강사 결과와 비교함
 4. 막히면 import를 되돌려 강사 코드로 뒤 단계를 계속 진행함
+5. `my_indexing.py`로 색인을 만들었다면 `retriever/search_docs.py`의 `import core_indexing as indexing`도  
+   `import my_indexing as indexing`로 바꿈.  
+   검색기가 질문을 색인과 같은 규칙(`tokenize_korean`, 같은 사전)으로 토큰화해야 BM25가 맞기 때문임
 
 ## 7. 실측값(강사 PC, 2026-10-21, Cohere 임베딩 기준)
 

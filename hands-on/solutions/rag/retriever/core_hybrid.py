@@ -1,69 +1,24 @@
-"""검색 핵심 모듈: 한국어 토크나이저, BM25 검색, 점수 융합 2종, Cohere 리랭크, 회원 가명 함수 7개(교육생 클론 코딩 대상)임."""
+"""검색 핵심 모듈: BM25 검색, 점수 융합 2종, Cohere 리랭크, 회원 가명 함수 5개(교육생 클론 코딩 대상)임.
+
+한국어 토크나이저(사용자 사전, 별칭 사전, Kiwi 토큰화)는 인덱서 핵심 모듈(../indexing/core_indexing.py)에 있음.
+색인과 질문을 같은 규칙으로 토큰화해야 하므로 검색기는 그 함수를 그대로 불러 씀.
+"""
 
 import hashlib
-import re
 
-from kiwipiepy import Kiwi
-
-# BM25 색인에 남길 품사(Kiwi 태그). 조사·어미·기호는 어느 청크에나 있어 점수를 흐리므로 뺌
-# NNG 일반명사, NNP 고유명사, NR 수사, SN 숫자, SL 알파벳, VV 동사 어간, VA 형용사 어간
-CONTENT_TAGS = {"NNG", "NNP", "NR", "SN", "SL", "VV", "VA"}
-
-# "D2-C001", "D2-C001-B01", "M-1042", "C-20260302-001" 같은 코드. Kiwi는 이런 코드를 "D", "2", "-", "C", "001"로
-# 쪼개므로 코드 전체를 한 토큰으로 따로 뽑음. 색인과 질문에 같은 규칙을 쓰므로 양쪽 토큰이 같아짐
-CODE_PATTERN = re.compile(r"[A-Za-z]+\d*-[A-Za-z]*\d+(?:-[A-Za-z]*\d+)*")
-NUMBER_COMMA_PATTERN = re.compile(r"(?<=\d),(?=\d)")  # "3,000,000" 안의 쉼표. 질문은 "300만"처럼 쓰기도 해 숫자만 남김
-CARD_NAME_PREFIX = "한빛 "  # 카드명 앞의 회사명. 교육생이 "모아생활 카드"처럼 회사명 없이 묻는 경우가 많음
 RERANK_MODEL = "rerank-v4.0-fast"  # Cohere 리랭커 기본 모델명. main이 같은 이름의 상수를 넘겨 줌
 
 
-def build_tokenizer(card_names: list[str]) -> Kiwi:
-    """Kiwi 형태소 분석기를 만들고 카드명을 고유명사로 등록함.
-
-    목적: "모아생활"을 등록하지 않으면 Kiwi가 "모으/VV + 어 + 생활"로 쪼개 BM25가 카드명을 못 맞춤(실측).
-    방법: 카드명 그대로("한빛 모아생활")와 회사명을 뗀 이름("모아생활") 둘 다 NNP(고유명사)로 add_user_word 함.
-          띄어 쓴 이름도 등록하면 Kiwi가 한 토큰으로 잡음(실측).
-    인자: card_names는 chunks.json 메타데이터 card_name 값의 집합(중복 없는 목록)임.
-    반환값: 사용자 단어가 등록된 Kiwi 객체. 색인과 질문 양쪽에 같은 객체를 씀.
-    """
-    kiwi = Kiwi()
-    for card_name in card_names:
-        kiwi.add_user_word(card_name, "NNP")
-        if card_name.startswith(CARD_NAME_PREFIX):
-            short_name = card_name[len(CARD_NAME_PREFIX):]
-            kiwi.add_user_word(short_name, "NNP")
-    return kiwi
-
-
-def tokenize_korean(kiwi: Kiwi, text: str) -> list[str]:
-    """본문이나 질문을 BM25용 토큰 목록으로 바꿈.
-
-    목적: BM25는 "질문 토큰과 색인 토큰이 문자열로 같을 때만" 점수를 주므로 양쪽을 같은 규칙으로 잘라야 함.
-    방법: ① 숫자 쉼표 제거·소문자화 ② 코드(D2-C001 꼴)를 통째로 토큰에 추가 ③ Kiwi 형태소 분석 뒤 내용어만 남김.
-    반환값: 토큰 문자열 목록. 내용어가 하나도 없으면 빈 목록임.
-    예시: "한빛 모아생활 카드의 포인트" → ["한빛 모아생활", "카드", "포인트"]
-    """
-    normalized = NUMBER_COMMA_PATTERN.sub("", text).lower()
-
-    tokens = []
-    for code in CODE_PATTERN.findall(normalized):
-        tokens.append(code)
-
-    for token in kiwi.tokenize(normalized):
-        if token.tag in CONTENT_TAGS:
-            tokens.append(token.form)
-    return tokens
-
-
-def search_bm25(bm25, chunks: list[dict], query_tokens: list[str], top_n: int) -> list[dict]:
+def search_bm25(bm25, chunks: list[dict], query_tokens: list[str], top_n: int, weight_mask=None) -> list[dict]:
     """BM25 점수가 높은 청크를 top_n개까지 돌려줌.
 
     목적: 조항 번호·카드 코드·고유명사처럼 "낱말이 그대로 있어야 찾는" 질문을 맡음(교재: Sparse 검색).
     방법: bm25.get_scores가 청크마다 점수 1개씩 돌려주므로(순서는 chunks와 같음) 점수 내림차순으로 정렬함.
-    인자: bm25는 chunks를 같은 순서로 토큰화해 만든 BM25Okapi 객체임. 둘의 순서가 다르면 점수가 엉뚱한 청크에 붙음.
-    반환값: {"chunk_id", "text", "metadata", "score", "rank"} 목록. 점수 0(질문 토큰이 하나도 없는 청크)은 뺌.
+          weight_mask(청크마다 1 또는 0)를 넘기면 점수에 곱해져 권한이 없는 청크는 0점이 됨(검색 뒤 거르기).
+    인자: bm25는 인덱서가 chunks와 같은 순서로 토큰화해 저장한 bm25s 색인임. 둘의 순서가 다르면 점수가 엉뚱한 청크에 붙음.
+    반환값: {"chunk_id", "text", "metadata", "score", "rank"} 목록. 점수 0(질문 토큰이 없거나 권한 밖인 청크)은 뺌.
     """
-    scores = bm25.get_scores(query_tokens)
+    scores = bm25.get_scores(query_tokens, weight_mask=weight_mask)
 
     scored = []  # (점수, 청크 순번) 쌍
     for index in range(len(chunks)):

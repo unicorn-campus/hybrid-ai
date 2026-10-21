@@ -1,80 +1,39 @@
-"""교육생용 뼈대: core_hybrid.py와 같은 이름·같은 인자의 함수 7개를 본인 코드로 채우는 파일임."""
+"""교육생용 뼈대: core_hybrid.py와 같은 이름·같은 인자의 함수 5개를 본인 코드로 채우는 파일임."""
 
 # 사용법: 아래 함수를 채운 뒤 search_docs.py의 import 한 줄을 "import my_hybrid as hybrid"로 바꿈
 #
 # 클론 코딩 범위(교시 분량 기준)
-#   직접 작성(핵심 3개): tokenize_korean, search_bm25, fuse_weighted
-#   읽고 복사(4개): build_tokenizer, fuse_rrf, rerank, member_pseudonym — core_hybrid.py를 읽고 이해한 뒤 그대로 옮김
-#   완성본 제공: 맨 위 상수 3개와 fuse_weighted의 보조 함수 4개(_normalize_scores, _merge_hits, _build_fused_list,
+#   직접 작성(핵심 2개): search_bm25, fuse_weighted
+#   읽고 복사(3개): fuse_rrf, rerank, member_pseudonym — core_hybrid.py를 읽고 이해한 뒤 그대로 옮김
+#   완성본 제공: 맨 위 상수와 fuse_weighted의 보조 함수 4개(_normalize_scores, _merge_hits, _build_fused_list,
 #   _get_fused_score)는 아래에 완성된 채로 있으므로 그대로 씀
+#   한국어 토크나이저(사용자 사전, 별칭 사전, Kiwi 토큰화)는 W3 인덱싱 뼈대(../indexing/my_indexing.py)에서 작성함.
+#   검색기는 인덱서 모듈의 함수로 질문을 토큰화하므로 여기에는 없음
 #
 # 함수 하나를 채울 때마다 모드를 좁혀 확인함: --mode bm25 --no-answer → --mode hybrid --no-answer → 기본 모드
 
 import hashlib
-import re
-
-from kiwipiepy import Kiwi
 
 # ---------------------------------------------------------------------------
 # 완성본 상수(core_hybrid.py와 같음)
 # ---------------------------------------------------------------------------
-# BM25 색인에 남길 품사(Kiwi 태그). 조사·어미·기호는 어느 청크에나 있어 점수를 흐리므로 뺌
-# NNG 일반명사, NNP 고유명사, NR 수사, SN 숫자, SL 알파벳, VV 동사 어간, VA 형용사 어간
-CONTENT_TAGS = {"NNG", "NNP", "NR", "SN", "SL", "VV", "VA"}
-
-# "D2-C001", "D2-C001-B01", "M-1042", "C-20260302-001" 같은 코드. Kiwi는 이런 코드를 "D", "2", "-", "C", "001"로
-# 쪼개므로 코드 전체를 한 토큰으로 따로 뽑음. 색인과 질문에 같은 규칙을 쓰므로 양쪽 토큰이 같아짐
-CODE_PATTERN = re.compile(r"[A-Za-z]+\d*-[A-Za-z]*\d+(?:-[A-Za-z]*\d+)*")
-NUMBER_COMMA_PATTERN = re.compile(r"(?<=\d),(?=\d)")  # "3,000,000" 안의 쉼표. 질문은 "300만"처럼 쓰기도 해 숫자만 남김
-CARD_NAME_PREFIX = "한빛 "  # 카드명 앞의 회사명. 교육생이 "모아생활 카드"처럼 회사명 없이 묻는 경우가 많음
 RERANK_MODEL = "rerank-v4.0-fast"  # Cohere 리랭커 기본 모델명. main이 같은 이름의 상수를 넘겨 줌
 
 
 # ---------------------------------------------------------------------------
-# 읽고 복사: build_tokenizer
+# 직접 작성(핵심 1): search_bm25
 # ---------------------------------------------------------------------------
-def build_tokenizer(card_names: list[str]) -> Kiwi:
-    """Kiwi 형태소 분석기를 만들고 카드명을 고유명사로 등록함.
-
-    인자: card_names는 chunks.json 메타데이터 card_name 값의 집합(중복 없는 목록)임.
-    반환값: 사용자 단어가 등록된 Kiwi 객체. 색인과 질문 양쪽에 같은 객체를 씀.
-    """
-    # 할 일 1: Kiwi() 객체를 만듦
-    # 할 일 2: 카드명마다 kiwi.add_user_word(카드명, "NNP")로 고유명사 등록(등록하지 않으면 "모아생활"이 동사로 쪼개짐)
-    # 할 일 3: CARD_NAME_PREFIX("한빛 ")로 시작하면 회사명을 뗀 이름("모아생활")도 함께 등록함
-    # 할 일 4: kiwi 객체를 돌려줌
-    raise NotImplementedError("여기에 본인 코드를 작성함")
-
-
-# ---------------------------------------------------------------------------
-# 직접 작성(핵심 1): tokenize_korean
-# ---------------------------------------------------------------------------
-def tokenize_korean(kiwi: Kiwi, text: str) -> list[str]:
-    """본문이나 질문을 BM25용 토큰 목록으로 바꿈.
-
-    반환값: 토큰 문자열 목록. 예: "한빛 모아생활 카드의 포인트" → ["한빛 모아생활", "카드", "포인트"]
-    """
-    # 할 일 1: NUMBER_COMMA_PATTERN.sub("", text)로 숫자 사이 쉼표를 지우고 .lower()로 소문자로 바꿈
-    # 할 일 2: CODE_PATTERN.findall(...)로 찾은 코드("d2-c001", "m-1042")를 토큰 목록에 먼저 넣음
-    # 할 일 3: kiwi.tokenize(...)의 결과에서 token.tag가 CONTENT_TAGS에 있는 것만 token.form을 목록에 넣음
-    # 할 일 4: 색인(청크)과 질문에 같은 함수를 쓰므로, 한쪽에만 적용되는 처리를 넣지 않음
-    raise NotImplementedError("여기에 본인 코드를 작성함")
-
-
-# ---------------------------------------------------------------------------
-# 직접 작성(핵심 2): search_bm25
-# ---------------------------------------------------------------------------
-def search_bm25(bm25, chunks: list[dict], query_tokens: list[str], top_n: int) -> list[dict]:
+def search_bm25(bm25, chunks: list[dict], query_tokens: list[str], top_n: int, weight_mask=None) -> list[dict]:
     """BM25 점수가 높은 청크를 top_n개까지 돌려줌.
 
-    인자: bm25는 chunks를 같은 순서로 토큰화해 만든 BM25Okapi 객체임.
+    인자: bm25는 인덱서가 chunks와 같은 순서로 저장한 bm25s 색인. weight_mask는 청크마다 1 또는 0인 권한 마스크(없으면 None).
     반환값: {"chunk_id", "text", "metadata", "score", "rank"} 목록(점수 내림차순). 점수 0인 청크는 뺌.
     """
-    # 할 일 1: bm25.get_scores(query_tokens)로 청크마다 점수를 받음(순서는 chunks와 같음)
-    # 할 일 2: (점수, 순번) 쌍을 목록에 모으되 점수 0은 버림
+    # 할 일 1: bm25.get_scores(query_tokens, weight_mask=weight_mask)로 청크마다 점수를 받음(순서는 chunks와 같음)
+    # 할 일 2: (점수, 순번) 쌍을 목록에 모으되 점수 0은 버림(질문 토큰이 없거나 권한 밖인 청크)
     # 할 일 3: 목록.sort(reverse=True) — (점수, 순번) 쌍은 점수부터 비교되므로 점수 내림차순이 됨
     # 할 일 4: 앞 top_n개를 for rank, (score, index) in enumerate(..., start=1) 꼴로 돌며(쌍을 두 변수로 푸는 문법)
-    #          {"chunk_id", "text", "metadata", "score", "rank"} dict로 만들어 목록에 담음
+    #          {"chunk_id", "text", "metadata", "score", "rank"} dict로 만들어 목록에 담음. 점수는 float(...)로 바꿈
     raise NotImplementedError("여기에 본인 코드를 작성함")
 
 
@@ -145,7 +104,7 @@ def _get_fused_score(item: dict) -> float:
 
 
 # ---------------------------------------------------------------------------
-# 직접 작성(핵심 3): fuse_weighted — 합산 루프만 쓰면 됨
+# 직접 작성(핵심 2): fuse_weighted — 합산 루프만 쓰면 됨
 # ---------------------------------------------------------------------------
 def fuse_weighted(
     vector_hits: list[dict],

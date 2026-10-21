@@ -1,17 +1,25 @@
-"""교육생용 뼈대: core_indexing.py와 같은 이름·같은 인자의 함수 8개를 본인 코드로 채우는 파일임.
+"""교육생용 뼈대: core_indexing.py와 같은 이름·같은 인자의 함수를 본인 코드로 채우는 파일임.
 
-채우는 순서(쉬운 것부터). 앞의 6개는 직접 쓰고, 뒤의 2개는 거의 완성된 코드의 빈칸만 채움
-  1 member_pseudonym   (보조) 가명 ID 2줄
-  2 chunk_document     (핵심) 분할기 만들기
-  3 clean_page_text    (보조) 줄 걸러내기
-  4 find_repeated_lines(보조) 반복 줄 세기
-  5 mask_private_info  (보조) 정규식 치환
-  6 clean_document     (핵심) 위 보조 함수를 순서대로 부르기
-  7 embed_chunks       (핵심) 빈칸 2곳: 배치 슬라이싱, 벡터 이어 붙이기
-  8 store_chunks       (핵심) 빈칸 3곳: 배치 슬라이싱, collection.add 인자, JSON 쓰기
+채우는 순서(쉬운 것부터). "직접"은 NotImplementedError 자리에 본인 코드를 쓰고, "빈칸"은 거의 완성된 코드의 빈칸만 채움
+  [벡터 색인: 정제 → 청킹 → 임베딩 → 적재]
+  1 member_pseudonym    (보조, 직접) 가명 ID 2줄
+  2 chunk_document      (핵심, 직접) 분할기 만들기
+  3 clean_page_text     (보조, 직접) 줄 걸러내기
+  4 find_repeated_lines (보조, 직접) 반복 줄 세기
+  5 mask_private_info   (보조, 직접) 정규식 치환
+  6 clean_document      (핵심, 직접) 위 보조 함수를 순서대로 부르기
+  7 embed_chunks        (핵심, 빈칸 2곳) 배치 슬라이싱, 벡터 이어 붙이기
+  8 store_chunks        (핵심, 빈칸 2곳) 배치 슬라이싱, collection.add 인자
+  [BM25 색인: 사전 → 토큰화 → 점수표]
+  9 build_tokenizer     (핵심, 직접) 카드 사용자 사전. Kiwi에 정식명과 별칭을 고유명사로 등록
+ 10 apply_aliases       (핵심, 직접) 별칭 사전 치환. 별칭 → 정식명, 같은 정식명은 1개만
+ 11 tokenize_korean     (핵심, 직접) Kiwi 토큰화. 표기 통일 → 코드 추출 → 내용어 선택 → 별칭 치환
+ 12 build_bm25_index    (핵심, 빈칸 3곳) BM25(k1, b, method), index(), save()
+  제공(읽기만): canonical_card_name, make_alias_table, build_alias_lookup, load_bm25_index
 """
 
-# 사용법: 아래 함수를 채운 뒤 index_docs.py의 import 한 줄을 "import my_indexing as indexing"으로 바꿈
+# 사용법: 아래 함수를 채운 뒤 index_docs.py의 import 한 줄을 "import my_indexing as indexing"으로 바꿈.
+#         검색기(retriever/search_docs.py)도 같은 모듈로 질문을 토큰화해야 하므로 그쪽 import도 my_indexing으로 바꿈
 # 정규식과 상수는 학습 목표가 아니므로 완성본을 그대로 줌. 교육생은 이 값을 "쓰는" 코드만 작성함
 # 임베딩(7)은 API를 부르므로 먼저 "--limit 8"로 실행해 호출 횟수가 적을 때 맞는지 확인한 뒤 전체를 돌림
 
@@ -20,7 +28,9 @@ import json
 import re
 from pathlib import Path
 
+import bm25s
 import chromadb
+from kiwipiepy import Kiwi
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -45,9 +55,19 @@ PRIVATE_PATTERNS = [
 ]
 AGE_PATTERN = re.compile(r"만\s*(\d{1,3})세")  # "만 35세" → 연령대로 바꿀 대상. group(1)이 나이 숫자임
 
+# BM25 색인 상수(교재 130 ~ 131쪽)
+CONTENT_TAGS = {"NNG", "NNP", "NR", "SN", "SL", "VV", "VA"}  # 색인에 남길 품사. 조사·어미·기호는 뺌
+CODE_PATTERN = re.compile(r"[A-Za-z]+\d*-[A-Za-z]*\d+(?:-[A-Za-z]*\d+)*")  # D2-C001, M-1042 같은 코드를 통째로 잡음
+NUMBER_COMMA_PATTERN = re.compile(r"(?<=\d),(?=\d)")  # "3,000,000" 안의 쉼표
+CARD_NAME_PREFIX = "한빛 "  # 카드명 앞의 회사명
+CARD_WORD = "카드"  # 별칭에 붙이는 말
+ALIAS_MIN_LENGTH = 3  # 두 글자 이하 별칭은 걸러냄
+BM25_METHOD = "lucene"  # bm25s 점수 공식
+CHUNK_IDS_FILE = "chunk_ids.json"  # 색인 폴더 안의 청크 ID 순서 파일
+
 
 # ---------------------------------------------------------------------------
-# 보조 함수 4개: 정제와 가명처리의 부품
+# 벡터 색인 보조 함수 4개: 정제와 가명처리의 부품
 # ---------------------------------------------------------------------------
 def find_repeated_lines(pages: list[str], min_pages: int = 2) -> set[str]:
     """여러 쪽에 반복되는 머리말·꼬리말 줄을 찾음.
@@ -98,7 +118,7 @@ def member_pseudonym(member_id: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# 핵심 함수 1. 정제
+# 벡터 색인 핵심 함수 1. 정제
 # ---------------------------------------------------------------------------
 def clean_document(text: str, repeated_lines: set[str] | None = None, mask_private: bool = False) -> str:
     """문서 한 단위(PDF 한 쪽 또는 상담 한 건)의 본문을 정제함.
@@ -113,7 +133,7 @@ def clean_document(text: str, repeated_lines: set[str] | None = None, mask_priva
 
 
 # ---------------------------------------------------------------------------
-# 핵심 함수 2. 청킹
+# 벡터 색인 핵심 함수 2. 청킹
 # ---------------------------------------------------------------------------
 def chunk_document(
     text: str,
@@ -131,12 +151,12 @@ def chunk_document(
     """
     # 할 일 1: RecursiveCharacterTextSplitter(...)로 분할기를 만듦. length_function=count_tokens 로 길이 기준을 토큰 수로 바꿈
     # 할 일 2: chunk_size, chunk_overlap, separators, is_separator_regex=True, keep_separator="start"도 함께 넘김
-    # 할 일 3: splitter.create_documents([text], metadatas=[metadata])의 결과를 그대로 돌려줌
+    # 할 일 3: splitter.create_documents(texts=[text], metadatas=[metadata])의 결과를 그대로 돌려줌
     raise NotImplementedError("여기에 본인 코드를 작성함")
 
 
 # ---------------------------------------------------------------------------
-# 핵심 함수 3. 임베딩 (빈칸 채우기)
+# 벡터 색인 핵심 함수 3. 임베딩 (빈칸 채우기)
 # ---------------------------------------------------------------------------
 def embed_chunks(texts: list[str], embeddings, batch_size: int) -> tuple[list[list[float]], int]:
     """청크 본문 목록을 배치로 나눠 임베딩 API에 보내고, 입력 순서 그대로 벡터 목록을 만듦.
@@ -146,7 +166,7 @@ def embed_chunks(texts: list[str], embeddings, batch_size: int) -> tuple[list[li
     """
     vectors = []
     api_calls = 0
-    for start in range(0, len(texts), batch_size):
+    for start in range(0, len(texts), batch_size):  # range(시작, 끝, 간격)
         batch_texts = None  # 빈칸 1: texts에서 start부터 batch_size개를 슬라이싱해 넣음
         if batch_texts is None:
             raise NotImplementedError("빈칸 1을 채울 것")
@@ -158,25 +178,24 @@ def embed_chunks(texts: list[str], embeddings, batch_size: int) -> tuple[list[li
 
 
 # ---------------------------------------------------------------------------
-# 핵심 함수 4. 적재 (빈칸 채우기)
+# 벡터 색인 핵심 함수 4. 적재 (빈칸 채우기)
 # ---------------------------------------------------------------------------
 def store_chunks(
     chunks: list[dict],
     vectors: list[list[float]],
     chroma_dir: Path,
-    chunks_json_path: Path,
     collection_name: str,
     collection_metadata: dict,
     batch_size: int,
 ) -> int:
-    """청크와 벡터를 Chroma collection에 넣고, 청크 목록을 chunks.json으로 씀.
+    """청크의 본문, 메타데이터, 벡터를 Chroma collection에 넣음.
 
     인자: chunks는 {"chunk_id", "text", "metadata"} dict 목록. vectors는 chunks와 길이·순서가 같아야 함.
     반환값: collection에 저장된 건수.
     """
     client = chromadb.PersistentClient(path=str(chroma_dir))
     collection = client.get_or_create_collection(name=collection_name, metadata=collection_metadata)
-    for start in range(0, len(chunks), batch_size):
+    for start in range(0, len(chunks), batch_size):  # range(시작, 끝, 간격)
         ids = []
         documents = []
         metadatas = []
@@ -190,8 +209,168 @@ def store_chunks(
         # 빈칸 2: collection.add(ids=..., documents=..., embeddings=..., metadatas=...)를 위 네 목록으로 부름
         raise NotImplementedError("빈칸 2를 채우고 이 줄을 지울 것")
 
-    with open(chunks_json_path, "w", encoding="utf-8") as file:
-        # 빈칸 3: json.dump(...)로 chunks를 file에 씀. 한글이 그대로 보이게 ensure_ascii=False, 보기 좋게 indent=2
-        raise NotImplementedError("빈칸 3을 채우고 이 줄을 지울 것")
-
     return collection.count()
+
+
+# ---------------------------------------------------------------------------
+# BM25 색인 제공 함수(읽기만). 별칭 후보 생성과 걸러내기는 문자열 규칙이라 BM25 이해와 무관함
+# ---------------------------------------------------------------------------
+def canonical_card_name(card_name: str) -> str:
+    """카드명을 정식명 토큰으로 바꿈. 소문자로 통일하고, 끝의 "카드"를 떼고, 띄어쓰기를 없앰. "한빛 모아생활" → "한빛모아생활"."""
+    name = card_name.strip().lower()
+    if name.endswith(CARD_WORD):
+        name = name[: -len(CARD_WORD)]
+    return name.replace(" ", "")
+
+
+def _is_common_noun(base_kiwi: Kiwi, alias: str) -> bool:
+    """별칭이 Kiwi 기본 사전에 일반명사로 통째로 있는지 봄(걸러내기 ① "일반 명사와 겹침")."""
+    core = alias.replace(" ", "")
+    if core.endswith(CARD_WORD):
+        core = core[: -len(CARD_WORD)]
+    tokens = list(base_kiwi.tokenize(core))
+    return len(tokens) == 1 and tokens[0].tag == "NNG"
+
+
+def make_alias_table(card_names: list[str], approved: dict | None = None) -> tuple[dict, list[dict]]:
+    """정식명 목록에서 별칭 후보를 규칙으로 만들고 위험한 후보를 걸러 별칭 사전을 만듦(교재 131쪽 ①).
+
+    방법: 후보 = {원래 이름, 접두어 뗀 이름, 띄어쓰기 없앤 이름} × {그대로, "카드" 붙임, " 카드" 붙임}.
+          걸러내기 ① 일반 명사와 겹침 ② 정식명 여러 개를 가리킴 ③ 두 글자 이하. approved(사람 검수 승인분)는 그대로 추가함.
+    반환값: (별칭 사전 {정식명: [별칭, ...]}, 검수 목록 [{"alias", "canonical", "reason"}, ...]) 쌍.
+    """
+    base_kiwi = Kiwi()  # 사용자 사전이 없는 기본 분석기. 걸러내기 ①에만 씀
+    candidates = {}  # 별칭 → 그 별칭이 가리키는 정식명 집합
+    for card_name in card_names:
+        canonical = canonical_card_name(card_name)
+        full_name = card_name.strip().lower()
+        short_name = full_name
+        if full_name.startswith(CARD_NAME_PREFIX):
+            short_name = full_name[len(CARD_NAME_PREFIX):]
+        base_forms = {full_name, short_name, short_name.replace(" ", "")}
+        forms = set()
+        for form in base_forms:
+            forms.add(form)
+            forms.add(form + CARD_WORD)
+            forms.add(form + " " + CARD_WORD)
+        forms.discard(canonical)  # 정식명 자체는 별칭이 아님
+        for alias in forms:
+            if alias not in candidates:
+                candidates[alias] = set()
+            candidates[alias].add(canonical)
+
+    aliases = {}
+    review = []
+    for alias in sorted(candidates):
+        canonicals = candidates[alias]
+        reason = None
+        if len(canonicals) > 1:
+            reason = "정식명 여러 개를 가리킴"
+        elif len(alias.replace(" ", "")) < ALIAS_MIN_LENGTH:
+            reason = "두 글자 이하"
+        elif _is_common_noun(base_kiwi, alias):
+            reason = "일반 명사와 겹침"
+        if reason is not None:
+            review.append({"alias": alias, "canonical": sorted(canonicals)[0], "reason": reason})
+            continue
+        canonical = sorted(canonicals)[0]
+        if canonical not in aliases:
+            aliases[canonical] = []
+        aliases[canonical].append(alias)
+
+    if approved is not None:
+        for canonical, extra_aliases in approved.items():
+            if canonical not in aliases:
+                aliases[canonical] = []
+            for alias in extra_aliases:
+                alias = alias.strip().lower()
+                if alias not in aliases[canonical]:
+                    aliases[canonical].append(alias)
+    return aliases, review
+
+
+def build_alias_lookup(aliases: dict) -> dict:
+    """별칭 사전을 뒤집어 역방향 대응표 {별칭: 정식명}을 만듦. 정식명 자신도 넣어 치환 뒤 중복 정리가 한 규칙으로 됨."""
+    alias_to_name = {}
+    for canonical, alias_list in aliases.items():
+        alias_to_name[canonical] = canonical
+        for alias in alias_list:
+            alias_to_name[alias] = canonical
+    return alias_to_name
+
+
+def load_bm25_index(index_dir: Path) -> tuple:
+    """build_bm25_index가 저장한 색인과 chunk_id 순서를 다시 읽음. (bm25s.BM25 객체, chunk_id 목록) 쌍을 돌려줌."""
+    retriever = bm25s.BM25.load(str(index_dir), load_corpus=False, show_progress=False)
+    with open(index_dir / CHUNK_IDS_FILE, "r", encoding="utf-8") as file:
+        chunk_ids = json.load(file)
+    return retriever, chunk_ids
+
+
+# ---------------------------------------------------------------------------
+# BM25 색인 핵심 함수 1. 카드 사용자 사전 (직접 작성)
+# ---------------------------------------------------------------------------
+def build_tokenizer(card_names: list[str], aliases: dict) -> Kiwi:
+    """Kiwi 형태소 분석기를 만들고 카드 정식명과 별칭을 고유명사(NNP)로 등록함(교재 130쪽 "카드명 사용자 사전").
+
+    인자: card_names는 카드명 목록("한빛 모아생활" 꼴). aliases는 make_alias_table이 돌려준 {정식명: [별칭, ...]}.
+    반환값: 사용자 단어가 등록된 Kiwi 객체. 색인과 질문 양쪽에 같은 객체를 씀.
+    """
+    # 할 일 1: Kiwi() 객체를 만듦
+    # 할 일 2: 카드명마다 소문자 원문(card_name.strip().lower())과 정식명(canonical_card_name)을 add_user_word(단어, "NNP")로 등록
+    # 할 일 3: aliases.values()의 모든 별칭도 같은 방법으로 등록
+    # 할 일 4: Kiwi 객체를 돌려줌
+    raise NotImplementedError("여기에 본인 코드를 작성함")
+
+
+# ---------------------------------------------------------------------------
+# BM25 색인 핵심 함수 2. 별칭 사전 치환 (직접 작성)
+# ---------------------------------------------------------------------------
+def apply_aliases(tokens: list[str], alias_to_name: dict) -> list[str]:
+    """토큰 목록에서 별칭을 정식명으로 바꾸고, 같은 정식명이 여러 번 나오면 1개만 남김(교재 131쪽 ②, ③).
+
+    인자: alias_to_name은 build_alias_lookup이 만든 {별칭: 정식명} 대응표(정식명 자신도 들어 있음).
+    반환값: 치환과 중복 정리가 끝난 토큰 목록(순서 유지). 예: ["모아생활", "카드"] → ["한빛모아생활", "카드"]
+    """
+    # 할 일 1: 결과 목록과 "이미 나온 정식명" 집합을 빈 상태로 만듦
+    # 할 일 2: 토큰마다 대응표에 없으면 그대로 결과에 넣음
+    # 할 일 3: 대응표에 있으면 정식명으로 바꾸되, 이미 나온 정식명이면 건너뛰고 아니면 집합에 넣고 결과에 넣음
+    # 할 일 4: 결과 목록을 돌려줌
+    raise NotImplementedError("여기에 본인 코드를 작성함")
+
+
+# ---------------------------------------------------------------------------
+# BM25 색인 핵심 함수 3. Kiwi 토큰화 (직접 작성)
+# ---------------------------------------------------------------------------
+def tokenize_korean(kiwi: Kiwi, text: str, alias_to_name: dict) -> list[str]:
+    """본문이나 질문을 BM25용 토큰 목록으로 바꿈(교재 130쪽 "한 문장이 색인 단어가 되기까지").
+
+    반환값: 토큰 문자열 목록. 예: "모아생활 카드의 포인트" → ["한빛모아생활", "카드", "포인트"]
+    """
+    # 할 일 1: 표기 통일 — NUMBER_COMMA_PATTERN.sub("", text)로 숫자 쉼표를 지우고 .lower()로 소문자화
+    # 할 일 2: CODE_PATTERN.findall(통일한 글)로 찾은 코드를 토큰 목록에 먼저 넣음
+    # 할 일 3: kiwi.tokenize(통일한 글)의 토큰 중 token.tag가 CONTENT_TAGS에 있는 것만 token.form을 넣음
+    # 할 일 4: apply_aliases(토큰 목록, alias_to_name)의 결과를 돌려줌
+    raise NotImplementedError("여기에 본인 코드를 작성함")
+
+
+# ---------------------------------------------------------------------------
+# BM25 색인 핵심 함수 4. bm25s 점수표 생성과 저장 (빈칸 채우기)
+# ---------------------------------------------------------------------------
+def build_bm25_index(chunk_tokens: list[list[str]], chunk_ids: list[str], index_dir: Path, k1: float, b: float) -> int:
+    """청크 토큰 목록으로 bm25s 점수표를 미리 계산해 폴더에 저장하고, 청크 ID 순서를 함께 둠(교재 130쪽 ③, ④).
+
+    인자: k1은 한 청크 안에서 같은 단어가 반복될 때 점수가 더 오르는 정도, b는 긴 청크의 점수를 깎는 정도.
+    반환값: 색인에 들어간 문서(청크) 수.
+    """
+    retriever = None  # 빈칸 1: bm25s.BM25(k1=..., b=..., method=BM25_METHOD)로 색인 객체를 만듦
+    if retriever is None:
+        raise NotImplementedError("빈칸 1을 채울 것")
+    # 빈칸 2: retriever.index(...)에 chunk_tokens를 넘겨 점수표를 계산함(show_progress=False를 함께 넘기면 조용함)
+    raise NotImplementedError("빈칸 2를 채우고 이 줄을 지울 것")
+    index_dir.mkdir(parents=True, exist_ok=True)
+    # 빈칸 3: retriever.save(...)로 index_dir에 저장함(경로는 str(index_dir)로 넘김)
+    raise NotImplementedError("빈칸 3을 채우고 이 줄을 지울 것")
+    with open(index_dir / CHUNK_IDS_FILE, "w", encoding="utf-8") as file:
+        json.dump(chunk_ids, file, ensure_ascii=False, indent=2)
+    return retriever.scores["num_docs"]
