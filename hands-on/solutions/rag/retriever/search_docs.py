@@ -29,7 +29,7 @@ ROOT_DIR = BASE_DIR.parents[3]  # retriever → rag → solutions → hands-on �
 INDEXING_DIR = RAG_DIR / "indexing"  # 인덱서 폴더. 질문 토큰화 함수를 인덱서 모듈에서 가져옴(색인과 같은 규칙이어야 함)
 INDEX_DATA_DIR = INDEXING_DIR / "data"  # 인덱서가 만든 결과 폴더(여기서는 읽기만 함)
 CHROMA_DIR = INDEX_DATA_DIR / "chroma"  # Chroma 저장 폴더(본문, 메타데이터, 벡터)
-BM25_DIR = INDEX_DATA_DIR / "bm25"  # BM25 색인 폴더(bm25s 점수표, chunk_ids.json, dictionary.json, manifest.json)
+BM25_DIR = INDEX_DATA_DIR / "bm25"  # BM25 색인 폴더(bm25s 점수표, chunk_ids.json, dictionary.json, aliases_review.json, manifest.json)
 SECRETS_ENV_PATH = ROOT_DIR / "secrets" / ".env"  # GROQ_API_KEY, COHERE_API_KEY가 든 파일(값은 절대 출력하지 않음)
 
 # 인덱서 모듈을 불러옴. 색인을 만든 모듈과 같은 모듈로 질문을 토큰화해야 토큰이 같아짐

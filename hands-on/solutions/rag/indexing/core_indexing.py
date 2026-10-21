@@ -7,7 +7,7 @@
 - store_chunks    : 적재. 벡터와 본문과 메타데이터를 Chroma에 넣음(검색기는 본문도 Chroma에서 읽음)
 
 벡터 색인 보조 함수 4개(핵심 함수가 안에서 부름)
-- find_repeated_lines, clean_page_text : 정제가 씀
+- find_repeated_lines, clean_page_text : 정제가 씀(find_repeated_lines는 main이 부르고 그 결과를 clean_document에 넘김)
 - mask_private_info, member_pseudonym  : 가명처리가 씀(member_pseudonym은 main이 메타데이터를 만들 때 직접 부름)
 
 BM25 색인 핵심 함수 3개(직접 작성)와 1개(빈칸 채우기). 교재 130 ~ 131쪽
@@ -20,7 +20,7 @@ BM25 색인 제공 함수(읽기만)
 - canonical_card_name, make_alias_table, build_alias_lookup : 별칭 후보 생성과 걸러내기(문자열 규칙)
 - load_bm25_index : 저장한 색인과 chunk_id 순서를 다시 읽음(검색기가 씀)
 
-로드(PDF 읽기, 상담 파일 나누기)는 라이브러리 호출뿐이라 main(index_docs.py)에 둠.
+로드(PDF 읽기, 상담 파일의 머리말 파싱)는 색인 설계와 무관한 파일 처리라 main(index_docs.py)에 둠.
 """
 
 import hashlib
@@ -41,7 +41,7 @@ MARGIN_TOP_LINES = 4  # 쪽 위쪽에서 머리말 후보로 보는 줄 수
 MARGIN_BOTTOM_LINES = 2  # 쪽 아래쪽에서 꼬리말 후보로 보는 줄 수
 
 PAGE_NUMBER_PATTERN = re.compile(r"^-\s*\d+\s*-$")  # "- 3 -" 꼴 쪽번호 줄
-DIGITS_ONLY_PATTERN = re.compile(r"^\d+$")  # "17" 처럼 숫자만 있는 줄(D2 쪽번호)
+DIGITS_ONLY_PATTERN = re.compile(r"^\d+$")  # "17" 처럼 숫자만 있는 줄(D2 쪽번호. 표 칸의 한 자리 숫자 줄도 함께 지워짐)
 
 # 가명처리 규칙: (찾을 정규식, 바꿀 말). 적힌 순서대로 적용함
 # 카드번호를 전화번호보다 먼저 바꿈. 숫자 묶음이 긴 카드번호 안에서 전화번호 꼴이 먼저 잡히는 일을 막기 위함
@@ -134,7 +134,7 @@ def _age_to_decade(match: re.Match) -> str:
 def mask_private_info(text: str) -> str:
     """상담 본문 안의 개인정보를 유형 토큰으로 바꾸거나 범위로 넓힘.
 
-    목적: 고객명·전화·이메일·카드번호·생년월일은 답변에 필요 없고 유출 위험만 있으므로 색인 전에 없앰.
+    목적: 고객명·상담사명·전화·이메일·카드번호·생년월일은 답변에 필요 없고 유출 위험만 있으므로 색인 전에 없앰.
     방법: PRIVATE_PATTERNS를 적힌 순서대로 정규식 치환하고, 마지막에 "만 35세"를 "30대"로 바꿈.
     반환값: 치환된 본문. 개인정보가 없으면 입력과 같음.
     예시: "제 이름은 가상고객0001입니다" → "제 이름은 [고객]입니다"
@@ -276,6 +276,7 @@ def store_chunks(
 # ---------------------------------------------------------------------------
 # BM25 색인에 남길 품사(Kiwi 태그). 조사·어미·기호는 어느 청크에나 있어 점수를 흐리므로 뺌
 # NNG 일반명사, NNP 고유명사, NR 수사, SN 숫자, SL 알파벳, VV 동사 어간, VA 형용사 어간
+# Kiwi는 불규칙 활용을 "VV-R", "VV-I", "VA-I"처럼 접미사를 붙여 표시하므로 "-" 앞부분만 떼어 비교함("받/VV-R"도 남김)
 CONTENT_TAGS = {"NNG", "NNP", "NR", "SN", "SL", "VV", "VA"}
 
 # "D2-C001", "D2-C001-B01", "M-1042", "C-20260302-001" 같은 코드. Kiwi는 이런 코드를 "D", "2", "-", "C", "001"로
@@ -320,8 +321,8 @@ def _is_common_noun(base_kiwi: Kiwi, alias: str) -> bool:
 def make_alias_table(card_names: list[str], approved: dict | None = None) -> tuple[dict, list[dict]]:
     """정식명 목록에서 별칭 후보를 규칙으로 만들고 위험한 후보를 걸러 별칭 사전을 만듦(교재 131쪽 ①).
 
-    방법: 카드명마다 후보 = {원래 이름, 접두어 뗀 이름, 띄어쓰기 없앤 이름} × {그대로, "카드" 붙임, " 카드" 붙임}.
-          걸러내기 ① 일반 명사와 겹침 ② 정식명 여러 개를 가리킴 ③ 두 글자 이하 → 걸러진 후보는 review 목록에 이유와 함께 둠.
+    방법: 카드명마다 후보 = {원래 이름, 접두어 뗀 이름, 접두어 뗀 이름에서 띄어쓰기를 없앤 이름} × {그대로, "카드" 붙임, " 카드" 붙임}.
+          걸러내기 ① 일반 명사와 겹침 ② 정식명 여러 개를 가리킴 ③ 두 글자 이하 → 걸러진 후보는 review 목록에 이유와 함께 둠(approved로 승인된 것은 제외).
           approved(사람 검수 승인분, {정식명: [별칭, ...]})는 걸러내기와 무관하게 추가함.
     인자: card_names는 메타데이터 card_name 값의 집합(중복 없는 목록). approved는 없으면 None.
     반환값: (별칭 사전 {정식명: [별칭, ...]}, 검수 목록 [{"alias", "canonical", "reason"}, ...]) 쌍.
@@ -342,7 +343,7 @@ def make_alias_table(card_names: list[str], approved: dict | None = None) -> tup
             forms.add(form)  # 예: "통신할부a"
             forms.add(form + CARD_WORD)  # 예: "통신할부a카드"
             forms.add(form + " " + CARD_WORD)  # 예: "통신할부a 카드"
-        # 여기까지 후보 3 × 3 = 9개
+        # 여기까지 후보 최대 3 × 3 = 9개(띄어쓰기 없는 카드명은 형태가 겹쳐 6개)
         forms.discard(canonical)  # 정식명 자체는 별칭이 아님. 예: "한빛통신할부a"는 후보에 없으므로 그대로 9개
         for alias in forms:  # 예: alias = "통신할부a카드"일 때
             if alias not in candidates:  # 예: 처음 나온 별칭이면
@@ -383,7 +384,17 @@ def make_alias_table(card_names: list[str], approved: dict | None = None) -> tup
                 alias = alias.strip().lower()  # 사람이 적은 값이라 앞뒤 공백과 대소문자를 위 규칙과 맞춤
                 if alias not in aliases[canonical]:  # 이미 있는 별칭은 두 번 넣지 않음
                     aliases[canonical].append(alias)  # 예: aliases["한빛수소길"] = [..., "수소길카드"]
-    return aliases, review
+    # 승인된 별칭은 이미 사람이 검수를 마친 것이므로 검수 목록에서 뺌
+    approved_set = set()
+    if approved is not None:
+        for extra_aliases in approved.values():
+            for alias in extra_aliases:
+                approved_set.add(alias.strip().lower())
+    remaining_review = []
+    for item in review:
+        if item["alias"] not in approved_set:
+            remaining_review.append(item)
+    return aliases, remaining_review
 
 
 def build_alias_lookup(aliases: dict) -> dict:
@@ -417,7 +428,7 @@ def build_tokenizer(card_names: list[str], aliases: dict) -> Kiwi:
     방법: 카드명 원문(소문자), 정식명(canonical_card_name), 별칭 사전의 모든 별칭을 add_user_word로 등록함.
           띄어 쓴 이름("한빛 모아생활")도 등록하면 Kiwi가 한 토큰으로 잡음(실측).
     인자: card_names는 메타데이터 card_name 값의 집합. aliases는 make_alias_table이 돌려준 {정식명: [별칭, ...]}.
-    반환값: 사용자 단어가 등록된 Kiwi 객체. 색인과 질문 양쪽에 같은 객체를 씀.
+    반환값: 사용자 단어가 등록된 Kiwi 객체. 색인과 질문 양쪽에 같은 사전(card_names, aliases)으로 만든 객체를 씀.
     """
     kiwi = Kiwi()
     for card_name in card_names:
@@ -436,7 +447,7 @@ def apply_aliases(tokens: list[str], alias_to_name: dict) -> list[str]:
     """토큰 목록에서 별칭을 정식명으로 바꾸고, 같은 정식명이 여러 번 나오면 1개만 남김(교재 131쪽 ②, ③).
 
     목적: 문서의 "한빛 모아생활"과 질문의 "모아생활"이 같은 토큰 "한빛모아생활"이 되어야 BM25가 같은 단어로 셈.
-    방법: 토큰마다 대응표에 있으면 정식명으로 바꿈. 정식명이 이미 나왔으면 건너뜀(한 문장에서 이름이 두 번 잡히는 경우).
+    방법: 토큰마다 대응표에 있으면 정식명으로 바꿈. 정식명이 이미 나왔으면 건너뜀(호출 1회, 곧 청크 하나 또는 질문 하나 안에서 같은 이름이 여러 번 잡히는 경우).
           대응표에 없는 토큰은 그대로 둠(일반 단어의 반복 횟수는 BM25 점수에 그대로 반영됨).
     반환값: 치환과 중복 정리가 끝난 토큰 목록(순서 유지).
     예시: ["모아생활", "카드", "연회비"] → ["한빛모아생활", "카드", "연회비"]
@@ -465,7 +476,8 @@ def tokenize_korean(kiwi: Kiwi, text: str, alias_to_name: dict) -> list[str]:
     방법: ① 표기 통일(숫자 쉼표 제거, 소문자화) ② 코드(D2-C001 꼴)를 통째로 토큰에 추가
           ③ Kiwi 형태소 분석 뒤 내용어(CONTENT_TAGS)만 남김 ④ 별칭을 정식명으로 치환(apply_aliases).
     반환값: 토큰 문자열 목록. 내용어가 하나도 없으면 빈 목록임.
-    예시: "모아생활 카드의 포인트" → ["한빛모아생활", "카드", "포인트"]
+    예시: "모아생활 카드의 포인트" → ["한빛모아생활", "포인트"]
+          (별칭 "모아생활 카드"가 사용자 사전에 있어 한 토큰으로 잡힌 뒤 정식명이 되므로 "카드"는 따로 남지 않음)
     """
     normalized = NUMBER_COMMA_PATTERN.sub("", text).lower()
 
@@ -473,7 +485,7 @@ def tokenize_korean(kiwi: Kiwi, text: str, alias_to_name: dict) -> list[str]:
     for code in CODE_PATTERN.findall(normalized):
         tokens.append(code)
     for token in kiwi.tokenize(normalized):
-        if token.tag in CONTENT_TAGS:
+        if token.tag.split("-")[0] in CONTENT_TAGS:  # "VV-R" 같은 불규칙 활용 태그는 앞부분 "VV"로 봄
             tokens.append(token.form)
     return apply_aliases(tokens, alias_to_name)
 

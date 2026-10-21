@@ -35,7 +35,7 @@ DOCS_DIR = ROOT_DIR / "docs"  # 원천 문서 폴더
 DATA_DIR = BASE_DIR / "data"  # 전체 실행 결과 폴더(검색기가 읽음)
 DATA_LIMIT_DIR = BASE_DIR / "data-limit"  # --limit 실행 결과 폴더. 전체 결과를 부분 결과로 덮어쓰지 않기 위해 분리함
 CHROMA_DIR_NAME = "chroma"  # 결과 폴더 안의 Chroma 저장 폴더 이름(본문, 메타데이터, 벡터)
-BM25_DIR_NAME = "bm25"  # 결과 폴더 안의 BM25 색인 폴더 이름(bm25s 점수표, chunk_ids.json, dictionary.json, manifest.json)
+BM25_DIR_NAME = "bm25"  # 결과 폴더 안의 BM25 색인 폴더 이름(bm25s 점수표, chunk_ids.json, dictionary.json, aliases_review.json, manifest.json)
 STALE_FILES = ["chunks.json"]  # 예전 버전이 만들던 파일. 남아 있으면 지움(검색기는 본문을 Chroma에서 읽음)
 ALIASES_APPROVED_PATH = BASE_DIR / "aliases_approved.json"  # 사람 검수를 통과한 별칭(강사 제공). {정식명: [별칭, ...]}
 SECRETS_PATH = ROOT_DIR / "secrets" / ".env"  # API 키가 든 파일. 키 값은 코드·주석·README에 절대 적지 않음
@@ -188,7 +188,7 @@ def load_pdf_pages(pdf_path: Path, limit: int | None) -> list[str]:
 def load_consult_records(txt_path: Path, limit: int | None) -> list[dict]:
     """상담 파일을 상담 건 단위로 나눠 읽음.
 
-    방법: "====" 구분 줄로 블록을 나누고, "[상담ID]" 줄이 있는 블록만 상담 건으로 봄(파일 머리 설명은 버림).
+    방법: "====" 구분 줄로 블록을 나누고, "[상담ID] ... | 채널: ... | 회원번호: ..." 머리말 형식에 맞는 줄이 있는 블록만 상담 건으로 봄(파일 머리 설명은 버림).
     반환값: 상담 건마다 {"raw_lines": 원문 줄 목록, "header": 상담ID 줄에서 읽은 값 dict}인 목록임.
     예시: "[상담ID] C-20260314-001 | 2026-03-14 | 채널: 앱 채팅 | 회원번호: M-1001" 줄의 header는
           {"record_id": "C-20260314-001", "consult_date": "2026-03-14", "channel": "앱 채팅", "member_id": "M-1001"}
@@ -393,7 +393,7 @@ def step_mask(consult_records_by_file: dict) -> list[Document]:
 def attach_card_header(text: str, metadata: dict, card_names: dict) -> str:
     """D2 청크 본문의 첫 카드 코드로 card_id·card_name 메타데이터를 넣고 "[카드: ...]" 머리말을 앞에 붙임.
 
-    목적: 카드 청크 본문에는 카드명이 없어 카드명으로 검색이 안 됨(교재 "본문에 메타데이터 삽입").
+    목적: 카드의 첫 청크를 뺀 나머지 청크 본문에는 카드명이 없어 카드명으로 검색이 안 됨(교재 "본문에 메타데이터 삽입").
     반환값: 머리말이 붙은 본문. 카드 코드가 없거나 표에 없는 코드면 원래 본문 그대로임.
     """
     
@@ -583,7 +583,7 @@ def print_tokenize_trace(kiwi, alias_to_name: dict, sentence: str) -> None:
     kept = []
     dropped = []
     for token in kiwi.tokenize(normalized):
-        if token.tag in indexing.CONTENT_TAGS:
+        if token.tag.split("-")[0] in indexing.CONTENT_TAGS:
             kept.append(token.form)
         else:
             dropped.append(f"{token.form}/{token.tag}")
@@ -591,10 +591,10 @@ def print_tokenize_trace(kiwi, alias_to_name: dict, sentence: str) -> None:
     final_tokens = indexing.tokenize_korean(kiwi, sentence, alias_to_name)
     print(f"  원문        | {sentence}")
     print(f"  ① 표기 통일 | {normalized}")
-    print(f"  ② 남긴 단어 | {kept}")
-    print(f"  ③ 버린 조각 | {dropped}")
-    print(f"  ④ 코드 추가 | {codes} (코드 꼴이 없으면 빈 목록)")
-    print(f"  ⑤ 별칭 치환 | {final_tokens}  → {len(final_tokens)}개 단어를 bm25s가 점수 계산")
+    print(f"  ② 코드 추가 | {codes} (코드 꼴이 없으면 빈 목록. 목록 맨 앞에 들어감)")
+    print(f"  ③ 남긴 단어 | {kept}")
+    print(f"     버린 조각 | {dropped} (참고: 조사, 어미, 기호)")
+    print(f"  ④ 별칭 치환 | {final_tokens}  → {len(final_tokens)}개 단어를 bm25s가 점수 계산")
 
 
 def run_alias_self_test(kiwi, alias_to_name: dict) -> None:
@@ -632,7 +632,7 @@ def write_bm25_sidecars(index_dir: Path, card_names: list[str], aliases: dict, r
 
 
 def step_bm25_index(chunks: list[dict], data_dir: Path) -> None:
-    """청크 본문을 Kiwi로 토큰화해 bm25s 색인을 만들고 저장함. 핵심 함수 4개(사전, 별칭, 토큰화, 색인)가 맡음.
+    """청크 본문을 Kiwi로 토큰화해 bm25s 색인을 만들고 저장함. 핵심 함수 build_tokenizer, tokenize_korean(안에서 apply_aliases), build_bm25_index와 제공 함수 make_alias_table, build_alias_lookup이 맡음.
 
     방법: 카드명 → 별칭 사전(규칙 생성 + 걸러내기 + 승인분) → 사용자 사전(Kiwi) → 청크 토큰화 → bm25s 점수표 저장
           → 다시 읽어 문서 수가 청크 수와 같은지 검증(교재 130쪽 ④ "저장·검증").
@@ -649,7 +649,7 @@ def step_bm25_index(chunks: list[dict], data_dir: Path) -> None:
     alias_count = 0
     for alias_list in aliases.values():
         alias_count = alias_count + len(alias_list)
-    print(f"  카드명 {len(card_names)}개 → 별칭 {alias_count}개 등록, 검수 대상 {len(review)}개 (예: {review[:2]})")
+    print(f"  카드명 {len(card_names)}개 → 별칭 {alias_count}개 등록, 검수 대상(미승인) {len(review)}개 (예: {review[:2]})")
 
     print("  예시: 한 문장이 색인 단어가 되기까지")
     print_tokenize_trace(kiwi, alias_to_name, TRACE_SENTENCE)
@@ -704,7 +704,7 @@ def main() -> None:
         data_dir = DATA_LIMIT_DIR  # 부분 결과가 검색기가 읽는 전체 결과를 덮어쓰지 않게 함
         print(f"--limit {limit}: 결과는 {data_dir} 에 씀(검색기는 data/ 를 읽으므로 영향 없음)")
         if limit < D2_CARD_INDEX_LAST_PAGE:
-            print(f"--limit 가 {D2_CARD_INDEX_LAST_PAGE} 미만이면 카드명 표(3 ~ 6쪽)를 못 읽어 카드 머리말이 안 붙음")
+            print(f"--limit 가 {D2_CARD_INDEX_LAST_PAGE} 미만이면 카드명 표(3 ~ 6쪽)를 다 읽지 못해 일부 카드 머리말이 안 붙음(단계 7 자가 테스트도 실패로 표시될 수 있음)")
     remove_old_outputs(data_dir)  # 임베딩(수 분)보다 먼저 지워 삭제 실패로 결과를 잃지 않게 함
 
     # 1 로드: PDF(D1, D2)는 쪽 단위로, 상담 파일(D3)은 상담 건 단위로 원문 텍스트를 꺼냄
