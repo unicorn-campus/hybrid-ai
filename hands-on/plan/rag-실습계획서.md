@@ -40,7 +40,7 @@ hands-on/solutions/rag/
 ├─ indexing/
 │  ├─ index_docs.py           main: 로드 → 정제 → 가명처리 → 청킹 → 임베딩 → Chroma 적재 → BM25 색인(단계별 함수 7개)
 │  ├─ core_indexing.py        핵심(클론 코딩 대상): 핵심 8개(벡터 색인 4, BM25 색인 4) + 보조 4개 + 제공 4개
-│  ├─ my_indexing.py          교육생 작업 파일(함수 12개 뼈대, 정규식과 BM25 상수와 제공 함수 4개 제공, 임베딩과 적재와 BM25 색인 저장은 빈칸 채우기)
+│  ├─ my_indexing.py          교육생 작업 파일(핵심 함수 8개 뼈대: 직접 5개와 빈칸 3개. 보조 함수 4개, 별칭 규칙 함수, 정규식과 상수는 완성본 제공)
 │  ├─ aliases_approved.json   사람 검수를 통과한 별칭(강사 제공). 단계 7이 읽음
 │  ├─ data/                   전체 실행 결과: chroma/(본문, 메타데이터, 벡터), bm25/(bm25s 점수표와 사전) (검색기가 읽음)
 │  └─ data-limit/             --limit 실행 결과(빠른 확인용, 검색기는 읽지 않음)
@@ -85,20 +85,16 @@ hands-on/solutions/rag/
 
 | 순서 | 핵심 파일 | 직접 쓰는 함수 수 | 개념 | 교시 |
 |---|---|---|---|---|
-| 1 | `core_indexing.py` | 12개(9개는 직접, 3개는 빈칸 채우기) | 가명 ID(해시), 구분자 우선순위와 토큰 기준 크기, 머리말과 꼬리말 제거, 개인정보 치환, 임베딩 배치 호출, Chroma 적재, 카드 사용자 사전, 별칭 치환, Kiwi 토큰화, bm25s 점수표 저장 | W3 3-2, 3-3 |
+| 1 | `core_indexing.py` | 핵심 8개(5개는 직접, 3개는 빈칸 채우기). 보조 4개는 제공 | 정제 흐름(보조 함수 조합), 구분자 우선순위와 토큰 기준 크기, 임베딩 배치 호출, Chroma 적재, 카드 사용자 사전, 별칭 치환, Kiwi 토큰화, bm25s 점수표 저장 | W3 3-2, 3-3 |
 | 2 | `core_hybrid.py` | 2개 | 저장된 BM25 색인의 점수 정렬(권한 마스크), 정규화 가중합 | W4 4-2 |
 | 3 | `core_scoring.py` | 3개 | 결과 정보 4칸, 4지표 `ascore`, 평균 집계 | W4 4-3 |
 
 직접 쓰는 함수(쉬운 것부터)와 읽고 복사하는 것
 
-- `core_indexing.py`: `member_pseudonym` → `chunk_document` → `clean_page_text` → `find_repeated_lines`  
-  → `mask_private_info` → `clean_document`(여기까지 6개는 직접 씀)  
-  → `embed_chunks`(빈칸 2곳) → `store_chunks`(빈칸 2곳)(두 함수는 거의 완성된 코드의 빈칸만 채움)  
-  → `build_tokenizer` → `apply_aliases` → `tokenize_korean`(이 3개는 직접 씀)  
-  → `build_bm25_index`(빈칸 3곳).  
-  임베딩은 API를 쓰므로 `--limit 8` 로 먼저 확인.  
-  정규식 상수(`PRIVATE_PATTERNS` 등)와 BM25 색인 상수(`CONTENT_TAGS`, `CODE_PATTERN` 등), 제공 함수 4개(`canonical_card_name`,  
-  `make_alias_table`, `build_alias_lookup`, `load_bm25_index`)는 뼈대에 완성본으로 제공
+- `core_indexing.py`: `chunk_document` → `clean_document` → `embed_chunks`(빈칸 2곳) → `store_chunks`(빈칸 2곳)  
+  → `build_tokenizer` → `apply_aliases` → `tokenize_korean` → `build_bm25_index`(빈칸 3곳).  
+  보조 함수 4개(`find_repeated_lines`, `clean_page_text`, `mask_private_info`, `member_pseudonym`)와 별칭 규칙 함수,  
+  정규식 상수는 뼈대에 완성본으로 제공. 임베딩은 API를 쓰므로 `--limit 8` 로 먼저 확인  
 - `core_hybrid.py`: `search_bm25` → `fuse_weighted`(직접 2개).  
   `fuse_rrf`, `rerank`, `member_pseudonym`과 가중합 보조 함수 4개는 읽고 복사.  
   한국어 토크나이저(`build_tokenizer`, `tokenize_korean`)는 인덱서로 옮겨 W3에서 작성하고, 검색기는 그 함수로 질문을 토큰화함
@@ -247,6 +243,7 @@ Chroma 적재와 BM25 색인 저장은 빈칸 채우기 방식으로 클론 코�
 | 임베딩 변경 검증 | 청크 260개, 인덱싱 12초. run_eval Hit@5 17/17, 확인 필요 5/5. RAGAS 17행 전부 채점(AnswerRelevancy는 분포 변화로 낮아짐) |
 | 인덱싱 핵심 모듈 재편 | 2026-10-21 강사 지시로 core_chunking(5개) → core_indexing(핵심 4개 정제, 청킹, 임베딩, 적재 + 보조 4개). 임베딩과 적재는 빈칸 채우기 뼈대. 전체 재실행으로 청크 260개와 chunks.json 내용 동일 확인 |
 | BM25 색인 사전 저장으로 변경 | 교재 130 ~ 131쪽 반영. 검색 때 메모리에서 만들던 BM25(rank_bm25)를 인덱싱 7단계에서 bm25s로 미리 만들어 저장하는 구조로 바꿈. chunks.json은 폐지(본문은 Chroma에서 읽음). core_indexing 클론 대상 12개(직접 9, 빈칸 3), core_hybrid 클론 대상 2개(직접 2, 읽고 복사 3). 전체 인덱싱과 검색기 3모드 실행 확인. run_eval 재검증: 답 있는 문항 Hit@5 17/17, 답 없는 문항 확인 필요 5/5(재편 전과 같음). 22문항 중 19문항은 최종 근거 5개가 동일, 3문항(Q02, Q11, Q19)은 5위 청크만 바뀜 |
+| 뼈대 범위 축소 | 강사 지시로 my_indexing.py는 핵심 함수 8개만 직접 작성(5개)과 빈칸(3개)으로 두고, 보조 함수 4개(반복 줄, 쪽 정제, 가명처리, 가명 ID)는 완성본 제공으로 바꿈. 핵심 함수가 보조 함수를 부르는 구조를 익히는 데 집중 |
 
 ## 14. 산출물 목록
 

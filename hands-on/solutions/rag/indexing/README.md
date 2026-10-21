@@ -81,7 +81,7 @@ hands-on/solutions/rag/
 ├── indexing/              # 이 폴더
 │   ├── index_docs.py      # main. 설정 상수, 로더, 단계 함수 7개
 │   ├── core_indexing.py   # 핵심 모듈(교육생 클론 코딩 대상). 핵심 함수 8개(벡터 색인 4, BM25 색인 4), 보조 함수 4개, 제공 함수 4개
-│   ├── my_indexing.py     # 교육생용 뼈대. 같은 함수 12개의 서명과 "할 일" 힌트(embed_chunks, store_chunks, build_bm25_index는 빈칸 채우기)
+│   ├── my_indexing.py     # 교육생용 뼈대. 핵심 함수 8개만 채움(직접 5개, 빈칸 3개). 보조 함수 4개와 별칭 규칙 함수는 완성본
 │   ├── aliases_approved.json  # 사람 검수를 통과한 별칭(강사 제공). 단계 7이 읽음
 │   ├── README.md
 │   ├── .gitignore         # data/, data-limit/ 를 저장소에 올리지 않음
@@ -199,14 +199,15 @@ Chroma collection 설정(`COLLECTION_METADATA`)
 
 ## 7. 교육생 교체 방법
 
-1. `my_indexing.py` 의 함수 12개를 채움(벡터 색인 8개 + BM25 색인 4개). 파일 맨 위 설명에 채우는 순서가 있음  
-   (`member_pseudonym` → `chunk_document` → `clean_page_text` → `find_repeated_lines` → `mask_private_info`  
-   → `clean_document` → `embed_chunks` → `store_chunks` → `build_tokenizer` → `apply_aliases` → `tokenize_korean`  
-   → `build_bm25_index`).  
-   `member_pseudonym` 부터 `clean_document` 까지 6개와 `build_tokenizer`, `apply_aliases`, `tokenize_korean` 3개는  
+1. `my_indexing.py` 의 핵심 함수 8개를 채움(벡터 색인 4개 + BM25 색인 4개). 파일 맨 위 설명에 채우는 순서가 있음  
+   (`chunk_document` → `clean_document` → `embed_chunks` → `store_chunks` → `build_tokenizer` → `apply_aliases`  
+   → `tokenize_korean` → `build_bm25_index`).  
+   `chunk_document`, `clean_document`, `build_tokenizer`, `apply_aliases`, `tokenize_korean` 5개는  
    `NotImplementedError` 뼈대에 직접 쓰고, `embed_chunks`(빈칸 2곳), `store_chunks`(빈칸 2곳), `build_bm25_index`(빈칸 3곳)는  
    거의 완성된 코드의 빈칸만 채움.  
-   `canonical_card_name`, `make_alias_table`, `build_alias_lookup`, `load_bm25_index`는 뼈대에 완성본으로 있으므로 읽기만 함.  
+   보조 함수 4개(`find_repeated_lines`, `clean_page_text`, `mask_private_info`, `member_pseudonym`)와  
+   별칭 규칙 함수(`canonical_card_name`, `make_alias_table`, `build_alias_lookup`), `load_bm25_index`는  
+   뼈대에 완성본으로 있으므로 읽고 그대로 씀. 핵심 함수 `clean_document`가 보조 함수를 부르는 구조임.  
    임베딩은 API를 부르므로 `--limit 8` 로 먼저 확인한 뒤 전체를 돌림.  
    정규식과 여백 줄 수, BM25 색인 상수(`CONTENT_TAGS`, `CODE_PATTERN` 등)는 파일 맨 위에 완성본으로 있으므로 그대로 쓰고,  
    그 값을 쓰는 코드만 작성함
