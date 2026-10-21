@@ -656,18 +656,23 @@ def step_bm25_index(chunks: list[dict], data_dir: Path) -> None:
     print("  자가 테스트: 네 가지 표기의 질문")
     run_alias_self_test(kiwi, alias_to_name)
 
-    # 청크 토큰화 → 점수표 계산과 저장
+    # 청크 토큰화   
     started_at = time.time()
     chunk_tokens = []
     chunk_ids = []
     for chunk in chunks:
         chunk_tokens.append(indexing.tokenize_korean(kiwi, chunk["text"], alias_to_name))  # Kiwi 토큰화
         chunk_ids.append(chunk["chunk_id"])
+        
     token_total = 0
     for tokens in chunk_tokens:
         token_total = token_total + len(tokens)
     print(f"  청크 {len(chunks)}개 토큰화 {time.time() - started_at:.1f}초, 청크당 평균 {token_total / len(chunks):.0f} 토큰")
+    
+    # BM25 색인 만들기(점수화 포함) 후 저장    
     doc_count = indexing.build_bm25_index(chunk_tokens, chunk_ids, index_dir, BM25_K1, BM25_B)  # bm25s 색인
+    
+    # 색인 폴더에 사전(dictionary.json), 검수 목록(aliases_review.json), 요약(manifest.json) 저장 : 검색 시 필요한 정보라 저장함   
     write_bm25_sidecars(index_dir, card_names, aliases, review, len(chunks))
 
     # 검증: 저장한 색인을 다시 읽어 문서 수와 ID 수가 청크 수와 같은지 봄

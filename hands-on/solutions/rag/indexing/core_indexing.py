@@ -328,51 +328,61 @@ def make_alias_table(card_names: list[str], approved: dict | None = None) -> tup
     """
     base_kiwi = Kiwi()  # 사용자 사전이 없는 기본 분석기. 걸러내기 ①에만 씀
     candidates = {}  # 별칭 → 그 별칭이 가리키는 정식명 집합
+    # 아래 주석의 예시는 card_name = "한빛 통신할부 A" 한 건을 따라감
     for card_name in card_names:
-        canonical = canonical_card_name(card_name)
-        full_name = card_name.strip().lower()
-        short_name = full_name
-        if full_name.startswith(CARD_NAME_PREFIX):
-            short_name = full_name[len(CARD_NAME_PREFIX):]
+        canonical = canonical_card_name(card_name)  # 예: "한빛통신할부a" (소문자, 띄어쓰기 없음)
+        full_name = card_name.strip().lower()  # 예: "한빛 통신할부 a" (소문자만)
+        short_name = full_name  # 예: 접두어가 없을 때를 대비해 일단 "한빛 통신할부 a"로 둠
+        if full_name.startswith(CARD_NAME_PREFIX):  # 예: "한빛 "으로 시작하므로 참
+            short_name = full_name[len(CARD_NAME_PREFIX):]  # 예: 앞 3글자 "한빛 "을 떼어 "통신할부 a"
+        # 예: {"한빛 통신할부 a", "통신할부 a", "통신할부a"}. 이름이 같아지면 set이라 하나만 남음
         base_forms = {full_name, short_name, short_name.replace(" ", "")}
         forms = set()
-        for form in base_forms:
-            forms.add(form)
-            forms.add(form + CARD_WORD)
-            forms.add(form + " " + CARD_WORD)
-        forms.discard(canonical)  # 정식명 자체는 별칭이 아님
-        for alias in forms:
-            if alias not in candidates:
-                candidates[alias] = set()
-            candidates[alias].add(canonical)
+        for form in base_forms:  # 예: form = "통신할부a"일 때
+            forms.add(form)  # 예: "통신할부a"
+            forms.add(form + CARD_WORD)  # 예: "통신할부a카드"
+            forms.add(form + " " + CARD_WORD)  # 예: "통신할부a 카드"
+        # 여기까지 후보 3 × 3 = 9개
+        forms.discard(canonical)  # 정식명 자체는 별칭이 아님. 예: "한빛통신할부a"는 후보에 없으므로 그대로 9개
+        for alias in forms:  # 예: alias = "통신할부a카드"일 때
+            if alias not in candidates:  # 예: 처음 나온 별칭이면
+                candidates[alias] = set()  # 예: candidates["통신할부a카드"] = set()
+            candidates[alias].add(canonical)  # 예: candidates["통신할부a카드"] = {"한빛통신할부a"}
+            # 다른 카드도 같은 별칭을 만들면 집합에 정식명이 2개가 되어 아래 걸러내기 ②에 걸림
 
     aliases = {}
     review = []
-    for alias in sorted(candidates):
-        canonicals = candidates[alias]
-        reason = None
-        if len(canonicals) > 1:
-            reason = "정식명 여러 개를 가리킴"
-        elif len(alias.replace(" ", "")) < ALIAS_MIN_LENGTH:
-            reason = "두 글자 이하"
-        elif _is_common_noun(base_kiwi, alias):
-            reason = "일반 명사와 겹침"
-        if reason is not None:
+    # 아래 주석의 예시는 통과하는 "가게모음카드"와 걸러지는 "대중교통카드"를 따라감
+    for alias in sorted(candidates):  # 가나다순으로 돌아 실행할 때마다 결과 순서가 같게 함
+        canonicals = candidates[alias]  # 예: "가게모음카드" → {"한빛가게모음"}, "대중교통카드" → {"한빛대중교통"}
+        reason = None  # 걸러진 이유. 끝까지 None이면 통과
+        if len(canonicals) > 1:  # ② 카드 두 개 이상이 같은 별칭을 만든 경우
+            reason = "정식명 여러 개를 가리킴"  # 가정 예: {"한빛가게모음", "가게모음"} → 어느 카드인지 모름
+        elif len(alias.replace(" ", "")) < ALIAS_MIN_LENGTH:  # ③ 띄어쓰기를 뺀 길이가 3글자 미만
+            reason = "두 글자 이하"  # 가정 예: "한빛 S" 카드의 별칭 "s" → 다른 낱말에 너무 쉽게 걸림
+        elif _is_common_noun(base_kiwi, alias):  # ① 기본 사전에 일반명사로 있음
+            reason = "일반 명사와 겹침"  # 예: "대중교통카드" → "대중교통"이 일반명사라 걸러짐
+        if reason is not None:  # 걸러진 후보는 버리지 않고 사람이 검수할 목록에 이유와 함께 남김
+            # 예: {"alias": "대중교통카드", "canonical": "한빛대중교통", "reason": "일반 명사와 겹침"}
             review.append({"alias": alias, "canonical": sorted(canonicals)[0], "reason": reason})
             continue
-        canonical = sorted(canonicals)[0]
-        if canonical not in aliases:
+        canonical = sorted(canonicals)[0]  # 통과했으면 정식명이 1개뿐임. 예: "한빛가게모음"
+        if canonical not in aliases:  # 예: 이 정식명의 첫 별칭이면 빈 목록부터 만듦
             aliases[canonical] = []
-        aliases[canonical].append(alias)
+        aliases[canonical].append(alias)  # 예: aliases["한빛가게모음"] = [..., "가게모음카드"]
+        # 모두 돌고 나면 예: aliases["한빛가게모음"] = ["가게모음", "가게모음 카드", "가게모음카드", "한빛 가게모음", "한빛 가게모음 카드", "한빛 가게모음카드"]
 
-    if approved is not None:
-        for canonical, extra_aliases in approved.items():
+    # 사람 검수 승인분 추가. 위 걸러내기에 걸렸어도 사람이 "카드 고유 이름이 맞다"고 승인한 별칭은 되살림
+    # 아래 주석의 예시는 aliases_approved.json의 "한빛수소길": ["수소길", "수소길카드", "수소길 카드"]를 따라감
+    if approved is not None:  # 인자를 안 넘기면 None이라 건너뜀(파일이 없을 때 index_docs는 빈 dict를 넘겨 반복 0회)
+        for canonical, extra_aliases in approved.items():  # 예: canonical = "한빛수소길", extra_aliases = ["수소길", ...]
+            # 예: "한빛수소길"은 "한빛 수소길" 등 3개가 이미 통과해 칸이 있음. 후보가 모두 걸린 카드면 여기서 빈 칸을 만듦
             if canonical not in aliases:
                 aliases[canonical] = []
-            for alias in extra_aliases:
-                alias = alias.strip().lower()
-                if alias not in aliases[canonical]:
-                    aliases[canonical].append(alias)
+            for alias in extra_aliases:  # 예: alias = "수소길카드"일 때
+                alias = alias.strip().lower()  # 사람이 적은 값이라 앞뒤 공백과 대소문자를 위 규칙과 맞춤
+                if alias not in aliases[canonical]:  # 이미 있는 별칭은 두 번 넣지 않음
+                    aliases[canonical].append(alias)  # 예: aliases["한빛수소길"] = [..., "수소길카드"]
     return aliases, review
 
 
@@ -481,7 +491,12 @@ def build_bm25_index(chunk_tokens: list[list[str]], chunk_ids: list[str], index_
     반환값: 색인에 들어간 문서(청크) 수. chunk_ids 길이와 같아야 정상임.
     """
     retriever = bm25s.BM25(k1=k1, b=b, method=BM25_METHOD)
+    
+    # BM25 색인: 점수 포함
+    # bm25s 색인 예시: "연회비" → [(청크 3, 2.1), (청크 17, 0.8), (청크 42, 1.5)] 
     retriever.index(chunk_tokens, show_progress=False)
+    
+    # BM25 색인 저장: 점수표와 chunk_id 순서를 index_dir에 둠
     index_dir.mkdir(parents=True, exist_ok=True)
     retriever.save(str(index_dir))
     with open(index_dir / CHUNK_IDS_FILE, "w", encoding="utf-8") as file:
