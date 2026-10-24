@@ -1,0 +1,19 @@
+# GraphRAG 인덱싱 실습 패키지. 2026-10-24 기준 이 저장소 RAG 실습(rag/requirements.txt)과 같은 판으로 맞춤
+# 임베딩(Cohere embed-v5.0-fast)과 LLM(Groq)은 API라 torch 같은 무거운 패키지가 없음
+langchain==1.4.6
+langchain-core==1.6.12
+langchain-groq==1.1.3
+# langchain-cohere 0.6.0은 cohere SDK 6 미만을 요구함. embed-v5.0-fast는 5.21.1에서 동작 확인함
+langchain-cohere==0.6.0
+cohere==5.21.1
+# K2 추출기, K3 가지치기, K4 Neo4j 쓰기(교재 36 ~ 38쪽이 쓰는 라이브러리)
+neo4j-graphrag==1.22.0
+neo4j==6.4.1
+# S3 검색엔진 쓰기(교재 59쪽)
+opensearch-py==3.0.0
+# ② 공통 단계: RAG 실습이 만든 Chroma 청크를 읽음
+chromadb==1.5.9
+# S2 키워드 분석. 0.24.1은 Windows용 바이너리가 없어 0.23.2로 고정함
+kiwipiepy==0.23.2
+kiwipiepy_model==0.23.0
+python-dotenv==1.2.3

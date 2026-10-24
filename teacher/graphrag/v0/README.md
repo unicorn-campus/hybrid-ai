@@ -21,6 +21,7 @@
 | `community.py` | `k8_summarize()` K8 커뮤니티 요약(GDS Leiden 묶기, LLM 보고서, 임베딩, 적재), `verify()` ④ 추가 검사 |
 | `tests/test_community.py` | K8 단위 시험(묶음 결정성은 실제 GDS로, 보고서 재사용, 옵션을 껐을 때 무변화) |
 | `graph_search.py` | 질문 판단(`classify`), 거시 검색(`global_search`), 하이브리드 검색(`chunk_search`, `chunk_graph`, `hybrid_search`), 답하기 |
+| `tests/test_incremental.py` | 증분 색인에서 ④가 실패하면 기록을 갱신하지 않고, 다시 돌리면 같은 문서를 다시 반영하는지(가짜 반영 함수로) |
 | `tests/test_graph_search.py` | 그래프 검색 시험(질문 판단 해석, 근거 정리, 순위 융합. 실제 Neo4j와 OpenSearch에서 활성 세대만 찾는지) |
 | `tools/export_chroma_chunks.py` | 이 저장소 Chroma(`card_docs`) 청크를 v0 입력 꼴로 바꿔 `data/chroma-chunks.json`에 저장 |
 | `tools/make_sample.py` | 시험용 표본 청킹 결과 두 개(전체용, 증분용) |
@@ -59,6 +60,10 @@ K8을 켰을 때만 「모든 Community에 summary와 embedding, 빈 묶음 없�
 
 - 증분 색인(`run_incremental`): 바뀐 문서만 골라 준비(K1 ~ K3, S1 ~ S2)는 병렬로 하고,  
   반영은 K4 ~ K6 → S3 → K7 → 기록 갱신 순서로 함. 그래프는 먼저 넣고 나중에 지워서 바뀌는 동안에도 검색이 찾은 chunk_id가 그래프에 있음
+- 증분 색인의 ④ 검증은 확인용임. 이미 검색이 쓰는 세대에 반영해서 막을 게시가 없음.  
+  대신 실패하면 청킹 결과(`prepared-chunks.json`)와 활성 세대 파일의 입력 지문을 갱신하지 않고, 실패 내용을 로그와  
+  `incremental_report-{실행}.json`에 남긴 뒤 0이 아닌 종료 코드로 멈춤. 사람이 원인을 고친 뒤 같은 입력으로 다시 돌리면  
+  같은 문서를 다시 반영함(문서 단위로 지우고 다시 넣으므로 두 번 반영해도 결과가 같고, `kg_prepared.json`의 추출 결과를 재사용함)
 - 준비 결과는 `data/generations/{세대}/kg_prepared.json`에 보관함. 본문 해시와 스키마가 같은 단위는 LLM을 다시 부르지 않음.  
   추출 단위와 그 단위가 나온 청크 ID 목록(`chunk_ids`)은 이 파일에만 있고 그래프에는 없음
 - 서브 워크플로우는 활성 세대 파일을 바꾸지 않음. 게시는 오케스트레이터만 함
@@ -336,6 +341,14 @@ GDS Leiden(randomSeed 42, concurrency 1, 한 단계), 엔티티 3개 이상 묶�
 - 묶음은 모두 한 문서 종류 안에서만 생김(약관 8, 혜택 안내 3, 상담 2, 섞인 묶음 0). 엔티티 사이 관계가 문서 안에서만 있어서임
 - 처음에는 igraph와 leidenalg로 묶었으나 GDS Leiden으로 바꿈. 그래프가 이미 Neo4j에 있고 Neo4j GraphRAG에서 더 일반적이기 때문임.  
   그래서 두 라이브러리는 requirements에 넣지 않았고 가상환경에서도 지움
+
+## 세대 삭제 기록 (2026-10-24)
+
+실습 예제(`hands-on/solutions/graphrag/indexer`, Cohere 2048차원)가 같은 Neo4j에서 v0의 768차원 벡터 인덱스
+(`kg_entity_embedding`, `kg_community_embedding`)와 이름이 겹쳐 충돌하므로, 강사 결정으로 v0 세대 `gen-hai-full-002`와
+검색엔진 인덱스를 `tools/reset.py --yes --all`로 지우고 벡터 인덱스 2개를 `DROP INDEX`함. 세대 기록은 `data/_old/20261024-160444/`에 있음.  
+그래서 `graph_search.py`와 `tools/search_check.py`는 v0를 다시 전체 재색인하기 전까지 동작하지 않음. 다시 쓰려면 실습 예제 세대를
+지우거나(차원이 다른 같은 이름 인덱스는 공존하지 못함) 실습용 Neo4j를 따로 띄운 뒤 `orchestrator.py full --run full-003 --full-reindex --communities`를 돌림.
 
 ## 한계 (v0)
 
