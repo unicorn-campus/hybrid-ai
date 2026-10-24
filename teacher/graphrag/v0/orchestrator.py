@@ -4,7 +4,8 @@
 
 - 전체 재색인(full): 새 세대에 쓰므로 순서가 필요 없음. KG 구축과 검색엔진 인덱싱을 처음부터 끝까지 병렬로 돌림
 - 증분 색인(incremental): 지금 쓰는 세대에 바로 써서 쓰는 순간 보임. 준비만 병렬, 반영은
-  K4 ~ K6(KG에 새 청크 넣기) → S3(검색엔진 문서 교체) → K7(KG 옛 청크 지우기) → 기록 갱신 순서
+  K4 ~ K6(KG에 새 청크 넣기) → S3(검색엔진 문서 교체) → K7(KG 옛 청크 지우기) → ④ 검증 → 기록 갱신 순서.
+  ④가 실패하면 기록을 갱신하지 않고 멈춰, 원인을 고친 뒤 같은 입력으로 다시 돌리면 같은 문서를 다시 반영함
 - 서브 워크플로우(kg_build, search_index)는 인덱스 구축만 하고 활성 세대 파일은 바꾸지 않음
 - K8 커뮤니티 요약(선택, --communities): 전체 재색인은 K4 ~ K6 뒤, 증분 색인은 K7 뒤(그래프가 완성된 뒤)에 함.
   옵션이 없으면 K8을 부르지 않고 출력도 그대로임
@@ -219,7 +220,7 @@ def _by_doc(chunks: list[dict]) -> dict[str, set[str]]:
 
 
 def run_incremental(run: str, chunks_path, communities: bool = False) -> None:
-    """지금 쓰는 세대에 바뀐 문서만 반영함. 준비는 병렬, 반영은 K4 ~ K6 → S3 → K7 → 기록 갱신 순서."""
+    """지금 쓰는 세대에 바뀐 문서만 반영함. 준비는 병렬, 반영은 K4 ~ K6 → S3 → K7 → ④ → 기록 갱신(④ 통과 때만) 순서."""
 
     active = read_active()
     if not active:
@@ -255,7 +256,7 @@ def run_incremental(run: str, chunks_path, communities: bool = False) -> None:
         if communities:  # K8: K7이 옛 청크와 고아 엔티티를 지운 뒤라야 묶음에 지워질 엔티티가 섞이지 않음
             kg_result["k8"] = step3_k8(driver, generation, gen_dir, run_id, None)
 
-        # 기록 갱신: 이 세대의 청킹 결과와 준비 결과, 활성 세대 파일의 입력 지문
+        # 준비 결과는 그래프에 넣은 그대로 보관함(다시 반영할 때 LLM을 다시 부르지 않고 재사용하게 함)
         touched = set(changed) | set(removed)
         merged_kg = {"chunks": [c for c in old_kg.get("chunks", []) if c["doc_id"] not in touched]
                      + kg_prepared["chunks"],
@@ -266,12 +267,20 @@ def run_incremental(run: str, chunks_path, communities: bool = False) -> None:
                                       if "error" in u and u["doc_id"] not in touched]
                      + kg_prepared["failed_units"], "llm_usage": kg_prepared["llm_usage"]}
         save_json(gen_dir / "kg_prepared.json", merged_kg)
-        shutil.copyfile(chunks_path, gen_dir / "prepared-chunks.json")
         report = step4_verify(new_chunks, generation, index, merged_kg, driver, communities)  # 확인용(게시 조건 아님)
-    save_json(gen_dir / f"incremental_report-{run}.json", {"run_id": run_id, "changed_docs": changed,
-                                                           "removed_docs": removed, "kg": kg_result,
-                                                           "search": search_result, "cleanup": cleanup,
-                                                           "verify": report})
+    report_path = gen_dir / f"incremental_report-{run}.json"
+    save_json(report_path, {"run_id": run_id, "changed_docs": changed, "removed_docs": removed, "kg": kg_result,
+                            "search": search_result, "cleanup": cleanup, "verify": report})
+    if not report["ok"]:
+        # 이미 쓰는 세대에 반영해 되돌릴 게시가 없음. 대신 「반영했다」는 기록을 남기지 않아 다음 증분이 같은 문서를 다시 반영함
+        c = report.get("communities") or {}
+        log(f"④ 검증 실패(증분): 검색엔진 빠짐 {len(report['search_missing'])}, 남음 {len(report['search_extra'])}, "
+            f"그래프 빠짐 {len(report['kg_missing'])}, 남음 {len(report['kg_extra'])}, "
+            f"중복 노드 {len(report['kg_duplicate_chunk_nodes'])}"
+            + (f", 커뮤니티 통과 {c['ok']}" if c else "") + f". 목록: {report_path}")
+        raise SystemExit("④ 검증 실패(증분): 청킹 결과와 입력 지문을 갱신하지 않음. "
+                         "원인을 고친 뒤 같은 입력으로 증분 색인을 다시 실행하면 같은 문서를 다시 반영함")
+    shutil.copyfile(chunks_path, gen_dir / "prepared-chunks.json")  # 기록 갱신은 검증을 통과한 뒤에만
     active.update(input_sha256=sha256_file(chunks_path), chunk_count=len(new_chunks),
                   updated_at=time.strftime("%Y-%m-%d %H:%M:%S"), runs=active.get("runs", []) + [run_id])
     save_json(config.ACTIVE_FILE, active)
