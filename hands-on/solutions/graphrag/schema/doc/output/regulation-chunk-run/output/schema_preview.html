@@ -1,0 +1,18 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>regulation 스키마 초안</title>
+<style>body{font-family:sans-serif;margin:16px;background:#fff}</style></head><body>
+<h3>regulation 스키마 초안</h3><pre class="mermaid">
+flowchart LR
+    TermsDocument["<b>:TermsDocument</b><br/>(약관 문서)<br/>version<br/>effective_date<br/>supersedes"]
+    Clause["<b>:Clause</b><br/>(조항)<br/>clause_no<br/>title"]
+    Requirement["<b>:Requirement</b><br/>(충족 조건)<br/>description"]
+    Deadline["<b>:Deadline</b><br/>(기한과 통지 시점)<br/>description"]
+    Handling["<b>:Handling</b><br/>(상황별 처리)<br/>situation<br/>action"]
+    TermsDocument -->|HAS_CLAUSE| Clause
+    Clause -->|SETS_REQUIREMENT| Requirement
+    Clause -->|SETS_DEADLINE| Deadline
+    Clause -->|DEFINES_HANDLING| Handling
+</pre><div id="status">rendering</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:false, securityLevel:'loose'});
+mermaid.run().then(()=>{document.getElementById('status').textContent='rendered '+document.querySelectorAll('svg').length})
+.catch(e=>{document.getElementById('status').textContent='error '+e});</script></body></html>

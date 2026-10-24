@@ -1,0 +1,155 @@
+{
+  "node_types": [
+    {
+      "label": "ProductGuide",
+      "description": "(\uc0c1\ud488 \uc548\ub0b4) \ud574\ub2f9: \ud55c\ube5b \uce74\ub4dc \uc0c1\ud488 \ud558\ub098(\uba38\ub9ac\uc904 product_id \ud558\ub098). \ud61c\ud0dd\uc744 \uc774 \uc0c1\ud488\uc5d0 \uc787\ub294 \uc790\ub9ac\ub85c \uc500. \ube44\ud574\ub2f9: \ud0c0\uc0ac \ucc38\uace0 \uce74\ub4dc, \uac1c\ubcc4 \ud61c\ud0dd \ub0b4\uc6a9, \uc5f0\ud68c\ube44\uc640 \uac00\uc871\uce74\ub4dc \uaddc\uce59(\uc815\ud615 \ub370\uc774\ud130\uc5d0 \uc788\uc74c), \ubaa8\ub4e0 \uce74\ub4dc \uacf5\ud1b5 \uc548\ub0b4",
+      "properties": [
+        {
+          "name": "product_id",
+          "type": "STRING",
+          "description": "\uc0c1\ud488ID. \uba38\ub9ac\uc904 product_id \uac12(\uc608: D2-C001)",
+          "required": false
+        },
+        {
+          "name": "card_name",
+          "type": "STRING",
+          "description": "\uce74\ub4dc \uc774\ub984. \uba38\ub9ac\uc904 card_name \uac12",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Benefit",
+      "description": "(\ud61c\ud0dd) \ud574\ub2f9: \uce74\ub4dc\uac00 \uc8fc\ub294 \ud61c\ud0dd \ud558\ub098(\ud560\uc778, \uc801\ub9bd, \uce90\uc2dc\ubc31, \ubc14\uc6b0\ucc98, \ub77c\uc6b4\uc9c0 \ub4f1)\uc640 \uadf8 \ud06c\uae30. \ube44\ud574\ub2f9: \ud61c\ud0dd\uc744 \ubc1b\ub294 \uc870\uac74, \ud55c\ub3c4, \uc81c\uc678 \uac70\ub798, \uc5f0\ud68c\ube44",
+      "properties": [
+        {
+          "name": "benefit_id",
+          "type": "STRING",
+          "description": "\ud61c\ud0ddID. \uba38\ub9ac\uc904 benefit_id \uac12(\uc608: D2-C055-B07). \uc5c6\uc73c\uba74 \ube44\uc6c0",
+          "required": false
+        },
+        {
+          "name": "product_id",
+          "type": "STRING",
+          "description": "\uc0c1\ud488ID. \uba38\ub9ac\uc904 product_id \uac12",
+          "required": false
+        },
+        {
+          "name": "name",
+          "type": "STRING",
+          "description": "\ud61c\ud0dd \uc774\ub984",
+          "required": false
+        },
+        {
+          "name": "amount",
+          "type": "STRING",
+          "description": "\ud61c\ud0dd\uc758 \ud06c\uae30 \ubb38\uc7a5(\uc6d0\ubb38 \uadf8\ub300\ub85c): \uc801\ub9bd\ub960, \ud560\uc778\uc728, \uae08\uc561, \ud69f\uc218. \uc5ec\ub7ec \ud61c\ud0dd\uc744 \ud569\uc0b0\ud55c \uc81c\uacf5 \uc0c1\ud55c\ub9cc \uc801\ud600 \uc788\uc73c\uba74(\uc608: \uc6d4 ~\uc6d0 \uc0c1\ub2f9\uae4c\uc9c0 \uc81c\uacf5) \uadf8 \ubb38\uc7a5\uc744 \uc500. \ud61c\ud0dd \ub178\ub4dc\ub97c \ub9cc\ub4e4\uba74 amount\ub97c \ubc18\ub4dc\uc2dc \ucc44\uc6c0",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "BenefitCondition",
+      "description": "(\ud61c\ud0dd \uc870\uac74) \ud574\ub2f9: \ud61c\ud0dd\uc744 \ubc1b\uc73c\ub824\uba74 \ucda9\uc871\ud574\uc57c \ud558\ub294 \uac83(\uc804\uc6d4 \uc774\uc6a9 \uc2e4\uc801, \uc2e0\uccad, \ub300\uc0c1 \uac00\ub9f9\uc810\uc774\ub098 \uc5c5\uc885, \ucc44\ub110). \ube44\ud574\ub2f9: \ud61c\ud0dd \ud06c\uae30, \ud55c\ub3c4, \ubc1b\uc744 \uc218 \uc5c6\ub294 \uac70\ub798",
+      "properties": [
+        {
+          "name": "description",
+          "type": "STRING",
+          "description": "\uc870\uac74 \ubb38\uc7a5(\uc6d0\ubb38 \uadf8\ub300\ub85c)",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "BenefitLimit",
+      "description": "(\ud61c\ud0dd \ud55c\ub3c4\uc640 \uae30\ud55c) \ud574\ub2f9: \ud61c\ud0dd\uc758 \uc6d4\uc774\ub098 \uc5f0 \ud55c\ub3c4, \uc0ac\uc6a9 \uae30\ud55c, \uc2e0\uccad \uae30\ud55c, \uc9c0\uae09 \uc2dc\uc810. \ube44\ud574\ub2f9: \uacb0\uc81c \ud55c\ub3c4(\uc0c1\ud488 \uc548\ub0b4\uc5d0 \uc500), \ud61c\ud0dd\uc744 \ubc1b\ub294 \uc870\uac74",
+      "properties": [
+        {
+          "name": "description",
+          "type": "STRING",
+          "description": "\ud55c\ub3c4\ub098 \uae30\ud55c \ubb38\uc7a5(\uc6d0\ubb38 \uadf8\ub300\ub85c)",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "BenefitExclusion",
+      "description": "(\ud61c\ud0dd \uc81c\uc678\uc640 \uc911\ubcf5 \uc81c\ud55c) \ud574\ub2f9: \ud61c\ud0dd\uc5d0\uc11c \ube60\uc9c0\ub294 \uac70\ub798, \ub2e4\ub978 \ud61c\ud0dd\uacfc \ud568\uaed8 \ubc1b\uc744 \uc218 \uc5c6\ub2e4\ub294 \uc81c\ud55c. \ube44\ud574\ub2f9: \ud61c\ud0dd\uc744 \ubc1b\ub294 \uc870\uac74, \ud55c\ub3c4",
+      "properties": [
+        {
+          "name": "description",
+          "type": "STRING",
+          "description": "\uc81c\uc678\ub098 \uc81c\ud55c \ubb38\uc7a5(\uc6d0\ubb38 \uadf8\ub300\ub85c)",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    }
+  ],
+  "relationship_types": [
+    {
+      "label": "OFFERS_BENEFIT",
+      "description": "(\ud61c\ud0dd\uc744 \uc90c) \uc0c1\ud488 \uc548\ub0b4\uac00 \uc124\uba85\ud558\ub294 \uce74\ub4dc\uac00 \uc8fc\ub294 \ud61c\ud0dd",
+      "properties": [],
+      "additional_properties": true
+    },
+    {
+      "label": "REQUIRES",
+      "description": "(\uc870\uac74\uc774 \ud544\uc694\ud568) \ud61c\ud0dd\uc744 \ubc1b\uae30 \uc704\ud55c \uc870\uac74",
+      "properties": [],
+      "additional_properties": true
+    },
+    {
+      "label": "LIMITED_BY",
+      "description": "(\ud55c\ub3c4\uc640 \uae30\ud55c\uc774 \uc788\uc74c) \ud61c\ud0dd\uc758 \ud55c\ub3c4\ub098 \uae30\ud55c",
+      "properties": [],
+      "additional_properties": true
+    },
+    {
+      "label": "EXCLUDES",
+      "description": "(\uc81c\uc678\ud568) \ud61c\ud0dd\uc5d0\uc11c \ube60\uc9c0\ub294 \uac70\ub798\ub098 \uc911\ubcf5 \uc81c\ud55c",
+      "properties": [],
+      "additional_properties": true
+    }
+  ],
+  "patterns": [
+    {
+      "source": "ProductGuide",
+      "relationship": "OFFERS_BENEFIT",
+      "target": "Benefit"
+    },
+    {
+      "source": "Benefit",
+      "relationship": "REQUIRES",
+      "target": "BenefitCondition"
+    },
+    {
+      "source": "Benefit",
+      "relationship": "LIMITED_BY",
+      "target": "BenefitLimit"
+    },
+    {
+      "source": "Benefit",
+      "relationship": "EXCLUDES",
+      "target": "BenefitExclusion"
+    }
+  ],
+  "constraints": [
+    {
+      "type": "UNIQUENESS",
+      "property_name": "product_id",
+      "property_names": [
+        "product_id"
+      ],
+      "node_type": "ProductGuide",
+      "relationship_type": null
+    }
+  ],
+  "additional_node_types": false,
+  "additional_relationship_types": false,
+  "additional_patterns": false
+}

@@ -1,0 +1,10 @@
+flowchart LR
+    ProductGuide["<b>:ProductGuide</b><br/>(상품 안내)<br/>product_id<br/>card_name"]
+    Benefit["<b>:Benefit</b><br/>(혜택)<br/>benefit_id<br/>product_id<br/>name<br/>amount"]
+    BenefitCondition["<b>:BenefitCondition</b><br/>(혜택 조건)<br/>description"]
+    BenefitLimit["<b>:BenefitLimit</b><br/>(혜택 한도와 기한)<br/>description"]
+    BenefitExclusion["<b>:BenefitExclusion</b><br/>(혜택 제외와 중복 제한)<br/>description"]
+    ProductGuide -->|OFFERS_BENEFIT| Benefit
+    Benefit -->|REQUIRES| BenefitCondition
+    Benefit -->|LIMITED_BY| BenefitLimit
+    Benefit -->|EXCLUDES| BenefitExclusion

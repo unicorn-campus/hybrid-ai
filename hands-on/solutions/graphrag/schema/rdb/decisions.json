@@ -1,0 +1,26 @@
+{
+  "_설명": "사람이 정하는 값만 모은 파일. 규칙 ②③④는 tools/draft_schema.py가 자동 적용함. _후보가 true인 항목은 AI 제안이며 사용자 승인 전임",
+  "rule1": {
+    "card_txn": {"decision": "node", "decided_by": "사용자(대화 4단계 답변)", "decided_at": "2026-10-14"}
+  },
+  "exclude_tables": ["lab_metadata"],
+  "exclude_decided": {"decided_by": "사용자(대화 4단계 답변)", "decided_at": "2026-10-14"},
+  "names_decided": {"decided_by": "hiondal(대화 8단계, AI 후보 전부 승인)", "decided_at": "2026-10-14"},
+  "node_types": {
+    "member": {"label": "Member", "name_ko": "회원"},
+    "card": {"label": "Card", "name_ko": "카드"},
+    "card_txn": {"label": "CardTxn", "name_ko": "카드거래"},
+    "merchant": {"label": "Merchant", "name_ko": "가맹점"},
+    "product": {"label": "Product", "name_ko": "상품"},
+    "product_annual_fee": {"label": "ProductAnnualFee", "name_ko": "상품연회비"},
+    "delinquency": {"label": "Delinquency", "name_ko": "연체"}
+  },
+  "relationships": {
+    "card_member_id_fkey": {"label": "HAS_CARD", "name_ko": "보유함", "from": "member", "to": "card"},
+    "card_product_id_brand_fkey": {"label": "APPLIES_FEE", "name_ko": "연회비적용", "from": "card", "to": "product_annual_fee"},
+    "product_annual_fee_product_id_fkey": {"label": "HAS_ANNUAL_FEE", "name_ko": "연회비정함", "from": "product", "to": "product_annual_fee"},
+    "card_txn_card_id_fkey": {"label": "MADE_TXN", "name_ko": "결제함", "from": "card", "to": "card_txn"},
+    "card_txn_merchant_id_fkey": {"label": "AT_MERCHANT", "name_ko": "이용함", "from": "card_txn", "to": "merchant"},
+    "delinquency_member_id_fkey": {"label": "HAS_DELINQUENCY", "name_ko": "연체함", "from": "member", "to": "delinquency"}
+  }
+}

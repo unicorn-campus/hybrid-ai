@@ -1,0 +1,16 @@
+flowchart LR
+    N0["<b>:Card</b><br/>(카드)<br/>card_id (키)<br/>issue_date<br/>status"]
+    N1["<b>:CardTxn</b><br/>(카드거래)<br/>txn_id (키)<br/>txn_date<br/>amount<br/>approval_code"]
+    N2["<b>:Delinquency</b><br/>(연체)<br/>member_id (키)<br/>base_month (키)<br/>overdue_days<br/>overdue_count_12m<br/>overdue_amount"]
+    N3["<b>:Member</b><br/>(회원)<br/>member_id (키)<br/>segment_id<br/>join_date<br/>age_band"]
+    N4["<b>:Merchant</b><br/>(가맹점)<br/>merchant_id (키)<br/>merchant_name<br/>category"]
+    N5["<b>:Product</b><br/>(상품)<br/>product_id (키)<br/>product_name<br/>effective_date<br/>family_card_available<br/>family_card_rule"]
+    N6["<b>:ProductAnnualFee</b><br/>(상품연회비)<br/>product_id (키)<br/>brand (키)<br/>base_fee<br/>service_fee<br/>total_fee"]
+    N3 -->|"HAS_CARD<br/>(보유함)"| N0
+    N0 -->|"APPLIES_FEE<br/>(연회비적용)"| N6
+    N0 -->|"MADE_TXN<br/>(결제함)"| N1
+    N1 -->|"AT_MERCHANT<br/>(이용함)"| N4
+    N3 -->|"HAS_DELINQUENCY<br/>(연체함)"| N2
+    N5 -->|"HAS_ANNUAL_FEE<br/>(연회비정함)"| N6
+    classDef nt fill:#EEF3FA,stroke:#1E2A5C,stroke-width:2px,color:#2B3242
+    class N0,N1,N2,N3,N4,N5,N6 nt

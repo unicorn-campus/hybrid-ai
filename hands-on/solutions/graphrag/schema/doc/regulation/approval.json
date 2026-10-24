@@ -1,0 +1,100 @@
+{
+  "doc": "regulation",
+  "approver": "사용자 지시: 합격 기준 미달 상태로 확정(현재 수준으로 사용(2026-10-19 사용자 요청). R2 ~ R5 스키마 설명 보완 필요)",
+  "approved_at": "2026-10-19 21:06",
+  "input_sha256": {
+    "competency_questions.md": "580af44bdb8f87c45749fac3b12f6cfafda1c224a537558c095987a3ba096505",
+    "sample_plan.json": "110e6bb0577e8df4f4863c8c9522214a731426e7c507f84a5ff1fe15353e5b0a",
+    "decisions.json": "55687d7afb0cf685efef7bb3c1172724fdbb895d27c9de565fee0f4bb89425c5",
+    "regulation/expected_answers.json": "ca3403c01cf52243e5c7d3f2792bbccc5a7f02e6fa346702c50c1d60859caca6"
+  },
+  "last_metrics": {
+    "round": 3,
+    "metrics": {
+      "R1": {
+        "pos": 30,
+        "hit": 30,
+        "neg": 0,
+        "fp": 0,
+        "same": 24,
+        "recall": 1.0,
+        "fp_rate": null,
+        "match": 0.8,
+        "pass": true
+      },
+      "R2": {
+        "pos": 6,
+        "hit": 2,
+        "neg": 24,
+        "fp": 2,
+        "same": 1,
+        "recall": 0.3333333333333333,
+        "fp_rate": 0.08333333333333333,
+        "match": 0.5,
+        "pass": false
+      },
+      "R3": {
+        "pos": 16,
+        "hit": 9,
+        "neg": 14,
+        "fp": 0,
+        "same": 3,
+        "recall": 0.5625,
+        "fp_rate": 0.0,
+        "match": 0.3333333333333333,
+        "pass": false
+      },
+      "R4": {
+        "pos": 9,
+        "hit": 8,
+        "neg": 21,
+        "fp": 16,
+        "same": 8,
+        "recall": 0.8888888888888888,
+        "fp_rate": 0.7619047619047619,
+        "match": 1.0,
+        "pass": false
+      },
+      "R5": {
+        "pos": 30,
+        "hit": 30,
+        "neg": 0,
+        "fp": 0,
+        "same": 7,
+        "recall": 1.0,
+        "fp_rate": null,
+        "match": 0.23333333333333334,
+        "pass": false
+      }
+    },
+    "all_pass": false
+  },
+  "draft_counts": {
+    "node_types": 5,
+    "relationship_types": 4,
+    "patterns": 4,
+    "constraints": 1
+  },
+  "reread_counts": {
+    "node_types": 5,
+    "relationship_types": 4,
+    "patterns": 4,
+    "constraints": 1
+  },
+  "reread_same": true,
+  "below_criteria": {
+    "failed": [
+      "R2",
+      "R3",
+      "R4",
+      "R5"
+    ],
+    "reason": "현재 수준으로 사용(2026-10-19 사용자 요청). R2 ~ R5 스키마 설명 보완 필요"
+  },
+  "extraction_unit_rule": {
+    "kind": "제목 꼴로 나눔",
+    "heading": "^(제\\d+조(?:의\\d+)?)\\(([^)]*)\\)\\s*$",
+    "body_start": "①",
+    "drop_lines": "^제\\d+장\\s"
+  }
+}

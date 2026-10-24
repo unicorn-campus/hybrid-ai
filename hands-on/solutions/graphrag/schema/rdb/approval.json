@@ -1,0 +1,16 @@
+{
+  "approved_by": "hiondal",
+  "approved_at": "2026-10-14T18:00:34+09:00",
+  "graph_schema": "graph_schema.json",
+  "inputs_sha256": {
+    "output/structure.json": "8c9bed183b1b5400b196473d84724d33c0af8375f8636f652b44ecc1992b27f6",
+    "decisions.json": "bd279dcd2131a29471cab4dedc21a8156db2d0b51b308b865fcc94db4b402a7f"
+  },
+  "graph_schema_sha256": "ffa42d5b23cd2f2d614ea217022ca49b32dfa257cfb1fd58eca02ecb2db73dcd",
+  "counts": {
+    "node_types": 7,
+    "relationship_types": 6,
+    "patterns": 6,
+    "constraints": 7
+  }
+}

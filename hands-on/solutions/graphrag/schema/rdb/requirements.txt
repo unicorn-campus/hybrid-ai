@@ -1,0 +1,2 @@
+psycopg[binary]==3.3.6
+neo4j-graphrag==1.22.0

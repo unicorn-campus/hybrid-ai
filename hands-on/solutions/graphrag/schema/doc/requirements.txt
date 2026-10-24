@@ -1,0 +1,1 @@
+neo4j-graphrag==1.22.0

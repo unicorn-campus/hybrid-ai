@@ -1,0 +1,815 @@
+{
+  "doc": "regulation",
+  "answers": {
+    "regulation:제2조": {
+      "R1": {
+        "answer": "제2조(용어의 정의)",
+        "location": "단위 제목 줄",
+        "source": "검토 수정(원문 근거)"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "판: 1.2, 시행일: 2027-01-15, 이전 판: 1.1",
+        "location": "메타데이터 머리줄",
+        "source": "검토 수정(원문 근거)"
+      }
+    },
+    "regulation:제3조": {
+      "R1": {
+        "answer": "제3조(회원의 구분과 책임)",
+        "location": "제3조(회원의 구분과 책임)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "문서 메타데이터",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제4조": {
+      "R1": {
+        "answer": "① 카드사는 신청 전에 이 약관, 연회비, 결제 조건 및 주요 혜택을 확인할 수 있는 화면을 제공합니다.",
+        "location": "제4조(약관과 상품안내서의 확인)①",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "source: D1_개인회원표준약관_합성.pdf | version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "header",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제5조": {
+      "R1": {
+        "answer": "제5조(통지 방법)",
+        "location": "제5조",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "version: 1.2 / effective_date: 2027-01-15 / supersedes: 1.1",
+        "location": "source metadata",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제6조": {
+      "R1": {
+        "answer": "제6조(발급 신청과 심사)",
+        "location": "제6조(발급 신청과 심사)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "재신청 가능 시점",
+        "location": "제6조(발급 신청과 심사)",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "header",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제6조의2": {
+      "R1": {
+        "answer": "제6조의2(가족카드의 발급과 관리)",
+        "location": "제6조의2(가족카드의 발급과 관리)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "카드사는 연회비, 발급 가능 수, 결제 책임과 이용 범위를 사전에 안내합니다.",
+        "location": "제6조의2(가족카드의 발급과 관리)",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "가족관계가 변경되거나 가족회원이 사용 중단을 요청하면 카드사는 본인 확인 후 이용정지와 정산 절차를 진행합니다.",
+        "location": "제6조의2(가족카드의 발급과 관리)",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "source header",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제7조": {
+      "R1": {
+        "answer": "제7조(카드의 전달과 수령)",
+        "location": "제7조(카드의 전달과 수령)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "header",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제11조": {
+      "R1": {
+        "answer": "제11조(갱신과 대체 발급) – 카드사는 유효기간 만료 전에 갱신 조건, 연회비 및 혜택 변경 여부를 알립니다 / 상품이 종료되어 대체 카드가 제안되는 경우 회원의 동의를 받은 후 발급합니다",
+        "location": "제11조(갱신과 대체 발급)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "카드사는 유효기간 만료 전에 갱신 조건, 연회비 및 혜택 변경 여부를 알립니다",
+        "location": "제11조(갱신과 대체 발급)",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "source: D1_개인회원표준약관_합성.pdf | version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "header",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제12조": {
+      "R1": {
+        "answer": "제12조(분실과 도난 신고)",
+        "location": "제12조(분실과 도난 신고)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "즉시",
+        "location": "제12조(분실과 도난 신고)",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "source header",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제12조의2": {
+      "R1": {
+        "answer": "제12조의2(이용정지와 한도 감액)",
+        "location": "제12조의2(이용정지와 한도 감액)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "적용 예정일과 사유 범주를 미리 알리며",
+        "location": "제12조의2(이용정지와 한도 감액)",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "연체, 신용상태의 중대한 변화, 이상거래 또는 법령상 제한 사유가 확인되면 이용 범위나 한도를 조정할 수 있습니다. / 사유가 해소되면 본인 확인과 위험 재평가를 거쳐 이용정지 해제 또는 한도 회복 여부를 결정하고 결과를 통지합니다.",
+        "location": "제12조의2(이용정지와 한도 감액)",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "source: D1_개인회원표준약관_합성.pdf",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제12조의3": {
+      "R1": {
+        "answer": "제12조의3(휴면카드의 관리)",
+        "location": "제12조의3(휴면카드의 관리)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "연속된 장기 미사용 상태가 확인되면 / 이용정지 뒤 다음 연회비 청구일까지 회원의 의사 표시가 없으면",
+        "location": "제12조의3(휴면카드의 관리)",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "회원에게 유지, 해지 또는 재사용 선택 방법을 안내합니다. / 다음 연회비 청구일까지",
+        "location": "제12조의3(휴면카드의 관리)",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "연속된 장기 미사용 상태가 확인되면 신규 승인 기능을 정지하고 회원에게 유지, 해지 또는 재사용 선택 방법을 안내합니다. / 이용정지 뒤 다음 연회비 청구일까지 회원의 의사 표시가 없으면 계약 종료 절차를 진행하며, 이미 납부한 연회비는 제10조의 반환 기준을 적용합니다.",
+        "location": "제12조의3(휴면카드의 관리)",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "header",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제13조": {
+      "R1": {
+        "answer": "제13조(이용 원칙)",
+        "location": "section_label: 제13조(이용 원칙)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "version: 1.2 / effective_date: 2027-01-15 / supersedes: 1.1",
+        "location": "source header",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제14조": {
+      "R1": {
+        "answer": "제14조(이용한도)",
+        "location": "제14조(이용한도)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "한도를 낮추거나 특정 유형의 거래를 제한할 때에는 적용 시점과 이유 범주를 사전에 안내합니다.",
+        "location": "제14조(이용한도)",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "source: D1_개인회원표준약관_합성.pdf | version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "header",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제15조": {
+      "R1": {
+        "answer": "제15조(승인과 취소)",
+        "location": "제15조(승인과 취소)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "source: D1_개인회원표준약관_합성.pdf | version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "metadata",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제16조": {
+      "R1": {
+        "answer": "제16조(할부 거래)",
+        "location": "제16조(할부 거래)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "판: 1.2, 시행일: 2027-01-15, 이전 판: 1.1",
+        "location": "header",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제16조의2": {
+      "R1": {
+        "answer": "제16조의2(할부 거래의 철회 요청)",
+        "location": "제16조의2(할부 거래의 철회 요청)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "상품을 받은 날 또는 계약서를 받은 날 중 늦은 날부터 7일 이내에 철회를 요청할 수 있음",
+        "location": "제16조의2(할부 거래의 철회 요청)",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "회원은 상품을 받은 날 또는 계약서를 받은 날 중 늦은 날부터 7일 이내에 철회를 요청해야 함",
+        "location": "제16조의2(할부 거래의 철회 요청)",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "버전 1.2/시행일 2027-01-15/이전 판은 1.1",
+        "location": "header",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제1조": {
+      "R1": {
+        "answer": "제1조(목적)",
+        "location": "제1조(목적)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "metadata",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제20조": {
+      "R1": {
+        "answer": "제20조(이용대금 명세)",
+        "location": "제20조(이용대금 명세)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "회원은 전자문서로 명세서를 받은 날부터 거래별 상세 내역을 확인할 수 있습니다.",
+        "location": "제20조(이용대금 명세)",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "문서 메타데이터",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제21조": {
+      "R1": {
+        "answer": "이용대금은 회원이 지정한 결제일에 등록 계좌에서 출금합니다.",
+        "location": "제21조(결제일과 출금)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "결제일이 휴일이면 다음 영업일에 처리합니다. / 출금 실패 시 실패 사유와 재출금 예정일을 안내합니다.",
+        "location": "제21조(결제일과 출금)",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "결제일이 휴일이면 다음 영업일에 처리합니다. / 출금 실패 시 실패 사유와 재출금 예정일을 안내합니다.",
+        "location": "제21조(결제일과 출금)",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "판: 1.2 / 시행일: 2027-01-15 / 이전 판: 1.1",
+        "location": "header",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제22조": {
+      "R1": {
+        "answer": "제22조(일부 납부)",
+        "location": "제22조(일부 납부)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "해지 방법을 같은 화면에서 안내합니다.",
+        "location": "제22조(일부 납부)",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "source header",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제22조의2": {
+      "R1": {
+        "answer": "제22조의2(일부결제금액이월약정)",
+        "location": "제22조의2(일부결제금액이월약정)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "변경 신청은 다음 결제일 반영 여부와 함께 기록합니다.",
+        "location": "제22조의2(일부결제금액이월약정)",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "회원은 언제든 약정을 해지하거나 결제비율을 높일 수 있습니다.",
+        "location": "제22조의2(일부결제금액이월약정)",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "source: D1_개인회원표준약관_합성.pdf | version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "문서 헤더",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제22조의3": {
+      "R1": {
+        "answer": "제22조의3(단기카드대출) – 단기카드대출을 신청할 때 이용 가능 금액, 가상 수수료율, 이용기간, 결제일과 예상 상환액을 확인합니다.",
+        "location": "제22조의3(단기카드대출)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "본인 확인에 실패하거나 이상거래 신호가 있으면 신청을 보류",
+        "location": "제22조의3(단기카드대출)",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "판: 1.2, 시행일: 2027-01-15, 이전 판: 1.1",
+        "location": "source header",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제22조의4": {
+      "R1": {
+        "answer": "제22조의4(장기카드대출)",
+        "location": "제22조의4(장기카드대출)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "신청 금액, 기간, 상환 방식, 가상 이자율과 중도상환 조건",
+        "location": "제22조의4(장기카드대출)①",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "조건이 바뀌면 변경 전후 금액과 적용일을 알립니다",
+        "location": "제22조의4(장기카드대출)②",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "판: 1.2, 시행일: 2027-01-15, 이전 판: 1.1",
+        "location": "문서 메타데이터",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제23조": {
+      "R1": {
+        "answer": "제23조(연체 안내)",
+        "location": "제23조(연체 안내)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "결제일까지 / 연체 여부를 외부 시스템에 전달할 때",
+        "location": "제23조(연체 안내)",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "문서 메타데이터",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제24조": {
+      "R1": {
+        "answer": "제24조(초과 납부) - 결제금액보다 많이 납부한 금액은 다음 결제대금과 상계하거나 회원이 지정한 계좌로 돌려줍니다.",
+        "location": "제24조(초과 납부)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "header",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제25조": {
+      "R1": {
+        "answer": "제25조(취소와 환불의 반영)",
+        "location": "제25조(취소와 환불의 반영)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "source: D1_개인회원표준약관_합성.pdf | version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "header",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제8조": {
+      "R1": {
+        "answer": "제8조(사용 등록)",
+        "location": "제8조(사용 등록)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "회원이 본인 확인과 사용 등록을 마친 시점부터",
+        "location": "제8조(사용 등록) ①",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "없음",
+        "location": "",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "source header",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제9조": {
+      "R1": {
+        "answer": "제9조(연회비 부과)",
+        "location": "제9조(연회비 부과)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "남은 일수 기준 계산 / 이미 사용한 서비스 원가 공제 가능 / 첫 발급 연도에 한해 공제 가능",
+        "location": "표 1",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "청구 전에 회원에게 안내합니다.",
+        "location": "제9조(연회비 부과) ②",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "장기간 이용하지 않은 카드의 차기 연회비는 청구 전에 회원에게 안내합니다.",
+        "location": "제9조(연회비 부과) ②",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "버전: 1.2 / 시행일: 2027-01-15 / 이전 판: 1.1",
+        "location": "source header",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제10조": {
+      "R1": {
+        "answer": "제10조(연회비 면제 및 계약 해지에 따른 반환)",
+        "location": "제10조(연회비 면제 및 계약 해지에 따른 반환)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "본인회원의 직전 12개월 이용금액이 3,000,000원 이상이고 다음 연회비 청구일까지 연체가 없으면 다음 연도의 기본 연회비를 전액 면제합니다.",
+        "location": "제10조(연회비 면제 및 계약 해지에 따른 반환)",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "반환액은 확인 완료 후 7영업일 이내에 지급합니다. 이용내역 조사로 계산이 늦어지면 지연 사유와 예정일을 알리고 해지일부터 60일 안에 처리합니다. / 면제 조건은 별도 신청 없이 다음 연회비 청구 전에 확인하며, 카드사는 적용 여부와 산정 기간을 회원에게 안내합니다.",
+        "location": "제10조(연회비 면제 및 계약 해지에 따른 반환)",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "유효기간 전에 계약을 해지하면 해지 다음 날부터 연회비 기간 종료일까지 남은 일수에 비례하여 반환 기준액을 계산합니다.",
+        "location": "제10조(연회비 면제 및 계약 해지에 따른 반환)",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "source header",
+        "source": "LLM 초안"
+      }
+    },
+    "regulation:제30조": {
+      "R1": {
+        "answer": "제30조(정지 해제)",
+        "location": "제30조(정지 해제)",
+        "source": "LLM 초안"
+      },
+      "R2": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R3": {
+        "answer": "없음",
+        "location": "없음",
+        "source": "LLM 초안"
+      },
+      "R4": {
+        "answer": "정지 원인이 해소되고 본인 확인이 끝나면 이용을 재개할 수 있습니다. / 재개 여부, 적용 시점과 여전히 제한되는 기능이 있으면 구분하여 안내합니다.",
+        "location": "제30조(정지 해제)",
+        "source": "LLM 초안"
+      },
+      "R5": {
+        "answer": "source: D1_개인회원표준약관_합성.pdf | version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1",
+        "location": "header",
+        "source": "LLM 초안"
+      }
+    }
+  }
+}

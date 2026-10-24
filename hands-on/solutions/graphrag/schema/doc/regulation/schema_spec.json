@@ -1,0 +1,331 @@
+{
+  "doc": "regulation",
+  "metadata_header": [
+    "source",
+    "version",
+    "effective_date",
+    "supersedes",
+    "section_label"
+  ],
+  "recommend": [
+    {
+      "kind": "병합",
+      "item": "Document, ElectronicDocument → TermsDocument(약관 문서)",
+      "cq": [
+        "R5"
+      ]
+    },
+    {
+      "kind": "병합",
+      "item": "Condition, Limit → Requirement(충족 조건)",
+      "cq": [
+        "R2"
+      ]
+    },
+    {
+      "kind": "병합",
+      "item": "Notification, Report → Deadline(기한과 통지 시점)",
+      "cq": [
+        "R3"
+      ]
+    },
+    {
+      "kind": "병합",
+      "item": "Action, Reason, Cancellation, Request → Handling(상황별 처리)",
+      "cq": [
+        "R4"
+      ]
+    },
+    {
+      "kind": "추가",
+      "item": "TermsDocument.version, effective_date, supersedes(머리줄에서 채움, 후보에 1건뿐)",
+      "cq": [
+        "R5"
+      ]
+    },
+    {
+      "kind": "추가",
+      "item": "Clause.clause_no, title(조항 번호와 제목)",
+      "cq": [
+        "R1"
+      ]
+    },
+    {
+      "kind": "제거",
+      "item": "Card, Member, PrimaryMember, FamilyMember, Transaction, Approval, Fee(정형 스키마에 이미 있거나 개인 단위 데이터)",
+      "cq": []
+    },
+    {
+      "kind": "제거",
+      "item": "CardIssuer, Party, CardApplication(어느 역량 질문에도 안 쓰임)",
+      "cq": []
+    },
+    {
+      "kind": "병합",
+      "item": "조항 단위 후보의 ProcessingStandard, Withdrawal → Handling(상황별 처리)",
+      "cq": [
+        "R4"
+      ]
+    },
+    {
+      "kind": "병합",
+      "item": "조항 단위 후보의 Change.notice_period_days → Deadline(미리 알리는 시점)",
+      "cq": [
+        "R3"
+      ]
+    },
+    {
+      "kind": "병합",
+      "item": "조항 단위 후보의 Agreement, Specification의 금액 조건 → Requirement",
+      "cq": [
+        "R2"
+      ]
+    },
+    {
+      "kind": "제거",
+      "item": "Term, Footnote, Statement, ExchangeRate, Currency, Applicant, Application(어느 역량 질문에도 안 쓰이거나 개인 단위 데이터)",
+      "cq": []
+    },
+    {
+      "kind": "추가",
+      "item": "Clause 비해당에 차례(목차) 조항, Handling과 Deadline 경계 명시(청크 단위 시험 결과 반영, 유지)",
+      "cq": [
+        "R1",
+        "R3",
+        "R4"
+      ]
+    },
+    {
+      "kind": "병합",
+      "item": "조항 단위 후보의 Article → Clause(같은 뜻)",
+      "cq": [
+        "R1"
+      ]
+    },
+    {
+      "kind": "병합",
+      "item": "조항 단위 후보의 TransactionSituation, Procedure, IncidentResponseProcedure, Refund, Cancellation → Handling(상황별 처리)",
+      "cq": [
+        "R4"
+      ]
+    },
+    {
+      "kind": "병합",
+      "item": "조항 단위 후보의 ChangeEvent, Clause.notice_period_days → Deadline(미리 알리는 시점)",
+      "cq": [
+        "R3"
+      ]
+    },
+    {
+      "kind": "유지",
+      "item": "조항 단위 후보의 Requirement → Requirement(이름 그대로)",
+      "cq": [
+        "R2"
+      ]
+    },
+    {
+      "kind": "제거",
+      "item": "Transaction, Member, Merchant, Account, Fee(정형 스키마에 있거나 개인 단위 데이터), CardCompany, Person, Purpose, RetentionPolicy 등 1건씩 나온 이름(어느 역량 질문에도 안 쓰임)",
+      "cq": []
+    },
+    {
+      "kind": "추가",
+      "item": "Clause 비해당에 차례(목차) 조항, Handling과 Deadline 경계 명시(청크 단위 시험 결과 반영, 유지)",
+      "cq": [
+        "R1",
+        "R3",
+        "R4"
+      ]
+    },
+    {
+      "kind": "추가",
+      "item": "Requirement 비해당에 일반 의무, Deadline 해당에 미리 알리는 시점과 상황 조건이 붙은 시점(조항 단위 라운드 1 결과)",
+      "cq": [
+        "R2",
+        "R3"
+      ]
+    },
+    {
+      "kind": "추가",
+      "item": "Requirement를 숫자 기준이나 '~인 경우에만' 꼴로 좁힘, Deadline은 시점마다 하나씩(조항 단위 라운드 2 결과)",
+      "cq": [
+        "R2",
+        "R3"
+      ]
+    }
+  ],
+  "node_types": [
+    {
+      "label": "TermsDocument",
+      "ko": "약관 문서",
+      "description": "해당: 약관 파일 한 판(머리줄의 source와 version). 비해당: 조항 하나, 상품안내서",
+      "properties": [
+        {
+          "name": "version",
+          "description": "약관 판. 머리줄 version 값(예: 1.2)",
+          "required": true
+        },
+        {
+          "name": "effective_date",
+          "description": "시행일. 머리줄 effective_date 값"
+        },
+        {
+          "name": "supersedes",
+          "description": "바뀌기 전 판. 머리줄 supersedes 값"
+        }
+      ]
+    },
+    {
+      "label": "Clause",
+      "ko": "조항",
+      "description": "해당: 본문에 조문 내용(①, ② 같은 항)이 함께 적힌 '제N조(제목)' 하나. 비해당: 차례(목차)에 제목만 나열된 조항, 조항 안의 항이나 호, 약관 문서 전체",
+      "properties": [
+        {
+          "name": "clause_no",
+          "description": "조항 번호(예: 제16조의2)",
+          "required": true
+        },
+        {
+          "name": "title",
+          "description": "조항 제목(괄호 안 글자)",
+          "required": true
+        }
+      ]
+    },
+    {
+      "label": "Requirement",
+      "ko": "충족 조건",
+      "description": "해당: 무엇을 받거나 할 수 있는지가 갈리는 기준. 보통 숫자(금액, 일수, 횟수, 비율)나 '~이상', '~인 경우에만', '~하면 받을 수 있음' 꼴임(예: 직전 12개월 이용금액이 300만 원 이상이면 면제). 비해당: 누가 무엇을 한다는 의무나 절차 문장(예: 회원은 ~를 수정합니다, ~를 제출합니다, ~를 표시합니다), 할 수 있다는 권리 안내만 있는 문장, 기한이나 통지 시점",
+      "properties": [
+        {
+          "name": "description",
+          "description": "조건 문장(원문 그대로)",
+          "required": true
+        }
+      ]
+    },
+    {
+      "label": "Deadline",
+      "ko": "기한과 통지 시점",
+      "description": "해당: 무엇을 해야 하는 기한이나 시점(예: ~일 이내, 즉시, 다음 영업일, ~까지), 미리 알리는 시점(예: 사전에 안내, ~전에 알림). 상황 조건이 붙은 문장이어도 시점이 있으면 해당하며 같은 문장을 Handling에도 둘 수 있음. 비해당: 시점이 없는 처리 방법, 금액 조건. 조항에 기한이나 시점이 여러 개 있으면 시점마다 Deadline 노드를 하나씩 만들고 SETS_DEADLINE으로 조항에 이음",
+      "properties": [
+        {
+          "name": "description",
+          "description": "기한이나 통지 시점 문장(원문 그대로)",
+          "required": true
+        }
+      ]
+    },
+    {
+      "label": "Handling",
+      "ko": "상황별 처리",
+      "description": "해당: '~이면, ~하면, ~경우'처럼 상황을 먼저 말하고 그때의 처리를 정한 문장(예: 결제일이 휴일이면 다음 영업일에 출금, 오래 쓰지 않은 카드는 이용을 정지). 처리 시점이 함께 적혀 있어도 상황이 앞에 있으면 여기에 씀. 비해당: 상황 없이 기한만 정한 문장, 처리를 받기 위한 금액 조건",
+      "properties": [
+        {
+          "name": "situation",
+          "description": "상황(원문 그대로)",
+          "required": true
+        },
+        {
+          "name": "action",
+          "description": "그때의 처리(원문 그대로)"
+        }
+      ]
+    }
+  ],
+  "relationship_types": [
+    {
+      "label": "HAS_CLAUSE",
+      "ko": "조항을 가짐",
+      "description": "약관 문서에 들어 있는 조항"
+    },
+    {
+      "label": "SETS_REQUIREMENT",
+      "ko": "조건을 정함",
+      "description": "조항이 정한 충족 조건"
+    },
+    {
+      "label": "SETS_DEADLINE",
+      "ko": "기한을 정함",
+      "description": "조항이 정한 기한이나 통지 시점"
+    },
+    {
+      "label": "DEFINES_HANDLING",
+      "ko": "처리를 정함",
+      "description": "조항이 정한 상황별 처리"
+    }
+  ],
+  "patterns": [
+    [
+      "TermsDocument",
+      "HAS_CLAUSE",
+      "Clause"
+    ],
+    [
+      "Clause",
+      "SETS_REQUIREMENT",
+      "Requirement"
+    ],
+    [
+      "Clause",
+      "SETS_DEADLINE",
+      "Deadline"
+    ],
+    [
+      "Clause",
+      "DEFINES_HANDLING",
+      "Handling"
+    ]
+  ],
+  "constraints": [
+    {
+      "type": "UNIQUENESS",
+      "node_type": "TermsDocument",
+      "property_name": "version"
+    }
+  ],
+  "cq_map": {
+    "R1": [
+      {
+        "label": "Clause",
+        "property": "title"
+      }
+    ],
+    "R2": [
+      {
+        "label": "Requirement",
+        "property": "description"
+      }
+    ],
+    "R3": [
+      {
+        "label": "Deadline",
+        "property": "description"
+      }
+    ],
+    "R4": [
+      {
+        "label": "Handling",
+        "property": "situation"
+      },
+      {
+        "label": "Handling",
+        "property": "action"
+      }
+    ],
+    "R5": [
+      {
+        "label": "TermsDocument",
+        "property": "version"
+      },
+      {
+        "label": "TermsDocument",
+        "property": "effective_date"
+      },
+      {
+        "label": "TermsDocument",
+        "property": "supersedes"
+      }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+flowchart LR
+    TermsDocument["<b>:TermsDocument</b><br/>(약관 문서)<br/>version<br/>effective_date<br/>supersedes"]
+    Clause["<b>:Clause</b><br/>(조항)<br/>clause_no<br/>title"]
+    Requirement["<b>:Requirement</b><br/>(충족 조건)<br/>description"]
+    Deadline["<b>:Deadline</b><br/>(기한과 통지 시점)<br/>description"]
+    Handling["<b>:Handling</b><br/>(상황별 처리)<br/>situation<br/>action"]
+    TermsDocument -->|HAS_CLAUSE| Clause
+    Clause -->|SETS_REQUIREMENT| Requirement
+    Clause -->|SETS_DEADLINE| Deadline
+    Clause -->|DEFINES_HANDLING| Handling

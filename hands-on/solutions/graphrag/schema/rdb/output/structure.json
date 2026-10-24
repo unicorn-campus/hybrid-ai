@@ -1,0 +1,443 @@
+{
+  "source": {
+    "db_type": "PostgreSQL",
+    "host": "localhost",
+    "port": 5432,
+    "database": "cardlab",
+    "schema": "public",
+    "user": "cardlab"
+  },
+  "table_count": 8,
+  "tables": [
+    {
+      "name": "card",
+      "columns": [
+        {
+          "name": "card_id",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": true,
+          "in_fk": false
+        },
+        {
+          "name": "member_id",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": true
+        },
+        {
+          "name": "product_id",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": true
+        },
+        {
+          "name": "brand",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": true
+        },
+        {
+          "name": "issue_date",
+          "type": "date",
+          "full_type": "date",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        }
+      ],
+      "primary_key": [
+        "card_id"
+      ],
+      "foreign_keys": [
+        {
+          "name": "card_member_id_fkey",
+          "ref_table": "member",
+          "pairs": [
+            {
+              "column": "member_id",
+              "ref_column": "member_id"
+            }
+          ]
+        },
+        {
+          "name": "card_product_id_brand_fkey",
+          "ref_table": "product_annual_fee",
+          "pairs": [
+            {
+              "column": "product_id",
+              "ref_column": "product_id"
+            },
+            {
+              "column": "brand",
+              "ref_column": "brand"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "card_txn",
+      "columns": [
+        {
+          "name": "txn_id",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": true,
+          "in_fk": false
+        },
+        {
+          "name": "card_id",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": true
+        },
+        {
+          "name": "merchant_id",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": true
+        },
+        {
+          "name": "txn_date",
+          "type": "date",
+          "full_type": "date",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        },
+        {
+          "name": "amount",
+          "type": "int4",
+          "full_type": "integer",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        },
+        {
+          "name": "approval_code",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        }
+      ],
+      "primary_key": [
+        "txn_id"
+      ],
+      "foreign_keys": [
+        {
+          "name": "card_txn_card_id_fkey",
+          "ref_table": "card",
+          "pairs": [
+            {
+              "column": "card_id",
+              "ref_column": "card_id"
+            }
+          ]
+        },
+        {
+          "name": "card_txn_merchant_id_fkey",
+          "ref_table": "merchant",
+          "pairs": [
+            {
+              "column": "merchant_id",
+              "ref_column": "merchant_id"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "delinquency",
+      "columns": [
+        {
+          "name": "member_id",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": true,
+          "in_fk": true
+        },
+        {
+          "name": "base_month",
+          "type": "bpchar",
+          "full_type": "character(7)",
+          "not_null": true,
+          "in_pk": true,
+          "in_fk": false
+        },
+        {
+          "name": "overdue_days",
+          "type": "int4",
+          "full_type": "integer",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        },
+        {
+          "name": "overdue_count_12m",
+          "type": "int4",
+          "full_type": "integer",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        },
+        {
+          "name": "overdue_amount",
+          "type": "int4",
+          "full_type": "integer",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        }
+      ],
+      "primary_key": [
+        "member_id",
+        "base_month"
+      ],
+      "foreign_keys": [
+        {
+          "name": "delinquency_member_id_fkey",
+          "ref_table": "member",
+          "pairs": [
+            {
+              "column": "member_id",
+              "ref_column": "member_id"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "lab_metadata",
+      "columns": [
+        {
+          "name": "key",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": true,
+          "in_fk": false
+        },
+        {
+          "name": "value",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        }
+      ],
+      "primary_key": [
+        "key"
+      ],
+      "foreign_keys": []
+    },
+    {
+      "name": "member",
+      "columns": [
+        {
+          "name": "member_id",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": true,
+          "in_fk": false
+        },
+        {
+          "name": "segment_id",
+          "type": "int2",
+          "full_type": "smallint",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        },
+        {
+          "name": "join_date",
+          "type": "date",
+          "full_type": "date",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        },
+        {
+          "name": "age_band",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        }
+      ],
+      "primary_key": [
+        "member_id"
+      ],
+      "foreign_keys": []
+    },
+    {
+      "name": "merchant",
+      "columns": [
+        {
+          "name": "merchant_id",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": true,
+          "in_fk": false
+        },
+        {
+          "name": "merchant_name",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        },
+        {
+          "name": "category",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        }
+      ],
+      "primary_key": [
+        "merchant_id"
+      ],
+      "foreign_keys": []
+    },
+    {
+      "name": "product",
+      "columns": [
+        {
+          "name": "product_id",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": true,
+          "in_fk": false
+        },
+        {
+          "name": "product_name",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        },
+        {
+          "name": "effective_date",
+          "type": "date",
+          "full_type": "date",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        },
+        {
+          "name": "family_card_available",
+          "type": "bool",
+          "full_type": "boolean",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        },
+        {
+          "name": "family_card_rule",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        }
+      ],
+      "primary_key": [
+        "product_id"
+      ],
+      "foreign_keys": []
+    },
+    {
+      "name": "product_annual_fee",
+      "columns": [
+        {
+          "name": "product_id",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": true,
+          "in_fk": true
+        },
+        {
+          "name": "brand",
+          "type": "text",
+          "full_type": "text",
+          "not_null": true,
+          "in_pk": true,
+          "in_fk": false
+        },
+        {
+          "name": "base_fee",
+          "type": "int4",
+          "full_type": "integer",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        },
+        {
+          "name": "service_fee",
+          "type": "int4",
+          "full_type": "integer",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        },
+        {
+          "name": "total_fee",
+          "type": "int4",
+          "full_type": "integer",
+          "not_null": true,
+          "in_pk": false,
+          "in_fk": false
+        }
+      ],
+      "primary_key": [
+        "product_id",
+        "brand"
+      ],
+      "foreign_keys": [
+        {
+          "name": "product_annual_fee_product_id_fkey",
+          "ref_table": "product",
+          "pairs": [
+            {
+              "column": "product_id",
+              "ref_column": "product_id"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

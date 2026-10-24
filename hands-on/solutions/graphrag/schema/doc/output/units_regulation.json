@@ -1,0 +1,75 @@
+{
+  "doc": "regulation",
+  "rule": {
+    "kind": "제목 꼴로 나눔",
+    "heading": "^(제\\d+조(?:의\\d+)?)\\(([^)]*)\\)\\s*$",
+    "body_start": "①",
+    "drop_lines": "^제\\d+장\\s"
+  },
+  "chunks_total": 10,
+  "chunks_sampled": 10,
+  "per_chunk": [
+    {
+      "chunk_id": "D1_27223010abe31291_a4fd4ae81ec3f063_0000",
+      "section_label": "제11조(갱신과 대체 발급)",
+      "units": 9
+    },
+    {
+      "chunk_id": "D1_27223010abe31291_f3487e8e2595b581_0000",
+      "section_label": "제36조(회원의 계약 해지)",
+      "units": 5
+    },
+    {
+      "chunk_id": "D1_27223010abe31291_e98b48c1e9405e47_0000",
+      "section_label": "제15조(승인과 취소)",
+      "units": 2
+    },
+    {
+      "chunk_id": "D1_27223010abe31291_81b9432a10cb3185_0000",
+      "section_label": "제24조(초과 납부)",
+      "units": 10
+    },
+    {
+      "chunk_id": "D1_27223010abe31291_11d9a2c3d7bfd8dc_0000",
+      "section_label": "제2조(용어의 정의)",
+      "units": 7
+    },
+    {
+      "chunk_id": "D1_27223010abe31291_44afb5c64dae945d_0000",
+      "section_label": "제20조(이용대금 명세)",
+      "units": 9
+    },
+    {
+      "chunk_id": "D1_27223010abe31291_30f9dce5fc772fd0_0000",
+      "section_label": "제1조(목적)",
+      "units": 0
+    },
+    {
+      "chunk_id": "D1_27223010abe31291_b3d99960bf59fe8a_0000",
+      "section_label": "제6조의2(가족카드의 발급과 관리)",
+      "units": 5
+    },
+    {
+      "chunk_id": "D1_27223010abe31291_112f1e4abea05436_0000",
+      "section_label": "제16조(할부 거래)",
+      "units": 9
+    },
+    {
+      "chunk_id": "D1_27223010abe31291_84f5bc45dcc1583f_0000",
+      "section_label": "제30조(정지 해제)",
+      "units": 8
+    }
+  ],
+  "units_before_dedupe": 64,
+  "units": 51,
+  "chunks_without_unit": [
+    "D1_27223010abe31291_30f9dce5fc772fd0_0000"
+  ],
+  "chunks_with_many_units": 9,
+  "unit_chars": {
+    "min": 97,
+    "median": 147,
+    "max": 632
+  },
+  "units_in_two_chunks": 13
+}

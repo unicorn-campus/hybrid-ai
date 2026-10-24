@@ -1,0 +1,154 @@
+{
+  "node_types": [
+    {
+      "label": "Consultation",
+      "description": "(\uc0c1\ub2f4) \ud574\ub2f9: \uc0c1\ub2f4 \uae30\ub85d \ud55c \uac74(\uba38\ub9ac\uc904\uc758 record_id \ud558\ub098). \ube44\ud574\ub2f9: \uc0c1\ub2f4 \uc548\uc758 \ubc1c\uc5b8 \ud55c \uc904, \uace0\uac1d \uac1c\uc778, \uac70\ub798 \ub0b4\uc5ed",
+      "properties": [
+        {
+          "name": "record_id",
+          "type": "STRING",
+          "description": "\uc0c1\ub2f4ID. \uba38\ub9ac\uc904 record_id \uac12\uc744 \uadf8\ub300\ub85c \uc500(\uc608: C-20260314-001)",
+          "required": false
+        },
+        {
+          "name": "consult_date",
+          "type": "STRING",
+          "description": "\uc0c1\ub2f4\uc77c. \uba38\ub9ac\uc904 consult_date \uac12",
+          "required": false
+        },
+        {
+          "name": "channel",
+          "type": "STRING",
+          "description": "\uc0c1\ub2f4 \ucc44\ub110. \uba38\ub9ac\uc904 channel \uac12(\ucf5c\uc13c\ud130, \uc601\uc5c5\uc810, \uc571 \ucc44\ud305)",
+          "required": false
+        },
+        {
+          "name": "topic",
+          "type": "STRING",
+          "description": "\uc0c1\ub2f4 \uc8fc\uc81c. \uba38\ub9ac\uc904 topic \uac12",
+          "required": false
+        },
+        {
+          "name": "member_pseudo_id",
+          "type": "STRING",
+          "description": "\uac00\uba85 \ud68c\uc6d0ID. \uba38\ub9ac\uc904 member_pseudo_id \uac12. \uc2e4\uba85, \uc5f0\ub77d\ucc98\ub294 \ub123\uc9c0 \uc54a\uc74c",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Complaint",
+      "description": "(\ubd88\ub9cc \uc6d0\uc778) \ud574\ub2f9: \uace0\uac1d\uc774 \uc774\ubbf8 \uacaa\uc740 \uc77c\uc5d0 \ub300\ud574 \ubd88\ud3b8\ud558\ub2e4, \ubd88\ub9cc\uc774\ub2e4, \ub2f5\ub2f5\ud558\ub2e4, \ubd80\ub2f4\uc774\ub2e4\ub77c\uace0 \uc9c1\uc811 \ub9d0\ud55c \uc6d0\uc778. \ube44\ud574\ub2f9: \ub2e8\uc21c \uc9c8\ubb38, \ubb34\uc5c7\uc744 \ud574 \ub2ec\ub77c\uac70\ub098 \ud558\uc9c0 \ub9d0\uc544 \ub2ec\ub77c\ub294 \ubd80\ud0c1\uacfc \uc694\uccad \ubb38\uc7a5 \uc804\uccb4(\uc608: ~\ud574 \uc8fc\uc138\uc694, ~\ud558\uc9c0 \ub9d0\uc544 \uc8fc\uc138\uc694, ~\uac00\uc815\ud558\uc9c0 \ub9d0\uc544 \uc8fc\uc138\uc694), \ub354 \ub098\uc740 \ubc29\uc2dd\uc744 \uace0\ub974\ub294 \uc120\ud638 \ud45c\ud604(\uc608: ~\uac00 \ub098\uc744 \uac83 \uac19\uc544\uc694), \uc55e\uc73c\ub85c\uc758 \uac71\uc815, \uc0c1\ub2f4\uc0ac\uc758 \ucd94\uce21, \uace0\uac1d\uc774 \ub9cc\uc871\ud55c\ub2e4\uace0 \ud55c \uc810",
+      "properties": [
+        {
+          "name": "cause",
+          "type": "STRING",
+          "description": "\uace0\uac1d\uc774 \ub9d0\ud55c \ubd88\ub9cc \uc6d0\uc778 \ubb38\uc7a5(\uc6d0\ubb38 \uadf8\ub300\ub85c)",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Proposal",
+      "description": "(\uc0c1\ub2f4 \uc81c\uc548) \ud574\ub2f9: \uc0c1\ub2f4\uc0ac\uac00 \uace0\uac1d\uc5d0\uac8c \ud574 \ubcf4\ub77c\uace0 \uad8c\ud55c \uad6c\uccb4\uc801\uc778 \ubc29\ubc95\uc774\ub098 \ub300\uc548(\uc608: ~\ud574 \ubcf4\uc2dc\ub294 \uac74 \uc5b4\ub5a0\uc138\uc694?). \ube44\ud574\ub2f9: \uc0ac\uc2e4 \ud655\uc778 \uc9c8\ubb38, \uc778\uc0ac, \uae30\ub85d\ud558\uaca0\ub2e4\ub294 \ub9d0",
+      "properties": [
+        {
+          "name": "content",
+          "type": "STRING",
+          "description": "\uc0c1\ub2f4\uc0ac\uac00 \uc81c\uc548\ud55c \ubb38\uc7a5(\uc6d0\ubb38 \uadf8\ub300\ub85c)",
+          "required": false
+        },
+        {
+          "name": "decision",
+          "type": "STRING",
+          "description": "\uace0\uac1d\uc758 \ubc18\uc751. \uc218\uc6a9, \uac70\uc808, \ubcf4\ub958 \uc911 \ud558\ub098\ub9cc \uc500",
+          "required": false
+        },
+        {
+          "name": "reason",
+          "type": "STRING",
+          "description": "\uace0\uac1d\uc774 \uc218\uc6a9, \uac70\uc808, \ubcf4\ub958\ud558\uba70 \ub9d0\ud55c \uc774\uc720 \ubb38\uc7a5(\uc6d0\ubb38 \uadf8\ub300\ub85c)",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "ReconsiderCondition",
+      "description": "(\uc7ac\uac80\ud1a0 \uc870\uac74) \ud574\ub2f9: \uace0\uac1d\uc774 \uacb0\uc815\uc744 \ubbf8\ub8e8\uba70 \ub9d0\ud55c \ub2e4\uc2dc \uc0dd\uac01\ud560 \uc870\uac74(\uc608: ~\ud558\uba74 \ub2e4\uc2dc \uc0dd\uac01\ud560\uac8c\uc694, ~\uba74 \uadf8\ub54c ~\ud560\uac8c\uc694, ~\ub098\uc624\uba74 \ub2e4\uc2dc \ubcfc\uac8c\uc694, \uadf8\ub798\ub3c4 ~\ud558\uba74 \ub2e4\uc74c\uc5d0 \ubb38\uc758\ud560\uac8c\uc694). \ubcf4\ub958\ud55c \uc81c\uc548\ubfd0 \uc544\ub2c8\ub77c \uac70\uc808\ud55c \uc81c\uc548 \ub4a4\uc5d0 \uace0\uac1d\uc774 '\ub098\uc911\uc5d0 ~\ud558\uba74 \ud558\uaca0\ub2e4'\uace0 \ub367\ubd99\uc778 \uc870\uac74\ub3c4 \ud574\ub2f9\ud558\uba70, \uadf8 \uc81c\uc548\uc5d0 RECONSIDER_WHEN\uc73c\ub85c \ubd99\uc784. \ube44\ud574\ub2f9: \uc218\uc6a9\ud558\uac70\ub098 \uac70\uc808\ud55c \uc774\uc720 \uc790\uccb4(reason\uc5d0 \uc500), \uc0c1\ub2f4\uc0ac\uc758 \uc548\ub0b4",
+      "properties": [
+        {
+          "name": "condition",
+          "type": "STRING",
+          "description": "\uace0\uac1d\uc774 \ub9d0\ud55c \ub2e4\uc2dc \uc0dd\uac01\ud560 \uc870\uac74 \ubb38\uc7a5(\uc6d0\ubb38 \uadf8\ub300\ub85c)",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    }
+  ],
+  "relationship_types": [
+    {
+      "label": "HAS_COMPLAINT",
+      "description": "(\ubd88\ub9cc\uc744 \ub9d0\ud568) \uc0c1\ub2f4\uc5d0\uc11c \uace0\uac1d\uc774 \ub9d0\ud55c \ubd88\ub9cc \uc6d0\uc778",
+      "properties": [],
+      "additional_properties": true
+    },
+    {
+      "label": "HAS_PROPOSAL",
+      "description": "(\uc81c\uc548\ud568) \uc0c1\ub2f4\uc5d0\uc11c \uc0c1\ub2f4\uc0ac\uac00 \ud55c \uc81c\uc548",
+      "properties": [],
+      "additional_properties": true
+    },
+    {
+      "label": "RECONSIDER_WHEN",
+      "description": "(\ub2e4\uc2dc \uc0dd\uac01\ud560 \uc870\uac74) \ubcf4\ub958\ub41c \uc81c\uc548\uc744 \ub2e4\uc2dc \uc0dd\uac01\ud560 \uc870\uac74",
+      "properties": [],
+      "additional_properties": true
+    },
+    {
+      "label": "FOLLOWS",
+      "description": "(\uc774\uc804 \uc0c1\ub2f4\uc5d0 \uc774\uc5b4\uc9d0) \uc774\ubc88 \uc0c1\ub2f4\uc774 \ubcf8\ubb38\uc5d0 \uc801\ud78c \uac19\uc740 \ud68c\uc6d0\uc758 \ubc14\ub85c \uc55e \uc0c1\ub2f4(record_id)\uc5d0 \uc774\uc5b4\uc9d0. \ub05d \ub178\ub4dc\ub294 \uadf8 \uc55e \uc0c1\ub2f4\uc758 Consultation\uc774\uba70 record_id\ub97c \ucc44\uc6c0",
+      "properties": [],
+      "additional_properties": true
+    }
+  ],
+  "patterns": [
+    {
+      "source": "Consultation",
+      "relationship": "HAS_COMPLAINT",
+      "target": "Complaint"
+    },
+    {
+      "source": "Consultation",
+      "relationship": "HAS_PROPOSAL",
+      "target": "Proposal"
+    },
+    {
+      "source": "Proposal",
+      "relationship": "RECONSIDER_WHEN",
+      "target": "ReconsiderCondition"
+    },
+    {
+      "source": "Consultation",
+      "relationship": "FOLLOWS",
+      "target": "Consultation"
+    }
+  ],
+  "constraints": [
+    {
+      "type": "UNIQUENESS",
+      "property_name": "record_id",
+      "property_names": [
+        "record_id"
+      ],
+      "node_type": "Consultation",
+      "relationship_type": null
+    }
+  ],
+  "additional_node_types": false,
+  "additional_relationship_types": false,
+  "additional_patterns": false
+}
