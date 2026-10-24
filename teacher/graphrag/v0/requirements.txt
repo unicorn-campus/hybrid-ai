@@ -1,0 +1,14 @@
+# GraphRAG 인덱싱 v0. torch는 requirements-torch-cpu.txt로 먼저 설치함
+neo4j-graphrag==1.22.0
+opensearch-py==3.0.0
+# KURE-v2 임베딩(S1, K6, K8). 판은 hybrid-ai-lab 1-a 인덱서와 같게 맞춤(같은 벡터가 나오게)
+sentence-transformers==6.0.1
+transformers==5.17.0
+tokenizers==0.23.2
+huggingface_hub==1.33.0
+safetensors==0.8.0
+# S2 키워드 분석(RAG 인덱싱 예제와 같은 판). 0.24.1은 Windows용 바이너리가 없어 0.23.2로 고정함
+kiwipiepy==0.23.2
+kiwipiepy_model==0.23.0
+# 단위 시험
+pytest==9.1.1

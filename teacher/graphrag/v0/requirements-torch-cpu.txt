@@ -1,0 +1,4 @@
+# PyTorch CPU 판(KURE-v2 임베딩을 CPU로 돌림). requirements.txt보다 먼저 설치함.
+# PyTorch 전용 저장소의 CPU 휠(약 124MB)이라 PyPI 기본 판보다 작음
+--index-url https://download.pytorch.org/whl/cpu
+torch==2.14.0
