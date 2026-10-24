@@ -41,7 +41,7 @@ WHERE member_id IN (
 ```
 
 거래는 `card_txn.card_id = card.card_id`로 연결한 뒤 `card.member_id`로 필터링함.
-상담 원문·정제 방법은 [D3 사용 안내](../docs/D3_README.md)를 참조함.
+상담 원문·정제 방법은 [D3 사용 안내](../../docs/D3_README.md)를 참조함.
 
 ## 상담 고객 월 100만원 이상 추가 거래
 
@@ -53,6 +53,9 @@ WHERE member_id IN (
 상담의 소비 감소·앱 불편·생활비 절약을 참고한 교육용 합성 설계임.
 업종 분류만으로 온라인 결제·가전 품목·마트/외식을 구분하거나 해지·인증 성공을 확정하지 않음.
 기존 미이용·휴면 반례는 나머지 회원에서 찾을 수 있으며, 이번 12명은 월 사용액 하한 적용 대상임.
+
+아래 스크립트와 `data/` 폴더는 이 저장소에 없고, 원본 저장소 `hybrid-ai-lab/rdb`에만 있음.  
+그 저장소의 루트 폴더에서 실행함. 이 저장소에는 결과물인 `init/03_consultation_transactions.sql`만 있음.
 
 ```bash
 python rdb/add_consultation_transactions.py          # 확정 추가 거래 JSON으로 SQL 생성
@@ -66,6 +69,8 @@ python rdb/check_consultation_transactions.py        # 검증·상담 집계·RE
 검증 결과는 `data/consultation_transactions_audit.json`에 저장함.
 
 ## 기동과 종료
+
+`backing-services` 폴더에서 실행함. 이 README의 `docker`, `Get-Content` 명령도 모두 같은 폴더 기준임.
 
 ```bash
 docker compose -f rdb/compose.yml up -d      # 기동(최초 1회에 스키마·데이터 자동 적재)
@@ -86,11 +91,11 @@ docker compose -f rdb/compose.yml down -v    # 중지 + 데이터 삭제(다음 
 | 관리 계정 | `cardlab` / `cardlab` — 전체 권한. 원본 전체를 읽는 오프라인 도구도 이 계정을 씀 |
 | 검색기 계정 | `sql_retriever_user` / `cardlab` — `app` 논리 뷰만 읽음, 원본 테이블 권한 없음 |
 | 뷰 소유자 | `app_reader` — 로그인 불가. `app` 뷰를 소유하며 RLS 정책이 이 역할에 걸림 |
-| 컨테이너 | `hybrid-ai-lab-rdb` (postgres:18-alpine) |
-| 볼륨 | `hybrid-ai-lab-pgdata` |
+| 컨테이너 | `hybrid-ai-rdb` (postgres:18-alpine) |
+| 볼륨 | `hybrid-ai-pgdata` |
 
 ```bash
-docker exec -it hybrid-ai-lab-rdb psql -U cardlab -d cardlab
+docker exec -it hybrid-ai-rdb psql -U cardlab -d cardlab
 ```
 
 서비스 코드(검색기 등)는 **`sql_retriever_user`만** 씀. 원본 테이블과 재식별 열쇠에 손이 닿지 않는 것을  
@@ -102,7 +107,7 @@ docker exec -it hybrid-ai-lab-rdb psql -U cardlab -d cardlab
 ### 행 수준 보안(RLS)과 논리 뷰
 
 `member` · `card` · `card_txn` · `delinquency` 네 테이블에 행 수준 보안을 켜 둠.
-정형 검색기(`retriever/sql-retriever`)가 자연어 질문으로 SQL을 만들 때 다른 회원의 행에
+정형 검색기(`hybrid-ai-lab/retriever/sql-retriever`, 이 저장소에는 없음)가 자연어 질문으로 SQL을 만들 때 다른 회원의 행에
 닿지 못하게 하려는 것임. 기본 뷰와 정책은 `init/04_views_rls.sql`, 가맹점·업종 집계 뷰는
 `init/05_merchant_usage.sql`에 있음.
 
@@ -115,9 +120,9 @@ docker exec -it hybrid-ai-lab-rdb psql -U cardlab -d cardlab
 
 ```powershell
 Get-Content -Raw -Encoding utf8 rdb/init/05_merchant_usage.sql |
-  docker exec -i hybrid-ai-lab-rdb psql -X -1 -v ON_ERROR_STOP=1 -U cardlab -d cardlab
+  docker exec -i hybrid-ai-rdb psql -X -1 -v ON_ERROR_STOP=1 -U cardlab -d cardlab
 Get-Content -Raw -Encoding utf8 rdb/init/06_history_daily_usage.sql |
-  docker exec -i hybrid-ai-lab-rdb psql -X -1 -v ON_ERROR_STOP=1 -U cardlab -d cardlab
+  docker exec -i hybrid-ai-rdb psql -X -1 -v ON_ERROR_STOP=1 -U cardlab -d cardlab
 ```
 
 RLS를 켜면 정책이 없는 역할은 0행이 됨. 전체 허용 정책을 가진 로그인 계정은 두지 않음.  
@@ -272,9 +277,16 @@ WHERE c.member_id = 'M-1042';
 
 ## 데이터를 다시 만들 때
 
+`extract_d2.py`, `build_seed.py`, `data/`는 원본 저장소 `hybrid-ai-lab/rdb`에만 있음.  
+두 스크립트는 그 저장소의 루트 폴더에서 실행하고, 새로 만든 `init/02_seed.sql`을 이 저장소의  
+`backing-services/rdb/init/`에 복사한 뒤 `backing-services` 폴더에서 다시 기동함.
+
 ```bash
+# hybrid-ai-lab 루트 폴더에서
 python rdb/extract_d2.py    # docs/D2_...pdf → data/d2_products.json (검증 포함)
 python rdb/build_seed.py    # data/d2_products.json → init/02_seed.sql
+
+# 이 저장소의 backing-services 폴더에서
 docker compose -f rdb/compose.yml down -v
 docker compose -f rdb/compose.yml up -d
 ```
@@ -286,9 +298,9 @@ docker compose -f rdb/compose.yml up -d
 | 파일 | 역할 |
 |------|------|
 | `compose.yml` | 컨테이너 정의 |
-| `extract_d2.py` | D2 PDF에서 상품·연회비 추출 |
-| `build_seed.py` | 합성 회원·카드·거래 생성 |
-| `data/d2_products.json` | 추출 결과(상품 원천) |
+| `extract_d2.py` | D2 PDF에서 상품·연회비 추출(`hybrid-ai-lab/rdb`에만 있음) |
+| `build_seed.py` | 합성 회원·카드·거래 생성(`hybrid-ai-lab/rdb`에만 있음) |
+| `data/d2_products.json` | 추출 결과(상품 원천, `hybrid-ai-lab/rdb`에만 있음) |
 | `init/01_schema.sql` | 스키마·권한 |
 | `init/02_seed.sql` | 적재 데이터(생성물 — 직접 고치지 말 것) |
 | `init/04_views_rls.sql` | 검색기용 논리 뷰·행 수준 보안·계정 (시드 이후에 실행되어야 함) |
@@ -305,6 +317,6 @@ docker compose -f rdb/compose.yml up -d
 
 ## w2-3 SQLite 실습과의 관계
 
-`w2-3/src/common`의 SQLite 실습은 **그대로 유지**되며 이 DB로 바뀌지 않음.
+`w2-3/src/common`의 SQLite 실습은 **그대로 유지**되며 이 DB로 바뀌지 않음(`w2-3` 폴더는 이 저장소에 없음).
 기본 회원·거래 생성 규칙은 같지만 PostgreSQL에는 D2 상품 64종과 상담 고객 12명의 추가 거래가 반영됨.
 SQLite의 거래금액과 PostgreSQL의 상담 고객 거래금액은 같지 않을 수 있음.

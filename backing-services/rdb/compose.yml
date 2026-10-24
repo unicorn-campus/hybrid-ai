@@ -1,10 +1,13 @@
 # 하이브리드 AI 실습 공통 정형 DB (전 교육 과정 공용)
-# 기동: docker compose -f rdb/compose.yml up -d
+# 기동: docker compose -f rdb/compose.yml up -d   (backing-services 폴더에서)
 # 초기화 스크립트는 pgdata 볼륨이 비어 있을 때 한 번만 실행됨.
+# 프로젝트, 컨테이너, 볼륨 이름을 hybrid-ai 전용으로 둠. hybrid-ai-lab 저장소의 같은 compose와 데이터가 섞이지 않게 함.
+# 포트는 같으므로 두 저장소의 rdb를 동시에 띄우지 않음
+name: hybrid-ai-rdb
 services:
   rdb:
     image: postgres:18-alpine
-    container_name: hybrid-ai-lab-rdb
+    container_name: hybrid-ai-rdb
     environment:
       POSTGRES_DB: cardlab
       POSTGRES_USER: cardlab
@@ -28,4 +31,4 @@ services:
 
 volumes:
   pgdata:
-    name: hybrid-ai-lab-pgdata
+    name: hybrid-ai-pgdata

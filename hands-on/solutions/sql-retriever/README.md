@@ -73,7 +73,7 @@ SQL_RETRIEVER_DB_PASSWORD=실습_DB_비밀번호
 DSN이 없으면 공통 RDB의 `localhost:5432/cardlab`과 검색기 전용 `sql_retriever_user`를 사용합니다.  
 DB 비밀번호는 `secrets/.env`의 `SQL_RETRIEVER_DB_PASSWORD`에서만 읽습니다. 값이 없으면 DB 연결이 실패합니다.  
 기존 `S22_DB_DSN`, `S22_DB_PASSWORD`도 인식합니다. 예전 SQLite용 `S22_DB_PATH`는 사용하지 않습니다.  
-RDB가 꺼져 있다면 [공통 RDB 안내](../../rdb/README.md)에 따라 시작합니다.
+RDB가 꺼져 있다면 [공통 RDB 안내](../../../backing-services/rdb/README.md)에 따라 시작합니다.
 
 선택 설정은 `.env.example`에서 확인할 수 있습니다. DB 쿼리 제한은 기본 5초, 모델 요청 제한은 기본 30초입니다.
 `fixed` 검색과 스키마 명세 조회에는 API 키가 필요하지 않습니다.

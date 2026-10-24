@@ -1,0 +1,32 @@
+# 하이브리드 AI 실습용 검색 엔진 (GraphRAG v0 실습의 BM25와 벡터 검색)
+# 기동: docker compose -f opensearch/compose.yml up -d   (backing-services 폴더에서)
+# 그래프 DB(Neo4j)는 neo4j/compose.yml로 따로 띄움.
+# 프로젝트, 컨테이너, 볼륨 이름을 hybrid-ai 전용으로 둠. hybrid-ai-lab 저장소의 같은 compose와 데이터가 섞이지 않게 함.
+# 포트는 같으므로 두 저장소의 OpenSearch를 동시에 띄우지 않음
+name: hybrid-ai-opensearch
+services:
+  opensearch:
+    image: opensearchproject/opensearch:2.19.1
+    container_name: hybrid-ai-opensearch
+    environment:
+      discovery.type: single-node
+      # 실습 전용이라 보안 플러그인을 끔. 그래서 포트는 이 PC(127.0.0.1)에만 염
+      DISABLE_SECURITY_PLUGIN: "true"
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms${OPENSEARCH_HEAP:-1g} -Xmx${OPENSEARCH_HEAP:-1g}"
+    ports:
+      - "127.0.0.1:${OPENSEARCH_PORT:-9200}:9200"
+    volumes:
+      # Windows 바인드 마운트는 권한 문제를 일으키므로 명명 볼륨을 씀
+      - opensearch-data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  opensearch-data:
+    name: hybrid-ai-opensearch-data
