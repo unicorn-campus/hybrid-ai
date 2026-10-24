@@ -10,7 +10,7 @@
 |---|---|---|
 | Chroma 벡터DB (collection `card_docs`, 코사인 거리) | `../indexing/data/chroma/` | 벡터 검색, 청크 본문과 메타데이터 읽기 |
 | BM25 색인 폴더 (bm25s 점수표, `chunk_ids.json`, `dictionary.json`, `manifest.json`) | `../indexing/data/bm25/` | BM25 검색, 질문 토큰화용 사전(카드명, 별칭), 색인 요약 대조 |
-| 평가셋 (22문항) | `../ragas/eval-set.json` | `run_eval.py` |
+| 평가셋 | `../../eval-set.json`(hands-on/solutions, RAG와 GraphRAG가 함께 씀) | `run_eval.py` |
 
 주요 기능
 
@@ -71,7 +71,7 @@ hands-on/solutions/rag/
 ├── .venv/                  # indexing과 retriever가 함께 쓰는 가상환경(공용)
 ├── requirements.txt        # 공용 패키지 목록
 ├── indexing/data/          # 인덱싱 결과(chroma/, bm25/. 이 프로그램은 읽기만 함)
-├── ragas/eval-set.json     # 평가셋(run_eval.py가 읽음)
+├── ragas/                  # RAGAS 채점(평가셋은 한 단계 위 hands-on/solutions/eval-set.json)
 └── retriever/              # 이 폴더
     ├── search_docs.py      # main. 설정 상수, 색인 열기, 권한 필터, 벡터 검색, 단계 실행, 답변 생성
     ├── core_hybrid.py      # 핵심 모듈(교육생 클론 코딩 대상). 함수 5개(search_bm25, fuse_weighted, fuse_rrf, rerank, member_pseudonym)

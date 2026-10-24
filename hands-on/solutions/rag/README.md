@@ -11,7 +11,7 @@ flowchart LR
     DOCS[docs/<br/>약관 pdf, 혜택 pdf, 상담 txt] --> IDX[indexing/index_docs.py<br/>로드, 정제, 가명처리, 청킹, 임베딩, 적재, BM25 색인]
     IDX --> DATA[(indexing/data/<br/>chroma/, bm25/)]
     DATA --> RET[retriever/search_docs.py<br/>벡터 + BM25, 융합, 리랭크, 답변]
-    EVAL[ragas/eval-set.json<br/>22문항] --> RUN[retriever/run_eval.py]
+    EVAL[../eval-set.json<br/>평가셋] --> RUN[retriever/run_eval.py]
     DATA --> RUN
     RUN --> LOG[(retriever/logs/results.json)]
     LOG --> RAG[ragas/evaluate_ragas.py<br/>4지표 채점]

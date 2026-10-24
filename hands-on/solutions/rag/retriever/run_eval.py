@@ -16,7 +16,7 @@ sys.stdout.reconfigure(encoding="utf-8")  # Windows 콘솔에서 한글이 깨�
 # 설정값(상수)
 # ---------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent
-EVAL_SET_PATH = BASE_DIR.parent / "ragas" / "eval-set.json"  # 평가셋(22문항)
+EVAL_SET_PATH = BASE_DIR.parents[1] / "eval-set.json"  # 평가셋(hands-on/solutions/eval-set.json, RAG와 GraphRAG가 함께 씀)
 RESULTS_PATH = BASE_DIR / "logs" / "results.json"  # 결과 로그. ragas/evaluate_ragas.py가 이 경로를 읽음
 DEFAULT_MODE = "hybrid_rerank"
 DEFAULT_TOP_K = 5
