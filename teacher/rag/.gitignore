@@ -1,0 +1,8 @@
+# 실행 결과와 가상환경은 Git에 올리지 않음
+.venv/
+*/.venv/
+*/data/
+*/data-limit/
+*/logs/*
+!retriever/logs/results-sample.json
+__pycache__/

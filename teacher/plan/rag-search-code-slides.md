@@ -1,0 +1,286 @@
+# RAG 검색 교재 코드 장표 스크립트(W01 ~ W04 150 ~ 174쪽 코드 장표)
+
+- 대상: 『신한카드 하이브리드AI_W01 ~ W04』 「검색 워크플로우」의 코드 장표 9장(151, 155, 158, 160, 162, 166, 171, 172, 173쪽)과  
+  새 장표 1장(④ 질문 변환 코드, 171쪽 뒤). 150쪽 구성안의 표는 `merge-rag-search-code.py`가 글자만 고침
+- 덱 파일: `teacher/plan/rag-search-code.pptx`(10장)
+- 발췌: `python teacher/plan/build/extract-rag-search-code.py` → `teacher/plan/build/rag-search-code-slides.json`
+- 빌드: `NODE_PATH="C:\Users\hiond\.npm-global\node_modules" node teacher/plan/build/build-rag-search-code.js`
+- 교재 반영: `python teacher/plan/build/fix_ph.py teacher/plan/rag-search-code.pptx` →  
+  `python teacher/plan/build/merge-rag-search-code.py {교재}.pptx`(「바꿀 제목」 장표를 새 장표로 바꾸고, 「넣을 자리」 장표 뒤에 새로 넣음)
+- 코드 규칙: 실제 소스(`hands-on/solutions/rag/retriever/`)에서 발췌기가 자동으로 꺼냄. docstring과 주석은 빼고 나머지 글자는 소스 그대로임.  
+  「코드 빼기」에 적은 글이 든 줄(과 그 아래 더 들여 쓴 줄)은 「...」 한 줄로 줄임. 코드를 고치면 발췌와 빌드를 다시 돌림
+- 일련번호: 단계 번호 ① ~ ⑥과 헷갈리지 않게 ❶, ❷, ❸ …
+- 번호 줄 꼴: `❶ | 코드 줄에서 찾을 글 | 설명 제목 | 설명 본문`. 번호는 앞 번호 줄 다음부터 찾음
+
+## 슬라이드 1. ① 권한 필터
+- 바꿀 제목: 검색 워크플로우: ① 권한 필터 – 실제 코드
+- 제목: 검색 워크플로우: ① 권한 필터 – 실제 코드
+- 리드문: 볼 수 있는 청크를 검색 전에 코드가 정함. 벡터 검색은 Chroma 필터로, BM25 검색은 0과 1로 된 마스크로 거름
+- 코드: core_search.py build_chroma_filter; core_search.py build_weight_mask
+- 번호
+  - ❶ | if role == "agent": | 상담사(agent) | 약관과 혜택 안내(public)만 봄. $eq는 메타데이터 값이 같은 청크만 남김
+  - ❷ | if member_pseudo_id is None: | 감사자, 회원 지정 없음 | 조건이 없으므로 None을 돌려줌(전부 봄)
+  - ❸ | "$and": [ | 감사자 + 회원 | 상담 이력 등급이면서 그 회원의 가명 ID인 청크만. 회원번호 대신 되돌릴 수 없는 가명 ID로 거름
+  - ❹ | mask = np.zeros | BM25 권한 마스크 | BM25 색인은 전체 청크로 미리 만들어 두었으므로 청크마다 1(볼 수 있음) 또는 0을 담은 배열을 만듦
+  - ❺ | if is_chunk_allowed( | 같은 규칙 한 벌 | is_chunk_allowed가 Chroma 필터와 같은 규칙을 조건문으로 적어 두 검색의 권한이 어긋나지 않음
+- 굵게
+  - {"access_level": {"$eq": "public"}}
+  - {"member_pseudo_id": {"$eq": member_pseudo_id}}
+  - np.zeros(len(chunks), dtype=np.float32)
+- 상세 보기 링크: https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/rag/retriever/core_search.py
+- 발표자 노트
+  - 교육생 실습 함수 build_chroma_filter(빈칸 2곳)의 정답임. build_weight_mask는 제공 함수임
+  - 실행 화면 ①에서 BM25 대상 청크 수가 agent 212개, auditor + M-1042는 4개로 나오는지 봅니다(README 5장)
+  - 회원번호는 member_pseudonym이 SHA-256 앞 16자리 가명 ID로 바꿉니다. 색인에도 가명 ID만 있습니다
+
+## 슬라이드 2. ② Adaptive 분류
+- 바꿀 제목: 검색 워크플로우: ② Adaptive 분류 – 실제 코드
+- 제목: 검색 워크플로우: ② Adaptive 분류 – 실제 코드
+- 리드문: LLM이 낸 유형과 하위 질문을 규칙 5개로 검사함. 하나라도 걸리면 원 질문 1개로 검색하는 단순 경로로 돌림
+- 코드: core_search.py apply_plan_rules
+- 코드 빼기
+  - question: str,
+  - question_type: str,
+  - sub_questions: list
+  - chitchat_reply: str,
+  - condition_terms_of,
+  - domain_terms_of,
+  - max_sub_questions: int
+  - for text in sub_questions
+  - if chitchat_reply.strip()
+  - warnings.append
+  - texts = []
+  - warnings = []
+  - union_terms = set()
+  - return {"type": QTYPE_CHITCHAT
+  - if question_type == QTYPE_SIMPLE
+  - for text in texts
+  - return fallback_simple(
+- 번호
+  - ❶ | if question_type not in | 모르는 유형 | LLM이 약속하지 않은 유형을 내면 단순 질문으로 처리함. 규칙에 걸린 자리(...)는 모두 fallback_simple(원 질문 1개)을 돌려줌
+  - ❷ | if len(business_words) > 0: | 잡담 오분류 막기 | 잡담 판정이어도 카드명, 숫자, 업무 어휘가 있으면 단순 질문으로 검색함
+  - ❸ | texts = texts[:max_sub_questions] | 하위 질문 최대 3개 | 공백과 중복을 정리한 뒤 앞에서부터 3개만 씀
+  - ❹ | if len(texts) <= 1: | 1개 이하면 분해가 아님 | 원 질문 그대로 검색함
+  - ❺ | lost = original_terms - union_terms | 조건 보존 검사 | 원 질문의 조건 낱말(카드명, 숫자)이 빠지거나(lost) 새로 생기면(invented) 단순 질문으로 되돌림
+  - ❻ | return {"type": QTYPE_COMPLEX | 모두 통과 | 복합 질문으로 확정하고 하위 질문마다 ③ 검색을 함
+- 굵게
+  - domain_terms_of(question)
+  - texts[:max_sub_questions]
+  - original_terms - union_terms
+  - union_terms - original_terms
+- 상세 보기 링크: https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/rag/retriever/core_search.py
+- 발표자 노트
+  - 교육생 실습 함수 apply_plan_rules(빈칸 3곳: ❷, ❸, ❺)의 정답임
+  - 분류 LLM 호출은 main의 classify_question이 LCEL 체인과 구조화 출력(QuestionPlan)으로 함. LLM이 실패하면 단순 질문으로 처리합니다
+  - condition_terms_of, domain_terms_of는 main이 토크나이저를 묶어 넘기는 함수입니다. 화면에서는 인자 줄을 ...로 줄였습니다
+
+## 슬라이드 3. ③ BM25
+- 바꿀 제목: 검색 워크플로우: ③ 검색 – BM25 실제 코드
+- 제목: 검색 워크플로우: ③ 검색 – BM25 실제 코드
+- 리드문: 저장된 bm25s 점수표에서 청크마다 점수를 받아 권한 마스크를 곱하고, 0점을 뺀 뒤 점수 내림차순으로 정렬함
+- 코드: core_search.py search_bm25
+- 코드 빼기
+  - "text": chunk["text"],
+  - "metadata": chunk["metadata"],
+- 번호
+  - ❶ | scores = bm25.get_scores | 저장된 점수표로 계산 | 질문 토큰(색인과 같은 Kiwi 규칙)으로 청크마다 점수 1개. weight_mask를 곱해 권한 밖 청크는 0점이 됨
+  - ❷ | if score > 0: | 0점은 뺌 | 질문 토큰이 하나도 없거나 권한 밖인 청크
+  - ❸ | scored.sort(reverse=True) | 점수 내림차순 | (점수, 순번) 쌍은 점수부터 비교함
+  - ❹ | "chunk_id": chunk["chunk_id"], | 벡터 결과와 같은 꼴 | chunk_id, score, rank 키를 맞춰 두어야 융합에서 한 표로 합칠 수 있음. 후보는 top_k × 4 = 20개
+- 굵게
+  - bm25.get_scores(query_tokens, weight_mask=weight_mask)
+  - score > 0
+  - scored.sort(reverse=True)
+- 상세 보기 링크: https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/rag/retriever/core_search.py
+- 발표자 노트
+  - 교육생 실습 함수 search_bm25(직접 작성)의 정답임
+  - 질문 토큰화는 main이 인덱서 모듈의 tokenize_korean으로 합니다. 카드명이 한 토큰(한빛모아생활)으로 잡히는지 화면에서 봅니다
+  - BM25 점수는 상한이 없어 벡터 점수와 단위가 다릅니다. 그래서 융합 전에 정규화합니다
+
+## 슬라이드 4. ③ 유사도 검색
+- 바꿀 제목: 검색 워크플로우: ③ 검색 – 유사도 검색 실제 코드
+- 제목: 검색 워크플로우: ③ 검색 – 유사도 검색 실제 코드
+- 리드문: 질의를 Cohere로 임베딩하고 Chroma HNSW 근사 검색으로 가까운 청크를 찾은 뒤, 거리를 「클수록 좋은」 점수로 바꿈
+- 코드: core_search.py search_vector
+- 번호
+  - ❶ | results = store.similarity_search_with_score | 임베딩 + 근사 검색 + 권한 | 한 번의 호출이 질의 임베딩(Cohere API)과 HNSW 검색을 함께 함. filter에 ①의 Chroma 필터를 넘겨 검색 「전에」 거름. 후보는 top_k × 4 = 20개
+  - ❷ | for rank, (document, distance) in enumerate | (문서, 거리) 쌍 | 가까운 순서로 옴. 순위는 1부터 매김
+  - ❸ | "chunk_id": document.id, | 같은 키 | 인덱서가 chunk_id를 Chroma id로 저장해 BM25 결과와 같은 키로 합칠 수 있음
+  - ❹ | "score": 1.0 - float(distance), | 점수 방향 통일 | 코사인 거리는 작을수록 가까움. 1 - 거리로 바꿔 BM25, 리랭크 점수처럼 클수록 좋게 맞춤
+- 굵게
+  - store.similarity_search_with_score(query, k=top_n, filter=chroma_filter)
+  - 1.0 - float(distance)
+- 상세 보기 링크: https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/rag/retriever/core_search.py
+- 발표자 노트
+  - 교육생 실습 함수 search_vector(빈칸 2곳: ❶, ❹)의 정답임
+  - HNSW 설정(코사인, M 16, construction_ef 200, search_ef 100)은 main의 COLLECTION_METADATA로 인덱서와 같게 엽니다
+  - 앞 장의 KURE-v2(768차원)는 기법 설명용 예이고, 실습 예제는 Cohere embed-v5.0-fast(2048차원) API를 씁니다
+
+## 슬라이드 5. ③ 융합
+- 바꿀 제목: 검색 워크플로우: ③ 검색 – 융합 실제 코드
+- 제목: 검색 워크플로우: ③ 검색 – 융합 실제 코드
+- 리드문: 단위가 다른 두 점수를 0 ~ 1로 다시 편 뒤 6 : 4로 더함(기본). RRF는 점수를 버리고 순위만으로 합침
+- 코드: core_search.py fuse_weighted
+- 코드 빼기
+  - vector_hits: list[dict],
+  - bm25_hits: list[dict],
+  - vector_weight: float = 0.6,
+  - bm25_weight: float = 0.4,
+- 번호
+  - ❶ | vector_normalized = _normalize_scores | 검색별로 따로 정규화 | (점수 - 최소) / (최대 - 최소)로 벡터 결과와 BM25 결과를 각자 0 ~ 1로 폄
+  - ❷ | merged = _merge_lists | chunk_id로 묶기 | 두 결과를 한 표로 모으고 found_in에 어느 검색에서 나왔는지 남김
+  - ❸ | vector_part = 0.0 | 없는 쪽은 0점 | 한쪽 검색에만 나온 청크는 없는 쪽 점수를 0으로 봄
+  - ❹ | fused_scores[chunk_id] = vector_weight | 가중합 | 벡터 0.6 + BM25 0.4. 양쪽 1위면 1.0. RRF(--fusion rrf, 제공 fuse_rrf)는 점수 대신 순위 r마다 1 / (60 + r)을 더함
+- 굵게
+  - _normalize_scores
+  - vector_weight * vector_part + bm25_weight * bm25_part
+- 상세 보기 링크: https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/rag/retriever/core_search.py
+- 발표자 노트
+  - 교육생 실습 함수 fuse_weighted(직접 작성)의 정답임. fuse_rrf는 제공 함수임
+  - 융합 상위 top_k × 2 = 10개만 리랭크로 넘깁니다(main search_query)
+  - 하위 질문끼리는 서로 다른 질문이라 점수 분포가 달라 RRF로 합칩니다(154쪽). 재검색의 Multi-Query 표현끼리는 평균(가중합)으로 합칩니다
+
+## 슬라이드 6. ③ 리랭크
+- 바꿀 제목: 검색 워크플로우: ③ 검색 – 리랭크 실제 코드
+- 제목: 검색 워크플로우: ③ 검색 – 리랭크 실제 코드
+- 리드문: 융합 후보 10개의 본문을 원 질의와 함께 리랭커에 보내 다시 채점하고, 점수 순으로 근거 5개를 고름
+- 코드: core_search.py rerank
+- 코드 빼기
+  - question: str,
+  - candidates: list[dict],
+  - cohere_client,
+  - top_k: int,
+  - model_name: str = RERANK_MODEL,
+- 번호
+  - ❶ | documents.append(candidate["text"]) | 본문만 모음 | 보낸 목록의 순서가 곧 응답 index의 기준임
+  - ❷ | response = cohere_client.rerank( | 질문과 청크를 한 쌍으로 | Cohere rerank-v4.0-fast가 쌍마다 관련성을 매김. API를 한 번 부름
+  - ❸ | for rank, result in enumerate(response.results | 점수순 응답 | results는 relevance_score가 높은 순으로 top_n(5)개가 옴
+  - ❹ | candidate = dict(candidates[result.index]) | index로 원래 후보 찾기 | 원본을 바꾸지 않도록 복사해 씀
+  - ❺ | candidate["rerank_score"] = | 리랭크 점수(0 ~ 1) | 리랭크 전 순위(fused_rank)도 남겨 「융합 n위 → m위」 변화를 화면에 보여 줌. ④ 채점의 주 점수가 됨
+- 굵게
+  - cohere_client.rerank
+  - response.results
+  - candidates[result.index]
+  - float(result.relevance_score)
+- 상세 보기 링크: https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/rag/retriever/core_search.py
+- 발표자 노트
+  - 교육생 실습 함수 rerank(빈칸 2곳: ❷, ❹)의 정답임
+  - question은 변환 질의가 아니라 원 질의(하위 질문)입니다. HyDE처럼 검색 문장이 바뀌어도 관련성은 원래 물음으로 잽니다
+  - 리랭크가 실패하면 main이 융합 순위를 그대로 쓰고, 그 질의는 재검색하지 않습니다(호출 폭증 방지)
+
+## 슬라이드 7. ④ CRAG 채점
+- 바꿀 제목: 검색 워크플로우: ④ CRAG 채점 – 실제 코드
+- 제목: 검색 워크플로우: ④ CRAG 채점 – 채점 실제 코드
+- 리드문: 채점은 LLM 없이 점수 규칙으로 함. 부정확을 먼저 거르고, 정확 조건을 모두 채우면 정확, 나머지는 불확실임
+- 코드: core_search.py grade
+- 번호
+  - ❶ | if signals["result_count"] == 0: | 부정확(하나라도) | 결과 0건이거나 1위 리랭크 점수가 하한 0.3 미만 → 근거에서 뺌
+  - ❷ | overlap_ok = | 검색기 합의 | 벡터와 BM25 상위 5개가 1개 이상 겹치거나, 1위가 0.9 이상이면 겹침 조건 면제
+  - ❸ | signals["main_score"] >= thresholds["upper"] | 정확 조건(모두) | 리랭크 성공, 1위 점수 0.7 이상
+  - ❹ | and signals["keyword_match"] | 핵심어와 대상 일치 | 질문의 카드명, 숫자가 근거에 있고, 질문이 가리킨 카드와 1위 청크의 카드가 같음
+  - ❺ | and signals["gap"] >= thresholds["min_gap"] | 격차 | 1위와 다른 대상(다른 카드, 다른 청크) 최고 점수의 차가 0.05 이상
+  - ❻ | return GRADE_UNCERTAIN | 나머지는 불확실 | 질문을 바꿔 한 번 더 검색함(다음 장)
+- 굵게
+  - GRADE_INCORRECT
+  - GRADE_CORRECT
+  - GRADE_UNCERTAIN
+- 상세 보기 링크: https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/rag/retriever/core_search.py
+- 발표자 노트
+  - 교육생 실습 함수 grade(직접 작성)의 정답임. 신호 6개는 제공 함수 build_signals가 계산합니다
+  - 기준값은 main 맨 위 THRESHOLDS 상수입니다. 평가셋 25문항 실측으로 정한 출발값이며 149쪽처럼 평가하면서 조정합니다
+  - 같은 검색 결과면 언제나 같은 판정이 나옵니다. 판정 근거(신호값)는 화면에 기준값과 나란히 찍힙니다
+
+## 슬라이드 8. ④ 질문 변환
+- 넣을 자리: 검색 워크플로우: ④ CRAG 채점 – 채점 실제 코드
+- 제목: 검색 워크플로우: ④ CRAG 채점 – 질문 변환 실제 코드
+- 리드문: 불확실 질의는 LLM이 기법을 고르고 질의를 쓰며, 코드 금지 규칙이 받아들일지 정함. 재검색은 질의마다 1회
+- 코드: core_search.py apply_transform_rules
+- 코드 빼기
+  - technique: str,
+  - queries: list[str],
+  - clarify_question: str,
+  - reason: str,
+  - target_query: str,
+  - previous_queries: list[str],
+  - forced_clarify: str | None,
+  - decision["warnings"].append
+  - "clarify_question": "", "reason"
+  - if technique == KEEP
+  - if technique == CLARIFY
+  - for previous in previous_queries
+  - if key == ""
+  - if len(kept) == MAX_TRANSFORM_QUERIES
+  - decision = {
+  - decision["clarify_question"] = forced_clarify
+  - seen = [normalize_query
+  - kept = []
+  - key = normalize_query(query)
+  - seen.append(key)
+  - kept.append(query.strip())
+  - if len(kept) == 0
+  - decision["technique"] = technique
+  - decision["queries"] = kept
+- 번호
+  - ❶ | if forced_clarify is not None: | 대상명 없음 + 대상 섞임 | 질문에 카드명이 없는데 결과에 여러 카드가 섞이면 LLM 답과 상관없이 되물음(clarify)
+  - ❷ | if technique not in ALLOWED_TECHNIQUES: | 허용 선택지 밖 | 4기법(rewrite, multi, hyde, stepback)과 keep, clarify 밖이면 keep(바꾸지 않음)
+  - ❸ | if key in seen: | 같은 질의 반복 금지 | 원 질의, 이전 질의와 같은 질의는 버림. 남은 질의가 없으면 keep
+  - ❹ | decision["include_original"] = | 원 질의 함께 검색 | HyDE, Step-Back은 질문을 크게 바꾸므로 원 질의도 같이 검색함(167쪽)
+- 굵게
+  - CLARIFY
+  - ALLOWED_TECHNIQUES
+  - key in seen
+  - technique in ORIGINAL_REQUIRED
+- 상세 보기 링크: https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/rag/retriever/core_search.py
+- 발표자 노트
+  - 교육생 실습 함수 apply_transform_rules(빈칸 3곳: ❶, ❸, ❹)의 정답임
+  - LLM 호출은 main의 transform_query가 합니다. 원 질의, 판정 근거(신호 6개), 검색 결과, 이전 질의, 170쪽 기법 가이드를 함께 줍니다
+  - 재검색은 변환 질의(와 원 질의)로 검색해 평균으로 합치고, 리랭크는 원 질의 기준입니다. 다시 채점한 뒤에도 불확실이면 리랭크 0.3 이상 근거만 ⑤로 넘깁니다
+  - 복합 질문의 하위 질문에서 LLM이 clarify를 고르면 main이 keep으로 바꿉니다(다른 하위 질문 답까지 버리지 않게)
+
+## 슬라이드 9. ⑤ 답변 생성
+- 바꿀 제목: 검색 워크플로우: ⑤ 답변 생성 – 실제 코드
+- 제목: 검색 워크플로우: ⑤ 답변 생성 – 실제 코드
+- 리드문: 근거 청크만 <청크 id> 태그로 넘기고, 문장마다 청크ID와 인용문을 구조화 출력으로 받음. 답이 없으면 missing에 적음
+- 코드: core_search.py AnswerSentence; core_search.py GroundedAnswer; core_search.py generate_answer
+- 코드 빼기
+  - text: str = Field
+  - chunk_id: str = Field
+  - sentences: list[AnswerSentence]
+  - prompt = ChatPromptTemplate.from_messages(
+  - feedback = "없음"
+  - if failures:
+- 번호
+  - ❶ | quote: str = Field | 문장, 청크ID, 인용문 | 인용문을 따로 받아야 ⑥이 본문과 글자 대조를 할 수 있음
+  - ❷ | missing: str = Field | 확인 못 한 내용 | 근거에 답이 없으면 문장 0개 + missing → 「확인 필요:」로 끝나고 ⑥을 건너뜀
+  - ❸ | if len(hits) == 0: | 근거 0건 | LLM을 부르지 않고 바로 「확인 필요」를 돌려줌
+  - ❹ | structured_llm = llm.with_structured_output | 구조화 출력 | LLM이 GroundedAnswer 칸을 채운 JSON으로 답함. strict=True가 없으면 gpt-oss-120b가 스키마를 되돌림(실측)
+  - ❺ | chain = prompt | structured_llm | LCEL 체인 | 프롬프트 → Groq gpt-oss-120b → GroundedAnswer 객체. 재작성 때는 ⑥의 실패 사유(failures)를 feedback으로 프롬프트에 함께 넣음
+- 굵게
+  - llm.with_structured_output(GroundedAnswer, method="json_schema", strict=True)
+  - prompt | structured_llm
+- 상세 보기 링크: https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/rag/retriever/core_search.py
+- 발표자 노트
+  - 교육생 실습 함수 generate_answer(빈칸 2곳: ❹, ❺)의 정답임
+  - 프롬프트 규칙: 근거만으로 답함, chunk_id는 <청크 id="...">의 값만(본문 속 D2-C001-B02 같은 코드는 청크ID가 아님), 인용문은 한 글자도 바꾸지 않음
+  - 실측: 청크ID를 태그 속성으로 따로 두기 전에는 혜택 청크의 카드 코드를 청크ID로 인용해 검증이 늘 실패했습니다(README 7.3)
+
+## 슬라이드 10. ⑥ Self-RAG 근거 검증
+- 바꿀 제목: 검색 워크플로우: ⑥ Self-RAG 근거 검증 – 실제 코드
+- 제목: 검색 워크플로우: ⑥ Self-RAG 근거 검증 – 실제 코드
+- 리드문: 답의 인용을 근거 본문과 코드로 대조함. 실패하면 사유를 주고 ⑤를 최대 2번 다시 부르고, 끝내 실패하면 「확인 필요」
+- 코드: core_search.py verify_answer
+- 번호
+  - ❶ | for number, sentence in enumerate | 문장마다 검사 | 사유는 ⑤ 재작성 프롬프트로 그대로 넘기므로 문장 번호를 1부터 적음
+  - ❷ | if sentence.chunk_id.strip() == "": | 인용 없는 문장 | 근거를 대지 않은 문장은 실패로 셈
+  - ❸ | if sentence.chunk_id not in evidence_texts: | 없는 청크ID | 근거 묶음에 없는 청크를 인용하면 지어낸 인용으로 보고 실패
+  - ❹ | body = compact_text | 공백은 지우고 비교 | PDF 본문은 줄바꿈 위치가 문장 중간에 있어 띄어쓰기와 줄바꿈을 모두 지운 뒤 비교함
+  - ❺ | if quote == "" or quote not in body: | 본문 불일치 | 인용문이 그 청크 본문에 글자 그대로 없으면 실패. 빈 목록이 돌아가면 통과
+- 굵게
+  - sentence.chunk_id not in evidence_texts
+  - quote not in body
+- 상세 보기 링크: https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/rag/retriever/core_search.py
+- 발표자 노트
+  - 교육생 실습 함수 verify_answer(직접 작성)의 정답임
+  - 재작성 반복은 main의 step5_6_answer가 맡습니다. 실패면 사유를 넣어 ⑤를 다시 부르고(MAX_REWRITES 2, 첫 시도 포함 3번), 다 쓰면 「확인 필요: 인용 검증을 통과하지 못함」으로 끝냅니다
+  - 실측: Q17에서 3번 문장 인용문이 본문과 달라 재작성 1/2 뒤 검증을 통과했습니다
+  - ⑥은 「인용문이 본문에 있는가」만 봅니다. 인용은 맞는데 해석이 틀린 답은 걸러내지 못합니다(README 9장)

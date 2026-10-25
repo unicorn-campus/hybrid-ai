@@ -1,8 +1,9 @@
-# RAG 실습 예제 — 인덱싱, 검색, RAGAS 평가
+# RAG 실습 예제 — 인덱싱, 검색
 
-하이브리드 AI 교육 3 ~ 4주차 「문서 인덱싱」, 「문서 검색」, 「품질 평가」 실습용 예제임.  
+하이브리드 AI 교육 3 ~ 4주차 「문서 인덱싱」, 「문서 검색」 실습용 예제임.  
 레이어드 아키텍처 없이 **main 1개 + 핵심 모듈 1개**로 짰고, 교육생은 핵심 모듈만 클론 코딩한 뒤 본인 코드로 바꿔 끼움.  
-실습 진행 순서와 시간 배분은 [실습계획서](../../plan/rag-실습계획서.md)에 있음.
+실습 진행 순서와 시간 배분은 [실습계획서](../../../teacher/plan/rag-실습계획서.md)(인덱싱)와  
+[검색 개발계획서](../../../teacher/plan/rag-search-개발계획서.md)(검색 워크플로우)에 있음.
 
 ## 1. 세 프로그램의 관계
 
@@ -10,18 +11,14 @@
 flowchart LR
     DOCS[docs/<br/>약관 pdf, 혜택 pdf, 상담 txt] --> IDX[indexing/index_docs.py<br/>로드, 정제, 가명처리, 청킹, 임베딩, 적재, BM25 색인]
     IDX --> DATA[(indexing/data/<br/>chroma/, bm25/)]
-    DATA --> RET[retriever/search_docs.py<br/>벡터 + BM25, 융합, 리랭크, 답변]
-    EVAL[../eval-set.json<br/>평가셋] --> RUN[retriever/run_eval.py]
-    DATA --> RUN
-    RUN --> LOG[(retriever/logs/results.json)]
-    LOG --> RAG[ragas/evaluate_ragas.py<br/>4지표 채점]
+    DATA --> RET[retriever/search_docs.py<br/>① 권한 필터, ② 분류, ③ 검색, ④ 채점, ⑤ 답변, ⑥ 검증]
+    EVAL[../eval-set.json<br/>평가셋] -->|--qid| RET
 ```
 
 | 폴더 | main | 핵심 모듈(클론 코딩 대상) | 교육생 작업 파일 | 만드는 것 |
 |---|---|---|---|---|
 | `indexing/` | `index_docs.py` | `core_indexing.py` | `my_indexing.py` | `data/chroma/`, `data/bm25/` |
-| `retriever/` | `search_docs.py`, `run_eval.py` | `core_hybrid.py` | `my_hybrid.py` | 검색 결과 화면, `logs/results.json` |
-| `ragas/` | `evaluate_ragas.py` | `core_scoring.py` | `my_scoring.py` | 채점 표, `logs/ragas-*.json` |
+| `retriever/` | `search_docs.py` | `core_search.py` | `my_search.py` | 단계별 검색 화면(결과 파일 없음) |
 
 ## 2. 준비물
 
@@ -29,7 +26,7 @@ flowchart LR
 |---|---|
 | Python | 3.13 |
 | 임베딩 모델 | Cohere `embed-v5.0-fast` (API, 2048차원) |
-| LLM | Groq `openai/gpt-oss-120b` (답변 생성, RAGAS 채점) |
+| LLM | Groq `openai/gpt-oss-120b` (검색의 질문 분류, 질문 변환, 답변 생성) |
 | 리랭커 | Cohere `rerank-v4.0-fast` (API) |
 | 형태소 분석 | Kiwi(`kiwipiepy`, 로컬. BM25 토큰화) |
 | BM25 색인 | `bm25s`(로컬. Lucene 방식, k1 1.5, b 0.75). 인덱싱이 점수표를 미리 계산해 `indexing/data/bm25/`에 저장하고, 검색기는 읽기만 함 |
@@ -38,17 +35,12 @@ flowchart LR
 
 ## 3. 가상환경 설정과 패키지 설치
 
-가상환경은 **두 개**임. `indexing/`과 `retriever/`는 이 폴더의 `.venv`를 함께 쓰고, `ragas/`는 자기 폴더의 `.venv`를 씀.  
-이유: `ragas 0.4.3`이 `langchain 1.x`와 같이 깔리면 import가 실패함(`ragas/requirements.txt` 주석 참고).  
-둘 다 가벼움(각각 수백 MB). GPU와 로컬 모델은 필요 없음.
+가상환경은 이 폴더의 `.venv` **하나**를 `indexing/`과 `retriever/`가 함께 씀. GPU와 로컬 모델은 필요 없음.
 
 ### Windows PowerShell
 
 ```powershell
 cd hands-on\solutions\rag
-python -m venv .venv
-.venv\Scripts\python.exe -m pip install -r requirements.txt
-cd ragas
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
@@ -59,9 +51,6 @@ python -m venv .venv
 cd hands-on/solutions/rag
 python -m venv .venv
 .venv/Scripts/python.exe -m pip install -r requirements.txt
-cd ragas
-python -m venv .venv
-.venv/Scripts/python.exe -m pip install -r requirements.txt
 ```
 
 ### macOS, Linux (zsh, bash)
@@ -70,21 +59,17 @@ python -m venv .venv
 cd hands-on/solutions/rag
 python3.13 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
-cd ragas
-python3.13 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
 ```
 
 설치 확인
 
 ```bash
 .venv/Scripts/python.exe -c "import langchain, chromadb, kiwipiepy, cohere, bm25s; print('ok')"
-ragas/.venv/Scripts/python.exe -c "import ragas; print(ragas.__version__)"
 ```
 
 - macOS와 Linux는 `.venv/Scripts/python.exe` 대신 `.venv/bin/python`을 씀. 아래 실행 명령도 같음
 - 가상환경을 "활성화(activate)"하지 않고 venv 안의 파이썬을 직접 지정하는 방식임.  
-  PowerShell의 `Activate.ps1`은 실행 정책에 막힐 수 있고, 두 가상환경을 오갈 때 어느 쪽이 켜졌는지 헷갈리기 때문임
+  PowerShell의 `Activate.ps1`은 실행 정책에 막힐 수 있기 때문임
 - 저장소를 통째로 clone해서 씀. `rag/` 폴더만 복사하면 `docs/`와 `secrets/`를 찾지 못함
 
 ## 4. 실행 순서
@@ -95,24 +80,17 @@ cd indexing
 ../.venv/Scripts/python.exe index_docs.py --limit 8
 ../.venv/Scripts/python.exe index_docs.py
 
-# 2) 검색 — 질문 하나로 단계별 출력 확인
+# 2) 검색 워크플로우 — 질문 하나를 ① ~ ⑥ 단계별 출력으로 확인
 cd ../retriever
+../.venv/Scripts/python.exe search_docs.py --qid Q01
 ../.venv/Scripts/python.exe search_docs.py "직전 12개월 동안 카드를 얼마나 쓰면 다음 해 기본 연회비가 면제되나요?"
-
-# 3) 평가셋 22문항 실행 → logs/results.json
-../.venv/Scripts/python.exe run_eval.py
-
-# 4) RAGAS 채점(전용 가상환경)
-cd ../ragas
-.venv/Scripts/python.exe evaluate_ragas.py --limit 3
-.venv/Scripts/python.exe evaluate_ragas.py
 ```
 
 인덱싱이 도는 동안에는 검색 프로그램을 실행하지 않음(같은 Chroma 폴더를 두 프로그램이 열면 결과가 흔들림).  
 인덱싱이 안 되는 PC는 강사가 배포하는 `indexing/data/`(`chroma/`와 `bm25/` 두 폴더 모두. chromadb 1.5.9 기준)를 복사해 검색부터 시작해도 됨.
 
 각 단계의 자세한 옵션과 출력 읽는 법은 폴더별 README에 있음:
-[indexing](indexing/README.md), [retriever](retriever/README.md), [ragas](ragas/README.md).
+[indexing](indexing/README.md), [retriever](retriever/README.md).
 
 ## 5. 화면 출력에 쓰인 형식 기호
 
@@ -143,10 +121,7 @@ cd ../ragas
 | 청크 수 | 260개 (약관 15, 혜택 197, 상담 48). 800토큰(Cohere 토크나이저) 초과 0개 |
 | 인덱싱 시간 | 전체 12초(임베딩 API 호출 3회, 6초) |
 | 개인정보 잔존 | 고객명, 전화, 이메일, 카드번호 문자열 0건 |
-| 검색 평가(run_eval) | 답 있는 17문항 Hit@5 17/17, 답 없는 5문항 `확인 필요:` 5/5, 22문항 75초 |
-| RAGAS(17행) | 평균 ContextPrecision 0.924, ContextRecall 1.000, Faithfulness 0.833, AnswerRelevancy 0.603. 3분 29초 |
-| RAGAS 참고 | AnswerRelevancy는 임베딩 모델에 따라 분포가 달라짐(KURE-v2 때 0.742). 절댓값보다 기준선 대비 변화를 봄 |
-| RAGAS 흔들림 | 같은 로그를 두 번 채점하면 문항별 값이 바뀜(Faithfulness 1.0 ↔ 0.0). 평균 비교 때는 `--repeat` 사용 |
+| 검색 워크플로우(2026-10-26) | 평가셋 25문항을 `--qid`로 차례 실행: 답 있는 20문항 답변 완료 18, 근거 적중 18/20, 답 없는 5문항 5/5 확인 필요. 자세한 값은 [retriever README](retriever/README.md) 7장 |
 
 ## 8. Cohere 비용과 무료(체험) 키
 
@@ -158,7 +133,7 @@ cd ../ragas
 
 | 모델 | 쓰는 곳 | 단가 | 과금 단위 |
 |---|---|---|---|
-| Embed 5 Fast (`embed-v5.0-fast`) | 인덱싱 문서 임베딩, 검색 질문 임베딩, RAGAS AnswerRelevancy | $0.08 / 1M 토큰 | 입력 토큰 |
+| Embed 5 Fast (`embed-v5.0-fast`) | 인덱싱 문서 임베딩, 검색 질문 임베딩 | $0.08 / 1M 토큰 | 입력 토큰 |
 | Embed 5 Pro (`embed-v5.0-pro`) | 쓰지 않음(품질 우선 대안. Fast와 같은 벡터 공간) | $0.12 / 1M 토큰 | 입력 토큰 |
 | Rerank 4 Fast (`rerank-v4.0-fast`) | 검색 리랭크 | $2.00 / 1K 검색 | 검색 단위 |
 | Rerank 4 Pro (`rerank-v4.0-pro`) | 쓰지 않음(품질 우선 대안) | $2.50 / 1K 검색 | 검색 단위 |
@@ -175,8 +150,8 @@ cd ../ragas
 | 분당 상한 | Embed 2,000건(input) / 분, Rerank 10회 / 분, Tokenize 100회 / 분 |
 | Production 키 | 종량제(위 요금표). Embed 2,000건 / 분, Rerank 1,000회 / 분 |
 
-체험 키로 `run_eval.py`(22문항)를 돌리면 리랭크가 분당 10회를 넘어 429가 날 수 있음.  
-그때는 `run_eval.py`의 `SLEEP_BETWEEN_QUESTIONS`를 6초 이상으로 올리거나 `--mode hybrid`(리랭크 없음)로 돌림.
+체험 키로 여러 질문을 잇달아 돌리면 리랭크가 분당 10회를 넘어 429가 날 수 있음(복합 질문 한 번에 리랭크 최대 6회).  
+그때는 조별 한 대만 실행하고 1 ~ 2분 뒤 다시 돌림.
 
 ### 8.3 이 예제의 실제 비용(강사 PC 실측, API 응답의 billed_units 기준)
 
@@ -184,9 +159,8 @@ cd ../ragas
 |---|---|---|---|
 | 전체 인덱싱 1회(청크 260개) | Embed 3회 | 입력 124,325 토큰 | $0.0099 (약 1센트) |
 | 검색 1회(질문 임베딩 + 리랭크) | Embed 1회 + Rerank 1회 | 25 토큰 + 검색 1단위 | $0.0020 |
-| `run_eval.py` 22문항 | Embed 22회 + Rerank 22회 | 약 550 토큰 + 검색 22단위 | $0.044 |
-| RAGAS 17행(AnswerRelevancy 임베딩) | Embed 약 17 ~ 34회 | 약 2,000 토큰 | $0.0002 |
-| 교육생 1명 한 주차(인덱싱 3회, 검색 50회, run_eval과 RAGAS 1회씩) | 약 190회 | 위 합계 | 약 $0.18 |
+| 평가셋 25문항(검색 워크플로우, `--qid` 차례 실행) | Embed 46회 + Rerank 41회 | 검색 41단위 | 약 $0.08 |
+| 교육생 1명 한 주차(인덱싱 3회, 검색 50회) | 약 160회 | 위 합계 | 약 $0.15 |
 | 교육생 25명 두 주차 | 약 9,500회 | — | 약 $9 |
 
 - 비용의 대부분은 리랭크(검색 1회당 $0.002)이고 임베딩은 거의 공짜임(인덱싱 100번 해야 $1)
