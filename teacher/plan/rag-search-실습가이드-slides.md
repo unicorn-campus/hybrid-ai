@@ -49,14 +49,14 @@
 - 준비 항목
   - 인덱싱 실습 완료(chroma, bm25 폴더). 없으면 강사 배포본 복사
   - 저장소를 통째로 clone(secrets, eval-set.json 상대 경로)
-  - 공용 가상환경 rag/.venv 준비(README 3장)
+  - rag 폴더에서 가상환경 활성화: .venv\Scripts\Activate.ps1(README 3장)
   - secrets/.env에 키 2줄: GROQ, COHERE
-- 우 배지: 수업용 명령 2개(retriever 폴더에서)
+- 우 배지: 수업용 명령 2개(활성화 뒤 retriever 폴더에서)
 - 명령 카드
-  - ../.venv/Scripts/python.exe search_docs.py --qid Q01
+  - python search_docs.py --qid Q01
   - 약관 질문을 ① ~ ⑥ 끝까지(약 4초). 「답변 완료」를 봄
-  - ../.venv/Scripts/python.exe search_docs.py --qid Q18
-  - 답 없는 질문이 지어내지 않고 되묻기 또는 「확인 필요」로 끝남(macOS는 ../.venv/bin/python)
+  - python search_docs.py --qid Q18
+  - 답 없는 질문이 지어내지 않고 되묻기 또는 「확인 필요」로 끝남. 프롬프트에 (.venv)가 없으면 먼저 활성화
 - 표 열 너비: [1.9, 3.3, 4.25]
 
 | 출력 줄 | 봐야 할 것 | Q01(강사 PC) |
@@ -66,13 +66,16 @@
 | ④ CRAG 채점 | 신호와 기준값, 판정 | 판정 정확 |
 | ⑥ 검증, 종료 | 검증 결과, 종료 상태 | 검증 통과, 답변 완료 |
 
-- 콜아웃: 같은 질문도 LLM 값은 실행마다 조금 다를 수 있음. 강사와는 대상 청크 수, 판정, 종료 상태로 비교함
+- 콜아웃: PowerShell에서 활성화가 막히면 먼저 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 - 화면 출처: hands-on/solutions/rag/retriever/README.md 3 ~ 5장, 2026-10-26 강사 PC 실측
 - 상세 보기 링크: https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/rag/retriever/README.md
 - 발표자 노트
   - 사전 준비가 끝났는지는 Q01 실행 한 번으로 확인함. 시작 검사가 빠진 것과 할 일을 출력함
   - 키는 dotenv_values()로 읽어 클라이언트에 인자로만 넘김. 환경변수에 올리지 않고 화면에 찍지 않음
   - Cohere 체험 키는 리랭크가 분당 10회이고 복합 질문 한 번에 리랭크가 최대 6번이라 수업 중에는 조별 1대로 실행함
+  - 가상환경 활성화는 터미널 창마다 한 번 함. Git Bash는 source .venv/Scripts/activate, macOS와 Linux는 source .venv/bin/activate
+  - PowerShell의 Bypass는 지금 창에서만 허용함. 계속 허용하려면 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+  - 같은 질문도 LLM 값은 실행마다 조금 다를 수 있음. 강사와는 대상 청크 수, 판정, 종료 상태로 비교함
 
 ## 슬라이드 3. 교시 2 실습 함수
 - 제목: 교시 2: ① 권한 필터, ② 분류, ③ 벡터(실습 함수 3개)

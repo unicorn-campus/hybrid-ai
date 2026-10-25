@@ -35,55 +35,100 @@ flowchart LR
 
 ## 3. 가상환경 설정과 패키지 설치
 
-가상환경은 이 폴더의 `.venv` **하나**를 `indexing/`과 `retriever/`가 함께 씀. GPU와 로컬 모델은 필요 없음.
+가상환경은 이 폴더의 `.venv` **하나**를 `indexing/`과 `retriever/`가 함께 씀. GPU와 로컬 모델은 필요 없음.  
+가상환경을 **활성화(activate)**한 뒤에는 `python`, `pip`이 이 가상환경의 것으로 바뀜. 프롬프트 앞에 `(.venv)`가 보이면 활성화된 것임.  
+활성화는 터미널 창마다 한 번 함. 새 터미널을 열면 다시 활성화함.
 
-### Windows PowerShell
+### 처음 한 번: 만들기, 활성화, 설치
+
+Windows PowerShell
 
 ```powershell
 cd hands-on\solutions\rag
 python -m venv .venv
-.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 ```
 
-### Windows Git Bash
+Windows Git Bash
 
 ```bash
 cd hands-on/solutions/rag
 python -m venv .venv
-.venv/Scripts/python.exe -m pip install -r requirements.txt
+source .venv/Scripts/activate
+pip install -r requirements.txt
 ```
 
-### macOS, Linux (zsh, bash)
+macOS, Linux (zsh, bash)
 
 ```bash
 cd hands-on/solutions/rag
 python3.13 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-설치 확인
+설치 확인(활성화한 터미널에서)
 
 ```bash
-.venv/Scripts/python.exe -c "import langchain, chromadb, kiwipiepy, cohere, bm25s; print('ok')"
+python -c "import langchain, chromadb, kiwipiepy, cohere, bm25s; print('ok')"
 ```
 
-- macOS와 Linux는 `.venv/Scripts/python.exe` 대신 `.venv/bin/python`을 씀. 아래 실행 명령도 같음
-- 가상환경을 "활성화(activate)"하지 않고 venv 안의 파이썬을 직접 지정하는 방식임.  
-  PowerShell의 `Activate.ps1`은 실행 정책에 막힐 수 있기 때문임
+### 다음부터: 활성화만
+
+| 터미널 | 활성화(`hands-on/solutions/rag` 폴더에서) | 끄기 |
+|---|---|---|
+| Windows PowerShell | `.venv\Scripts\Activate.ps1` | `deactivate` |
+| Windows Git Bash | `source .venv/Scripts/activate` | `deactivate` |
+| macOS, Linux | `source .venv/bin/activate` | `deactivate` |
+
+활성화한 뒤 `indexing/`이나 `retriever/` 폴더로 `cd` 해도 활성화는 그대로 유지됨.
+
+### PowerShell에서 활성화가 막힐 때
+
+`.venv\Scripts\Activate.ps1`을 실행했을 때 아래처럼 나오면 PowerShell 실행 정책이 스크립트 실행을 막은 것임.
+
+```text
+.venv\Scripts\Activate.ps1 : 이 시스템에서 스크립트를 실행할 수 없으므로 ... 파일을 로드할 수 없습니다.
+(영문: ... cannot be loaded because running scripts is disabled on this system.)
+```
+
+방법 1(권장): 지금 연 PowerShell 창에서만 허용함. 창을 닫으면 원래대로 돌아가 다른 설정에 영향이 없음
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.venv\Scripts\Activate.ps1
+```
+
+방법 2: 내 계정에서 계속 허용함(한 번만 하면 이후 창에서도 됨. 인터넷에서 받은 서명 없는 스크립트는 여전히 막힘)
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+
+- 지금 설정 보기: `Get-ExecutionPolicy -List`. 방법 2를 되돌리려면 `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Undefined`
+- 회사 PC처럼 관리자가 정책을 막아 두어 위 명령도 안 되면, 활성화 없이 가상환경의 파이썬을 직접 지정해 실행함  
+  (예: `.venv\Scripts\python.exe -m pip install -r requirements.txt`, `..\.venv\Scripts\python.exe search_docs.py --qid Q01`)
 - 저장소를 통째로 clone해서 씀. `rag/` 폴더만 복사하면 `docs/`와 `secrets/`를 찾지 못함
 
 ## 4. 실행 순서
 
+가상환경을 활성화한 터미널에서 실행함(3절). 아래는 Git Bash, macOS, Linux 기준이며 PowerShell은 `cd` 경로의 `/`를 `\`로 씀.
+
 ```bash
+# 0) 가상환경 활성화(hands-on/solutions/rag 폴더에서). macOS, Linux는 source .venv/bin/activate,
+#    PowerShell은 .venv\Scripts\Activate.ps1
+source .venv/Scripts/activate
+
 # 1) 인덱싱(7단계, 마지막이 BM25 색인) — 처음엔 --limit 8 로 빨리 확인(결과는 data-limit/). 검색 전에는 전체 실행(data/, 약 1분)
 cd indexing
-../.venv/Scripts/python.exe index_docs.py --limit 8
-../.venv/Scripts/python.exe index_docs.py
+python index_docs.py --limit 8
+python index_docs.py
 
 # 2) 검색 워크플로우 — 질문 하나를 ① ~ ⑥ 단계별 출력으로 확인
 cd ../retriever
-../.venv/Scripts/python.exe search_docs.py --qid Q01
-../.venv/Scripts/python.exe search_docs.py "직전 12개월 동안 카드를 얼마나 쓰면 다음 해 기본 연회비가 면제되나요?"
+python search_docs.py --qid Q01
+python search_docs.py "직전 12개월 동안 카드를 얼마나 쓰면 다음 해 기본 연회비가 면제되나요?"
 ```
 
 인덱싱이 도는 동안에는 검색 프로그램을 실행하지 않음(같은 Chroma 폴더를 두 프로그램이 열면 결과가 흔들림).  

@@ -32,23 +32,32 @@
 |---|---|---|
 | 1 | 인덱싱 실습 완료. 없으면 강사 배포 `data/`를 복사 | `indexing/data/`에 `chroma/`와 `bm25/` 폴더가 있음 |
 | 2 | 저장소를 통째로 clone(`secrets/`, `eval-set.json`, `indexing/`를 상대 경로로 찾음) | `hands-on/solutions/eval-set.json`이 있음 |
-| 3 | 공용 가상환경 `rag/.venv` 준비(없으면 `retriever/README.md` 3장대로 만들고 패키지 설치) | 설치 확인 명령이 `ok` |
+| 3 | 공용 가상환경 `rag/.venv` 준비(없으면 `retriever/README.md` 3장대로 만들고 활성화한 뒤 패키지 설치) | 설치 확인 명령이 `ok` |
 | 4 | `secrets/.env`에 키 2줄: `GROQ_API_KEY`, `COHERE_API_KEY`(강사 배포) | 아래 명령이 「답변 완료」까지 끝남 |
 
-설치 확인(`hands-on/solutions/rag` 폴더에서)
+가상환경 활성화(`hands-on/solutions/rag` 폴더에서, 터미널 창마다 한 번). 프롬프트 앞에 `(.venv)`가 붙으면 됨
 
-```bash
-.venv/Scripts/python.exe -c "import langchain, langchain_groq, chromadb, kiwipiepy, cohere, bm25s; print('ok')"
+| 터미널 | 활성화 명령 |
+|---|---|
+| Windows PowerShell | `.venv\Scripts\Activate.ps1` |
+| Windows Git Bash | `source .venv/Scripts/activate` |
+| macOS, Linux | `source .venv/bin/activate` |
+
+PowerShell에서 「이 시스템에서 스크립트를 실행할 수 없으므로 ...」로 막히면 아래 한 줄을 먼저 실행하고 다시 활성화함  
+(지금 창에서만 허용. 계속 허용하려면 `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`)
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ```
 
-수업용 명령(`hands-on/solutions/rag/retriever` 폴더에서)
+설치 확인과 수업용 명령(활성화한 터미널에서)
 
 ```bash
-cd hands-on/solutions/rag/retriever
-../.venv/Scripts/python.exe search_docs.py --qid Q01
+python -c "import langchain, langchain_groq, chromadb, kiwipiepy, cohere, bm25s; print('ok')"
+cd retriever
+python search_docs.py --qid Q01
 ```
 
-macOS와 Linux는 `../.venv/Scripts/python.exe` 대신 `../.venv/bin/python`을 씀.  
 로컬 모델은 없음(임베딩, 리랭크, LLM 모두 API 호출). 인덱싱이 도는 동안에는 검색을 실행하지 않음(같은 Chroma 폴더를 함께 열면 결과가 흔들림).  
 Cohere 체험 키는 리랭크가 분당 10회이고 복합 질문 한 번에 리랭크가 최대 6번 일어남. 수업 중에는 조별 1대로 실행함.
 
@@ -72,11 +81,11 @@ Cohere 체험 키는 리랭크가 분당 10회이고 복합 질문 한 번에 �
 ### Step 1. 강사 코드로 실행하고 출력 읽기(교시 1)
 
 ```bash
-../.venv/Scripts/python.exe search_docs.py --qid Q01
+python search_docs.py --qid Q01
 ```
 
 ```bash
-../.venv/Scripts/python.exe search_docs.py --qid Q18
+python search_docs.py --qid Q18
 ```
 
 Q01은 약관 질문을 ① ~ ⑥ 끝까지 돌려 「답변 완료」를 봄(약 4초, LLM 2번, 임베딩 1번, 리랭크 1번).  
@@ -123,10 +132,10 @@ Q18은 근거에 답이 없는 질문(연회비를 포인트로 내기)이 지�
 | `search_vector` | `--qid Q01 --no-answer` | 정답 청크 0.45 ~ 0.6, 관련 없는 청크 0.2 ~ 0.4. 절댓값보다 순위를 봄 |
 
 ```bash
-../.venv/Scripts/python.exe search_docs.py --qid Q14
-../.venv/Scripts/python.exe search_docs.py --qid Q14 --role agent
-../.venv/Scripts/python.exe search_docs.py "안녕하세요"
-../.venv/Scripts/python.exe search_docs.py --qid Q01 --no-answer
+python search_docs.py --qid Q14
+python search_docs.py --qid Q14 --role agent
+python search_docs.py "안녕하세요"
+python search_docs.py --qid Q01 --no-answer
 ```
 
 ### Step 4. 교시 3 함수 3개(직접 2 + 빈칸 1)
@@ -144,7 +153,7 @@ Q18은 근거에 답이 없는 질문(연회비를 포인트로 내기)이 지�
 | `rerank` | 같은 명령 | 정답 청크 0.7 이상, 관련 없는 청크 0.3 이하로 벌어짐 |
 
 ```bash
-../.venv/Scripts/python.exe search_docs.py --qid Q07 --no-answer
+python search_docs.py --qid Q07 --no-answer
 ```
 
 ### Step 5. 교시 4 함수 4개(직접 2 + 빈칸 2)
@@ -164,9 +173,9 @@ Q18은 근거에 답이 없는 질문(연회비를 포인트로 내기)이 지�
 | `verify_answer` | `--qid Q01` | 「검증 통과」 또는 실패 사유와 「재작성 n/2」 |
 
 ```bash
-../.venv/Scripts/python.exe search_docs.py --qid Q01
-../.venv/Scripts/python.exe search_docs.py --qid Q18
-../.venv/Scripts/python.exe search_docs.py "모아생활 연회비 안 내려면 어케 해?"
+python search_docs.py --qid Q01
+python search_docs.py --qid Q18
+python search_docs.py "모아생활 연회비 안 내려면 어케 해?"
 ```
 
 교시 4 끝: `USE_TEACHER_CODE` 목록이 비고 Q01과 Q18이 아래 완료 기준대로 끝나면 완료임.  

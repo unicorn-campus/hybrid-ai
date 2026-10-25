@@ -100,35 +100,41 @@ API 키는 저장소 루트 `secrets/.env` 의 `COHERE_API_KEY=...` 한 줄에�
 ## 4. 가상환경 설정과 패키지 설치
 
 가상환경은 indexing과 retriever가 함께 쓰므로 **상위 폴더** `hands-on/solutions/rag/.venv` 에 만듦.  
-만드는 절차(Windows PowerShell, Git Bash, macOS와 Linux)는 [상위 README 3절](../README.md#3-가상환경-설정과-패키지-설치)을 따름.  
-가상환경을 활성화하지 않고 가상환경의 파이썬(`../.venv/Scripts/python.exe` 또는 `../.venv/bin/python`)을 직접 지정해 실행함.
+만드는 절차와 활성화(Windows PowerShell, Git Bash, macOS와 Linux), PowerShell에서 활성화가 막힐 때 할 일은  
+[상위 README 3절](../README.md#3-가상환경-설정과-패키지-설치)을 따름. 실행은 가상환경을 **활성화한 터미널**에서 `python`으로 함.
 
 ## 5. 실행 방법
 
-`indexing` 폴더 안에서 가상환경의 파이썬을 직접 지정해 실행함.
+`hands-on/solutions/rag` 폴더에서 가상환경을 활성화한 뒤 `indexing` 폴더로 들어가 실행함.
 
 Windows PowerShell
 
 ```powershell
-cd hands-on\solutions\rag\indexing
-..\.venv\Scripts\python.exe index_docs.py --limit 8    # 빠른 확인: 문서마다 앞 8쪽(또는 8건)만 → data-limit/
-..\.venv\Scripts\python.exe index_docs.py              # 전체 실행 → data/
+cd hands-on\solutions\rag
+.venv\Scripts\Activate.ps1                # 막히면 상위 README 3절 「PowerShell에서 활성화가 막힐 때」
+cd indexing
+python index_docs.py --limit 8            # 빠른 확인: 문서마다 앞 8쪽(또는 8건)만 → data-limit/
+python index_docs.py                      # 전체 실행 → data/
 ```
 
 Windows Git Bash
 
 ```bash
-cd hands-on/solutions/rag/indexing
-../.venv/Scripts/python.exe index_docs.py --limit 8
-../.venv/Scripts/python.exe index_docs.py
+cd hands-on/solutions/rag
+source .venv/Scripts/activate
+cd indexing
+python index_docs.py --limit 8
+python index_docs.py
 ```
 
 macOS, Linux
 
 ```bash
-cd hands-on/solutions/rag/indexing
-../.venv/bin/python index_docs.py --limit 8
-../.venv/bin/python index_docs.py
+cd hands-on/solutions/rag
+source .venv/bin/activate
+cd indexing
+python index_docs.py --limit 8
+python index_docs.py
 ```
 
 | 옵션 | 뜻 |
@@ -228,10 +234,10 @@ Chroma collection 설정(`COLLECTION_METADATA`)
 4. 결과 비교: 단계 4의 청크 수와 토큰 길이, 단계 6의 건수, 단계 7의 자가 테스트 4문항 통과와 색인 문서 수(260)가  
    `core_indexing.py` 결과와 같은지 봄.  
    Chroma에 저장된 본문에 `가상고객`, `@example`, `0000-0000-` 이 남아 있지 않은지 세어 봄  
-   (`indexing` 폴더에서 실행. 검색 프로그램은 닫아 둠)
+   (가상환경을 활성화한 터미널의 `indexing` 폴더에서 실행. 검색 프로그램은 닫아 둠)
 
    ```bash
-   ../.venv/Scripts/python.exe -c "import chromadb; c = chromadb.PersistentClient(path='data/chroma').get_collection('card_docs'); d = c.get()['documents']; print(len(d), sum('가상고객' in x for x in d))"
+   python -c "import chromadb; c = chromadb.PersistentClient(path='data/chroma').get_collection('card_docs'); d = c.get()['documents']; print(len(d), sum('가상고객' in x for x in d))"
    ```
 
    첫 숫자는 청크 수, 둘째는 `가상고객`이 든 청크 수이며 0이어야 함. 다른 문자열도 `'가상고객'` 자리만 바꿔 같은 방식으로 셈  

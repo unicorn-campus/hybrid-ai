@@ -8,19 +8,19 @@ W3 인덱싱 실습(`../indexing`)이 만든 색인(Chroma 벡터, bm25s 점수�
 
 ## 수업용 명령 2개
 
-이 폴더(`hands-on/solutions/rag/retriever`)에서 실행함.
+가상환경을 활성화한 터미널(3장)의 이 폴더(`hands-on/solutions/rag/retriever`)에서 실행함.
 
 ```bash
-../.venv/Scripts/python.exe search_docs.py --qid Q01
+python search_docs.py --qid Q01
 ```
 
 ```bash
-../.venv/Scripts/python.exe search_docs.py --qid Q18
+python search_docs.py --qid Q18
 ```
 
 첫 명령은 약관 질문을 ① ~ ⑥ 끝까지 돌려 「답변 완료」를 봄(약 4초, LLM 2번, 임베딩 1번, 리랭크 1번).  
 둘째 명령은 근거에 답이 없는 질문(연회비를 포인트로 내기)이 지어내지 않고 되묻기 또는 「확인 필요」로 끝나는 것을 봄.  
-macOS와 Linux는 `../.venv/Scripts/python.exe` 대신 `../.venv/bin/python`을 씀. 나머지 옵션은 4장에 있음.
+프롬프트 앞에 `(.venv)`가 없으면 먼저 활성화함(3장). 나머지 옵션은 4장에 있음.
 
 ## 1. 목표와 주요 기능
 
@@ -93,50 +93,72 @@ hands-on/solutions/rag/
 - W3 인덱싱 실습을 전체 실행해 `../indexing/data/`에 `chroma/`와 `bm25/`가 있어야 함(없으면 강사 배포본을 복사)
 - 저장소를 통째로 clone해서 씀(`secrets/`, `hands-on/solutions/eval-set.json`, `indexing/`을 상대 경로로 찾음)
 
-가상환경은 상위 폴더 `hands-on/solutions/rag`에서 만들고, 그 폴더의 `requirements.txt`(인덱싱과 검색 공용)로 설치함.  
-W3 인덱싱 실습에서 이미 만들었으면 그대로 씀. 검색 폴더(`retriever`)에는 따로 패키지 목록을 두지 않음.
+가상환경은 상위 폴더 `hands-on/solutions/rag`에서 만들고 **활성화**한 뒤, 그 폴더의 `requirements.txt`(인덱싱과 검색 공용)로 설치함.  
+W3 인덱싱 실습에서 이미 만들었으면 활성화만 함. 검색 폴더(`retriever`)에는 따로 패키지 목록을 두지 않음.  
+활성화하면 프롬프트 앞에 `(.venv)`가 붙고, 그 터미널의 `python`, `pip`이 가상환경의 것으로 바뀜(터미널 창마다 한 번).
 
 ### 3.2 가상환경(Windows PowerShell)
 
 ```powershell
 cd hands-on\solutions\rag
-python -m venv .venv
-.venv\Scripts\python.exe -m pip install -r requirements.txt
+python -m venv .venv                   # 처음 한 번만
+.venv\Scripts\Activate.ps1             # 활성화(새 창마다)
+pip install -r requirements.txt        # 처음 한 번만
+cd retriever
 ```
+
+`Activate.ps1`이 「이 시스템에서 스크립트를 실행할 수 없으므로 ...」 오류로 막히면 실행 정책을 풀고 다시 활성화함.
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass      # 방법 1(권장): 지금 창에서만 허용
+.venv\Scripts\Activate.ps1
+```
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned   # 방법 2: 내 계정에서 계속 허용(한 번만)
+```
+
+자세한 설명과 되돌리는 방법은 [상위 README 3절](../README.md#powershell에서-활성화가-막힐-때)에 있음.
 
 ### 3.3 가상환경(Windows Git Bash)
 
 ```bash
 cd hands-on/solutions/rag
-python -m venv .venv
-.venv/Scripts/python.exe -m pip install -r requirements.txt
+python -m venv .venv                   # 처음 한 번만
+source .venv/Scripts/activate          # 활성화(새 창마다)
+pip install -r requirements.txt        # 처음 한 번만
+cd retriever
 ```
 
 ### 3.4 가상환경(macOS, Linux)
 
 ```bash
 cd hands-on/solutions/rag
-python3.13 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
+python3.13 -m venv .venv               # 처음 한 번만
+source .venv/bin/activate              # 활성화(새 창마다)
+pip install -r requirements.txt        # 처음 한 번만
+cd retriever
 ```
 
-설치 확인(`hands-on/solutions/rag` 폴더에서. Windows는 `.venv/Scripts/python.exe`, macOS와 Linux는 `.venv/bin/python`)
+설치 확인(활성화한 터미널에서)
 
 ```bash
-.venv/Scripts/python.exe -c "import langchain, langchain_groq, chromadb, kiwipiepy, cohere, bm25s; print('ok')"
+python -c "import langchain, langchain_groq, chromadb, kiwipiepy, cohere, bm25s; print('ok')"
 ```
 
-- 가상환경을 활성화(activate)하지 않고 venv 안의 파이썬을 직접 지정함. PowerShell의 `Activate.ps1`이 실행 정책에 막히는 일을 피함
+- 끌 때는 `deactivate`
+- 관리자가 정책을 막아 활성화가 끝내 안 되면, 활성화 없이 가상환경의 파이썬을 직접 지정해도 됨(예: `..\.venv\Scripts\python.exe search_docs.py --qid Q01`)
 
 ## 4. 실행 방법
 
-모두 `retriever` 폴더에서 실행함. 인덱싱이 도는 동안에는 실행하지 않음(같은 Chroma 폴더를 두 프로그램이 열면 결과가 흔들림).
+모두 가상환경을 활성화한 터미널의 `retriever` 폴더에서 실행함.  
+인덱싱이 도는 동안에는 실행하지 않음(같은 Chroma 폴더를 두 프로그램이 열면 결과가 흔들림).
 
 | 쓰임 | 명령(예) | 설명 |
 |---|---|---|
-| 평가셋 질문 | `../.venv/Scripts/python.exe search_docs.py --qid Q01` | 역할은 평가셋 `filters`대로 자동(회원 문항은 auditor + 그 회원, 나머지는 agent) |
-| 자유 질문 | `../.venv/Scripts/python.exe search_docs.py "한빛 모아생활 카드의 생활 포인트 적립률은?"` | 기본 역할 agent |
-| 회원 상담 | `../.venv/Scripts/python.exe search_docs.py "첫 상담에서 무엇을 요청했나요?" --role auditor --member-id M-1042` | 그 회원의 상담 이력만 봄 |
+| 평가셋 질문 | `python search_docs.py --qid Q01` | 역할은 평가셋 `filters`대로 자동(회원 문항은 auditor + 그 회원, 나머지는 agent) |
+| 자유 질문 | `python search_docs.py "한빛 모아생활 카드의 생활 포인트 적립률은?"` | 기본 역할 agent |
+| 회원 상담 | `python search_docs.py "첫 상담에서 무엇을 요청했나요?" --role auditor --member-id M-1042` | 그 회원의 상담 이력만 봄 |
 | 근거만 보기 | 위 명령 + `--no-answer` | ⑤, ⑥ 건너뜀(Groq 호출은 ②, ④만) |
 | 기타 | `--top-k 5`, `--fusion weighted` 또는 `--fusion rrf` | 질의당 근거 수, 벡터와 BM25 융합 방식 |
 

@@ -395,3 +395,14 @@ Git Bash에서는 `/websites/langchain` 같은 인자가 Windows 경로로 바�
 - 검증: 임시 폴더에 새 가상환경을 만들어 README 절차대로 `pip install -r requirements.txt`(rag 폴더) → `pip check` 문제 없음,  
   설치 확인 명령 `ok`, `indexing/index_docs.py --limit 8` 완료(청크 64개), `retriever/search_docs.py --qid Q01` 답변 완료,  
   `--qid Q14` 답변 완료(BM25 대상 4청크). 확인 뒤 임시 가상환경은 지움
+
+### 15.7 가상환경 활성화 방식으로 변경(2026-10-26 강사 지시)
+
+- 강사 지시: 「가상환경을 활성화하는 방식으로 변경, PowerShell에서 활성화가 막힐 때 수행하는 명령도 추가」
+- 고친 문서: `rag/README.md` 3절(만들기, 활성화, 설치, 다음부터 활성화만, 「PowerShell에서 활성화가 막힐 때」)과 4절,  
+  `indexing/README.md` 4 ~ 5절, `retriever/README.md` 수업용 명령, 3장, 4장, 실습 가이드 1장과 실행 명령, 가이드 슬라이드 2장(덱 다시 빌드)
+- 막힐 때 명령: 방법 1 `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`(지금 창에서만),  
+  방법 2 `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`(내 계정에서 계속). 되돌리기와 정책 확인 명령, 관리자 정책으로 끝내 안 될 때의 직접 지정 방식도 적음
+- 검증: PowerShell에서 `.venv\Scripts\Activate.ps1` → `python search_docs.py --qid Q01` 답변 완료, `deactivate` 확인.  
+  자식 PowerShell을 `-ExecutionPolicy Restricted`로 띄워 막힘(「running scripts is disabled」)을 재현하고, 방법 1 뒤 활성화 성공.  
+  영구 정책(CurrentUser RemoteSigned)은 바뀌지 않음. Git Bash에서 `source .venv/Scripts/activate` → `--qid Q18` 되묻기, `index_docs.py --limit 8` 완료
