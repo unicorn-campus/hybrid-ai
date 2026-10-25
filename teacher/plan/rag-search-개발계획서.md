@@ -375,3 +375,14 @@ Git Bash에서는 `/websites/langchain` 같은 인자가 Windows 경로로 바�
 | Cohere SDK(`/cohere-ai/cohere-python`) | `ClientV2.rerank(model, query, documents, top_n)`, 응답 `results[].index`, `relevance_score` | 코드와 같음 |
 | bm25s(`/xhluca/bm25s`) | `BM25.get_scores(query_tokens, weight_mask=None)`가 문서마다 점수 배열 | 코드와 같음. **빈 토큰 목록은 IndexError(실측)** → main이 질문 토큰 0개면 BM25를 부르지 않게 고침 |
 
+
+### 15.5 교재 실습 가이드 장표(176쪽, 2026-10-26 강사 지시)
+
+- 강사 지시: 「교재 176 페이지에 실습 가이드 슬라이드를 작성해줘요. 워크플로우 도식화, 실습 방법」
+- 자리: 간지 「문서 검색 실습」(175쪽) 바로 뒤 176쪽. 다음 간지 「품질 평가 및 튜닝 이해」는 177쪽으로 밀림(교재 총 210장)
+- 내용: 위는 워크플로우 도식(① ~ ⑥ 단계 상자, 상자 아래 단계별 실습 함수 10개, 굵게 = 직접 작성, 분기 메모 3개),  
+  아래는 실습 방법(절차 5개, 교시별 실습 함수와 확인 명령 표). 「상세 보기」는 실습 가이드(원격 Git)로 연결
+- 파일: 스크립트 `teacher/plan/rag-search-practice-slide.md`, 빌드 `build/build-rag-search-practice.js`,  
+  넣기 `build/merge-rag-search-practice.py`(다시 돌리면 같은 제목 장표를 바꿈), 덱 `teacher/plan/rag-search-practice-slide.pptx`
+- 확인: 백업 `backup/신한카드 하이브리드AI_W01~W04.backup-20261026-rag-search-practice.pptx` 뒤 넣음. 붙여넣기 점검 OK,  
+  zip 이름 중복 0, LibreOffice로 210장 렌더링해 175 ~ 177쪽 확인
