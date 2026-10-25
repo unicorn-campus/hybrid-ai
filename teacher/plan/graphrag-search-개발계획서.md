@@ -97,7 +97,6 @@ hands-on/solutions/graphrag/
 └─ retriever/
    ├─ README.md                맨 위에 수업용 명령 2개, 목표와 기능, 구조, 가상환경 설정(PowerShell, Git Bash, macOS와 Linux),
    │                           실행 방법, 출력 읽는 법, 용어 풀이, 실측값
-   ├─ requirements.txt         indexer와 같은 판 + typesafe-sdk
    ├─ .gitignore               data/logs/ 제외(질문별 실행 기록)
    ├─ search_graph.py          main: 설정 상수(기준값, 상한, 제한 시간), 프롬프트(에이전트 시스템, G1, G2, 답변), 툴 6개 명세,
    │                           시작 검사, 저장소 연결, 외부 호출, Opus 비용 계산, 서브 워크플로우 O, L, G, E, R,
@@ -386,7 +385,7 @@ NO_NEW 새 원문 없음), Noul(참일 확률), Choice(보기 고르기), confid
 
 | 산출물 | 경로 | 상태 |
 |---|---|---|
-| 예제 프로그램 | `hands-on/solutions/graphrag/retriever/`(search_graph.py, core_search.py, my_search.py, requirements.txt, README.md, .gitignore) | 완료 |
+| 예제 프로그램 | `hands-on/solutions/graphrag/retriever/`(search_graph.py, core_search.py, my_search.py, README.md, .gitignore) | 완료 |
 | 교육생 실습 가이드 | `teacher/plan/graphrag-search-실습가이드.md` | 완료 |
 | 핵심 슬라이드 | `teacher/plan/graphrag-search-실습가이드.pptx`(6장, 스크립트 `…-slides.md`, 빌드 `build/build-search-guide-slides.js`) | 완료. 붙여넣기 호환 점검 OK, LibreOffice 미리보기 6장 확인 |
 | 교재 코드 예시 장표(D7) | 교재 『W05 ~ W07』 66, 70, 72, 74, 76, 78, 80, 82, 84, 86, 88, 90, 91, 93쪽(14장, 교재 80 → 94쪽) | 완료. 스크립트 `teacher/plan/graph-search-code-slides.md`, 발췌 `build/extract-graph-search-code.py`(실제 소스에서 자동 발췌), 빌드 `build/build-graph-search-code.js`, 넣기 `build/merge-graph-search-code.py`. 백업 `backup/…backup-20261025-graph-search-code.pptx`. 하이퍼링크 8개 그대로, LibreOffice로 94쪽 렌더링 확인 |
@@ -465,3 +464,14 @@ NO_NEW 새 원문 없음), Noul(참일 확률), Choice(보기 고르기), confid
 
 - 에이전트 프롬프트에 넣은 「되풀이하지 않음」 한 줄은 효과가 뚜렷하지 않았음(회차 평균 2.92 → 3.16, 한 번 실행 값)
 - Q19는 이번 25문항 실행에서 ⑦을 통과하고 ⑧이 답을 내지 않아 멈춤. 3회 반복에서는 3번 모두 ⑦이 막음
+
+## 부록. 가상환경 정리(2026-10-26 강사 지시)
+
+- 강사 지시: 「graphrag도 hands-on/solutions/graphrag에서 가상환경 설정. 서브 폴더에는 README.md만 두고 가상환경 설정과 실행은 상위 폴더에서 하도록 안내.  
+  requirements.txt는 graphrag 폴더에만. 가상환경을 활성화하고 수행하도록 안내」
+- `indexer/`, `retriever/`, `schema/doc/`, `schema/rdb/`의 requirements.txt 4개를 `graphrag/requirements.txt` 하나로 합치고 지움  
+  (psycopg[binary]와 langgraph, typesafe-sdk 포함). 상위 안내서 `graphrag/README.md`를 새로 둠(구성, 만들기와 활성화, PowerShell이 막을 때, 실행 순서)
+- `indexer/README.md`, `retriever/README.md`는 상위 README 3절로 안내하고 실행 명령을 활성화 뒤 `python ...`으로 바꿈. 실습 가이드와 가이드 슬라이드도 같게 고치고 덱을 다시 빌드함
+- 검증: 새 가상환경에 `pip install -r requirements.txt` 성공, `pip check` 문제 없음. 활성화 뒤 `check_graph.py --qid Q09` 적중,  
+  `search_graph.py --qid Q01` 답변 완료. 기존 `.venv`를 PowerShell에서 활성화해 설치 보충(psycopg) 뒤 `--qid Q19` 확인할 수 없음(함정 차단).  
+  활성 세대를 바꾸는 `index_graph.py --sample`은 검색 실습 그래프를 바꾸므로 돌리지 않고 `--help`로만 확인함

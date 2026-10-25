@@ -1,6 +1,8 @@
 """design-kg-schema-doc.md 실행용 공통 코드: 설정 읽기, 청크 읽기, LLM 호출, 응답 다듬기, 이름 정규화.
 
 모든 스크립트는 `{base_dir}/decisions.json`(1단계 결정)을 읽어 같은 입력으로 돌아감.
+실행 환경: hands-on/solutions/graphrag에서 가상환경을 활성화한 뒤 schema/doc 폴더에서 `python tools/{도구}.py`로 실행함
+(가상환경과 패키지는 graphrag/README.md 3절. requirements.txt는 graphrag 폴더에만 있음).
 """
 
 from __future__ import annotations

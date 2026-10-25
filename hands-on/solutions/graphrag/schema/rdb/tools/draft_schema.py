@@ -13,7 +13,8 @@
   FK 2개이고 업무 열 있음 → 규칙 ① 후보(사람이 노드 타입 또는 관계 + 관계 속성(규칙 ③)으로 정함)
 업무 열: PK에도 FK에도 들어가지 않는 열.
 
-실행 예(base_dir에서): .venv/Scripts/python tools/draft_schema.py judge
+실행 예: hands-on/solutions/graphrag에서 가상환경을 활성화한 뒤 schema/rdb 폴더에서 python tools/draft_schema.py judge
+  (가상환경과 패키지는 graphrag/README.md 3절, requirements.txt는 graphrag 폴더에만 있음)
 """
 
 from __future__ import annotations

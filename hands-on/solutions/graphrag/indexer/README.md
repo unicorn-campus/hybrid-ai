@@ -7,19 +7,20 @@ RAG 실습(W3)이 만든 청크를 입력으로 받아 **지식 그래프(Neo4j)
 
 ## 수업용 명령 2개
 
-이 폴더(`hands-on/solutions/graphrag/indexer`)에서 실행함. `{별명}`은 본인 별명(영문)으로 바꿈. 예) `hong-s1`
+가상환경은 상위 폴더 `hands-on/solutions/graphrag`에서 만들고 활성화함([상위 README 3절](../README.md#3-가상환경-설정과-패키지-설치)).  
+활성화한 터미널에서 이 폴더(`indexer`)로 들어와 실행함. `{별명}`은 본인 별명(영문)으로 바꿈. 예) `hong-s1`
 
 ```bash
-../.venv/Scripts/python.exe index_graph.py --run {별명}-s1 --sample
+python index_graph.py --run {별명}-s1 --sample
 ```
 
 ```bash
-../.venv/Scripts/python.exe check_graph.py --qid Q09
+python check_graph.py --qid Q09
 ```
 
 첫 명령은 표본 10청크로 ① ~ ⑤를 끝까지 돌려 활성 세대를 만듦(약 1분, LLM 약 30번).  
 둘째 명령은 질문 하나로 「검색엔진 → 청크 → 그래프 엔티티 → 커뮤니티 보고서」를 눈으로 확인함.  
-macOS와 Linux는 `../.venv/Scripts/python.exe` 대신 `../.venv/bin/python`을 씀. 나머지 옵션은 8장에 있음.
+프롬프트 앞에 `(.venv)`가 없으면 먼저 활성화함(3.2). 나머지 옵션은 8장에 있음.
 
 ## 1. 목표와 주요 기능
 
@@ -40,10 +41,11 @@ macOS와 Linux는 `../.venv/Scripts/python.exe` 대신 `../.venv/bin/python`을 
 
 ```text
 hands-on/solutions/graphrag/
-├─ .venv/                      GraphRAG 실습 공용 가상환경(3장)
+├─ README.md                   가상환경 설정과 실행 순서(공통)
+├─ requirements.txt            GraphRAG 실습 공통 패키지 목록(이 파일로 설치. 서브 폴더에는 두지 않음)
+├─ .venv/                      GraphRAG 실습 공용 가상환경(상위 폴더에서 만듦)
 └─ indexer/
    ├─ README.md                이 문서
-   ├─ requirements.txt         패키지 목록(RAG 실습과 같은 langchain 판 + neo4j-graphrag, neo4j, opensearch-py)
    ├─ index_graph.py           main: 설정 상수, 시작 검사, ① ~ ⑤ 순서, K2 병렬 호출, S1 임베딩(96건씩), K8 보고서 LLM 호출, 단계별 출력
    ├─ core_graph.py            핵심(클론 코딩 대상): 실습 함수 16개 + 제공 함수 5개
    ├─ my_graph.py              교육생 작업 파일(뼈대). 맨 아래 USE_TEACHER_CODE 목록으로 안 채운 함수는 강사 코드가 대신 돎
@@ -92,37 +94,21 @@ docker compose -f opensearch/compose.yml up -d
 
 둘 다 `healthy`가 되면(30초쯤) 준비 끝. 확인은 `docker compose -f neo4j/compose.yml ps`.
 
-### 3.2 가상환경(Windows PowerShell)
+### 3.2 가상환경(상위 폴더에서 만들고 활성화)
 
-```powershell
-cd hands-on\solutions\graphrag
-python -m venv .venv
-.venv\Scripts\python.exe -m pip install -r indexer\requirements.txt
-```
+가상환경과 패키지 설치는 이 폴더가 아니라 **상위 폴더 `hands-on/solutions/graphrag`**에서 함.  
+만들기, 설치, PowerShell에서 활성화가 막힐 때 할 일은 [상위 README 3절](../README.md#3-가상환경-설정과-패키지-설치)을 따름.  
+한 번 설치한 뒤에는 터미널 창마다 활성화만 하고 이 폴더로 들어옴.
 
-### 3.3 가상환경(Windows Git Bash)
+| 터미널 | 활성화하고 이 폴더로 들어오기 |
+|---|---|
+| Windows PowerShell | `cd hands-on\solutions\graphrag` → `.venv\Scripts\Activate.ps1` → `cd indexer` |
+| Windows Git Bash | `cd hands-on/solutions/graphrag` → `source .venv/Scripts/activate` → `cd indexer` |
+| macOS, Linux | `cd hands-on/solutions/graphrag` → `source .venv/bin/activate` → `cd indexer` |
 
-```bash
-cd hands-on/solutions/graphrag
-python -m venv .venv
-.venv/Scripts/python.exe -m pip install -r indexer/requirements.txt
-```
+PowerShell에서 「이 시스템에서 스크립트를 실행할 수 없으므로 ...」로 막히면 `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`를  
+먼저 실행하고 다시 활성화함(지금 창에서만 허용. 상위 README 3.3).
 
-### 3.4 가상환경(macOS, Linux)
-
-```bash
-cd hands-on/solutions/graphrag
-python3.13 -m venv .venv
-.venv/bin/python -m pip install -r indexer/requirements.txt
-```
-
-설치 확인
-
-```bash
-.venv/Scripts/python.exe -c "import langchain_groq, langchain_cohere, neo4j_graphrag, opensearchpy, chromadb, kiwipiepy; print('ok')"
-```
-
-- 가상환경을 활성화(activate)하지 않고 venv 안의 파이썬을 직접 지정하는 방식임(RAG 실습과 같음)
 - 저장소를 통째로 clone해서 씀. `indexer/` 폴더만 복사하면 Chroma, 스키마, `secrets/`를 찾지 못함
 - RAG 실습 인덱싱 결과(`rag/indexing/data/chroma`)가 없으면 RAG 실습 `index_docs.py`를 먼저 돌리거나 강사 배포본을 복사함
 
@@ -131,7 +117,7 @@ python3.13 -m venv .venv
 ### 4.1 표본 실행(수업용)
 
 ```bash
-../.venv/Scripts/python.exe index_graph.py --run {별명}-s1 --sample
+python index_graph.py --run {별명}-s1 --sample
 ```
 
 표본은 청크 10개(약관 2, 혜택 안내 4 「한빛 가족돌봄」, 상담 4)임. 상담 4개에는 앞 상담을 가리키는 쌍이 들어 있어 K5 병합을 볼 수 있음.
@@ -139,11 +125,11 @@ python3.13 -m venv .venv
 ### 4.2 전체 실행(강사, 또는 강사 배포본 재사용)
 
 ```bash
-../.venv/Scripts/python.exe index_graph.py --run {별명}-f1
+python index_graph.py --run {별명}-f1
 ```
 
 ```bash
-../.venv/Scripts/python.exe index_graph.py --run {별명}-f1 --reuse data/teacher
+python index_graph.py --run {별명}-f1 --reuse data/teacher
 ```
 
 전체 260청크는 K2 LLM 약 300번, K8 약 100번이 들어 10분 안팎임. 강사 배포본(`data/teacher/`)을 `--reuse`로 주면  
@@ -152,11 +138,11 @@ python3.13 -m venv .venv
 ### 4.3 결과 확인
 
 ```bash
-../.venv/Scripts/python.exe check_graph.py --qid Q09 --rerank
+python check_graph.py --qid Q09 --rerank
 ```
 
 ```bash
-../.venv/Scripts/python.exe check_graph.py "할부로 산 상품의 철회는 며칠 안에 요청해야 하나요?"
+python check_graph.py "할부로 산 상품의 철회는 며칠 안에 요청해야 하나요?"
 ```
 
 평가셋 번호(`--qid`)로 실행하면 마지막에 「적중 판정」이 붙음(정답 근거 문구가 상위 청크 본문이나 엔티티 설명에 있는지).  

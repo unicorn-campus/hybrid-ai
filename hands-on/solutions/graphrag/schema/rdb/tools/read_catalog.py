@@ -7,8 +7,8 @@ information_schema를 단순 조인하면 열 2개짜리 FK의 짝이 엇갈려 
 비밀번호는 secrets/.env의 RDB_PASSWORD를 실행할 때마다 읽음(코드, 로그, 출력에 남기지 않음).
 DB는 읽기 전용 세션으로만 조회함.
 
-실행 예:
-  .venv/Scripts/python tools/read_catalog.py --host localhost --port 5432 --dbname cardlab --schema public --user cardlab
+실행 예(hands-on/solutions/graphrag에서 가상환경을 활성화한 뒤 schema/rdb 폴더에서. graphrag/README.md 3절):
+  python tools/read_catalog.py --host localhost --port 5432 --dbname cardlab --schema public --user cardlab
 """
 
 from __future__ import annotations

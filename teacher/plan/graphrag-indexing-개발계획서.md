@@ -40,7 +40,6 @@ hands-on/solutions/graphrag/
 ├─ .venv/                      GraphRAG 실습 공용 가상환경(검색 예제가 생기면 함께 씀)
 └─ indexer/
    ├─ README.md                맨 위에 수업용 명령 2개, 목표, 구조, 가상환경 설정(OS, 셸별), 실행 옵션(부록), 출력 읽는 법, 실측값
-   ├─ requirements.txt         RAG 실습과 같은 판(langchain 1.4.6 등) + neo4j-graphrag, neo4j, opensearch-py
    ├─ index_graph.py           main: 설정 상수, 시작 검사, ① ~ ⑤, K2 병렬 호출, S1 임베딩(96건씩), S2 토큰화 호출, K8 보고서 LLM 호출, 단계별 출력
    ├─ core_graph.py            핵심(클론 코딩 대상): ① ~ ⑤, K1 ~ K8, S1 ~ S3의 실습 함수 16개 + 제공 함수(머리줄, K8 쓰기)
    ├─ my_graph.py              교육생 작업 파일(직접 6개는 NotImplementedError, 빈칸 10개는 "빈칸 N을 채울 것" 표시.
@@ -235,7 +234,7 @@ hands-on/solutions/graphrag/
 
 | 산출물 | 경로 | 상태 |
 |---|---|---|
-| 예제 프로그램 | `hands-on/solutions/graphrag/indexer/`(index_graph.py, core_graph.py, my_graph.py, kr_tokenizer.py, check_graph.py, requirements.txt, README.md) | 완료 |
+| 예제 프로그램 | `hands-on/solutions/graphrag/indexer/`(index_graph.py, core_graph.py, my_graph.py, kr_tokenizer.py, check_graph.py, README.md) | 완료 |
 | 강사 배포본 | `hands-on/solutions/graphrag/indexer/data/teacher/`(prepared-chunks, kg_prepared, community_reports, 5.2MB) | 생성(`.gitignore` 예외로 Git에 포함). `--reuse data/teacher` 실행 57초, LLM 2번 |
 | 교육생 실습 가이드 | `teacher/plan/graphrag-indexing-실습가이드.md` | 완료 |
 | 핵심 슬라이드 | `teacher/plan/graphrag-indexing-실습가이드.pptx`(6장, 스크립트 `…-slides.md`, 빌드 `build/build-guide-slides.js`) | 완료. 붙여넣기 호환 점검 OK, LibreOffice 미리보기 확인 |
@@ -256,3 +255,14 @@ hands-on/solutions/graphrag/
 
 Advisor(Opus) 사전 자문 1회, 팀원 리뷰 3회(기본 모델), 형식 점검 1회(Haiku) 수행. context7은 월 한도 초과로 쓰지 못해  
 설치된 패키지 소스로 시그니처를 확인함.
+
+## 부록. 가상환경 정리(2026-10-26 강사 지시)
+
+- 강사 지시: 「graphrag도 hands-on/solutions/graphrag에서 가상환경 설정. 서브 폴더에는 README.md만 두고 가상환경 설정과 실행은 상위 폴더에서 하도록 안내.  
+  requirements.txt는 graphrag 폴더에만. 가상환경을 활성화하고 수행하도록 안내」
+- `indexer/`, `retriever/`, `schema/doc/`, `schema/rdb/`의 requirements.txt 4개를 `graphrag/requirements.txt` 하나로 합치고 지움  
+  (psycopg[binary]와 langgraph, typesafe-sdk 포함). 상위 안내서 `graphrag/README.md`를 새로 둠(구성, 만들기와 활성화, PowerShell이 막을 때, 실행 순서)
+- `indexer/README.md`, `retriever/README.md`는 상위 README 3절로 안내하고 실행 명령을 활성화 뒤 `python ...`으로 바꿈. 실습 가이드와 가이드 슬라이드도 같게 고치고 덱을 다시 빌드함
+- 검증: 새 가상환경에 `pip install -r requirements.txt` 성공, `pip check` 문제 없음. 활성화 뒤 `check_graph.py --qid Q09` 적중,  
+  `search_graph.py --qid Q01` 답변 완료. 기존 `.venv`를 PowerShell에서 활성화해 설치 보충(psycopg) 뒤 `--qid Q19` 확인할 수 없음(함정 차단).  
+  활성 세대를 바꾸는 `index_graph.py --sample`은 검색 실습 그래프를 바꾸므로 돌리지 않고 `--help`로만 확인함

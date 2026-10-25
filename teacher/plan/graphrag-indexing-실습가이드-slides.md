@@ -50,14 +50,14 @@
   - 저장소 pull, Python 3.13
   - RAG 실습 결과 rag/indexing/data/chroma 있음(없으면 강사 배포본)
   - Docker로 Neo4j와 OpenSearch 기동(backing-services, healthy 확인)
-  - 가상환경 hands-on/solutions/graphrag/.venv 설치(README 3장)
+  - graphrag 폴더에서 가상환경을 만들고 활성화, pip install -r requirements.txt
   - secrets/.env에 GROQ_API_KEY, COHERE_API_KEY
-- 우 배지: 수업용 명령 2개(indexer 폴더에서)
+- 우 배지: 수업용 명령 2개(활성화 뒤 indexer 폴더에서)
 - 명령 카드
-  - ../.venv/Scripts/python.exe index_graph.py --run {별명}-s1 --sample
+  - python index_graph.py --run {별명}-s1 --sample
   - 표본 10청크로 ① ~ ⑤ 완주. 약 1분, LLM 약 30번
-  - ../.venv/Scripts/python.exe check_graph.py --qid Q09 --rerank
-  - 질문 하나로 검색엔진 → 청크 → 엔티티 → 커뮤니티 보고서 → 리랭크 → 적중 판정(macOS는 ../.venv/bin/python)
+  - python check_graph.py --qid Q09 --rerank
+  - 질문 하나로 검색엔진 → 청크 → 엔티티 → 커뮤니티 보고서 → 리랭크 → 적중 판정. 프롬프트에 (.venv)가 없으면 먼저 활성화
 - 표 열 너비: [1.6, 3.0, 4.85]
 
 | 출력 줄 | 봐야 할 것 | 표본 실행 값(강사 PC) |

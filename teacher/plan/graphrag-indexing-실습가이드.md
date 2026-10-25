@@ -37,18 +37,32 @@ RAG 실습 Chroma(청크 260개)
 | 1 | 저장소 최신 `pull`, Python 3.13 | `python --version` |
 | 2 | RAG 실습 인덱싱 결과가 있음: `hands-on/solutions/rag/indexing/data/chroma/chroma.sqlite3` | 없으면 RAG 실습 `index_docs.py`를 돌리거나 강사 배포본 복사 |
 | 3 | Docker Desktop 설치, Neo4j와 OpenSearch 기동([backing-services/neo4j](https://github.com/unicorn-campus/hybrid-ai/blob/main/backing-services/neo4j/README.md), [opensearch](https://github.com/unicorn-campus/hybrid-ai/blob/main/backing-services/opensearch/README.md)) | `docker compose -f neo4j/compose.yml ps`가 `healthy` |
-| 4 | 가상환경 설치(README 3장. PowerShell, Git Bash, macOS와 Linux 명령이 따로 있음) | 설치 확인 명령이 `ok` |
+| 4 | `hands-on/solutions/graphrag` 폴더에서 가상환경을 만들고 활성화한 뒤 `pip install -r requirements.txt`([graphrag/README.md](https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/graphrag/README.md) 3절) | 설치 확인 명령이 `ok` |
 | 5 | `secrets/.env`에 `GROQ_API_KEY`, `COHERE_API_KEY`(강사 배포) | 아래 표본 실행의 시작 검사 통과 |
 
-사전 준비가 끝났는지는 표본 실행 한 번으로 확인함(시작 검사가 2 ~ 5를 모두 검사해 모자란 것을 알려 줌).
+가상환경 활성화(`hands-on/solutions/graphrag` 폴더에서, 터미널 창마다 한 번). 프롬프트 앞에 `(.venv)`가 붙으면 됨
 
-```bash
-cd hands-on/solutions/graphrag/indexer
-../.venv/Scripts/python.exe index_graph.py --run {별명}-s1 --sample
+| 터미널 | 활성화 명령 |
+|---|---|
+| Windows PowerShell | `.venv\Scripts\Activate.ps1` |
+| Windows Git Bash | `source .venv/Scripts/activate` |
+| macOS, Linux | `source .venv/bin/activate` |
+
+PowerShell에서 「이 시스템에서 스크립트를 실행할 수 없으므로 ...」로 막히면 아래 한 줄을 먼저 실행하고 다시 활성화함  
+(지금 창에서만 허용. 계속 허용하려면 `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`)
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ```
 
-`{별명}`은 본인 영문 별명(예: `hong-s1`). 세대 ID에 들어가므로 여럿이 한 DB를 써도 섞이지 않음.  
-macOS와 Linux는 `../.venv/Scripts/python.exe` 대신 `../.venv/bin/python`.
+사전 준비가 끝났는지는 표본 실행 한 번으로 확인함(시작 검사가 2 ~ 5를 모두 검사해 모자란 것을 알려 줌). 활성화한 터미널에서 실행함
+
+```bash
+cd indexer
+python index_graph.py --run {별명}-s1 --sample
+```
+
+`{별명}`은 본인 영문 별명(예: `hong-s1`). 세대 ID에 들어가므로 여럿이 한 DB를 써도 섞이지 않음.
 
 ## 2. 수업 흐름
 
@@ -70,7 +84,7 @@ macOS와 Linux는 `../.venv/Scripts/python.exe` 대신 `../.venv/bin/python`.
 ### Step 1. 강사 코드로 표본 실행(교시 A 시작)
 
 ```bash
-../.venv/Scripts/python.exe index_graph.py --run {별명}-s1 --sample
+python index_graph.py --run {별명}-s1 --sample
 ```
 
 출력에서 아래 줄을 찾아 수를 적어 둠(본인 코드로 바꾼 뒤 같은 수가 나와야 함). 값은 강사 PC 실측이며 LLM 추출은 실행마다 조금 다름.
@@ -92,7 +106,7 @@ macOS와 Linux는 `../.venv/Scripts/python.exe` 대신 `../.venv/bin/python`.
 ### Step 2. 결과 확인 도구로 질문 던지기
 
 ```bash
-../.venv/Scripts/python.exe check_graph.py --qid Q09 --rerank
+python check_graph.py --qid Q09 --rerank
 ```
 
 [1] 검색엔진(BM25와 벡터를 RRF로 합침) → [2] 청크의 엔티티(FROM_CHUNK) → [3] 엔티티 직접 검색(K6 벡터) →  
@@ -107,7 +121,7 @@ macOS와 Linux는 `../.venv/Scripts/python.exe` 대신 `../.venv/bin/python`.
    이름을 `{별명}-s2`처럼 바꿈(활성 세대와 같은 이름은 거부함)
 
 ```bash
-../.venv/Scripts/python.exe index_graph.py --run {별명}-s2 --sample --full-reindex
+python index_graph.py --run {별명}-s2 --sample --full-reindex
 ```
 
 LLM 추출(K2)과 보고서(K8)는 앞 실행 결과를 재사용하므로 두 번째부터는 LLM을 부르지 않고 10초 안에 끝남.  

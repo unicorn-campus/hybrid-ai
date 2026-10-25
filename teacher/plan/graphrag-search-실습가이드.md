@@ -32,15 +32,17 @@
 |---|---|---|
 | 1 | 인덱싱 실습 완료(활성 세대). 없으면 `../indexer`에서 `index_graph.py --run {별명}-f1 --reuse data/teacher` | `indexer/data/active_generation.json`의 `chunk_count` 260 |
 | 2 | Neo4j와 OpenSearch 기동 | `docker compose -f neo4j/compose.yml ps`가 `healthy` |
-| 3 | 공용 가상환경에 패키지 1개(typesafe-sdk) 추가(README 3장: `pip install -r retriever/requirements.txt`) | 설치 확인 명령이 `ok` |
+| 3 | `hands-on/solutions/graphrag` 폴더의 공용 가상환경을 활성화. 패키지는 그 폴더 `requirements.txt` 하나에 모두 있음(인덱싱 때 설치했으면 다시 설치 안 함. [graphrag/README.md](https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/graphrag/README.md) 3절) | 설치 확인 명령이 `ok` |
 | 4 | `secrets/.env`에 키 3줄: `JEV_API_KEY`, `GROQ_API_KEY`, `COHERE_API_KEY`(강사 배포) | 아래 명령이 ⑩까지 끝남 |
 
+가상환경 활성화(`hands-on/solutions/graphrag` 폴더에서): PowerShell `.venv\Scripts\Activate.ps1`, Git Bash `source .venv/Scripts/activate`,  
+macOS와 Linux `source .venv/bin/activate`. PowerShell에서 막히면 `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` 뒤 다시 활성화함.
+
 ```bash
-cd hands-on/solutions/graphrag/retriever
-../.venv/Scripts/python.exe search_graph.py --qid Q01
+cd retriever
+python search_graph.py --qid Q01
 ```
 
-macOS와 Linux는 `../.venv/Scripts/python.exe` 대신 `../.venv/bin/python`.  
 실행마다 에이전트(Groq) 실제 비용이 찍힘(질문 하나 약 $0.001 ~ 0.005). 함수 하나를 고칠 때마다 질문 한두 개만 돌려 확인함.
 
 ## 2. 수업 흐름
@@ -63,11 +65,11 @@ macOS와 Linux는 `../.venv/Scripts/python.exe` 대신 `../.venv/bin/python`.
 ### Step 1. 강사 코드로 실행하고 출력 읽기(교시 1)
 
 ```bash
-../.venv/Scripts/python.exe search_graph.py --qid Q01
+python search_graph.py --qid Q01
 ```
 
 ```bash
-../.venv/Scripts/python.exe search_graph.py --qid Q19
+python search_graph.py --qid Q19
 ```
 
 | 줄 | 볼 것 | Q01(강사 PC) | Q19(강사 PC) |

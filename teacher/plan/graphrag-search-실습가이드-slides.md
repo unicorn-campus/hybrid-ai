@@ -49,14 +49,14 @@
 - 준비 항목
   - 인덱싱 실습 완료(활성 세대, 청크 260개). 없으면 --reuse data/teacher
   - Docker로 Neo4j와 OpenSearch 기동(healthy 확인)
-  - 공용 가상환경에 패키지 1개 추가(README 3장)
+  - graphrag 폴더의 공용 가상환경 활성화(graphrag/README.md 3절)
   - secrets/.env에 키 3줄: JEV, GROQ, COHERE
-- 우 배지: 수업용 명령 2개(retriever 폴더에서)
+- 우 배지: 수업용 명령 2개(활성화 뒤 retriever 폴더에서)
 - 명령 카드
-  - ../.venv/Scripts/python.exe search_graph.py --qid Q01
+  - python search_graph.py --qid Q01
   - 약관 사실 질문을 ① ~ ⑩ 끝까지(약 7 ~ 10초). 「답변 완료」와 에이전트 비용 줄을 봄
-  - ../.venv/Scripts/python.exe search_graph.py --qid Q19
-  - 함정 질문(가족돌봄 카드에 없는 해외 수수료 할인)이 「확인할 수 없음」으로 멈춤(macOS는 ../.venv/bin/python)
+  - python search_graph.py --qid Q19
+  - 함정 질문(가족돌봄 카드에 없는 해외 수수료 할인)이 「확인할 수 없음」으로 멈춤. 프롬프트에 (.venv)가 없으면 먼저 활성화
 - 표 열 너비: [1.9, 3.3, 4.25]
 
 | 출력 줄 | 봐야 할 것 | Q01(강사 PC) |

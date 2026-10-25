@@ -1,0 +1,135 @@
+# GraphRAG 실습 예제 — 스키마, 인덱싱, 검색
+
+하이브리드 AI 교육 W5 ~ W7 「관계로 찾기(GraphRAG)」 실습용 예제임(교재 『신한카드 하이브리드AI_W05 ~ W07』).  
+RAG 실습(W3)이 만든 청크를 입력으로 지식 그래프(Neo4j)와 검색엔진 인덱스(OpenSearch)를 만들고, 그 위에서 에이전트 검색을 돌림.  
+가상환경과 패키지 설치는 **이 폴더(`hands-on/solutions/graphrag`)에서만** 하고, 서브 폴더는 같은 가상환경을 활성화한 채 실행함.
+
+## 1. 폴더 구성
+
+```text
+hands-on/solutions/graphrag/
+├─ README.md            이 문서(가상환경 설정과 실행 순서)
+├─ requirements.txt     GraphRAG 실습 공통 패키지 목록(서브 폴더에는 두지 않음)
+├─ .venv/               공용 가상환경(이 폴더에서 만듦. Git에 올리지 않음)
+├─ schema/              그래프 스키마 설계 결과와 도구(doc: 문서 그래프, rdb: 정형 데이터 그래프). indexer가 schema/doc의 결과를 읽음
+├─ indexer/             그래프 인덱싱 실습(교재 30 ~ 62쪽). 사용법은 indexer/README.md
+└─ retriever/           그래프 검색 실습(교재 64 ~ 79쪽). 사용법은 retriever/README.md
+```
+
+| 폴더 | main | 교육생 작업 파일 | 만드는 것 |
+|---|---|---|---|
+| `indexer/` | `index_graph.py`, 확인 도구 `check_graph.py` | `my_graph.py` | Neo4j 그래프 세대, OpenSearch 인덱스, 활성 세대 파일 |
+| `retriever/` | `search_graph.py` | `my_search.py` | 단계별 검색 화면, 실행 기록 |
+| `schema/doc`, `schema/rdb` | `tools/*.py`(강사용 스키마 설계 도구) | - | `graph_schema.json`, `approval.json` 등 |
+
+## 2. 준비물
+
+| 항목 | 값 |
+|---|---|
+| Python | 3.13 |
+| 백킹 서비스 | Neo4j(APOC, GDS), OpenSearch. 저장소 루트 `backing-services/`의 compose로 띄움(indexer/README.md 3.1) |
+| API 키 | 저장소 루트 `secrets/.env`: `GROQ_API_KEY`, `COHERE_API_KEY`(indexer, retriever), `JEV_API_KEY`(retriever) |
+| 선행 실습 | RAG 인덱싱 결과 `hands-on/solutions/rag/indexing/data/chroma`(없으면 RAG 실습을 먼저 돌리거나 강사 배포본 복사) |
+
+## 3. 가상환경 설정과 패키지 설치
+
+가상환경은 이 폴더의 `.venv` **하나**를 `indexer/`, `retriever/`, `schema/` 도구가 함께 씀.  
+가상환경을 **활성화(activate)**하면 프롬프트 앞에 `(.venv)`가 붙고, 그 터미널의 `python`, `pip`이 가상환경의 것으로 바뀜.  
+활성화는 터미널 창마다 한 번 함. 활성화한 뒤 서브 폴더로 `cd` 해도 활성화는 그대로 유지됨.
+
+### 3.1 처음 한 번: 만들기, 활성화, 설치
+
+Windows PowerShell
+
+```powershell
+cd hands-on\solutions\graphrag
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+Windows Git Bash
+
+```bash
+cd hands-on/solutions/graphrag
+python -m venv .venv
+source .venv/Scripts/activate
+pip install -r requirements.txt
+```
+
+macOS, Linux (zsh, bash)
+
+```bash
+cd hands-on/solutions/graphrag
+python3.13 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+설치 확인(활성화한 터미널에서)
+
+```bash
+python -c "import langchain_groq, langchain_cohere, langgraph, neo4j_graphrag, opensearchpy, chromadb, kiwipiepy, typesafe_sdk; print('ok')"
+```
+
+예전처럼 `indexer/requirements.txt`, `retriever/requirements.txt`로 설치한 `.venv`가 있으면 활성화한 뒤  
+`pip install -r requirements.txt`를 한 번 더 실행해 빠진 패키지를 채움.
+
+### 3.2 다음부터: 활성화만
+
+| 터미널 | 활성화(`hands-on/solutions/graphrag` 폴더에서) | 끄기 |
+|---|---|---|
+| Windows PowerShell | `.venv\Scripts\Activate.ps1` | `deactivate` |
+| Windows Git Bash | `source .venv/Scripts/activate` | `deactivate` |
+| macOS, Linux | `source .venv/bin/activate` | `deactivate` |
+
+### 3.3 PowerShell에서 활성화가 막힐 때
+
+`.venv\Scripts\Activate.ps1`을 실행했을 때 아래처럼 나오면 PowerShell 실행 정책이 스크립트 실행을 막은 것임.
+
+```text
+.venv\Scripts\Activate.ps1 : 이 시스템에서 스크립트를 실행할 수 없으므로 ... 파일을 로드할 수 없습니다.
+(영문: ... cannot be loaded because running scripts is disabled on this system.)
+```
+
+방법 1(권장): 지금 연 PowerShell 창에서만 허용함. 창을 닫으면 원래대로 돌아가 다른 설정에 영향이 없음
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.venv\Scripts\Activate.ps1
+```
+
+방법 2: 내 계정에서 계속 허용함(한 번만 하면 이후 창에서도 됨. 인터넷에서 받은 서명 없는 스크립트는 여전히 막힘)
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+
+- 지금 설정 보기: `Get-ExecutionPolicy -List`. 방법 2를 되돌리려면 `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Undefined`
+- 회사 PC처럼 관리자가 정책을 막아 두어 위 명령도 안 되면, 활성화 없이 가상환경의 파이썬을 직접 지정해 실행함  
+  (예: `.venv\Scripts\python.exe -m pip install -r requirements.txt`, `..\.venv\Scripts\python.exe search_graph.py --qid Q01`)
+- 저장소를 통째로 clone해서 씀. 이 폴더만 복사하면 RAG 청크, `docs/`, `secrets/`, `backing-services/`를 찾지 못함
+
+## 4. 실행 순서
+
+가상환경을 활성화한 터미널에서 실행함. 아래는 Git Bash, macOS, Linux 기준이며 PowerShell은 `cd` 경로의 `/`를 `\`로 씀.  
+`{별명}`은 본인 별명(영문)으로 바꿈. 예) `hong-s1`
+
+```bash
+# 0) 가상환경 활성화(hands-on/solutions/graphrag 폴더에서). macOS, Linux는 source .venv/bin/activate,
+#    PowerShell은 .venv\Scripts\Activate.ps1
+source .venv/Scripts/activate
+
+# 1) 그래프 인덱싱 — 표본 10청크로 ① ~ ⑤ 끝까지(약 1분), 결과를 질문 하나로 확인
+cd indexer
+python index_graph.py --run {별명}-s1 --sample
+python check_graph.py --qid Q09
+
+# 2) 그래프 검색 — 질문 하나를 ① ~ ⑩ 단계별 출력으로 확인
+cd ../retriever
+python search_graph.py --qid Q01
+```
+
+각 단계의 옵션과 출력 읽는 법은 [indexer/README.md](indexer/README.md), [retriever/README.md](retriever/README.md)에 있음.  
+`schema/` 도구는 강사용이며, 같은 가상환경을 활성화한 채 `schema/doc` 또는 `schema/rdb` 폴더에서 `python tools/{도구}.py`로 실행함  
+(실행 예는 각 도구 파일 맨 위 설명에 있음).

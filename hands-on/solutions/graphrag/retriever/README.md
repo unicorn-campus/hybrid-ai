@@ -7,19 +7,20 @@
 
 ## 수업용 명령 2개
 
-이 폴더(`hands-on/solutions/graphrag/retriever`)에서 실행함.
+가상환경은 상위 폴더 `hands-on/solutions/graphrag`에서 만들고 활성화함([상위 README 3절](../README.md#3-가상환경-설정과-패키지-설치)).  
+활성화한 터미널에서 이 폴더(`retriever`)로 들어와 실행함.
 
 ```bash
-../.venv/Scripts/python.exe search_graph.py --qid Q01
+python search_graph.py --qid Q01
 ```
 
 ```bash
-../.venv/Scripts/python.exe search_graph.py --qid Q19
+python search_graph.py --qid Q19
 ```
 
 첫 명령은 약관 사실 질문을 ① ~ ⑩ 끝까지 돌려 「답변 완료」를 봄(약 7 ~ 10초, 에이전트 비용 약 $0.001).  
 둘째 명령은 함정 질문(가족돌봄 카드에 없는 해외 수수료 할인)이 지어내지 않고 「확인할 수 없음」으로 멈추는 것을 봄.  
-macOS와 Linux는 `../.venv/Scripts/python.exe` 대신 `../.venv/bin/python`을 씀. 나머지 옵션은 8장에 있음.
+프롬프트 앞에 `(.venv)`가 없으면 먼저 활성화함(3.2). 나머지 옵션은 8장에 있음.
 
 ## 1. 목표와 주요 기능
 
@@ -45,11 +46,12 @@ macOS와 Linux는 `../.venv/Scripts/python.exe` 대신 `../.venv/bin/python`을 
 
 ```text
 hands-on/solutions/graphrag/
-├─ .venv/                      GraphRAG 실습 공용 가상환경(인덱싱과 같음. 3장에서 패키지 1개 추가)
+├─ README.md                   가상환경 설정과 실행 순서(공통)
+├─ requirements.txt            GraphRAG 실습 공통 패키지 목록(이 파일로 설치. 서브 폴더에는 두지 않음)
+├─ .venv/                      GraphRAG 실습 공용 가상환경(상위 폴더에서 만듦. 인덱싱과 같음)
 ├─ indexer/                    (읽기만) 활성 세대 파일(data/active_generation.json), kr_tokenizer.py(질의 토큰화)
 └─ retriever/
    ├─ README.md                이 문서
-   ├─ requirements.txt         인덱싱과 같은 판 + typesafe-sdk
    ├─ search_graph.py          main: 설정 상수, 프롬프트와 스키마, 시작 검사, 저장소 접속, 외부 호출, 서브 워크플로우 O, L, G, E, R,
    │                           툴 6개, 미들웨어 2개, run_workflow(① ~ ⑩), 화면 출력, 평가셋 일괄 실행
    ├─ core_search.py           핵심(클론 코딩 대상): 실습 함수 13개 + 선택 1개 + 제공 함수
@@ -86,36 +88,25 @@ hands-on/solutions/graphrag/
 1. 인덱싱 실습을 끝내 활성 세대가 있음(`../indexer/data/active_generation.json`). 없으면 인덱싱 README의 `--reuse data/teacher` 실행
 2. Neo4j와 OpenSearch가 떠 있음(`docker compose -f neo4j/compose.yml ps`가 `healthy`)
 
-### 3.2 가상환경(Windows PowerShell)
+### 3.2 가상환경(상위 폴더에서 만들고 활성화)
 
-```powershell
-cd hands-on\solutions\graphrag
-python -m venv .venv
-.venv\Scripts\python.exe -m pip install -r retriever\requirements.txt
-```
+가상환경과 패키지 설치는 이 폴더가 아니라 **상위 폴더 `hands-on/solutions/graphrag`**에서 함(인덱싱 실습과 같은 `.venv`).  
+만들기, 설치, PowerShell에서 활성화가 막힐 때 할 일은 [상위 README 3절](../README.md#3-가상환경-설정과-패키지-설치)을 따름.  
+상위 `requirements.txt`에 검색용 패키지(typesafe-sdk, langgraph)까지 들어 있으므로 인덱싱 때 설치했으면 다시 설치하지 않아도 됨.
 
-### 3.3 가상환경(Windows Git Bash)
+| 터미널 | 활성화하고 이 폴더로 들어오기 |
+|---|---|
+| Windows PowerShell | `cd hands-on\solutions\graphrag` → `.venv\Scripts\Activate.ps1` → `cd retriever` |
+| Windows Git Bash | `cd hands-on/solutions/graphrag` → `source .venv/Scripts/activate` → `cd retriever` |
+| macOS, Linux | `cd hands-on/solutions/graphrag` → `source .venv/bin/activate` → `cd retriever` |
 
-```bash
-cd hands-on/solutions/graphrag
-python -m venv .venv
-.venv/Scripts/python.exe -m pip install -r retriever/requirements.txt
-```
+PowerShell에서 「이 시스템에서 스크립트를 실행할 수 없으므로 ...」로 막히면 `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`를  
+먼저 실행하고 다시 활성화함(지금 창에서만 허용. 상위 README 3.3).
 
-### 3.4 가상환경(macOS, Linux)
-
-```bash
-cd hands-on/solutions/graphrag
-python3.13 -m venv .venv
-.venv/bin/python -m pip install -r retriever/requirements.txt
-```
-
-인덱싱 실습에서 `.venv`를 이미 만들었으면 `python -m venv` 줄은 건너뛰고 설치 줄만 실행함(typesafe-sdk가 더해짐).
-
-설치 확인
+설치 확인(활성화한 터미널에서)
 
 ```bash
-.venv/Scripts/python.exe -c "import typesafe_sdk, langchain_groq, langchain_cohere, neo4j, opensearchpy; print('ok')"
+python -c "import typesafe_sdk, langchain_groq, langchain_cohere, neo4j, opensearchpy; print('ok')"
 ```
 
 ## 4. 실행 방법
@@ -123,7 +114,7 @@ python3.13 -m venv .venv
 ### 4.1 평가셋 질문(수업용)
 
 ```bash
-../.venv/Scripts/python.exe search_graph.py --qid Q14
+python search_graph.py --qid Q14
 ```
 
 역할과 회원은 평가셋 `filters`대로 정해짐(회원 질문은 감사자 + 그 회원, 경향 질문은 감사자, 나머지는 상담원).
@@ -131,27 +122,27 @@ python3.13 -m venv .venv
 ### 4.2 자유 질문
 
 ```bash
-../.venv/Scripts/python.exe search_graph.py "할부로 산 상품의 철회는 며칠 안에 요청해야 하나요?" --role agent
+python search_graph.py "할부로 산 상품의 철회는 며칠 안에 요청해야 하나요?" --role agent
 ```
 
 ```bash
-../.venv/Scripts/python.exe search_graph.py "이 회원이 가장 최근 상담에서 요청한 것은?" --role auditor --member-id M-1042
+python search_graph.py "이 회원이 가장 최근 상담에서 요청한 것은?" --role auditor --member-id M-1042
 ```
 
 ### 4.3 근거만 보기(⑧ 끔)
 
 ```bash
-../.venv/Scripts/python.exe search_graph.py --qid Q01 --no-answer
+python search_graph.py --qid Q01 --no-answer
 ```
 
 ### 4.4 평가셋 일괄(강사용, API 비용 듦)
 
 ```bash
-../.venv/Scripts/python.exe search_graph.py --eval
+python search_graph.py --eval
 ```
 
 ```bash
-../.venv/Scripts/python.exe search_graph.py --eval --only Q18,Q19,Q20,Q21,Q22 --repeat 3
+python search_graph.py --eval --only Q18,Q19,Q20,Q21,Q22 --repeat 3
 ```
 
 ## 5. 단계별 출력 읽는 법
