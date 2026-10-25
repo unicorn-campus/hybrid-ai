@@ -45,11 +45,11 @@ macOS와 Linux는 `../.venv/Scripts/python.exe` 대신 `../.venv/bin/python`을 
 
 ```text
 hands-on/solutions/rag/
-├─ .venv/                      인덱싱과 검색 공용 가상환경
+├─ .venv/                      인덱싱과 검색 공용 가상환경(이 폴더에서 만듦)
+├─ requirements.txt            인덱싱과 검색 공용 패키지 목록(가상환경은 이 파일로 설치)
 ├─ indexing/                   (읽기만) data/chroma(본문, 메타데이터, 벡터), data/bm25(점수표, 사전), core_indexing.py(토큰화)
 └─ retriever/
    ├─ README.md                이 문서
-   ├─ requirements.txt         rag/requirements.txt와 같은 판
    ├─ search_docs.py           main: 설정 상수(기준값, 상한), 프롬프트와 스키마(분류, 질문 변환), 시작 검사, 색인 열기,
    │                           LLM 호출 2종, 단계 함수 ① ~ ⑥, run_workflow(분기와 반복 상한), 화면 출력, 명령행
    ├─ core_search.py           핵심(클론 코딩 대상): 실습 함수 10개 + 제공 함수
@@ -93,14 +93,15 @@ hands-on/solutions/rag/
 - W3 인덱싱 실습을 전체 실행해 `../indexing/data/`에 `chroma/`와 `bm25/`가 있어야 함(없으면 강사 배포본을 복사)
 - 저장소를 통째로 clone해서 씀(`secrets/`, `hands-on/solutions/eval-set.json`, `indexing/`을 상대 경로로 찾음)
 
-### 3.2 가상환경(Windows PowerShell)
+가상환경은 상위 폴더 `hands-on/solutions/rag`에서 만들고, 그 폴더의 `requirements.txt`(인덱싱과 검색 공용)로 설치함.  
+W3 인덱싱 실습에서 이미 만들었으면 그대로 씀. 검색 폴더(`retriever`)에는 따로 패키지 목록을 두지 않음.
 
-W3에서 만든 `rag/.venv`를 그대로 씀. 없으면 아래로 만듦.
+### 3.2 가상환경(Windows PowerShell)
 
 ```powershell
 cd hands-on\solutions\rag
 python -m venv .venv
-.venv\Scripts\python.exe -m pip install -r retriever\requirements.txt
+.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
 ### 3.3 가상환경(Windows Git Bash)
@@ -108,7 +109,7 @@ python -m venv .venv
 ```bash
 cd hands-on/solutions/rag
 python -m venv .venv
-.venv/Scripts/python.exe -m pip install -r retriever/requirements.txt
+.venv/Scripts/python.exe -m pip install -r requirements.txt
 ```
 
 ### 3.4 가상환경(macOS, Linux)
@@ -116,10 +117,10 @@ python -m venv .venv
 ```bash
 cd hands-on/solutions/rag
 python3.13 -m venv .venv
-.venv/bin/python -m pip install -r retriever/requirements.txt
+.venv/bin/python -m pip install -r requirements.txt
 ```
 
-설치 확인(Windows는 `.venv/Scripts/python.exe`, macOS와 Linux는 `.venv/bin/python`)
+설치 확인(`hands-on/solutions/rag` 폴더에서. Windows는 `.venv/Scripts/python.exe`, macOS와 Linux는 `.venv/bin/python`)
 
 ```bash
 .venv/Scripts/python.exe -c "import langchain, langchain_groq, chromadb, kiwipiepy, cohere, bm25s; print('ok')"

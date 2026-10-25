@@ -65,7 +65,6 @@ hands-on/solutions/rag/
 └─ retriever/
    ├─ README.md                맨 위에 수업용 명령 2개, 목표와 기능, 구조, 가상환경 설정(PowerShell, Git Bash, macOS와 Linux),
    │                           실행 방법, 출력 읽는 법, 용어 풀이, 실측값
-   ├─ requirements.txt         rag/requirements.txt 와 같은 판(langchain 1.4.6, langchain-groq 1.1.3, cohere 5.21.1, bm25s 0.3.14 등)
    ├─ search_docs.py           main: 설정 상수(기준값, 상한), 프롬프트(분류, 질문 변환), 스키마, 시작 검사, 색인 열기,
    │                           LLM 호출 2종, 단계 함수 ① ~ ⑥, run_workflow(분기와 반복 상한), 화면 출력, 명령행
    ├─ core_search.py           핵심(클론 코딩 대상): 실습 함수 10개 + 제공 함수
@@ -322,7 +321,7 @@ HNSW(가까운 벡터를 빠르게 찾는 근사 검색 색인), 코사인 거�
 
 | 산출물 | 경로 | 상태 |
 |---|---|---|
-| 예제 프로그램 | `hands-on/solutions/rag/retriever/`(search_docs.py, core_search.py, my_search.py, requirements.txt, README.md) | 완료 |
+| 예제 프로그램 | `hands-on/solutions/rag/retriever/`(search_docs.py, core_search.py, my_search.py, README.md. 패키지는 상위 `rag/requirements.txt`) | 완료 |
 | 공통 README | `hands-on/solutions/rag/README.md`(RAGAS, run_eval 언급을 빼고 새 검색기로 고침) | 완료 |
 | 교육생 실습 가이드 | `teacher/plan/rag-search-실습가이드.md`(에듀니 작성, 클로니 검수) | 완료 |
 | 핵심 슬라이드 | `teacher/plan/rag-search-실습가이드.pptx`(6장, 스크립트 `…-slides.md`, 빌드 `build/build-rag-search-guide-slides.js`) | 완료. 붙여넣기 점검 OK, LibreOffice 미리보기 6장 확인 |
@@ -386,3 +385,13 @@ Git Bash에서는 `/websites/langchain` 같은 인자가 Windows 경로로 바�
   넣기 `build/merge-rag-search-practice.py`(다시 돌리면 같은 제목 장표를 바꿈), 덱 `teacher/plan/rag-search-practice-slide.pptx`
 - 확인: 백업 `backup/신한카드 하이브리드AI_W01~W04.backup-20261026-rag-search-practice.pptx` 뒤 넣음. 붙여넣기 점검 OK,  
   zip 이름 중복 0, LibreOffice로 210장 렌더링해 175 ~ 177쪽 확인
+
+### 15.6 가상환경 정리(2026-10-26 강사 지시)
+
+- 강사 지시: 「가상환경 설정을 hands-on/solutions/rag에서 하도록, retriever/requirements.txt는 상위 requirements.txt에 병합, README 수정」
+- 두 파일의 패키지와 판이 같아(13개) 상위 `rag/requirements.txt`에 설명 주석만 옮기고 `retriever/requirements.txt`는 지움
+- `retriever/README.md` 2장 구조와 3장 가상환경 절을 `hands-on/solutions/rag`에서 `pip install -r requirements.txt` 하도록 고침
+
+- 검증: 임시 폴더에 새 가상환경을 만들어 README 절차대로 `pip install -r requirements.txt`(rag 폴더) → `pip check` 문제 없음,  
+  설치 확인 명령 `ok`, `indexing/index_docs.py --limit 8` 완료(청크 64개), `retriever/search_docs.py --qid Q01` 답변 완료,  
+  `--qid Q14` 답변 완료(BM25 대상 4청크). 확인 뒤 임시 가상환경은 지움

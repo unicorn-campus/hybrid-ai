@@ -1,4 +1,6 @@
-# 하이브리드 RAG 실습(인덱싱, 검색) 공통 패키지. 2026-10-21 PyPI 최신 안정 버전으로 고정함
+# 하이브리드 RAG 실습(indexing, retriever) 공통 패키지. 2026-10-21 PyPI 최신 안정 버전으로 고정함
+# 가상환경은 이 폴더(hands-on/solutions/rag)의 .venv 하나를 두 실습이 함께 씀. retriever에는 따로 requirements.txt를 두지 않음
+# 검색기(retriever)는 인덱서의 토크나이저(kiwipiepy)와 저장 색인(bm25s, chromadb)을 그대로 쓰므로 판이 같아야 함
 # 임베딩(Cohere embed-v5.0-fast)과 리랭크(Cohere rerank-v4.0-fast)는 API라 torch 같은 무거운 패키지가 없음
 langchain==1.4.6
 langchain-core==1.6.12
