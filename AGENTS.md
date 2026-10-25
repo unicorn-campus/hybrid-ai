@@ -253,6 +253,16 @@ API·UI 엔지니어
   링크 확인. Sonnet: 명세가 명확한 코드 작성(빌드 스크립트 등), 정해진 틀의 문서 정리, 웹 조사 보조.  
   기본 모델: 아키텍처 판단, 교차 검증, 최종 통합, 품질 검수. 완료 보고에 어떤 모델을 썼는지 밝힘.  
   출처: 클로니/RAG 트렌드 조사(사용자 지시)
+- [HIGH] **pptx용 스크립트(빌드, 장표 삽입, 병합)를 만들 때 하이퍼링크를 막지 말 것**  
+  — 장표를 다른 덱으로 옮길 때 하이퍼링크 관계(rId)도 함께 옮겨, 붙여 넣은 뒤에도 링크가 눌리게 함.  
+  그림처럼 옮기기 어려운 관계만 따로 처리하고, 링크가 있다는 이유로 중단하지 않음.  
+  출처: 클로니/그래프 검색 교재 W05 ~ W07 64쪽 검토(사용자 지시)
+- [HIGH] **context7은 API 키 없이(MCP 도구) 먼저 쓰고, 월 한도가 소진되면 API 키 방식으로 바꿀 것**  
+  — MCP 도구가 「Monthly quota exceeded」를 돌려주면 `secrets/.env`의 `CONTEXT7_API_KEY`로 REST API를 직접 부름.  
+  라이브러리 찾기 `GET https://context7.com/api/v2/libs/search?libraryName=...&query=...`,  
+  문서 조회 `GET https://context7.com/api/v2/context?libraryId=...&query=...&type=txt`, 헤더 `Authorization: Bearer {키}`.  
+  결과는 `.temp/`에 저장해 읽고, 키 값은 화면과 파일에 남기지 않음(셸 변수에만 담음).  
+  출처: 클로니/GraphRAG 검색 예제 개발(사용자 지시, 2026-10-25)
 
 ---
 

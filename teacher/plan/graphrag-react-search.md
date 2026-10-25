@@ -2,11 +2,11 @@
 
 | 항목 | 내용 |
 |------|------|
-| 상태 | **권고안 v1.3** (2026-10-25, 2, 5, 7단계에 의사결정AI TypeSafe Jev 적용. v1.2는 G1과 G2를 현행 Groq로 확정. v1.1은 지식니, 커넥니, 플로니 검토와 Fable Advisor 검토 반영) |
+| 상태 | **권고안 v1.4** (2026-10-25, 교재 검토 결정 반영: `search_communities` 제거, `find_entities`와 `get_source_chunks` 단계(E, R) 명시, 질의 총량 셀 대상 명시. v1.3은 2, 5, 7단계에 의사결정AI TypeSafe Jev 적용. v1.2는 G1과 G2를 현행 Groq로 확정. v1.1은 지식니, 커넥니, 플로니 검토와 Fable Advisor 검토 반영) |
 | 기준 설계 | `teacher/plan/graphrag-agentic-search.md` v2.2(서브 워크플로우 O, L, G와 진단 신호의 출처) |
 | 슬라이드 | `teacher/plan/graphrag-agentic-search.pptx`(이 권고안으로 장표를 바꿈) |
 | 사용자 요구 | ① 검색 방법을 툴로 정의(검색엔진 검색, 엔티티 직접 검색(이웃 탐색까지), 커뮤니티 탐색, G1 ~ G3 묶음) ② LLM이 질문에 맞는 툴 조합을 고름 ③ 검색 경로를 정하는 3단계는 Anthropic Opus 모델 사용 ④ 2, 5, 7단계는 의사결정AI(TypeSafe Jev) 사용(2026-10-25) |
-| 결론 | **조건부 채택.** 3단계를 Opus ReAct 에이전트로 두고 툴 6개 + 종료 툴을 줌. 2, 5, 7단계의 판단은 Jev가 확률로 돌려주고 코드가 문턱값으로 정함(7장). 안전 장치는 코드(툴 래퍼, 그래프 노드)에 두고, 원 질문 재확인은 모든 요청에 함. **v2.2를 먼저 구현**하고(툴 내부가 곧 O, L, G 함수), 에이전트 노드를 더해 평가셋으로 비교한 뒤 채택함 |
+| 결론 | **조건부 채택.** 3단계를 Opus ReAct 에이전트로 두고 검색 툴 5개 + 종료 툴을 줌. 2, 5, 7단계의 판단은 Jev가 확률로 돌려주고 코드가 문턱값으로 정함(7장). 안전 장치는 코드(툴 래퍼, 그래프 노드)에 두고, 원 질문 재확인은 모든 요청에 함. **v2.2를 먼저 구현**하고(툴 내부가 곧 O, L, G 함수), 에이전트 노드를 더해 평가셋으로 비교한 뒤 채택함 |
 
 ## 0. 왜 바꾸나 (WHY)
 
@@ -54,7 +54,6 @@
 | `search_chunks` | `query`(string) | 벡터 + BM25 → RRF → 리랭킹 → 청크 최대 6개 | O1 ~ O4 |
 | `local_search` | `query`(string), `topic_id`(string 또는 null) | 청크 검색 → 엔티티 축소 → 1-hop 이웃 → 소속 보고서. `topic_id`를 주면 그 주제의 근거로 묶고, 래퍼가 그 주제의 Follow-up 질문을 채점 기준으로 씀 | L1 ~ L4 |
 | `global_search` | `question`(string) | 보고서 고르기 → 주제 1 ~ 5개와 Follow-up 질문 → 주제별 Local 검색까지 한 번에 | G1 ~ G3 |
-| `search_communities` | `query`(string) | 보고서 고르기 → **주제 1 ~ 5개와 주제별 Follow-up 질문 제안**까지(G1 + G2). 래퍼가 `topic_id`를 매겨 상태에 올림. 에이전트가 `local_search(topic_id)`로 근거를 붙임 | G1, G2 |
 | `find_entities` | `text`(string) | 엔티티 직접 검색 → 1-hop 이웃까지. 래퍼가 레이블별 키 속성으로 찾음(아래 2-3). 원문은 붙이지 않음 | 새 툴 |
 | `get_source_chunks` | `entity_ids`(string 배열, 최대 16), `with_reports`(boolean) | 엔티티가 나온 원문 청크. `with_reports`면 소속 보고서도 | L2 ~ L4 일부 |
 | `finish` | `status`(enum: `sufficient`, `unverifiable`, `need_clarification`), `reason`(string) | 수집 종료. 이유는 이 인자로만 받음(툴 호출 사이의 생각은 로그에 남지 않음) | - |
@@ -63,7 +62,7 @@
 
 | 항목 | 결정 | 까닭 |
 |------|------|------|
-| `search_communities` | **G1만 → G1 + G2(주제 ≤ 5와 Follow-up 제안)** | 보고서 1개를 주제 1개로 두면 주제가 12개까지 늘어 「주제마다 원문 1개, 상한 8」이 깨지고, 원 질문을 그대로 넣으면 Q25가 v2.2에서 막은 실패로 돌아감(Advisor). `global_search`와 같은 래퍼를 써서 모델 결정을 한 곳에 둠. 두 툴 합쳐 요청당 1회 |
+| `search_communities` | **제거(v1.4, 사용자 결정)** | v1.1에서 G1 + G2까지 하는 툴로 두었으나, `global_search`와의 차이가 「G3을 툴이 자동으로 하느냐」뿐이라 겹치는 툴이 모델의 선택을 흔듦. `global_search`가 매긴 `topic_id`로 원문을 못 찾은 주제만 `local_search(topic_id)`로 보충할 수 있어 유연성은 남음 |
 | `find_entities` | **「이름 정확 일치」 → 레이블별 키 매핑 + 정규화** | 그래프에 공통 이름 속성이 없음(실측: ProductGuide는 `card_name`, Clause는 `clause_no`, Consultation은 `record_id`. 회원 노드 없음). 이름 정확 일치는 성립하지 않음(Advisor, 클로니 확인) |
 | `search_chunks` | **남김(사용자 요구), 7단계가 그래프 연결을 직접 찾음** | Advisor는 L1과 겹치고, 에이전트가 가벼운 쪽으로 끝내면 「② 그래프 관계 연결」 구제가 안 돌아 두 사실을 묻는 질문(Q14, Q16)을 잘못 거절할 수 있다며 제거를 권함. 사용자가 「검색엔진 검색」 툴을 요구했으므로 남기되, 7단계 재확인 ②가 툴과 관계없이 원문 청크의 엔티티를 그래프에서 직접 찾아 연결을 봄. 그래서 어느 툴로 모았든 구제가 돎 |
 | `get_entity_reports` | `get_source_chunks(with_reports)`로 합침 | 원문 없이 보고서만 긁는 길을 없앰(지식니) |
@@ -78,7 +77,9 @@
 | Benefit | `name`, `benefit_id` | 공백, 괄호 정규화 |
 | TermsDocument | `version` | 활성 약관 버전 필터를 함께 검(아래 3장) |
 
-- 0건이면 `is_error` 없이 가까운 후보 3개를 돌려줌
+- 0건이면 `is_error` 없이 가까운 후보 3개를 돌려줌. 후보는 노드 설명 임베딩(`kg_entity_embedding`, K6) 유사도로 고름(v1.4)
+- 단계(v1.4): E1 정규화(위 표의 정규화, 회원은 2단계 가명 id만) → E2 키 찾기(레이블별 키 속성, 세대와 식별자 필터, 약관은 활성 버전) → E3 후보 제시(0건일 때) → E4 이웃 탐색(1-hop 이웃 엔티티와 관계, 원문 없음)
+- `get_source_chunks` 단계(v1.4): R1 원문 찾기(`FROM_CHUNK`, 엔티티 최대 16개, `with_reports`면 소속 보고서) → R2 필터 다시 걸기(식별자 필터 밖 청크 삭제) → R3 원 질문 재채점(5단계 신호 부착)
 
 ### 2-4. 문항 유형별 예상 경로
 
@@ -89,7 +90,7 @@
 | 회원 상담 | Q14 ~ Q17 | `find_entities(가명 id)` → Consultation → `get_source_chunks`, 또는 `local_search`(1 ~ 2) |
 | 함정 | Q18 ~ Q22 | `local_search` → `NO_COOCCUR` → `finish(unverifiable)`. 에이전트가 `sufficient`로 끝내도 7단계 재확인이 막음 |
 | 경향 | Q23, Q24 | `global_search`(1) |
-| 혼합 | Q25 | `global_search`, 또는 `search_communities` → 주제별 `local_search(topic_id)`(2) |
+| 혼합 | Q25 | `global_search` → 미확인 주제만 `local_search(topic_id)`(1 ~ 2) |
 
 ## 3. 안전 장치 (코드)
 
@@ -101,11 +102,11 @@
 | 약관 버전 | 그래프 쪽에도 활성 약관 버전 필터를 걸고, 버전이 다른 노드가 붙으면 `ID_MISMATCH`(Q20 「이전 버전 1.1」 질문 대비) | 래퍼 |
 | 카드 불일치 | 결과 청크의 `card_id`가 질문의 카드명과 다르면 `ID_MISMATCH` | 래퍼 |
 | 함정 질문 | **7단계 원 질문 재확인을 모든 요청에 무조건 함**: ① 핵심 명사 2개가 한 문장에 함께 있거나 ② 1-hop 관계(약한 관계 `IN_COMMUNITY` 제외)로 이어진 두 엔티티의 원문에 나뉘어 있어야 함. 에이전트가 `sufficient`로 끝내도 통과 못 하면 「확인할 수 없음」. 통과해도 Jev가 전제 충돌이나 근거 없음을 보면 「확인할 수 없음」(7-4) | 7단계 |
-| 질의 총량 | 요청당 서로 다른 질의 문자열 8개까지(「분해」라는 개념 대신 셀 수 있는 값으로) | 5단계 |
+| 질의 총량 | 요청 전체에서 쓴 서로 다른 질의 문자열 8개까지(다시 쓰기, 분해 포함. 「분해」라는 개념 대신 셀 수 있는 값으로). 셀 대상은 `search_chunks`, `local_search`, `global_search`의 질의 인자이며 `find_entities`의 `text`는 세지 않음(v1.4) | 5단계 |
 | 엔티티와 원문 연결 | `find_entities` 결과는 원문이 붙기 전까지 근거로 세지 않음 | 래퍼, 6단계 |
-| 주제 구조 | `topic_id`는 `global_search`, `search_communities`만 만듦. 목록에 없는 `topic_id`는 입력 오류 | 래퍼 |
-| 보고서 없는 세대 | `global_search`, `search_communities`를 입력 오류로 거절 | 래퍼 |
-| 회차와 호출 상한 | 회차 6, 한 회차 병렬 5, global 계열 요청당 1회 | 5단계 |
+| 주제 구조 | `topic_id`는 `global_search`만 만듦. 목록에 없는 `topic_id`는 입력 오류 | 래퍼 |
+| 보고서 없는 세대 | `global_search`를 입력 오류로 거절 | 래퍼 |
+| 회차와 호출 상한 | 회차 6, 한 회차 병렬 5, `global_search` 요청당 1회 | 5단계 |
 | 더 찾아도 소용없음 | `NO_NEW` 2회 연속이면 강제 종료(표현만 바꾼 재검색 대비) | 5단계 |
 | 같은 호출 반복 | (툴, 인자) 같은 호출 연속 2회면 강제 종료 | 5단계 |
 | 툴 전량 실패 | 한 회차의 툴이 모두 실패하기를 2회 하면 강제 종료 | 5단계 |
@@ -116,7 +117,7 @@
 
 | 상황 | `is_error` | 에이전트에게 주는 문구 |
 |------|-----------|------------------------|
-| 상한 소진(회차, global 계열, 질의 총량) | true | 「더 부를 수 없음. 지금 근거로 `finish`할 것」 |
+| 상한 소진(회차, `global_search`, 질의 총량) | true | 「더 부를 수 없음. 지금 근거로 `finish`할 것」 |
 | 입력 오류(빈 배열, 없는 `topic_id`, 보고서 없는 세대) | true | 무엇이 틀렸는지 한 줄 |
 | 저장소 한쪽 장애 | 없음 | 부분결과 + `warnings` |
 | 결과 0건 | 없음 | 빈 결과 + 신호(`NO_SEED`, `NO_REPORTS`). `find_entities`는 후보 3개 |
@@ -152,7 +153,7 @@
 | 3 검색 에이전트 | Claude Opus 5.5 (`claude-opus-5-5`), effort `medium` | 사용자 결정. 툴 인자(질의문)를 지어야 하므로 글을 만드는 모델이 맞음. Jev는 글을 만들지 않음 |
 | 5 채점과 상한 판정 | **규칙 + TypeSafe Jev** | **사용자 결정(2026-10-25).** 원문별 판정만 Jev, 세는 일은 코드(7-3) |
 | 7 수집 종료 판정 | **규칙 + TypeSafe Jev** | **사용자 결정(2026-10-25).** 코드 재확인이 먼저, Jev는 더 엄격하게만(7-4) |
-| `global_search`, `search_communities` 안의 G1(보고서 고르기), G2(Follow-up 질문) | **현행 LLM(Groq `openai/gpt-oss-120b`)** | **사용자 결정(2026-10-25).** v2.2 설계와 같은 모델이라 G1, G2 프롬프트와 실패 대체(보고서 벡터 상위 5개)를 그대로 씀. Advisor는 Opus를 권했으나(검색 경로 결정이라는 이유) 받지 않음. 상담 보고서 본문이 Anthropic으로 나가지 않는 점도 얻음 |
+| `global_search` 안의 G1(보고서 고르기), G2(Follow-up 질문) | **현행 LLM(Groq `openai/gpt-oss-120b`)** | **사용자 결정(2026-10-25).** v2.2 설계와 같은 모델이라 G1, G2 프롬프트와 실패 대체(보고서 벡터 상위 5개)를 그대로 씀. Advisor는 Opus를 권했으나(검색 경로 결정이라는 이유) 받지 않음. 상담 보고서 본문이 Anthropic으로 나가지 않는 점도 얻음 |
 | 8 답변 생성 | 현행 LLM(Groq `openai/gpt-oss-120b`) | 사용자 결정 범위 밖 |
 | 6 리랭킹(O4 포함) | Cohere `rerank-v4.0-fast` | 바꾸지 않음 |
 
@@ -290,3 +291,4 @@
 - 사용자 결정(2026-10-25): 2, 5, 7단계에 TypeSafe Jev를 씀. 3단계는 툴 인자(질의문)를 지어야 해 Opus로 둠.  
   클로니가 공식 문서(docs.typesafe.ai)를 읽고 7장을 씀. Jev 판정은 문턱값을 평가셋으로 맞추기 전까지 가정값임
 - Opus Advisor 검토(v1.3): 공식 문서와 사실 일치, 7단계가 느슨해지는 경로 없음. 보강 1건(5단계 캐시 키에 질문과 모델 버전 포함) 반영
+- 교재 검토 결정(2026-10-25, `teacher/plan/graph-search-textbook-review.md` 19, 20, 22번): `search_communities` 제거, E와 R 단계 명시, 질의 총량 셀 대상 명시. 툴 이름 `search_vector-bm25`(14번)는 교재 장표에만 적용하고 이 문서는 `search_chunks`를 유지
