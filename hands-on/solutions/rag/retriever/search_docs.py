@@ -849,7 +849,7 @@ def main() -> None:
     parser.add_argument("question", nargs="?", default=None, help="질문(따옴표로 감쌈). --qid를 쓰면 생략")
     parser.add_argument("--qid", default=None, help="평가셋 문항 번호(예: Q01). 역할과 회원은 평가셋 filters대로 정함")
     parser.add_argument(
-        "--role", choices=list(core.ROLE_ACCESS_LEVELS.keys()), default=None,
+        "--role", choices=list(core.ROLE_ACCESS_LEVELS.keys()), default="auditor",
         help="역할(기본 auditor: 약관, 혜택, 모든 회원의 상담 이력. --member-id를 주면 그 회원 상담만)",
     )
     parser.add_argument("--member-id", default=None, help="회원번호(예: M-1042). auditor일 때 그 회원의 상담 이력만 봄")
@@ -865,15 +865,13 @@ def main() -> None:
         item = load_eval_question(args.qid)
         question = item["question"]
         for condition in item["filters"]:
-            if "member_id" in condition and member_id is None and role is None:
-                member_id = condition["member_id"]  # 회원 상담 문항은 감사자 + 그 회원으로 실행
-                role = "auditor"
+            # 회원 상담 문항은 그 회원의 상담만 보게 회원번호를 채움(감사자일 때만. agent는 상담 이력을 볼 수 없음)
+            if "member_id" in condition and member_id is None and role == "auditor":
+                member_id = condition["member_id"]
         print(f"[평가셋 {args.qid}] 답 있음: {item['answerable']}")
     if question is None:
         print("  오류: 질문을 따옴표로 감싸 주거나 --qid Q01 처럼 문항 번호를 줌")
         sys.exit(1)
-    if role is None:
-        role = "auditor"  # 기본 역할은 감사자(전부 봄). 상담사 권한으로 보려면 --role agent
 
     print_step("[준비] 시작 검사, 색인 열기")
     resources = load_resources()
