@@ -3,6 +3,7 @@
 | 항목 | 내용 |
 |------|------|
 | 상태 | **권고안 v1.4** (2026-10-25, 교재 검토 결정 반영: `search_communities` 제거, `find_entities`와 `get_source_chunks` 단계(E, R) 명시, 질의 총량 셀 대상 명시. v1.3은 2, 5, 7단계에 의사결정AI TypeSafe Jev 적용. v1.2는 G1과 G2를 현행 Groq로 확정. v1.1은 지식니, 커넥니, 플로니 검토와 Fable Advisor 검토 반영) |
+| 실습 예제 변경(2026-10-25) | 실습 예제와 교재는 ③ 검색 에이전트를 Opus 5.5 대신 Groq `openai/gpt-oss-120b`로 씀(강사 결정, 비교 실험 근거는 `teacher/plan/graphrag-search-개발계획서.md` 15.2, 16장). 아래 5장의 Opus 배치는 권고안 당시 기록임 |
 | 기준 설계 | `teacher/plan/graphrag-agentic-search.md` v2.2(서브 워크플로우 O, L, G와 진단 신호의 출처) |
 | 슬라이드 | `teacher/plan/graphrag-agentic-search.pptx`(이 권고안으로 장표를 바꿈) |
 | 사용자 요구 | ① 검색 방법을 툴로 정의(검색엔진 검색, 엔티티 직접 검색(이웃 탐색까지), 커뮤니티 탐색, G1 ~ G3 묶음) ② LLM이 질문에 맞는 툴 조합을 고름 ③ 검색 경로를 정하는 3단계는 Anthropic Opus 모델 사용 ④ 2, 5, 7단계는 의사결정AI(TypeSafe Jev) 사용(2026-10-25) |

@@ -11,11 +11,11 @@
 ## 0. 이 실습에서 만드는 것
 
 인덱싱 실습이 만든 그래프(Neo4j)와 검색엔진(OpenSearch)에서 **근거를 모아 답하는 검색기**를 만듦.  
-교재 64쪽 카드 4장이 그대로 코드가 됨: **툴 고르기는 Opus, 판단은 Jev(확률만), 막는 일은 코드, 툴 안은 고정 순서**.
+교재 64쪽 카드 4장이 그대로 코드가 됨: **툴 고르기는 에이전트(Groq), 판단은 Jev(확률만), 막는 일은 코드, 툴 안은 고정 순서**.
 
 ```text
 ① 요청 접수(코드) → ② 질문 분석(코드 + Jev)
-   → ③ 검색 에이전트(Opus) ⇄ ④ 툴 실행(래퍼 + 서브 워크플로우) ⇄ ⑤ 채점과 상한(코드 + Jev)   … 반복 1, 최대 6회차
+   → ③ 검색 에이전트(Groq) ⇄ ④ 툴 실행(래퍼 + 서브 워크플로우) ⇄ ⑤ 채점과 상한(코드 + Jev)   … 반복 1, 최대 6회차
       ③ ~ ⑤는 LangChain create_agent + 미들웨어 2개(GuardMiddleware, ToolWrapperMiddleware)
    → ⑥ 리랭킹(Cohere) → ⑦ 수집 종료 판정(코드 재확인 → Jev)
    → ⑧ 답변 생성(Groq, LCEL 체인 + 구조화 출력) ⇄ ⑨ 근거 검증(코드)                       … 반복 2, 재작성 최대 2회
@@ -32,8 +32,8 @@
 |---|---|---|
 | 1 | 인덱싱 실습 완료(활성 세대). 없으면 `../indexer`에서 `index_graph.py --run {별명}-f1 --reuse data/teacher` | `indexer/data/active_generation.json`의 `chunk_count` 260 |
 | 2 | Neo4j와 OpenSearch 기동 | `docker compose -f neo4j/compose.yml ps`가 `healthy` |
-| 3 | 공용 가상환경에 패키지 2개 추가(README 3장: `pip install -r retriever/requirements.txt`) | 설치 확인 명령이 `ok` |
-| 4 | `secrets/.env`에 키 4줄: `CLAUDE_API_KEY`, `JEV_API_KEY`, `GROQ_API_KEY`, `COHERE_API_KEY`(강사 배포) | 아래 명령이 ⑩까지 끝남 |
+| 3 | 공용 가상환경에 패키지 1개(typesafe-sdk) 추가(README 3장: `pip install -r retriever/requirements.txt`) | 설치 확인 명령이 `ok` |
+| 4 | `secrets/.env`에 키 3줄: `JEV_API_KEY`, `GROQ_API_KEY`, `COHERE_API_KEY`(강사 배포) | 아래 명령이 ⑩까지 끝남 |
 
 ```bash
 cd hands-on/solutions/graphrag/retriever
@@ -41,7 +41,7 @@ cd hands-on/solutions/graphrag/retriever
 ```
 
 macOS와 Linux는 `../.venv/Scripts/python.exe` 대신 `../.venv/bin/python`.  
-실행마다 Opus 실제 비용이 찍힘(질문 하나 약 $0.02 ~ 0.05). 함수 하나를 고칠 때마다 질문 한두 개만 돌려 확인함.
+실행마다 에이전트(Groq) 실제 비용이 찍힘(질문 하나 약 $0.001 ~ 0.005). 함수 하나를 고칠 때마다 질문 한두 개만 돌려 확인함.
 
 ## 2. 수업 흐름
 
@@ -73,12 +73,12 @@ macOS와 Linux는 `../.venv/Scripts/python.exe` 대신 `../.venv/bin/python`.
 | 줄 | 볼 것 | Q01(강사 PC) | Q19(강사 PC) |
 |---|---|---|---|
 | `② Jev` / `② 코드의 결정` | 잡담, 모호 확률과 첫 툴 후보 | 모호 0.21, 첫 툴 `local_search` | 첫 툴 `local_search` |
-| `③ →` | Opus가 고른 툴과 질의 | `local_search` 1회 | 여러 툴(실행마다 다름) |
+| `③ →` | 에이전트가 고른 툴과 질의 | `local_search` 또는 `search_vector-bm25` 1회 | 여러 툴(실행마다 다름) |
 | `⑤ 신호` | 진단 신호, 포함률, 공존 문장 | 공존 3문장 | `NO_COOCCUR` 등 |
 | `⑦ 코드 재확인` | 조건 ①, ② | 조건 ① 통과 | 불통과(「가족돌봄」과 「해외」를 잇는 근거 없음) |
-| `⑩ 종료 상태` | 이름과 이유, Opus 비용 | 답변 완료, 약 $0.02 ~ 0.03 | 확인할 수 없음 |
+| `⑩ 종료 상태` | 이름과 이유, 에이전트 비용 | 답변 완료, 약 $0.001 | 확인할 수 없음 |
 
-Opus는 temperature를 줄 수 없어 **실행마다 고르는 툴이 다를 수 있음**. 강사와 비교할 때는 툴 경로보다 신호, 판정, 종료 상태를 봄.
+temperature 0이어도 LLM은 **실행마다 고르는 툴이 다를 수 있음**. 강사와 비교할 때는 툴 경로보다 신호, 판정, 종료 상태를 봄.
 
 ### Step 2. 본인 코드로 바꿀 준비
 
@@ -125,7 +125,7 @@ Opus는 temperature를 줄 수 없어 **실행마다 고르는 툴이 다를 수
 | 교체 실행 | `USE_TEACHER_CODE`가 빈 `my_search.py`로 Q01이 「답변 완료」, ⑨ 검증 통과 |
 | 함정 질문 | Q19가 「확인할 수 없음」(어느 단계에서 막혔는지 설명할 수 있음) |
 | 회원 권한 | `--qid Q14`에서 다른 회원 원문이 0건이고, 같은 질문을 `--role agent`로 돌리면 상담 원문이 0건 |
-| 제출 | `my_search.py`와 Q01, Q19 실행 화면 캡처(Opus 비용 줄 포함) |
+| 제출 | `my_search.py`와 Q01, Q19 실행 화면 캡처(에이전트 비용 줄 포함) |
 
 ## 5. 막혔을 때
 
@@ -152,12 +152,12 @@ Opus는 temperature를 줄 수 없어 **실행마다 고르는 툴이 다를 수
 | LCEL 체인 | `프롬프트 \| 모델`처럼 `\|`로 단계를 이어 붙이는 LangChain 문법 |
 | 구조화 출력 | LLM이 정해진 칸(Pydantic 스키마)을 채운 객체로 답하게 함(`with_structured_output`) |
 | 함정 질문 | 문서에 없는 사실을 있는 것처럼 묻는 질문. 지어내지 않고 「확인할 수 없음」으로 멈춰야 함 |
-| 생각 토큰 | Opus가 답 전에 쓰는 생각. 끌 수 없고 출력 요금으로 셈 |
+| 추론 토큰 | gpt-oss가 답 전에 쓰는 추론. 출력 요금으로 셈(reasoning_effort로 강도를 정함) |
 
 ## 7. 더 해 보기(선택)
 
 - `search_graph.py` 맨 위 `PASSAGE_THRESHOLDS`의 `relevant_min`(0.45)을 0.3으로 내리고 Q18이 여전히 막히는지 봄
-- `MAX_ROUNDS`를 2로 줄이고 Q25(혼합 질문)의 종료 상태와 Opus 비용이 어떻게 바뀌는지 봄
+- `MAX_ROUNDS`를 2로 줄이고 Q25(혼합 질문)의 종료 상태와 에이전트 비용이 어떻게 바뀌는지 봄
 - `--no-answer`로 Q09를 돌려 ⑩ 「검색 결과」(근거 목록만)를 봄
 - `--role agent`와 `--role auditor --member-id M-1042`로 같은 상담 질문을 돌려 볼 수 있는 청크 수를 비교함
 

@@ -39,9 +39,9 @@
 - 코드: core_search.py build_agent
 - 번호
   - ❶ | agent = create_agent( | 에이전트 만들기 | 「모델 → 툴 → 모델」 고리를 LangGraph 그래프로 만들어 줌
-  - ❷ | model=model, | Opus 5.5 | 다음 툴과 질의를 고름. effort medium, 생각은 끌 수 없음
+  - ❷ | model=model, | Groq gpt-oss-120b | 다음 툴과 질의를 고름. G1, G2, ⑧과 같은 모델, reasoning_effort medium
   - ❸ | tools=tools, | 툴 6개 | 검색 툴 5개 + finish. 입력에 필터 칸이 없음
-  - ❹ | middleware=middleware, | 미들웨어 | 상한과 강제 종료(GuardMiddleware), 래퍼와 채점(ToolWrapperMiddleware), 프롬프트 캐시
+  - ❹ | middleware=middleware, | 미들웨어 | 상한과 강제 종료(GuardMiddleware), 래퍼와 채점(ToolWrapperMiddleware)
   - ❺ | context=context, | 작업 기록 | 툴과 미들웨어가 함께 보는 이 요청의 기록(필터, 모은 근거, 회차)
   - ❻ | config={"recursion_limit": | 안전 상한 | 프레임워크 쪽 상한. 코드 상한(6회차)보다 넉넉히 둠
 - 굵게
@@ -50,8 +50,8 @@
 - 상세 보기 링크: https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/graphrag/retriever/core_search.py
 - 발표자 노트
   - 교육생 실습 함수 build_agent(빈칸 2곳)의 정답임. 빈칸은 create_agent 호출과 invoke 호출
-  - 메시지는 덧붙이기만 됨(append-only). Opus 5.5는 이전 턴을 고치면 생각 블록이 깨질 수 있음
-  - 툴 강제 옵션과 temperature는 Opus 5.5에서 400 오류라 보내지 않음
+  - 메시지는 덧붙이기만 됨(append-only). 앞부분이 같은 입력은 Groq가 자동으로 캐시해 회차가 늘어도 입력 비용이 작음
+  - 에이전트 모델은 처음 설계의 Claude Opus 5.5에서 Groq로 바꿈(강사 결정 2026-10-25). 비교 실험에서 품질은 거의 같고 더 빠르고 쌌음
 
 ## 슬라이드 3. ④ 툴 실행 래퍼
 - 넣을 자리: 3. 검색: ④ 툴 실행 – 검색 툴 5개
@@ -256,7 +256,7 @@
 - 발표자 노트
   - 교육생 실습 함수 recheck_question(빈칸 2곳)의 정답임. 빈칸은 조건 ①의 공존 문장 수와 조건 ②의 관계 확인
   - 통과한 뒤에는 제공 함수 decide_collection이 Jev 판정을 봄. 답 근거 원문이 0개면 불통과, 전제 충돌은 통과 + 표시
-  - 함정 5문항 × 3회 실측: 15번 모두 「확인할 수 없음」, 그중 14번을 ⑦이 막음. 대가로 낱말이 다른 질문(Q14 「해지」와 「정리」)은 오거절됨
+  - 함정 5문항 × 3회 실측(에이전트 Groq): 15번 모두 「확인할 수 없음」이고 모두 ⑦이 막음. 대가로 낱말이 다른 질문(Q14 「해지」와 「정리」)은 오거절됨
 
 ## 슬라이드 12. ⑧ 답변 생성
 - 넣을 자리: 3. 검색: ⑧ 답변 생성, ⑨ 근거 검증
@@ -308,11 +308,11 @@
   - ❶ | END_STATES = { | 종료 상태 표 | 코드 → (이름, 뜻). 교재 79쪽 표와 같은 7가지(+ 생성 실패)
   - ❷ | "unverifiable": | 확인할 수 없음 | 근거가 없어 지어내지 않고 멈춤. 실패가 아니라 정상 종료
   - ❸ | name, meaning = END_STATES[end_code] | 이름과 뜻 꺼내기 | 끝난 자리에서 넘긴 코드로 표를 찾음
-  - ❹ | return {"status": name | 돌려줄 것 | 이름, 뜻, 이유, 답, 근거 목록, 경고. main이 Opus 비용을 덧붙여 화면에 찍음
+  - ❹ | return {"status": name | 돌려줄 것 | 이름, 뜻, 이유, 답, 근거 목록, 경고. main이 에이전트 비용을 덧붙여 화면에 찍음
 - 굵게
   - END_STATES[end_code]
 - 상세 보기 링크: https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/graphrag/retriever/core_search.py
 - 발표자 노트
   - 교육생 실습 함수 make_end_state(빈칸 1곳)의 정답임
-  - 화면 맨 끝에는 Opus 실제 비용(응답의 토큰 사용량 × 단가)과 호출 수, 툴 경로가 찍힘
-  - 평가셋 25문항 마지막 실행: 답 있는 20문항 중 답변 완료 18, 함정 5/5 확인할 수 없음, Opus 비용 합계 $0.75
+  - 화면 맨 끝에는 ③ 에이전트(Groq) 실제 비용(응답의 토큰 사용량 × 단가)과 호출 수, 툴 경로가 찍힘
+  - 평가셋 25문항 마지막 실행(에이전트 Groq): 답 있는 20문항 중 답변 완료 16, 함정 5/5 확인할 수 없음, 에이전트 비용 합계 $0.0415
