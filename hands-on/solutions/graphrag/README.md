@@ -27,9 +27,41 @@ hands-on/solutions/graphrag/
 | 항목 | 값 |
 |---|---|
 | Python | 3.13 |
-| 백킹 서비스 | Neo4j(APOC, GDS), OpenSearch. 저장소 루트 `backing-services/`의 compose로 띄움(indexer/README.md 3.1) |
+| 백킹 서비스 | Neo4j(APOC, GDS), OpenSearch. 저장소 루트 `backing-services/`의 compose로 띄움(2.1) |
 | API 키 | 저장소 루트 `secrets/.env`: `GROQ_API_KEY`, `COHERE_API_KEY`(indexer, retriever), `JEV_API_KEY`(retriever) |
 | 선행 실습 | RAG 인덱싱 결과 `hands-on/solutions/rag/indexing/data/chroma`(없으면 RAG 실습을 먼저 돌리거나 강사 배포본 복사) |
+
+### 2.1 백킹 서비스 실행, 중지, 삭제
+
+Neo4j(그래프 DB)와 OpenSearch(검색엔진)는 indexer와 retriever가 쓰고, PostgreSQL(rdb)은 `schema/rdb` 도구만 씀.  
+명령은 모두 **저장소 루트의 `backing-services` 폴더**에서 실행함(가상환경과 상관없음). Docker Desktop이 켜져 있어야 함.
+
+처음 한 번: Neo4j 비밀번호 파일을 만듦(`backing-services/neo4j/.env.example`을 복사해 `.env`로 저장하고 `NEO4J_PASSWORD`를 적음.  
+자세한 것은 [neo4j/README.md](../../../backing-services/neo4j/README.md))
+
+```bash
+cd backing-services
+```
+
+| 하는 일 | Neo4j | OpenSearch | 데이터 |
+|---|---|---|---|
+| 실행(만들고 켬) | `docker compose -f neo4j/compose.yml up -d` | `docker compose -f opensearch/compose.yml up -d` | 남음 |
+| 상태 확인 | `docker compose -f neo4j/compose.yml ps` | `docker compose -f opensearch/compose.yml ps` | - |
+| 중지(잠시 멈춤) | `docker compose -f neo4j/compose.yml stop` | `docker compose -f opensearch/compose.yml stop` | 남음 |
+| 멈춘 것 다시 켬 | `docker compose -f neo4j/compose.yml start` | `docker compose -f opensearch/compose.yml start` | 남음 |
+| 삭제(컨테이너만) | `docker compose -f neo4j/compose.yml down` | `docker compose -f opensearch/compose.yml down` | 남음(볼륨 유지) |
+| 삭제(데이터까지) | `docker compose -f neo4j/compose.yml down -v` | `docker compose -f opensearch/compose.yml down -v` | **지워짐** |
+| 로그 보기 | `docker compose -f neo4j/compose.yml logs --tail 50` | `docker compose -f opensearch/compose.yml logs --tail 50` | - |
+
+- 실행 뒤 상태가 `healthy`가 되면(30초쯤) 준비 끝. Neo4j는 처음 실행 때 APOC, GDS 플러그인을 받느라 1 ~ 2분 걸릴 수 있음
+- 둘을 한꺼번에: `docker compose -f neo4j/compose.yml up -d; docker compose -f opensearch/compose.yml up -d`(중지, 삭제도 같은 꼴)
+- `restart: unless-stopped`라서 Docker Desktop을 다시 켜면 실행 중이던 컨테이너도 따라 켜짐. `stop`으로 멈춘 것은 켜지지 않음
+- Neo4j는 `stop` 뒤 상태가 `Exited (137)`로 보일 수 있음(종료 대기 시간 10초를 넘겨 강제 종료된 표시). 데이터는 남음(2026-10-26 실측)
+- **`down -v`는 볼륨(Neo4j `hybrid-ai-neo4j-data` 등, OpenSearch `hybrid-ai-opensearch-data`)까지 지움.**  
+  그래프 세대와 검색 인덱스가 모두 사라지므로 indexer를 다시 돌려야 하고, `indexer/data/active_generation.json`도 맞지 않게 됨.  
+  Neo4j 비밀번호를 바꿀 때처럼 처음부터 다시 만들 때만 씀
+- PostgreSQL(rdb, `schema/rdb` 도구용)도 같은 꼴: `docker compose -f rdb/compose.yml up -d`, `stop`, `start`, `down`, `down -v`.  
+  rdb는 `down -v` 뒤 다시 `up -d` 하면 `rdb/init`의 SQL로 데이터를 다시 채움([rdb/README.md](../../../backing-services/rdb/README.md))
 
 ## 3. 가상환경 설정과 패키지 설치
 

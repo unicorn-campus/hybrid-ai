@@ -80,19 +80,31 @@ hands-on/solutions/graphrag/
 | Neo4j 비밀번호 | 환경변수 `NEO4J_PASSWORD` 또는 `backing-services/neo4j/.env` |
 | 로컬 모델 | 없음(GPU, torch 불필요) |
 
-### 3.1 Neo4j와 OpenSearch 띄우기(처음 한 번)
+### 3.1 Neo4j와 OpenSearch 실행, 중지, 삭제
 
-저장소 루트의 `backing-services` 폴더에서 실행함. 비밀번호 설정은 `backing-services/neo4j/README.md`를 따름.
-
-```bash
-docker compose -f neo4j/compose.yml up -d
-```
+저장소 루트의 `backing-services` 폴더에서 실행함. 비밀번호 설정은 `backing-services/neo4j/README.md`를 따름.  
+전체 명령 표(상태, 다시 켜기, 로그, rdb 포함)는 [상위 README 2.1](../README.md#21-백킹-서비스-실행-중지-삭제)에 있음.
 
 ```bash
+docker compose -f neo4j/compose.yml up -d          # 실행
 docker compose -f opensearch/compose.yml up -d
+docker compose -f neo4j/compose.yml ps             # 상태 확인(healthy가 되면 준비 끝, 30초쯤)
+docker compose -f opensearch/compose.yml ps
 ```
 
-둘 다 `healthy`가 되면(30초쯤) 준비 끝. 확인은 `docker compose -f neo4j/compose.yml ps`.
+```bash
+docker compose -f neo4j/compose.yml stop           # 중지(데이터 남음). 다시 켤 때는 start
+docker compose -f opensearch/compose.yml stop
+docker compose -f neo4j/compose.yml down           # 삭제: 컨테이너만(데이터 남음)
+docker compose -f opensearch/compose.yml down
+```
+
+```bash
+docker compose -f neo4j/compose.yml down -v        # 삭제: 데이터까지(그래프 세대와 검색 인덱스가 모두 사라짐)
+docker compose -f opensearch/compose.yml down -v
+```
+
+`down -v` 뒤에는 그래프와 인덱스가 비어 있으므로 indexer를 다시 돌림(`--reuse data/teacher`면 LLM 없이 몇 분).
 
 ### 3.2 가상환경(상위 폴더에서 만들고 활성화)
 

@@ -266,3 +266,7 @@ Advisor(Opus) 사전 자문 1회, 팀원 리뷰 3회(기본 모델), 형식 점�
 - 검증: 새 가상환경에 `pip install -r requirements.txt` 성공, `pip check` 문제 없음. 활성화 뒤 `check_graph.py --qid Q09` 적중,  
   `search_graph.py --qid Q01` 답변 완료. 기존 `.venv`를 PowerShell에서 활성화해 설치 보충(psycopg) 뒤 `--qid Q19` 확인할 수 없음(함정 차단).  
   활성 세대를 바꾸는 `index_graph.py --sample`은 검색 실습 그래프를 바꾸므로 돌리지 않고 `--help`로만 확인함
+- 백킹 서비스 명령 추가(2026-10-26 강사 지시 「backing service 실행, 중지, 삭제 명령도 추가」): `graphrag/README.md` 2.1에  
+  Neo4j, OpenSearch의 실행(`up -d`), 상태(`ps`), 중지(`stop`), 다시 켬(`start`), 삭제(`down`, `down -v`), 로그 표와 rdb 안내를,  
+  `indexer/README.md` 3.1에 실행, 중지, 삭제 명령을 넣음. 실측: OpenSearch와 Neo4j를 `stop` → `start` → `down` → `up -d` 순서로 돌려  
+  모두 healthy, 검색 인덱스 260건과 Neo4j 노드 2,011개가 그대로 남음. 데이터를 지우는 `down -v`는 실행하지 않음
