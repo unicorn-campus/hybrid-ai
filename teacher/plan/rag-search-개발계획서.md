@@ -177,7 +177,8 @@ hands-on/solutions/rag/
 
 - agent에 `--member-id`를 주면 무시하고 안내함(agent는 상담 이력을 볼 수 없음)
 - auditor + 회원이 public을 빼는 이유: 약관이 섞이면 회원 질문 근거 5개 중 절반이 약관으로 채워짐(이전 예제 실측)
-- `--qid`는 평가셋 `filters`에 회원이 있으면 auditor + 그 회원, 나머지는 agent로 자동 실행(이전 예제와 같은 규칙)
+- `--qid`는 평가셋 `filters`에 회원이 있으면 auditor + 그 회원, 나머지는 기본 역할로 실행. 기본 역할은 처음 agent였다가  
+  2026-10-26 강사 지시로 auditor로 바꿈(15.8)
 
 ## 5. 실습 순서와 교시 배치(안)
 
@@ -406,3 +407,13 @@ Git Bash에서는 `/websites/langchain` 같은 인자가 Windows 경로로 바�
 - 검증: PowerShell에서 `.venv\Scripts\Activate.ps1` → `python search_docs.py --qid Q01` 답변 완료, `deactivate` 확인.  
   자식 PowerShell을 `-ExecutionPolicy Restricted`로 띄워 막힘(「running scripts is disabled」)을 재현하고, 방법 1 뒤 활성화 성공.  
   영구 정책(CurrentUser RemoteSigned)은 바뀌지 않음. Git Bash에서 `source .venv/Scripts/activate` → `--qid Q18` 되묻기, `index_docs.py --limit 8` 완료
+
+### 15.8 기본 역할을 auditor로 변경(2026-10-26 강사 지시)
+
+- 강사 지시: 「role의 기본 값을 auditor로 주세요」(질문 「role과 member-id를 안 넘기면 모든 상담 데이터를 검색하나요?」에 이어서)
+- `search_docs.py`: `--role`을 주지 않으면 auditor(약관, 혜택, 모든 회원의 상담 이력). `--qid` 회원 문항은 그대로 auditor + 그 회원.  
+  상담사 권한은 `--role agent`, 한 회원만 볼 때는 `--member-id`(가명화 전 회원번호. 검색기가 인덱서와 같은 식으로 가명 ID를 만듦)
+- 평가셋 25문항 재실행: 답 있는 20문항 답변 완료 19(이전 18), 근거 적중 18/20(같음), 답 없는 5문항 5/5 확인 필요(같음).  
+  경향 질문 Q23 ~ Q25가 모든 회원 상담을 근거로 답함. Q17은 질문 변환 LLM이 되묻기를 골라 끝남(회원 지정 질문, 실행마다 다름)
+- README(실행 표, 5장 예시 화면과 정상 기준, 7.1 실측), 실습 가이드, 가이드 슬라이드의 Q01 예시 값을 auditor, 260청크로 고침
+

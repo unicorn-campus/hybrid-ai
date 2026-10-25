@@ -848,7 +848,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="RAG 검색 워크플로우(교재 150쪽 ① ~ ⑥)")
     parser.add_argument("question", nargs="?", default=None, help="질문(따옴표로 감쌈). --qid를 쓰면 생략")
     parser.add_argument("--qid", default=None, help="평가셋 문항 번호(예: Q01). 역할과 회원은 평가셋 filters대로 정함")
-    parser.add_argument("--role", choices=list(core.ROLE_ACCESS_LEVELS.keys()), default=None, help="역할(기본 agent)")
+    parser.add_argument(
+        "--role", choices=list(core.ROLE_ACCESS_LEVELS.keys()), default=None,
+        help="역할(기본 auditor: 약관, 혜택, 모든 회원의 상담 이력. --member-id를 주면 그 회원 상담만)",
+    )
     parser.add_argument("--member-id", default=None, help="회원번호(예: M-1042). auditor일 때 그 회원의 상담 이력만 봄")
     parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K, help=f"질의당 근거 수(기본 {DEFAULT_TOP_K})")
     parser.add_argument("--fusion", choices=["weighted", "rrf"], default="weighted", help="벡터와 BM25 융합 방식(기본 weighted)")
@@ -870,7 +873,7 @@ def main() -> None:
         print("  오류: 질문을 따옴표로 감싸 주거나 --qid Q01 처럼 문항 번호를 줌")
         sys.exit(1)
     if role is None:
-        role = "agent"
+        role = "auditor"  # 기본 역할은 감사자(전부 봄). 상담사 권한으로 보려면 --role agent
 
     print_step("[준비] 시작 검사, 색인 열기")
     resources = load_resources()
