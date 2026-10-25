@@ -7,7 +7,7 @@
 | 단계 ID | 메인 워크플로우는 일련번호 `1` ~ `11`. 서브 워크플로우는 접두어 + 일련번호: 검색엔진 검색 `O1` ~ `O4`, Local 검색 `L1` ~ `L4`, Global 검색 `G1` ~ `G3`. 반복 구간은 `반복 1`, `반복 2`. 분기 번호는 표시하지 않음 |
 | 작성 규칙 | `references/design-workflow-connector.md`의 단계 명세, 반복 구간, 커넥터 형식. 시간 예산, 타임아웃, 최악값은 다루지 않음 |
 | 앞선 문서 | `teacher/plan/graphrag-search-flow.md`(Local, Global 검색의 안쪽 흐름과 Best Practice 조사) |
-| 슬라이드 | `teacher/plan/graphrag-agentic-search.pptx`(스크립트 `graphrag-agentic-search-slides.md`) |
+| 슬라이드 | `teacher/plan/graphrag-agentic-search.pptx`(스크립트 `graphrag-agentic-search-slides.md`). 2026-10-24부터 덱은 ReAct 권고안(`graphrag-react-search.md`)을 기준으로 바뀌었고, 이 문서는 툴 안의 서브 워크플로우(O, L, G)와 진단 신호의 상세로 쓰임 |
 
 ## 0. 무엇이 바뀌나 (WHY)
 
