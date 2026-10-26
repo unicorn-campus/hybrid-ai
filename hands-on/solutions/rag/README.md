@@ -108,7 +108,8 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
 - 지금 설정 보기: `Get-ExecutionPolicy -List`. 방법 2를 되돌리려면 `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Undefined`
 - 회사 PC처럼 관리자가 정책을 막아 두어 위 명령도 안 되면, 활성화 없이 가상환경의 파이썬을 직접 지정해 실행함  
-  (예: `.venv\Scripts\python.exe -m pip install -r requirements.txt`, `..\.venv\Scripts\python.exe search_docs.py --qid Q01`)
+  (예: `.venv\Scripts\python.exe -m pip install -r requirements.txt`,  
+  `..\.venv\Scripts\python.exe search_docs.py --qid Q01`)
 - 저장소를 통째로 clone해서 씀. `rag/` 폴더만 복사하면 `docs/`와 `secrets/`를 찾지 못함
 
 ## 4. 실행 순서
@@ -136,6 +137,36 @@ python search_docs.py "직전 12개월 동안 카드를 얼마나 쓰면 다음 
 
 각 단계의 자세한 옵션과 출력 읽는 법은 폴더별 README에 있음:
 [indexing](indexing/README.md), [retriever](retriever/README.md).
+
+### 4.1 검색 역할과 테스트용 회원번호
+
+검색기(`retriever/search_docs.py`)는 역할과 회원번호로 볼 수 있는 청크를 검색 전에 거름. 기본 역할은 auditor(감사자)임.
+
+| 실행 | 검색 대상 | BM25 대상 청크 |
+|---|---|---|
+| 옵션 없음(기본 auditor) | 약관, 혜택 안내, 모든 회원의 상담 이력 | 260개 |
+| `--role agent` | 약관, 혜택 안내만(상담 이력 0건) | 212개 |
+| `--member-id M-1042` | 그 회원의 상담 이력만 | 4개 |
+| `--qid Q14`처럼 평가셋 회원 문항 | 그 회원의 상담 이력만(회원번호 자동) | 4개 |
+
+`--member-id`에는 가명화 전 회원번호를 그대로 넘김(대소문자, 공백까지 같게). 검색기가 인덱서와 같은 식으로 가명 ID로 바꿔 거름.  
+상담 이력(`docs/D3_S*.txt`)에는 회원 12명이 있고 회원마다 상담 4건임. 처음에는 평가셋 정답이 있는 **M-1042**, **M-3001**로 확인함.
+
+| 고객군(상담 파일) | 회원번호와 상담 주제 | 평가셋 문항 |
+|---|---|---|
+| 신규가입(S01) | M-1001 앱 인증 불편 완화, M-1050 명세서 항목 이해 | - |
+| 장기보유(S02) | **M-1042 연회비 대비 가치**, M-2048 민원 처리 경과 부재 | M-1042: Q14, Q15, Q21 |
+| VIP(S03) | **M-3001 타사 관리 절차 비교**, M-3049 가전 구매 주기 | M-3001: Q16, Q17, Q22 |
+| 휴면직전(S04) | M-4001 광고 알림 누적, M-4049 우편 주소 수정 | - |
+| 다중카드(S05) | M-5001 카드 중복, M-5049 의심 문자 확인 | - |
+| 연회비부담(S06) | M-6001 혜택 불일치, M-6049 생활비 절약 | - |
+
+```bash
+python search_docs.py "첫 상담에서 무엇을 비교해 달라고 했나요?" --member-id M-1042   # retriever 폴더에서
+```
+
+정상이면 ①단계에 가명 ID(예: `m_59853c3d8e1e3c25`)와 「BM25 대상 청크: 4개」가 찍힘. 번호가 틀리면 「대상 청크 0개」 경고가 남.  
+예시 명령과 확인 포인트는 [retriever README 4.1](retriever/README.md#41-테스트용-회원번호)에 더 있음.
 
 ## 5. 화면 출력에 쓰인 형식 기호
 
