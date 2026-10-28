@@ -498,7 +498,17 @@ def grade_query(resources: dict, query: str, result: dict) -> tuple:
 
 
 def describe_signals(signals: dict) -> list[str]:
-    """신호 6개를 기준값과 나란히 적은 문장 목록으로 만듦(화면과 질문 변환 프롬프트에 함께 씀)."""
+    """신호 6개를 기준값과 나란히 적은 문장 목록으로 만듦(화면과 질문 변환 프롬프트에 함께 씀).
+
+    결과 예시(signals가 result_count 5, main_score 0.62, gap 0.04, keywords ["한빛모아생활"], overlap 2 등일 때):
+        결과 수 5건 (0건이면 부정확)
+        주 점수(1위 리랭크) 0.620 (하한 0.3, 상한 0.7)
+        격차(1위 - 다른 대상 최고) 0.040 (최소 0.05)
+        핵심어 ['한빛모아생활'] → 근거에 없는 것 []
+        대상 일치 True (질문의 카드 ['한빛모아생활'])
+        검색기 합의(벡터, BM25 상위 겹침) 2개 (최소 1, 1위 0.9 이상이면 면제)
+    리랭크가 실패해 main_score가 None이면 둘째 줄이 "주 점수 없음 (리랭크 실패)"가 되고 격차 줄은 빠짐
+    """
     lines = []
     lines.append(f"결과 수 {signals['result_count']}건 (0건이면 부정확)")
     if signals["main_score"] is None:
@@ -519,7 +529,26 @@ def describe_signals(signals: dict) -> list[str]:
 def step4_transform(resources: dict, item: dict, access: dict, top_k: int, fusion: str) -> dict:
     """④ 불확실 질의 하나를 변환하고(LLM 제안 → 코드 금지 규칙) 재검색, 재검증함. item을 고쳐 돌려줌.
 
+    item 인자값: ③ 검색과 ④ 검증을 마친 질의 하나의 상태 dict(run_workflow가 질의마다 만듦). 키는 아래와 같음
+    - label: 질의 이름표(q1, q2 ...)
+    - query: 원 질의(복합 질문이면 하위 질문 하나). 리랭크와 검증의 기준
+    - result: ③ 검색 결과 dict(parts, fused_hits, final_hits, reranked, vector_ids, bm25_ids). 재검색하면 새 값으로 바뀜
+    - signals: ④ 판정 근거 신호 dict(main_score, gap, keywords 등). 재검색하면 새 값으로 바뀜
+    - grade: ④ 판정(정확, 불확실, 부정확). 재검색하면 새 값으로 바뀜
+    - research_count: 지금까지 재검색한 횟수(MAX_RESEARCH까지)
+    - searched: 지금까지 검색한 질의 목록(처음에는 [query]). 같은 질의를 반복하지 않도록 질문 변환에 넘기고, 재검색하면 변환 질의가 더해짐
+    - transform: 질문 변환의 최종 결정 dict(처음에는 None). 이 함수가 채움
+
     반환값: item에 transform(최종 결정)을 더하고, 재검색했으면 result, signals, grade를 새 값으로 바꿈.
+
+    결과 예시(multi로 재검색해 판정이 바뀐 경우. 값은 설명용으로 지어낸 것임):
+    - 변환 전: {"label": "q1", "query": "모아생활 연회비 안 내려면 어케 해?", "grade": "불확실", "research_count": 0,
+               "searched": ["모아생활 연회비 안 내려면 어케 해?"], "transform": None, ...}
+    - 변환 뒤: {"label": "q1", "query": "모아생활 연회비 안 내려면 어케 해?", "grade": "정확", "research_count": 1,
+               "searched": ["모아생활 연회비 안 내려면 어케 해?", "한빛모아생활 연회비 면제 조건", "한빛모아생활 연회비 면제 실적"],
+               "transform": {"technique": "multi", "queries": ["한빛모아생활 연회비 면제 조건", "한빛모아생활 연회비 면제 실적"],
+                            "include_original": False, "clarify_question": "", "reason": "...", "warnings": []}, ...}
+      (result, signals, grade는 재검색 결과로 바뀜. keep이나 clarify면 transform만 채워지고 나머지는 그대로임)
     """
     query = item["query"]
     forced = core.mixed_target_clarify(item["signals"]["question_cards"], item["result"]["final_hits"])
@@ -644,7 +673,7 @@ def run_workflow(resources: dict, question: str, role: str, member_id: str | Non
             evidence(⑤에 넘긴 근거), rewrites인 dict.
     """
     result = {
-        "question": [],
+        "question": question,
         "status": "", 
         "answer": "",
         "queries": [], 
