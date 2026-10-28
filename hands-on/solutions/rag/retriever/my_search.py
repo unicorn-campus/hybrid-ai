@@ -1,19 +1,21 @@
-"""교육생용 뼈대: core_search.py와 같은 이름, 같은 인자의 실습 함수 10개를 본인 코드로 채우는 파일임.
+"""교육생용 뼈대: core_search.py와 같은 이름, 같은 인자의 실습 함수 12개를 본인 코드로 채우는 파일임.
 
 채우는 순서(워크플로우 순서). "직접"은 NotImplementedError 자리에 본인 코드를 쓰고, "빈칸"은 거의 완성된 코드의 빈칸만 채움
   [교시 2: ①, ②, ③ 벡터]
    1 build_chroma_filter    (빈칸 2곳)  ① 역할과 회원으로 Chroma 메타데이터 필터
-   2 apply_plan_rules       (빈칸 3곳)  ② LLM 제안을 규칙 5개로 확정
-   3 search_vector          (빈칸 2곳)  ③ Chroma 근사 검색과 점수 방향 통일
+   2 classify_question      (직접)      ② 질문유형 판정 LLM을 불러 유형과 하위 질문 제안받기
+   3 apply_plan_rules       (빈칸 3곳)  ② LLM 제안을 규칙 5개로 확정
+   4 search_vector          (빈칸 2곳)  ③ Chroma 근사 검색과 점수 방향 통일
   [교시 3: ③ BM25, 융합, 리랭크]
-   4 search_bm25            (직접)      ③ 저장된 BM25 점수표로 순위
-   5 fuse_weighted          (직접)      ③ 정규화한 두 점수를 6 : 4로
-   6 rerank                 (빈칸 2곳)  ③ Cohere 리랭커로 다시 채점
+   5 search_bm25            (직접)      ③ 저장된 BM25 점수표로 순위
+   6 fuse_weighted          (직접)      ③ 정규화한 두 점수를 6 : 4로
+   7 rerank                 (빈칸 2곳)  ③ Cohere 리랭커로 다시 채점
   [교시 4: ④, ⑤, ⑥]
-   7 grade                  (직접)      ④ 신호로 정확, 불확실, 부정확 판정
-   8 apply_transform_rules  (빈칸 3곳)  ④ 질문 변환 금지 규칙
-   9 generate_answer        (빈칸 2곳)  ⑤ LCEL 체인 + 구조화 출력
-  10 verify_answer          (직접)      ⑥ 인용문을 근거 본문과 글자 대조
+   8 grade                  (직접)      ④ 신호로 정확, 불확실, 부정확 판정
+   9 transform_query        (빈칸 3곳)  ④ 질문 변환 LLM을 불러 질의를 고칠 방법 제안받기
+  10 apply_transform_rules  (빈칸 3곳)  ④ 질문 변환 금지 규칙
+  11 generate_answer        (빈칸 2곳)  ⑤ LCEL 체인 + 구조화 출력
+  12 verify_answer          (직접)      ⑥ 인용문을 근거 본문과 글자 대조
   제공(완성본, 읽기만): 상수, 스키마, 제공 함수는 core_search에서 그대로 가져옴(아래 import)
 
 사용법
@@ -22,7 +24,7 @@
   3) 함수를 채우고 같은 명령(예: --qid Q01)으로 실행해 강사 결과와 비교함. 막히면 이름을 목록에 다시 넣고 다음 함수로 넘어감
 """
 
-from langchain_core.prompts import ChatPromptTemplate  # noqa: F401  (⑤ generate_answer에서 씀)
+from langchain_core.prompts import ChatPromptTemplate  # noqa: F401  (② classify_question, ④ transform_query, ⑤ generate_answer에서 씀)
 
 # 제공 상수, 스키마, 함수는 강사 코드에서 그대로 가져옴(search_docs.py가 core.이름 으로 부르므로 이 파일에도 있어야 함)
 from core_search import (  # noqa: F401
@@ -37,14 +39,21 @@ from core_search import (  # noqa: F401
     KEEP,
     MAX_TRANSFORM_QUERIES,
     ORIGINAL_REQUIRED,
+    PLAN_HUMAN_PROMPT,
+    PLAN_SYSTEM_PROMPT,
     QTYPE_CHITCHAT,
     QTYPE_COMPLEX,
     QTYPE_SIMPLE,
     RERANK_MODEL,
     ROLE_ACCESS_LEVELS,
+    TECHNIQUE_GUIDE,
     TECHNIQUES,
+    TRANSFORM_HUMAN_PROMPT,
+    TRANSFORM_SYSTEM_PROMPT,
     AnswerSentence,
     GroundedAnswer,
+    QueryTransform,
+    QuestionPlan,
     _build_fused_list,
     _get_fused_score,
     _merge_lists,
@@ -52,6 +61,7 @@ from core_search import (  # noqa: F401
     answer_to_text,
     build_signals,
     build_weight_mask,
+    card_label,
     card_token,
     compact_text,
     condition_terms,
@@ -91,7 +101,25 @@ def build_chroma_filter(role: str, member_pseudo_id: str | None) -> dict | None:
 
 
 # ===========================================================================
-# 2. ② Adaptive 분류 (교재 152 ~ 155쪽) — 빈칸 3곳
+# 2. ② 질문유형 판정: LLM 호출 (교재 152 ~ 155쪽) — 직접 작성
+# ===========================================================================
+def classify_question(resources: dict, question: str) -> QuestionPlan:
+    """질문유형 판정 LLM을 불러 질문 유형과 하위 질문을 「제안」받음. 받아들일지는 apply_plan_rules가 정함.
+
+    인자: resources는 main이 만든 dict. resources["llm"]은 Groq LLM, resources["calls"]["llm"]은 LLM 호출 횟수 카운터임.
+    반환값: QuestionPlan(question_type, sub_questions, chitchat_reply)
+
+    할 일 1: ChatPromptTemplate.from_messages로 프롬프트를 만듦. 메시지는 ("system", PLAN_SYSTEM_PROMPT), ("human", PLAN_HUMAN_PROMPT)
+    할 일 2: resources["llm"].with_structured_output(...)에 QuestionPlan, method="json_schema", strict=True를 넘겨 구조화 모델을 만듦
+    할 일 3: prompt와 구조화 모델을 | 로 이어 chain을 만듦(LCEL)
+    할 일 4: resources["calls"]["llm"]을 1 올림(LLM 호출 횟수 기록)
+    할 일 5: chain.invoke({"question": question})의 결과(QuestionPlan)를 return함
+    """
+    raise NotImplementedError("여기에 본인 코드를 작성함")
+
+
+# ===========================================================================
+# 3. ② 질문유형 판정: 규칙 확정 (교재 152 ~ 155쪽) — 빈칸 3곳
 # ===========================================================================
 def apply_plan_rules(
     question: str,
@@ -153,7 +181,7 @@ def apply_plan_rules(
 
 
 # ===========================================================================
-# 3. ③ 검색: 벡터 (교재 159 ~ 160쪽) — 빈칸 2곳
+# 4. ③ 검색: 벡터 (교재 159 ~ 160쪽) — 빈칸 2곳
 # ===========================================================================
 def search_vector(store, query: str, top_n: int, chroma_filter: dict | None) -> list[dict]:
     """질의를 임베딩해 Chroma HNSW 근사 검색으로 가까운 청크 top_n개를 찾음.
@@ -179,7 +207,7 @@ def search_vector(store, query: str, top_n: int, chroma_filter: dict | None) -> 
 
 
 # ===========================================================================
-# 4. ③ 검색: BM25 (교재 157 ~ 158쪽) — 직접 작성
+# 5. ③ 검색: BM25 (교재 157 ~ 158쪽) — 직접 작성
 # ===========================================================================
 def search_bm25(bm25, chunks: list[dict], query_tokens: list[str], top_n: int, weight_mask=None) -> list[dict]:
     """BM25 점수가 높은 청크를 top_n개까지 돌려줌.
@@ -193,7 +221,7 @@ def search_bm25(bm25, chunks: list[dict], query_tokens: list[str], top_n: int, w
 
 
 # ===========================================================================
-# 5. ③ 검색: 융합 (교재 161 ~ 162쪽) — 직접 작성
+# 6. ③ 검색: 융합 (교재 161 ~ 162쪽) — 직접 작성
 # ===========================================================================
 def fuse_weighted(
     vector_hits: list[dict],
@@ -212,7 +240,7 @@ def fuse_weighted(
 
 
 # ===========================================================================
-# 6. ③ 검색: 리랭크 (교재 163 ~ 166쪽) — 빈칸 2곳
+# 7. ③ 검색: 리랭크 (교재 163 ~ 166쪽) — 빈칸 2곳
 # ===========================================================================
 def rerank(
     question: str,
@@ -244,7 +272,7 @@ def rerank(
 
 
 # ===========================================================================
-# 7. ④ CRAG 채점 (교재 149, 171쪽) — 직접 작성
+# 8. ④ 검색결과 검증 (교재 149, 171쪽) — 직접 작성
 # ===========================================================================
 def grade(signals: dict, thresholds: dict) -> str:
     """판정 근거로 GRADE_CORRECT, GRADE_UNCERTAIN, GRADE_INCORRECT 중 하나를 돌려줌.
@@ -259,7 +287,40 @@ def grade(signals: dict, thresholds: dict) -> str:
 
 
 # ===========================================================================
-# 8. ④ 질문 변환 금지 규칙 (교재 169, 172쪽) — 빈칸 3곳
+# 9. ④ 질문 변환: LLM 호출 (교재 169쪽) — 빈칸 3곳
+# ===========================================================================
+def transform_query(
+    resources: dict, query: str, reasons: list[str], final_hits: list[dict], previous: list[str]
+) -> QueryTransform:
+    """질문 변환 LLM을 불러 질의를 어떻게 고칠지 「제안」받음(LCEL 체인 + 구조화 출력). 받아들일지는 apply_transform_rules가 정함.
+
+    인자: reasons는 main이 만든 판정 근거 문장 목록, final_hits는 리랭크 뒤 근거, previous는 이미 검색한 질의 목록.
+    반환값: QueryTransform(technique, queries, clarify_question, reason). Groq API를 1번 부르고 호출 횟수를 1 올림.
+    """
+    result_lines = []
+    for hit in final_hits:
+        # 빈칸 1: hit에서 "rerank_score"를 꺼내 score에 받음. 리랭크가 실패해 이 키가 없으면 0.0을 씀(dict.get의 두 번째 인자)
+        raise NotImplementedError("빈칸 1을 채울 것")
+        result_lines.append(f"[{hit['chunk_id']} | {card_label(hit)} | 리랭크 {score:.2f}] {hit['text'][:150]}")  # noqa: F821
+    prompt = ChatPromptTemplate.from_messages([("system", TRANSFORM_SYSTEM_PROMPT), ("human", TRANSFORM_HUMAN_PROMPT)])
+    # 빈칸 2: resources["llm"].with_structured_output(...)에 QueryTransform, method="json_schema", strict=True를 넘겨 structured_llm에 받음
+    raise NotImplementedError("빈칸 2를 채울 것")
+    # 빈칸 3: prompt와 structured_llm을 | 로 이어 chain을 만듦(LCEL)
+    raise NotImplementedError("빈칸 3을 채울 것")
+    resources["calls"]["llm"] = resources["calls"]["llm"] + 1
+    return chain.invoke(  # noqa: F821
+        {
+            "guide": TECHNIQUE_GUIDE,
+            "query": query,
+            "reasons": "\n".join(reasons),
+            "results": "\n".join(result_lines),
+            "previous": "\n".join(previous),
+        }
+    )
+
+
+# ===========================================================================
+# 10. ④ 질문 변환: 금지 규칙 (교재 169, 172쪽) — 빈칸 3곳
 # ===========================================================================
 def apply_transform_rules(
     technique: str,
@@ -324,7 +385,7 @@ def apply_transform_rules(
 
 
 # ===========================================================================
-# 9. ⑤ 답변 생성 (교재 173쪽) — 빈칸 2곳
+# 11. ⑤ 답변 생성 (교재 173쪽) — 빈칸 2곳
 # ===========================================================================
 def generate_answer(llm, question: str, hits: list[dict], failures: list[str] | None = None) -> GroundedAnswer:
     """근거 청크만으로 문장별 인용이 달린 답을 만듦(LCEL 체인 + 구조화 출력)."""
@@ -343,7 +404,7 @@ def generate_answer(llm, question: str, hits: list[dict], failures: list[str] | 
 
 
 # ===========================================================================
-# 10. ⑥ Self-RAG 근거 검증 (교재 174쪽) — 직접 작성
+# 12. ⑥ 답변 검증 (교재 174쪽) — 직접 작성
 # ===========================================================================
 def verify_answer(answer: GroundedAnswer, evidence_texts: dict) -> list[str]:
     """답의 인용을 근거 본문과 대조해 실패 사유 목록을 돌려줌. 빈 목록이면 통과.
@@ -364,9 +425,9 @@ def verify_answer(answer: GroundedAnswer, evidence_texts: dict) -> list[str]:
 import core_search as _teacher  # noqa: E402
 
 USE_TEACHER_CODE = [
-    "build_chroma_filter", "apply_plan_rules", "search_vector",
+    "build_chroma_filter", "classify_question", "apply_plan_rules", "search_vector",
     "search_bm25", "fuse_weighted", "rerank",
-    "grade", "apply_transform_rules", "generate_answer", "verify_answer",
+    "grade", "transform_query", "apply_transform_rules", "generate_answer", "verify_answer",
 ]
 for _name in USE_TEACHER_CODE:
     globals()[_name] = getattr(_teacher, _name)  # 이 파일의 빈 함수 대신 강사 함수를 같은 이름으로 둠

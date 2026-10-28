@@ -60,7 +60,8 @@ cd backing-services
 - **`down -v`는 볼륨(Neo4j `hybrid-ai-neo4j-data` 등, OpenSearch `hybrid-ai-opensearch-data`)까지 지움.**  
   그래프 세대와 검색 인덱스가 모두 사라지므로 indexer를 다시 돌려야 하고, `indexer/data/active_generation.json`도 맞지 않게 됨.  
   Neo4j 비밀번호를 바꿀 때처럼 처음부터 다시 만들 때만 씀
-- PostgreSQL(rdb, `schema/rdb` 도구용)도 같은 꼴: `docker compose -f rdb/compose.yml up -d`, `stop`, `start`, `down`, `down -v`.  
+- PostgreSQL(rdb, `schema/rdb` 도구용)도 같은 꼴:  
+  `docker compose -f rdb/compose.yml up -d`, `stop`, `start`, `down`, `down -v`.  
   rdb는 `down -v` 뒤 다시 `up -d` 하면 `rdb/init`의 SQL로 데이터를 다시 채움([rdb/README.md](../../../backing-services/rdb/README.md))
 
 ## 3. 가상환경 설정과 패키지 설치
@@ -139,8 +140,34 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 
 - 지금 설정 보기: `Get-ExecutionPolicy -List`. 방법 2를 되돌리려면 `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Undefined`
 - 회사 PC처럼 관리자가 정책을 막아 두어 위 명령도 안 되면, 활성화 없이 가상환경의 파이썬을 직접 지정해 실행함  
-  (예: `.venv\Scripts\python.exe -m pip install -r requirements.txt`, `..\.venv\Scripts\python.exe search_graph.py --qid Q01`)
+  (예: `.venv\Scripts\python.exe -m pip install -r requirements.txt`,  
+  `..\.venv\Scripts\python.exe search_graph.py --qid Q01`)
 - 저장소를 통째로 clone해서 씀. 이 폴더만 복사하면 RAG 청크, `docs/`, `secrets/`, `backing-services/`를 찾지 못함
+
+### 3.4 VS Code에서 import 경고 없애기(선택)
+
+`retriever/search_graph.py`의 `import kr_tokenizer` 줄에 「Import "kr_tokenizer" could not be resolved」 경고가 보일 수 있음.  
+실행할 때는 코드가 `indexer` 폴더를 검색 경로에 넣어 정상 동작함. 편집기(Pylance)는 코드를 실행하지 않아 그 경로를 모르기 때문에 생기는 경고임.  
+VS Code에 경로를 알려 주면 경고가 사라지고, 함수 이름 자동 완성과 정의로 이동(F12)도 됨.
+
+저장소 루트(`hybrid-ai`)를 VS Code로 열었다면 루트에 `.vscode/settings.json`을 만들고 아래처럼 적음(RAG 실습 경로도 함께 넣어 둠)
+
+```json
+{
+  "python.analysis.extraPaths": [
+    "hands-on/solutions/rag/indexing",
+    "hands-on/solutions/graphrag/indexer"
+  ]
+}
+```
+
+- `hands-on/solutions/graphrag` 폴더만 열었다면 그 폴더에 `.vscode/settings.json`을 만들고  
+  `"python.analysis.extraPaths": ["indexer"]`로 적음
+- 이미 `settings.json`이 있으면 파일을 새로 만들지 말고 `"python.analysis.extraPaths"` 항목만 더함
+- 파이썬 인터프리터도 가상환경으로 맞춤: `Ctrl+Shift+P` → `Python: Select Interpreter` → `hands-on/solutions/graphrag/.venv`.  
+  그래야 neo4j_graphrag, opensearchpy 같은 패키지 import 경고도 사라짐
+- `.vscode/` 폴더는 Git에 올리지 않음(저장소 `.gitignore`에 있음). 각자 PC에서 만듦
+- 확인(2026-10-26): 같은 엔진인 pyright로 검사하면 설정 전에는 `kr_tokenizer` 경고가 나고, `extraPaths`를 넣은 뒤에는 사라짐
 
 ## 4. 실행 순서
 

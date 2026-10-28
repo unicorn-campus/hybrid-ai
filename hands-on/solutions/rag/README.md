@@ -112,6 +112,32 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
   `..\.venv\Scripts\python.exe search_docs.py --qid Q01`)
 - 저장소를 통째로 clone해서 씀. `rag/` 폴더만 복사하면 `docs/`와 `secrets/`를 찾지 못함
 
+### VS Code에서 import 경고 없애기(선택)
+
+`retriever/search_docs.py`의 `import core_indexing as indexing` 줄에  
+「Import "core_indexing" could not be resolved」 경고가 보일 수 있음.  
+실행할 때는 코드가 `indexing` 폴더를 검색 경로에 넣어 정상 동작함. 편집기(Pylance)는 코드를 실행하지 않아 그 경로를 모르기 때문에 생기는 경고임.  
+VS Code에 경로를 알려 주면 경고가 사라지고, 함수 이름 자동 완성과 정의로 이동(F12)도 됨.
+
+저장소 루트(`hybrid-ai`)를 VS Code로 열었다면 루트에 `.vscode/settings.json`을 만들고 아래처럼 적음
+
+```json
+{
+  "python.analysis.extraPaths": [
+    "hands-on/solutions/rag/indexing",
+    "hands-on/solutions/graphrag/indexer"
+  ]
+}
+```
+
+- `hands-on/solutions/rag` 폴더만 열었다면 그 폴더에 `.vscode/settings.json`을 만들고 `"python.analysis.extraPaths": ["indexing"]`로 적음
+- 이미 `settings.json`이 있으면 파일을 새로 만들지 말고 `"python.analysis.extraPaths"` 항목만 더함
+- 둘째 줄(`graphrag/indexer`)은 GraphRAG 실습의 같은 경고용이며 RAG만 할 때는 빼도 됨
+- 파이썬 인터프리터도 가상환경으로 맞춤: `Ctrl+Shift+P` → `Python: Select Interpreter` → `hands-on/solutions/rag/.venv`.  
+  그래야 langchain, chromadb 같은 패키지 import 경고도 사라짐
+- `.vscode/` 폴더는 Git에 올리지 않음(저장소 `.gitignore`에 있음). 각자 PC에서 만듦
+- 확인(2026-10-26): 같은 엔진인 pyright로 검사하면 설정 전에는 `core_indexing` 경고가 나고, `extraPaths`를 넣은 뒤에는 사라짐
+
 ## 4. 실행 순서
 
 가상환경을 활성화한 터미널에서 실행함(3절). 아래는 Git Bash, macOS, Linux 기준이며 PowerShell은 `cd` 경로의 `/`를 `\`로 씀.
