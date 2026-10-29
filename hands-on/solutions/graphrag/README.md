@@ -18,8 +18,8 @@ hands-on/solutions/graphrag/
 
 | 폴더 | main | 교육생 작업 파일 | 만드는 것 |
 |---|---|---|---|
-| `indexer/` | `index_graph.py`, 확인 도구 `check_graph.py` | `my_graph.py` | Neo4j 그래프 세대, OpenSearch 인덱스, 활성 세대 파일 |
-| `retriever/` | `search_graph.py` | `my_search.py` | 단계별 검색 화면, 실행 기록 |
+| `indexer/` | `index_graph.py`, 확인 도구 `check_graph.py` | `my_graph.py`(`--mine`이 템플릿에서 만듦) | Neo4j 그래프 세대, OpenSearch 인덱스, 활성 세대 파일 |
+| `retriever/` | `search_graph.py` | `my_search.py`(`--mine`이 템플릿에서 만듦) | 단계별 검색 화면, 실행 기록 |
 | `schema/doc`, `schema/rdb` | `tools/*.py`(강사용 스키마 설계 도구) | - | `graph_schema.json`, `approval.json` 등 |
 
 ## 2. 준비물
@@ -192,3 +192,33 @@ python search_graph.py --qid Q01
 각 단계의 옵션과 출력 읽는 법은 [indexer/README.md](indexer/README.md), [retriever/README.md](retriever/README.md)에 있음.  
 `schema/` 도구는 강사용이며, 같은 가상환경을 활성화한 채 `schema/doc` 또는 `schema/rdb` 폴더에서 `python tools/{도구}.py`로 실행함  
 (실행 예는 각 도구 파일 맨 위 설명에 있음).
+
+## 5. 교육생 작업 파일과 pull
+
+### 작업 파일과 pull 충돌
+
+- Git에는 강사 뼈대 `my_*.template.py`만 올라가고, 교육생 파일 `my_*.py`는 Git이 무시함(저장소 루트 `.gitignore`)  
+- 강사가 뼈대를 고쳐도 교육생 파일과 겹치지 않으므로 `git pull` 충돌이 나지 않음  
+- main 파일(`index_graph.py`, `search_graph.py`)은 고치지 않음. 바꿔 끼우기는 `--mine` 옵션으로만 함  
+- 강사가 뼈대를 고친 내용(새 함수, 빈칸 안내)은 `my_*.template.py`와 본인 `my_*.py`를 나란히 열어 비교해 옮김
+
+### 예전 방식(my_*.py를 Git이 관리하던 때)에서 한 번만 옮기기
+
+이전에 `my_*.py`를 직접 고쳤거나 main 파일의 import 줄을 바꿨다면, 이번 pull 한 번만 아래 순서로 함.  
+`my_search.py` 예시이며, 고친 `my_*.py`마다 1번과 4번을 반복함.
+
+1. 본인 파일을 같은 폴더에 다른 이름으로 복사해 둠: `my_search.py` → `my_search.bak.py`
+2. 저장소 루트에서 고친 파일을 강사 원본으로 되돌림
+
+   ```bash
+   git restore hands-on/solutions
+   ```
+
+3. 강사 저장소를 받음
+
+   ```bash
+   git pull
+   ```
+
+4. `my_search.bak.py`의 이름을 `my_search.py`로 바꿈
+5. 이제부터는 `--mine`을 붙여 실행함(main 파일의 import 줄은 고치지 않음)

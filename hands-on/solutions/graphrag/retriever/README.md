@@ -27,7 +27,7 @@ python search_graph.py --qid Q19
 | 목표 | 내용 |
 |---|---|
 | 개념을 코드로 | 교재 64쪽 워크플로우(① 요청 접수 → ② 질문 분석 → ③ 검색 에이전트 ⇄ ④ 툴 실행 → ⑤ 채점과 상한 판정 → ⑥ 리랭킹 → ⑦ 수집 종료 판정 → ⑧ 답변 생성 ⇄ ⑨ 근거 검증 → ⑩ 종료 상태)를 함수 하나씩으로 봄 |
-| 클론 코딩 | 단계마다 실습 함수 1개 이상, 모두 13개(직접 7개, 빈칸 6개) + 선택 1개. `my_search.py`에 채우고 import 한 줄로 바꿔 끼움 |
+| 클론 코딩 | 단계마다 실습 함수 1개 이상, 모두 13개(직접 7개, 빈칸 6개) + 선택 1개. `my_search.py`에 채우고 `--mine` 옵션으로 바꿔 끼움 |
 | 눈으로 확인 | Jev 확률과 코드의 결정, 회차마다 에이전트가 고른 툴과 질의, 진단 신호, 강제 종료 이유, 8자리, 코드 재확인, 인용 검증, 종료 상태, 에이전트 실제 비용을 화면에 찍음 |
 
 주요 기능
@@ -55,7 +55,7 @@ hands-on/solutions/graphrag/
    ├─ search_graph.py          main: 설정 상수, 프롬프트와 스키마, 시작 검사, 저장소 접속, 외부 호출, 서브 워크플로우 O, L, G, E, R,
    │                           툴 6개, 미들웨어 2개, run_workflow(① ~ ⑩), 화면 출력, 평가셋 일괄 실행
    ├─ core_search.py           핵심(클론 코딩 대상): 실습 함수 13개 + 선택 1개 + 제공 함수
-   ├─ my_search.py             교육생 작업 파일(뼈대). 맨 아래 USE_TEACHER_CODE 목록의 함수는 강사 코드가 대신 돎
+   ├─ my_search.template.py    교육생 작업 파일의 뼈대(강사 템플릿). --mine 실행 때 my_search.py로 복사됨. 맨 아래 USE_TEACHER_CODE 목록의 함수는 강사 코드가 대신 돎
    └─ data/logs/               실행 기록(Git에 올리지 않음). 질문마다 JSON, --eval은 문항마다 한 줄(jsonl)
 ```
 
@@ -163,11 +163,12 @@ python search_graph.py --eval --only Q18,Q19,Q20,Q21,Q22 --repeat 3
 
 ## 6. 교육생 교체 방법
 
-1. `search_graph.py`의 import 한 줄을 바꿈
+1. `search_graph.py`는 고치지 않고 실행 명령에 `--mine`을 붙임. 처음 한 번 뼈대 `my_search.template.py`가 `my_search.py`로 복사됨  
+   (`my_search.py`는 Git이 무시하므로 강사 저장소를 pull해도 충돌이 나지 않음. 옮기는 방법은 `../README.md` 5장)
 
-   ```python
-   import core_search as core  # 강사 코드로 실행
-   import my_search as core    # 본인 코드로 실행(이 줄만 바꿈)
+   ```bash
+   python search_graph.py (기존 옵션)          # 강사 코드(core_search.py)로 실행
+   python search_graph.py --mine (기존 옵션)   # 본인 코드(my_search.py)로 실행
    ```
 
 2. `my_search.py` 맨 아래 `USE_TEACHER_CODE` 목록에서 **지금 채울 함수 이름을 지움**. 목록에 남은 함수는 강사 코드가 대신 돎

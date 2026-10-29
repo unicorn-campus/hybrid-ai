@@ -9,6 +9,11 @@ secrets/
 # MS Office가 파일을 열어 둘 때 만드는 잠금 파일
 ~$*
 
+# 교육생 실습 파일: 교육생은 my_*.py만, 강사는 my_*.template.py만 고침(pull 충돌 방지)
+# my_*.py는 실행기의 --mine 옵션이 처음 한 번 템플릿을 복사해 만듦
+hands-on/solutions/**/my_*.py
+!hands-on/solutions/**/my_*.template.py
+
 # Python
 .venv/
 venv/

@@ -27,7 +27,7 @@ python check_graph.py --qid Q09
 | 목표 | 내용 |
 |---|---|
 | 개념을 코드로 | 교재 30쪽 워크플로우(① 세대 ID → ② 청크 고정 → ③ KG 구축 K1 ~ K6, K8과 검색엔진 S1 ~ S3 → ④ 검증 → ⑤ 게시)를 함수 하나씩으로 봄 |
-| 클론 코딩 | 단계마다 실습 함수 1개 이상, 모두 16개(직접 6개, 빈칸 10개). `my_graph.py`에 채우고 import 한 줄로 바꿔 끼움 |
+| 클론 코딩 | 단계마다 실습 함수 1개 이상, 모두 16개(직접 6개, 빈칸 10개). `my_graph.py`에 채우고 `--mine` 옵션으로 바꿔 끼움 |
 | 눈으로 확인 | 단계마다 수(추출 단위, 노드와 관계, 병합 묶음, 임베딩, 커뮤니티, 적재 건수)와 예시를 출력하고, 확인 도구로 질문을 던져 봄 |
 
 주요 기능
@@ -48,7 +48,7 @@ hands-on/solutions/graphrag/
    ├─ README.md                이 문서
    ├─ index_graph.py           main: 설정 상수, 시작 검사, ① ~ ⑤ 순서, K2 병렬 호출, S1 임베딩(96건씩), K8 보고서 LLM 호출, 단계별 출력
    ├─ core_graph.py            핵심(클론 코딩 대상): 실습 함수 16개 + 제공 함수 5개
-   ├─ my_graph.py              교육생 작업 파일(뼈대). 맨 아래 USE_TEACHER_CODE 목록으로 안 채운 함수는 강사 코드가 대신 돎
+   ├─ my_graph.template.py     교육생 작업 파일의 뼈대(강사 템플릿). --mine 실행 때 my_graph.py로 복사됨. 맨 아래 USE_TEACHER_CODE 목록으로 안 채운 함수는 강사 코드가 대신 돎
    ├─ kr_tokenizer.py          제공(읽지 않아도 됨): RAG 실습 W3에서 작성한 Kiwi 토크나이저와 카드 별칭 규칙
    ├─ check_graph.py           결과 확인 도구(읽기만): 질문 → 검색엔진 → 청크 → 엔티티 → 커뮤니티 → 리랭크 → 적중 판정. --drop으로 세대 지우기
    └─ data/                    실행 결과(Git에 올리지 않음)
@@ -190,11 +190,12 @@ python check_graph.py "할부로 산 상품의 철회는 며칠 안에 요청해
 
 ## 6. 교육생 교체 방법
 
-1. `index_graph.py`의 import 한 줄을 바꿈
+1. `index_graph.py`는 고치지 않고 실행 명령에 `--mine`을 붙임. 처음 한 번 뼈대 `my_graph.template.py`가 `my_graph.py`로 복사됨  
+   (`my_graph.py`는 Git이 무시하므로 강사 저장소를 pull해도 충돌이 나지 않음. 옮기는 방법은 `../README.md` 5장)
 
-   ```python
-   import core_graph as core  # 강사 코드로 실행
-   import my_graph as core    # 본인 코드로 실행(이 줄만 바꿈)
+   ```bash
+   python index_graph.py (기존 옵션)          # 강사 코드(core_graph.py)로 실행
+   python index_graph.py --mine (기존 옵션)   # 본인 코드(my_graph.py)로 실행
    ```
 
 2. `my_graph.py` 맨 아래 `USE_TEACHER_CODE` 목록에서 **지금 채울 함수 이름을 지움**. 목록에 남은 함수는 강사 코드가 대신 돎
@@ -307,7 +308,7 @@ python check_graph.py "할부로 산 상품의 철회는 며칠 안에 요청해
 | 429(호출 제한)로 K2가 느림 | 기다렸다 다시 부름(최대 6번). 계속 막히면 `--reuse data/teacher` |
 | 중단된 뒤 다시 돌림 | 같은 `--run`으로 다시 실행하면 ① 에서 흔적을 지우고 처음부터 만듦 |
 | `④ 검증 실패` | `data/generations/{세대}/build_report.json`의 missing, extra, duplicate 목록을 봄. 활성 세대는 그대로임 |
-| 본인 코드로 바꿨더니 수가 다름 | import를 `core_graph`로 되돌려 강사 결과와 비교. 함수 하나씩 USE_TEACHER_CODE에서 빼며 확인 |
+| 본인 코드로 바꿨더니 수가 다름 | `--mine`을 빼고 실행해 강사 결과와 비교. 함수 하나씩 USE_TEACHER_CODE에서 빼며 확인 |
 
 ## 10. 한계
 

@@ -19,7 +19,7 @@
   ⑤ 게시              publish_active            (직접 작성)  활성 세대 파일 교체
   제공(읽기만): sha256_text, next_nonblank_line, head_line, group_assignments, k8_write_communities
 
-교육생은 my_graph.py(뼈대)에 같은 이름, 같은 인자로 함수를 채운 뒤 main의 import 한 줄을 my_graph로 바꿔 실행함.
+교육생은 my_graph.py(--mine 실행 때 뼈대 my_graph.template.py에서 복사됨)에 같은 이름, 같은 인자로 함수를 채운 뒤 main을 --mine으로 실행함.
 """
 
 import asyncio

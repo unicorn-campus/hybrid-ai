@@ -17,7 +17,7 @@
   ⑩ 종료 상태          make_end_state            (빈칸 1곳)   종료 상태 이름과 돌려줄 것
   제공(읽기만): 아래 「제공 함수」 구역의 함수들
 
-교육생은 my_search.py(뼈대)에 같은 이름, 같은 인자로 함수를 채운 뒤 main의 import 한 줄을 my_search로 바꿔 실행함.
+교육생은 my_search.py(--mine 실행 때 뼈대 my_search.template.py에서 복사됨)에 같은 이름, 같은 인자로 함수를 채운 뒤 main을 --mine으로 실행함.
 """
 
 import hashlib

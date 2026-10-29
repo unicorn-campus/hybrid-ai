@@ -17,6 +17,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import sys
 import threading
 import time
@@ -35,7 +36,27 @@ from neo4j_graphrag.components.types import Neo4jGraph
 from neo4j_graphrag.llm import LLMInterface, LLMResponse
 from opensearchpy import OpenSearch, helpers
 
-import core_graph as core  # 교육생: 본인 코드로 바꾸려면 "import my_graph as core"
+
+def use_student_code(student_module: str) -> bool:
+    """--mine 옵션이 있으면 교육생 파일(my_*.py)로 돌림. 파일이 없으면 강사 뼈대(my_*.template.py)를 복사해 만듦.
+
+    교육생 파일은 Git이 무시하므로(.gitignore) 강사가 뼈대를 고쳐도 pull 충돌이 나지 않음.
+    이 파일의 import 줄은 고치지 않고 옵션으로만 바꿈.
+    """
+    if "--mine" not in sys.argv:
+        return False
+    folder = Path(__file__).resolve().parent
+    student_path = folder / f"{student_module}.py"
+    if not student_path.exists():
+        shutil.copyfile(folder / f"{student_module}.template.py", student_path)
+        print(f"[--mine] {student_path.name} 이 없어 {student_module}.template.py 를 복사해 만듦")
+    return True
+
+
+if use_student_code("my_graph"):
+    import my_graph as core  # 교육생 코드(--mine)
+else:
+    import core_graph as core  # 강사 코드(기본)
 import kr_tokenizer
 
 sys.stdout.reconfigure(encoding="utf-8")  # Windows 콘솔에서 한글이 깨지지 않게 함
@@ -871,6 +892,7 @@ def main() -> None:
     parser.add_argument("--skip-communities", action="store_true", help="K8 커뮤니티 요약을 건너뜀")
     parser.add_argument("--reuse", default=None, help="앞 결과 폴더(kg_prepared.json, community_reports.json). 강사 배포본 등")
     parser.add_argument("--chunks", default=None, help="Chroma 대신 쓸 청크 파일(prepared-chunks.json)")
+    parser.add_argument("--mine", action="store_true", help="강사 코드 대신 교육생 코드(my_graph.py)로 실행함")
     run(parser.parse_args())
 
 

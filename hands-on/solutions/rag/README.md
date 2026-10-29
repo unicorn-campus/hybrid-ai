@@ -17,8 +17,8 @@ flowchart LR
 
 | 폴더 | main | 핵심 모듈(클론 코딩 대상) | 교육생 작업 파일 | 만드는 것 |
 |---|---|---|---|---|
-| `indexing/` | `index_docs.py` | `core_indexing.py` | `my_indexing.py` | `data/chroma/`, `data/bm25/` |
-| `retriever/` | `search_docs.py` | `core_search.py` | `my_search.py` | 단계별 검색 화면(결과 파일 없음) |
+| `indexing/` | `index_docs.py` | `core_indexing.py` | `my_indexing.py`(`--mine`이 템플릿에서 만듦) | `data/chroma/`, `data/bm25/` |
+| `retriever/` | `search_docs.py` | `core_search.py` | `my_search.py`(`--mine`이 템플릿에서 만듦) | 단계별 검색 화면(결과 파일 없음) |
 
 ## 2. 준비물
 
@@ -208,13 +208,41 @@ python search_docs.py "첫 상담에서 무엇을 비교해 달라고 했나요?
 
 ## 6. 교육생 교체 방법(공통)
 
-1. `my_*.py` 뼈대 파일에 강사 시연을 보며 같은 이름, 같은 인자의 함수를 채움
-2. main 파일의 import 한 줄을 바꿈. 예: `import core_indexing as indexing` → `import my_indexing as indexing`
+1. main 파일을 `--mine` 옵션을 붙여 실행함. 예: `python index_docs.py --mine --limit 8`  
+   처음 실행하면 강사 뼈대 `my_indexing.template.py`가 `my_indexing.py`로 복사됨
+2. `my_*.py`에 강사 시연을 보며 같은 이름, 같은 인자의 함수를 채움(`my_*.template.py`는 고치지 않음)
 3. 같은 명령으로 다시 실행해 단계별 출력을 강사 결과와 비교함
-4. 막히면 import를 되돌려 강사 코드로 뒤 단계를 계속 진행함
-5. `my_indexing.py`로 색인을 만들었다면 `retriever/search_docs.py`의 `import core_indexing as indexing`도  
-   `import my_indexing as indexing`로 바꿈.  
-   검색기가 질문을 색인과 같은 규칙(`tokenize_korean`, 같은 사전)으로 토큰화해야 BM25가 맞기 때문임
+4. 막히면 `--mine`을 빼고 실행해 강사 코드로 뒤 단계를 계속 진행함
+5. `index_docs.py --mine`으로 색인을 만들었다면 검색기는 색인의 `manifest.json`을 보고 `my_indexing`으로  
+   질문을 토큰화함(따로 바꿀 것 없음). 질문을 색인과 같은 규칙(`tokenize_korean`, 같은 사전)으로 토큰화해야 BM25가 맞기 때문임
+
+### 작업 파일과 pull 충돌
+
+- Git에는 강사 뼈대 `my_*.template.py`만 올라가고, 교육생 파일 `my_*.py`는 Git이 무시함(저장소 루트 `.gitignore`)  
+- 강사가 뼈대를 고쳐도 교육생 파일과 겹치지 않으므로 `git pull` 충돌이 나지 않음  
+- main 파일(`index_docs.py`, `search_docs.py`)은 고치지 않음. 바꿔 끼우기는 `--mine` 옵션으로만 함  
+- 강사가 뼈대를 고친 내용(새 함수, 빈칸 안내)은 `my_*.template.py`와 본인 `my_*.py`를 나란히 열어 비교해 옮김
+
+### 예전 방식(my_*.py를 Git이 관리하던 때)에서 한 번만 옮기기
+
+이전에 `my_*.py`를 직접 고쳤거나 main 파일의 import 줄을 바꿨다면, 이번 pull 한 번만 아래 순서로 함.  
+`my_search.py` 예시이며, 고친 `my_*.py`마다 1번과 4번을 반복함.
+
+1. 본인 파일을 같은 폴더에 다른 이름으로 복사해 둠: `my_search.py` → `my_search.bak.py`
+2. 저장소 루트에서 고친 파일을 강사 원본으로 되돌림
+
+   ```bash
+   git restore hands-on/solutions
+   ```
+
+3. 강사 저장소를 받음
+
+   ```bash
+   git pull
+   ```
+
+4. `my_search.bak.py`의 이름을 `my_search.py`로 바꿈
+5. 이제부터는 `--mine`을 붙여 실행함(main 파일의 import 줄은 고치지 않음)
 
 ## 7. 실측값(강사 PC, 2026-10-21, Cohere 임베딩 기준)
 

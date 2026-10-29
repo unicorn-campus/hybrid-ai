@@ -16,6 +16,7 @@ import argparse
 import json
 import math
 import os
+import shutil
 import sys
 import threading
 import time
@@ -40,7 +41,27 @@ from opensearchpy import OpenSearch
 from pydantic import BaseModel, Field
 from typesafe_sdk import Choice, Noul, TypeSafeClient
 
-import core_search as core  # 교육생: 본인 코드로 바꾸려면 "import my_search as core"
+
+def use_student_code(student_module: str) -> bool:
+    """--mine 옵션이 있으면 교육생 파일(my_*.py)로 돌림. 파일이 없으면 강사 뼈대(my_*.template.py)를 복사해 만듦.
+
+    교육생 파일은 Git이 무시하므로(.gitignore) 강사가 뼈대를 고쳐도 pull 충돌이 나지 않음.
+    이 파일의 import 줄은 고치지 않고 옵션으로만 바꿈.
+    """
+    if "--mine" not in sys.argv:
+        return False
+    folder = Path(__file__).resolve().parent
+    student_path = folder / f"{student_module}.py"
+    if not student_path.exists():
+        shutil.copyfile(folder / f"{student_module}.template.py", student_path)
+        print(f"[--mine] {student_path.name} 이 없어 {student_module}.template.py 를 복사해 만듦")
+    return True
+
+
+if use_student_code("my_search"):
+    import my_search as core  # 교육생 코드(--mine)
+else:
+    import core_search as core  # 강사 코드(기본)
 
 BASE_DIR = Path(__file__).resolve().parent  # 이 파일이 있는 retriever 폴더
 sys.path.insert(0, str(BASE_DIR.parent / "indexer"))  # 인덱싱 실습의 토크나이저를 그대로 씀(색인과 같은 규칙이어야 BM25가 맞음)
@@ -1553,6 +1574,7 @@ def main_cli() -> None:
     parser.add_argument("--only", help="--eval에서 이 문항만(쉼표로). 예: Q18,Q19")
     parser.add_argument("--repeat", type=int, default=1, help="--eval 반복 횟수(LLM은 실행마다 결과가 다를 수 있음)")
     parser.add_argument("--sleep", type=float, default=0, help="--eval 문항 사이 쉬는 초(호출 제한 대비)")
+    parser.add_argument("--mine", action="store_true", help="강사 코드 대신 교육생 코드(my_search.py)로 실행함")
     args = parser.parse_args()
 
     global RES

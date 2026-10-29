@@ -27,7 +27,7 @@ python search_docs.py --qid Q18
 | 목표 | 내용 |
 |---|---|
 | 개념을 코드로 | 교재 147쪽 「Self-RAG + Adaptive RAG + CRAG 결합」 워크플로우를 단계 함수 하나씩으로 봄. 분기는 모두 미리 그린 `if`, 반복은 고정 상한 |
-| 클론 코딩 | 단계마다 실습 함수 1개 이상, 모두 12개(직접 5개, 빈칸 7개). `my_search.py`에 채우고 import 한 줄로 바꿔 끼움 |
+| 클론 코딩 | 단계마다 실습 함수 1개 이상, 모두 12개(직접 5개, 빈칸 7개). `my_search.py`에 채우고 `--mine` 옵션으로 바꿔 끼움 |
 | 눈으로 확인 | 권한 대상 청크 수, LLM 제안과 코드 확정, 벡터와 BM25와 융합 순위, 리랭크 전후 순위, 검색결과 검증 신호 6개와 판정, 질문 변환 기법, 재검색 전후 근거, 문장별 인용, 검증 결과, 종료 상태를 화면에 찍음 |
 
 주요 기능
@@ -54,7 +54,7 @@ hands-on/solutions/rag/
    ├─ search_docs.py           main: 설정 상수(기준값, 상한), 시작 검사, 색인 열기,
    │                           단계 함수 ① ~ ⑥, run_workflow(분기와 반복 상한), 화면 출력, 명령행
    ├─ core_search.py           핵심(클론 코딩 대상): 실습 함수 12개 + 제공 함수(질문유형 판정, 질문 변환, 답변의 프롬프트와 스키마 포함)
-   └─ my_search.py             교육생 작업 파일(뼈대). 맨 아래 USE_TEACHER_CODE 목록의 함수는 강사 코드가 대신 돎
+   └─ my_search.template.py    교육생 작업 파일의 뼈대(강사 템플릿). --mine 실행 때 my_search.py로 복사됨. 맨 아래 USE_TEACHER_CODE 목록의 함수는 강사 코드가 대신 돎
 ```
 
 | 단계 | 교재 | 실습 함수(`core_search.py`) | 방식 | main이 하는 일(`search_docs.py`) |
@@ -265,18 +265,19 @@ python search_docs.py "광고 알림 때문에 어떤 요청을 했나요?" --me
 
 ## 6. 교육생 교체 방법
 
-1. `my_search.py`에 같은 이름, 같은 인자의 함수를 채움. 직접 작성 5개는 `NotImplementedError("여기에 본인 코드를 작성함")` 자리,  
+1. `--mine`을 붙여 한 번 실행하면 뼈대 `my_search.template.py`가 `my_search.py`로 복사됨.  
+   `my_search.py`에 같은 이름, 같은 인자의 함수를 채움. 직접 작성 5개는 `NotImplementedError("여기에 본인 코드를 작성함")` 자리,  
    빈칸 7개는 `NotImplementedError("빈칸 N을 채울 것")` 자리
-2. `search_docs.py`의 import 한 줄을 바꿈
+2. `search_docs.py`는 고치지 않고 `--mine` 옵션으로 본인 코드를 씀(`my_search.py`는 Git이 무시해 pull 충돌이 없음)
 
-   ```python
-   import core_search as core   # 강사 코드로 실행
-   import my_search as core     # 본인 코드로 실행 (이 줄만 바꿈)
+   ```bash
+   python search_docs.py --qid Q01          # 강사 코드(core_search.py)로 실행
+   python search_docs.py --mine --qid Q01   # 본인 코드(my_search.py)로 실행
    ```
 
 3. `my_search.py` 맨 아래 `USE_TEACHER_CODE` 목록에서 지금 채운 함수 이름을 지움(남은 함수는 강사 코드가 대신 돎)
 4. 같은 명령으로 다시 실행해 5장 표대로 강사 결과와 비교함. 막히면 이름을 목록에 다시 넣고 다음 함수로 넘어감
-5. W3 인덱싱을 `my_indexing.py`로 했다면 `search_docs.py`의 `import core_indexing as indexing`도 `my_indexing`으로 바꿈
+5. W3 인덱싱을 `index_docs.py --mine`으로 했다면 검색기가 색인의 `manifest.json`을 보고 `my_indexing`을 씀(따로 바꿀 것 없음)
 
 | 교시 | 채우는 함수(순서대로) | 확인 명령 |
 |---|---|---|

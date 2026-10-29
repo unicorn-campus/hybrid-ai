@@ -15,8 +15,9 @@
                        별칭 규칙 함수(canonical_card_name, make_alias_table, build_alias_lookup), load_bm25_index
 """
 
-# 사용법: 아래 함수를 채운 뒤 index_docs.py의 import 한 줄을 "import my_indexing as indexing"으로 바꿈.
-#         검색기(retriever/search_docs.py)도 같은 모듈로 질문을 토큰화해야 하므로 그쪽 import도 my_indexing으로 바꿈
+# 사용법: 이 파일은 강사 뼈대(템플릿)임. 직접 고치지 않고 "python index_docs.py --mine"을 실행하면
+#         처음 한 번 my_indexing.py로 복사되고, 교육생은 그 파일을 채움(my_indexing.py는 Git이 무시해 pull 충돌이 없음).
+#         검색기(retriever/search_docs.py)는 색인의 manifest.json을 보고 같은 모듈로 질문을 토큰화하므로 따로 바꿀 것이 없음
 # 정규식, 상수, 보조 함수는 학습 목표가 아니므로 완성본을 그대로 줌. 교육생은 이것들을 "쓰는" 핵심 함수만 작성함
 # 임베딩(3)은 API를 부르므로 먼저 "--limit 8"로 실행해 호출 횟수가 적을 때 맞는지 확인한 뒤 전체를 돌림
 

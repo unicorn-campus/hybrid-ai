@@ -82,7 +82,7 @@ hands-on/solutions/rag/
 ├── indexing/              # 이 폴더
 │   ├── index_docs.py      # main. 설정 상수, 로더, 단계 함수 7개
 │   ├── core_indexing.py   # 핵심 모듈(교육생 클론 코딩 대상). 핵심 함수 8개(벡터 색인 4, BM25 색인 4), 보조 함수 4개, 제공 함수 4개
-│   ├── my_indexing.py     # 교육생용 뼈대. 핵심 함수 8개만 채움(직접 5개, 빈칸 3개). 보조 함수 4개와 별칭 규칙 함수는 완성본
+│   ├── my_indexing.template.py  # 교육생용 뼈대(강사 템플릿). --mine 실행 때 my_indexing.py로 복사됨. 핵심 함수 8개만 채움(직접 5개, 빈칸 3개). 보조 함수 4개와 별칭 규칙 함수는 완성본
 │   ├── aliases_approved.json  # 사람 검수를 통과한 별칭(강사 제공). 단계 7이 읽음
 │   ├── README.md
 │   ├── .gitignore         # data/, data-limit/ 를 저장소에 올리지 않음
@@ -208,7 +208,8 @@ Chroma collection 설정(`COLLECTION_METADATA`)
 
 ## 7. 교육생 교체 방법
 
-1. `my_indexing.py` 의 핵심 함수 8개를 채움(벡터 색인 4개 + BM25 색인 4개). 파일 맨 위 설명에 채우는 순서가 있음  
+1. `python index_docs.py --mine --limit 8` 을 한 번 실행해 `my_indexing.py`를 만듦(뼈대 `my_indexing.template.py`를 복사함).  
+   `my_indexing.py` 의 핵심 함수 8개를 채움(벡터 색인 4개 + BM25 색인 4개). 파일 맨 위 설명에 채우는 순서가 있음  
    (`chunk_document` → `clean_document` → `embed_chunks` → `store_chunks` → `build_tokenizer` → `apply_aliases`  
    → `tokenize_korean` → `build_bm25_index`).  
    `chunk_document`, `clean_document`, `build_tokenizer`, `apply_aliases`, `tokenize_korean` 5개는  
@@ -220,17 +221,16 @@ Chroma collection 설정(`COLLECTION_METADATA`)
    임베딩은 API를 부르므로 `--limit 8` 로 먼저 확인한 뒤 전체를 돌림.  
    정규식과 여백 줄 수, BM25 색인 상수(`CONTENT_TAGS`, `CODE_PATTERN` 등)는 파일 맨 위에 완성본으로 있으므로 그대로 쓰고,  
    그 값을 쓰는 코드만 작성함
-2. 색인을 만드는 `index_docs.py` 의 import 한 줄을 바꿈
+2. `index_docs.py` 는 고치지 않고 `--mine` 옵션으로 본인 코드를 씀
 
-   ```python
-   import core_indexing as indexing   # 이 줄을
-   import my_indexing as indexing     # 이렇게 바꿈
+   ```bash
+   python index_docs.py --mine --limit 8   # 본인 코드(my_indexing.py)로 실행
+   python index_docs.py --limit 8          # 강사 코드(core_indexing.py)로 실행
    ```
 
-   검색기(`../retriever/search_docs.py`)도 같은 모듈로 질문을 토큰화해야 하므로 그쪽 import 한 줄도 바꿈  
-   (`import core_indexing as indexing` → `import my_indexing as indexing`).  
-   두 곳이 다르면 검색기가 시작할 때 경고를 냄
-3. `--limit 8` 로 먼저 실행해 오류가 없는지 본 뒤(결과는 `data-limit/`) 전체 실행함(결과는 `data/`)
+   검색기(`../retriever/search_docs.py`)는 색인의 `manifest.json`에 적힌 모듈로 질문을 토큰화하므로 따로 바꿀 것이 없음.  
+   `my_indexing.py`는 Git이 무시하므로 강사 저장소를 pull해도 충돌이 나지 않음(자세한 내용은 `../README.md` 6장)
+3. `--mine --limit 8` 로 먼저 실행해오류가 없는지 본 뒤(결과는 `data-limit/`) 전체 실행함(결과는 `data/`)
 4. 결과 비교: 단계 4의 청크 수와 토큰 길이, 단계 6의 건수, 단계 7의 자가 테스트 4문항 통과와 색인 문서 수(260)가  
    `core_indexing.py` 결과와 같은지 봄.  
    Chroma에 저장된 본문에 `가상고객`, `@example`, `0000-0000-` 이 남아 있지 않은지 세어 봄  

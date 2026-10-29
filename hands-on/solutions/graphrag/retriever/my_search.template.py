@@ -20,8 +20,8 @@
   13 make_end_state          (빈칸 1곳)  ⑩ 종료 상태 이름과 돌려줄 것
   제공(완성본, 읽기만): 상수, 스키마(GroundedAnswer), 제공 함수는 core_search에서 그대로 가져옴(아래 import)
 
-사용법
-  1) search_graph.py의 import 한 줄을 "import my_search as core"로 바꿈
+사용법(이 파일은 강사 뼈대(템플릿)임. 직접 고치지 않고 복사본 my_search.py를 고침. my_search.py는 Git이 무시해 pull 충돌이 없음)
+  1) "python search_graph.py --mine --qid Q01"처럼 --mine을 붙여 실행함. my_search.py가 없으면 이 파일을 복사해 만듦
   2) 채울 함수 이름을 이 파일 맨 아래 USE_TEACHER_CODE 목록에서 지움(지우지 않은 함수는 강사 코드가 대신 돎)
   3) 함수를 채우고 같은 명령(예: --qid Q01)으로 실행해 강사 결과와 비교함. 막히면 이름을 목록에 다시 넣고 다음 함수로 넘어감
 """

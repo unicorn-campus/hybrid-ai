@@ -2,8 +2,10 @@
 ⑤ 답변 생성 → ⑥ 답변 검증)를 미리 그린 분기와 고정 상한으로 실행하고 단계별 판단을 화면에 보여 줌."""
 
 import argparse
+import importlib
 import json
 import re
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -14,7 +16,27 @@ from langchain_chroma import Chroma
 from langchain_cohere import CohereEmbeddings
 from langchain_groq import ChatGroq
 
-import core_search as core  # 교육생: 본인 코드로 바꾸려면 "import my_search as core"
+
+def use_student_code(student_module: str) -> bool:
+    """--mine 옵션이 있으면 교육생 파일(my_*.py)로 돌림. 파일이 없으면 강사 뼈대(my_*.template.py)를 복사해 만듦.
+
+    교육생 파일은 Git이 무시하므로(.gitignore) 강사가 뼈대를 고쳐도 pull 충돌이 나지 않음.
+    이 파일의 import 줄은 고치지 않고 옵션으로만 바꿈.
+    """
+    if "--mine" not in sys.argv:
+        return False
+    folder = Path(__file__).resolve().parent
+    student_path = folder / f"{student_module}.py"
+    if not student_path.exists():
+        shutil.copyfile(folder / f"{student_module}.template.py", student_path)
+        print(f"[--mine] {student_path.name} 이 없어 {student_module}.template.py 를 복사해 만듦")
+    return True
+
+
+if use_student_code("my_search"):
+    import my_search as core  # 교육생 코드(--mine)
+else:
+    import core_search as core  # 강사 코드(기본)
 
 sys.stdout.reconfigure(encoding="utf-8")  # Windows 콘솔에서 한글이 깨지지 않게 함
 
@@ -31,9 +53,12 @@ SECRETS_ENV_PATH = ROOT_DIR / "secrets" / ".env"  # GROQ_API_KEY, COHERE_API_KEY
 EVAL_SET_PATH = ROOT_DIR / "hands-on" / "solutions" / "eval-set.json"  # 평가셋(--qid로 한 문항씩 씀)
 
 # 인덱서 모듈을 불러옴. 색인을 만든 모듈과 같은 모듈로 질문을 토큰화해야 BM25 토큰이 맞음
-# 교육생: W3 색인을 my_indexing.py로 만들었으면 아래 import도 "import my_indexing as indexing"으로 바꿈
+# 색인의 manifest.json에 적힌 모듈(core_indexing, 또는 index_docs.py --mine 이면 my_indexing)을 그대로 따름
 sys.path.insert(0, str(INDEXING_DIR))
-import core_indexing as indexing  # noqa: E402
+INDEXING_MODULE = "core_indexing"
+if (BM25_DIR / "manifest.json").exists():
+    INDEXING_MODULE = json.loads((BM25_DIR / "manifest.json").read_text(encoding="utf-8"))["tokenizer_module"]
+indexing = importlib.import_module(INDEXING_MODULE)
 
 # ---------------------------------------------------------------------------
 # 모델과 색인 설정. 외부 API 모델명은 제공사 사정으로 바뀔 수 있어 교육 전날 한 번 실행해 확인함
@@ -261,7 +286,7 @@ def load_resources() -> dict:
     with open(BM25_DIR / "manifest.json", "r", encoding="utf-8") as file:
         manifest = json.load(file)
     if manifest["tokenizer_module"] != indexing.__name__:
-        print(f"  경고: 색인은 {manifest['tokenizer_module']} 로 토큰화했는데 검색기는 {indexing.__name__} 를 씀 → 두 import를 맞출 것")
+        print(f"  경고: 색인은 {manifest['tokenizer_module']} 로 토큰화했는데 검색기는 {indexing.__name__} 를 씀 → 색인을 다시 만들 것")
 
     cohere_client = cohere.ClientV2(api_key=secrets["COHERE_API_KEY"], timeout=COHERE_TIMEOUT_SECONDS)
     llm = ChatGroq(
@@ -839,6 +864,7 @@ def main() -> None:
         "--role", choices=list(core.ROLE_ACCESS_LEVELS.keys()), default="auditor",
         help="역할(기본 auditor: 약관, 혜택, 모든 회원의 상담 이력. --member-id를 주면 그 회원 상담만)",
     )
+    parser.add_argument("--mine", action="store_true", help="강사 코드 대신 교육생 코드(my_search.py)로 실행함")
     parser.add_argument("--member-id", default=None, help="회원번호(예: M-1042). auditor일 때 그 회원의 상담 이력만 봄")
     parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K, help=f"질의당 근거 수(기본 {DEFAULT_TOP_K})")
     parser.add_argument("--fusion", choices=["weighted", "rrf"], default="weighted", help="벡터와 BM25 융합 방식(기본 weighted)")
@@ -872,7 +898,7 @@ def main() -> None:
     except Exception as error:  # 교육생 실습 함수 오류 등: 감추지 않고 보여 주고 「오류」로 끝냄
         print_step("[종료] 오류")
         print(f"  {type(error).__name__}: {error}")
-        print("  → 실습 함수 오류면 my_search.py의 그 함수를 고치거나, 이름을 USE_TEACHER_CODE 목록에 다시 넣음")
+        print("  → 실습 함수 오류면 my_search.py(--mine)의 그 함수를 고치거나, 이름을 USE_TEACHER_CODE 목록에 다시 넣음")
         raise
     calls = resources["calls"]
     print(f"  호출: LLM {calls['llm']}회, 임베딩 {calls['embed']}회, 리랭크 {calls['rerank']}회, {time.time() - started_at:.1f}초")
