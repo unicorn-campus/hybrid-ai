@@ -1020,6 +1020,6 @@ def verify_answer(answer: GroundedAnswer, evidence_texts: dict) -> list[str]:
         quote = compact_text(sentence.quote)  # 인용문
         if quote == "" or quote not in body:  # 비었거나 본문에 없으면 실패
             failures.append(
-                f"{number}번 문장의 인용문이 {sentence.chunk_id} 본문과 글자 그대로 맞지 않음: \"{sentence.quote[:40]}\""
+                f"답변 {number}번 문장(청크ID: {sentence.chunk_id})이 검색 결과 본문에 그대로 없음: \"{sentence.quote[:40]}\""
             )
     return failures
