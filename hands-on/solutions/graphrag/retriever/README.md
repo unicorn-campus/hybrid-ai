@@ -164,7 +164,7 @@ python search_graph.py --eval --only Q18,Q19,Q20,Q21,Q22 --repeat 3
 ## 6. 교육생 교체 방법
 
 1. `search_graph.py`는 고치지 않고 실행 명령에 `--mine`을 붙임. 처음 한 번 뼈대 `my_search.template.py`가 `my_search.py`로 복사됨  
-   (`my_search.py`는 Git이 무시하므로 강사 저장소를 pull해도 충돌이 나지 않음. 옮기는 방법은 `../README.md` 5장)
+   (`my_search.py`는 Git이 무시하므로 강사 저장소를 pull해도 충돌이 나지 않음. 자세한 내용은 `../README.md` 5장)
 
    ```bash
    python search_graph.py (기존 옵션)          # 강사 코드(core_search.py)로 실행

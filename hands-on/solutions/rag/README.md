@@ -225,24 +225,27 @@ python search_docs.py "첫 상담에서 무엇을 비교해 달라고 했나요?
 
 ### 예전 방식(my_*.py를 Git이 관리하던 때)에서 한 번만 옮기기
 
-이전에 `my_*.py`를 직접 고쳤거나 main 파일의 import 줄을 바꿨다면, 이번 pull 한 번만 아래 순서로 함.  
-`my_search.py` 예시이며, 고친 `my_*.py`마다 1번과 4번을 반복함.
+지금까지 실습한 것은 인덱싱(`my_indexing.py`) 하나뿐이므로, 로컬 저장소를 새로 받는 것이 가장 간단함.  
+저장소 폴더를 지우면 Git이 무시하던 파일(API 키, 가상환경, 색인 결과)도 함께 지워지므로 필요한 것만 먼저 백업함.
 
-1. 본인 파일을 같은 폴더에 다른 이름으로 복사해 둠: `my_search.py` → `my_search.bak.py`
-2. 저장소 루트에서 고친 파일을 강사 원본으로 되돌림
+1. 저장소 밖 폴더(예: 바탕화면)에 아래 파일을 복사해 둠
+
+   | 백업할 것 | 이유 |
+   |---|---|
+   | `hands-on/solutions/rag/indexing/my_indexing.py` | 본인 코드 |
+   | `secrets/.env` | API 키. 저장소를 지우면 함께 지워짐 |
+   | `hands-on/solutions/rag/indexing/data/` (선택) | 만든 색인. 두면 임베딩을 다시 돌리지 않아도 됨 |
+
+2. 로컬 저장소 폴더를 지우고 다시 클론함
 
    ```bash
-   git restore hands-on/solutions
+   git clone https://github.com/unicorn-campus/hybrid-ai.git
    ```
 
-3. 강사 저장소를 받음
-
-   ```bash
-   git pull
-   ```
-
-4. `my_search.bak.py`의 이름을 `my_search.py`로 바꿈
-5. 이제부터는 `--mine`을 붙여 실행함(main 파일의 import 줄은 고치지 않음)
+3. 백업한 파일을 새 저장소의 같은 자리에 넣음.  
+   본인 코드는 `hands-on/solutions/rag/indexing/` 에 두고, 이름을 바꿔 두었다면 `my_indexing.py` 로 되돌림
+4. 가상환경을 3장대로 다시 만듦(가상환경 폴더도 함께 지워졌기 때문임)
+5. 이제부터는 `--mine`을 붙여 실행함. 예: `python index_docs.py --mine --limit 8`
 
 ## 7. 실측값(강사 PC, 2026-10-21, Cohere 임베딩 기준)
 
