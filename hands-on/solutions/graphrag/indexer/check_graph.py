@@ -139,12 +139,12 @@ def rerank_chunks(question: str, chunks: list[dict]) -> list[tuple[dict, float]]
 
 
 def hit_check(item: dict, chunks: list[dict], entities: list[dict]) -> list[str]:
-    """평가셋 relevance.any_of 문자열이 상위 청크 본문이나 엔티티 설명에 있으면 적중으로 봄."""
+    """평가셋 relevance.clues(정답 단서)가 상위 청크 본문이나 엔티티 설명에 있으면 적중으로 봄."""
     texts = [c["source"]["text"] for c in chunks]
     descriptions = [main.core.entity_description(e["label"], e["props"]) for e in entities]
     results = []
     for rel in item.get("relevance", []):
-        for phrase in rel.get("any_of", []):
+        for phrase in rel.get("clues", []):
             where = []
             if any(phrase in t for t in texts):
                 where.append("청크")

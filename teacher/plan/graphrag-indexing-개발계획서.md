@@ -184,7 +184,7 @@ hands-on/solutions/graphrag/
 | 뼈대 교체 경로 | `my_graph.py`를 `core_graph.py` 내용으로 채운 사본으로 같은 결과. 빈 뼈대는 첫 핵심 함수에서 `NotImplementedError` |
 | 전체 재색인 | 260청크 ④ 통과, 시간과 LLM 토큰 기록. `--reuse`로 다시 돌려 LLM 0번 확인 |
 | 그래프 품질 실측표 | 라벨별 엔티티 수, 임베딩 없는 엔티티 0, FROM_CHUNK 중복 0, 단위 없는 청크 5개(D1 표지, 메타데이터, 차례, 각주 쪽) |
-| 결과 확인 도구 | Q01(약관), Q09(혜택), Q14(상담, 회원 필터와 FOLLOWS), Q24(거시)로 실행. 적중 = 평가셋 `relevance.any_of` 문자열이 상위 청크 본문이나 엔티티 속성에 있음 |
+| 결과 확인 도구 | Q01(약관), Q09(혜택), Q14(상담, 회원 필터와 FOLLOWS), Q24(거시)로 실행. 적중 = 평가셋 `relevance.clues`(정답 단서)가 상위 청크 본문이나 엔티티 속성에 있음 |
 | 주석 | `references/dev-comment-guide.md` 10장 체크리스트, 핵심 파일은 줄 단위 주석 |
 
 ## 12. 작업 순서

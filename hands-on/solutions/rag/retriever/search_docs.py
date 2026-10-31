@@ -833,7 +833,7 @@ def load_eval_question(qid: str) -> dict:
 
 def main() -> None:
     """명령행 옵션을 읽고 질문 하나를 워크플로우로 처리함.
-    평가셋 예시: answerable-원문서에서 찾을 수 있는가?, any_of: 검색결과 청크에 이 문장이 있으면 성공으로 판단.
+    평가셋 예시: answerable-원문서에서 찾을 수 있는가?, clues: 정답 단서. 검색결과 청크에 이 중 하나라도 있으면 성공으로 판단.
     {
       "id": "Q07",
       "question": "한빛 모아생활 카드의 생활 포인트는 결제액의 몇 %를 적립하고, 월 한도는 얼마인가요?",
@@ -848,7 +848,7 @@ def main() -> None:
         {
           "source": "D2_카드혜택안내_합성.pdf",
           "location": "D2-C001-B01",
-          "any_of": [
+          "clues": [
             "대상 결제액의 1.2%를 적립함"
           ]
         }

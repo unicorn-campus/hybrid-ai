@@ -36,9 +36,9 @@ def normalize_for_match(text: str) -> str:
 
 
 def is_hit(relevance: list[dict], contexts: list[str]) -> bool:
-    """정답 근거 문장이 검색된 근거 안에 글자 그대로 있는지 봄(코드 채점 Hit@5, 교재 167쪽).
+    """정답 단서가 검색된 근거 안에 글자 그대로 있는지 봄(코드 채점 Hit@5, 교재 167쪽).
 
-    방법: relevance의 any_of 문장 중 하나라도 contexts 중 하나에 들어 있으면 True.
+    방법: relevance의 clues(정답 단서) 중 하나라도 contexts 중 하나에 들어 있으면 True.
     반환값: relevance가 비어 있으면(답 없는 문항) False.
     """
     normalized_contexts = []
@@ -46,8 +46,8 @@ def is_hit(relevance: list[dict], contexts: list[str]) -> bool:
         normalized_contexts.append(normalize_for_match(context))
 
     for item in relevance:
-        for sentence in item["any_of"]:
-            needle = normalize_for_match(sentence)
+        for clue in item["clues"]:
+            needle = normalize_for_match(clue)
             for context in normalized_contexts:
                 if needle in context:
                     return True

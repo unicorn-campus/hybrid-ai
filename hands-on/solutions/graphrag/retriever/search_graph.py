@@ -1503,12 +1503,12 @@ def eval_item_role(item: dict) -> tuple[str, str | None]:
 
 
 def hit_check(item: dict, result: dict, data: dict) -> bool | None:
-    """근거 적중: 평가셋 relevance.any_of 문구 하나 이상이 ⑥ 뒤 원문에 그대로 있으면 적중(답 없는 문항은 None)."""
+    """근거 적중: 평가셋 relevance.clues(정답 단서) 하나 이상이 ⑥ 뒤 원문에 그대로 있으면 적중(답 없는 문항은 None)."""
     if not item.get("answerable"):
         return None
     texts = " ".join(e["text"] for e in result["evidence"]).replace(" ", "")
     for rel in item.get("relevance", []):
-        for phrase in rel.get("any_of", []):
+        for phrase in rel.get("clues", []):
             if phrase.replace(" ", "") in texts:
                 return True
     return False
