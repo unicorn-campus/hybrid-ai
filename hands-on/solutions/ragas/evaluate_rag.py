@@ -64,7 +64,7 @@ from ragas.llms import llm_factory  # noqa: E402
 ROOT_DIR = BASE_DIR.parents[2]  # ragas → solutions → hands-on → 저장소 루트
 SECRETS_ENV_PATH = ROOT_DIR / "secrets" / ".env"  # GROQ_API_KEY, COHERE_API_KEY(값은 화면과 파일에 찍지 않음)
 EVAL_SET_PATH = ROOT_DIR / "hands-on" / "solutions" / "eval-set.json"  # 평가셋(검색기와 같은 파일)
-RESULTS_DIR = BASE_DIR / "results"  # 결과 파일: results/{하이퍼 파라미터명}/evaluate_{YYMMDDHHMM}_{vNN}.md
+RESULTS_DIR = BASE_DIR / "results"  # 결과 파일: results/{하이퍼 파라미터명}/evaluate_{YYMMDDHHMM}_{vNN 또는 summary}.md
 
 # 평가자(채점관) LLM. 답변 LLM(openai/gpt-oss-120b)과 다른 모델이라 자기 답을 자기가 채점하지 않음(교재 176쪽)
 JUDGE_MODEL = "qwen/qwen3.8-27b"
@@ -621,6 +621,160 @@ def comparison_table_md(versions: list[dict], summary: dict, metric_names: list[
     return lines
 
 
+def count_confirm(rows: list[dict]) -> tuple[int, int]:
+    """답 없는 문항 중 「확인 필요」로 맞게 끝난 수와 전체 수를 돌려줌."""
+    confirm_total = 0
+    confirm_ok = 0
+    for row in rows:
+        if not row["answerable"]:
+            confirm_total = confirm_total + 1
+            if row["confirm_ok"]:
+                confirm_ok = confirm_ok + 1
+    return confirm_ok, confirm_total
+
+
+def summary_file_name(stamp: str) -> str:
+    """버전별 비교 파일 이름. 버전 파일과 같은 시각 값(stamp)을 써서 한 실행의 파일끼리 묶임."""
+    return f"evaluate_{stamp}_summary.md"
+
+
+def version_file_name(stamp: str, version: dict) -> str:
+    """버전 결과 파일 이름(예: evaluate_2610311725_v01.md)."""
+    return f"evaluate_{stamp}_{version['name']}.md"
+
+
+def question_cell(score, baseline_score, noise: float, is_baseline: bool) -> str:
+    """문항별 비교표 한 칸의 점수. 기준선보다 흔들림 폭 넘게 오르면 ▲, 내리면 ▼를 붙임."""
+    text = fmt(score)
+    if is_baseline or not isinstance(score, (int, float)) or not isinstance(baseline_score, (int, float)):
+        return text
+    if score != score or baseline_score != baseline_score:  # nan(채점 실패)은 비교하지 않음
+        return text
+    if score - baseline_score > noise:
+        return f"▲{text}"
+    if baseline_score - score > noise:
+        return f"▼{text}"
+    return text
+
+
+def write_summary_file(context: dict) -> Path:
+    """한 실행의 모든 버전을 한 파일로 비교함(버전별 비교 파일). 쓴 파일 경로를 돌려줌.
+
+    내용: 실행 정보, 버전 비교표, 버전별 부가 정보(「확인 필요」, 근거 0개, 결과 파일), 원인 후보,
+          문항별 비교(검색 지표와 답변 지표를 버전끼리 나란히). 버전 파일과 같은 stamp를 써서 이름으로 묶임.
+    """
+    versions = context["versions"]
+    summary = context["summary"]
+    metric_names = context["metric_names"]
+    rows_by_version = context["rows_by_version"]
+    noise = context["noise"]
+    stamp = context["stamp"]
+    param = versions[0]["param"]
+    baseline = None
+    for version in versions:
+        if version["is_baseline"]:
+            baseline = version
+    first_rows = rows_by_version[versions[0]["name"]]
+
+    lines = []
+    lines.append(f"# {param} 평가 — 버전별 비교")
+    lines.append("")
+    lines.append("## 읽는 순서")
+    lines.append("")
+    lines.append("1. 버전 비교표에서 기준선 대비 ▲(좋아짐), ▼(나빠짐)를 봄  ")
+    lines.append("2. 원인 후보에서 고칠 곳을 고름  ")
+    lines.append("3. 문항별 비교에서 어느 문항 때문에 평균이 움직였는지 찾고, 그 문항은 버전 결과 파일의 문항별 상세를 엶")
+    lines.append("")
+    lines.append("범례: ▲ 기준선보다 흔들림 폭 넘게 오름, ▼ 내림, 변화 없음 = 흔들림 폭 안, - = 기준선 자신 또는 계산 안 함,  ")
+    lines.append("실패 = 평가자 채점 실패, ★ = 기준선")
+    lines.append("")
+    lines.append("## 실행 정보")
+    lines.append("")
+    lines.append("| 항목 | 값 |")
+    lines.append("|---|---|")
+    lines.append(f"| 실행 시각 | {context['started']} |")
+    value_texts = []
+    for version in versions:
+        value_texts.append(f"{version['name']}={version['value']}" + ("★" if version["is_baseline"] else ""))
+    lines.append(f"| 하이퍼 파라미터 | {param}: {', '.join(value_texts)} |")
+    lines.append(f"| 고정한 나머지 설정 | {md_cell(context['fixed_settings'])} |")
+    lines.append(f"| 평가셋 | {EVAL_SET_PATH.name} {len(first_rows)}문항(답 있음 {context['answerable_count']}) |")
+    lines.append(f"| 검색기 | rag/retriever core_search(강사 코드), 역할 {ROLE} |")
+    lines.append(f"| 평가자 LLM, 임베딩 | Groq {JUDGE_MODEL}, Cohere {EMBEDDING_MODEL} |")
+    lines.append(f"| 흔들림 폭 | {md_cell(context['noise_text'])} |")
+    lines.append(f"| 실행 옵션 | {md_cell(context['command'])} |")
+    lines.append("")
+    lines.append("## 버전 비교표")
+    lines.append("")
+    lines.append("칸 = 평균(기준선 대비 변화). 평균은 매크로 평균(문항 점수의 평균)이며 「-」와 「실패」 칸은 평균에서 뺌")
+    lines.append("")
+    lines.extend(comparison_table_md(versions, summary, metric_names))
+    lines.append("")
+    lines.append(f"- 최소 식별 변화: 답 있는 문항 대부분이 정답 근거 1개라 한 문항이 바뀌면 Recall 평균이 약 "
+                 f"{MIN_DETECTABLE} 움직임. 통계적 유의성은 주장하지 않음")
+    if param == "top_k":
+        lines.append("- 참고: k가 커지면 Hit와 Recall은 기계적으로 오르므로 ContextPrecision과 짝지어 읽음")
+    lines.append("")
+    lines.append("## 버전별 부가 정보")
+    lines.append("")
+    lines.append("| 버전 | 「확인 필요」 판정(답 없는 문항) | 근거 0개 문항 | 채점 실패 문항 | 결과 파일 |")
+    lines.append("|---|---|---|---|---|")
+    for version in versions:
+        rows = rows_by_version[version["name"]]
+        confirm_ok, confirm_total = count_confirm(rows)
+        empty_ids = []
+        error_ids = []
+        for row in rows:
+            if row["answerable"] and len(row["chunk_ids"]) == 0:
+                empty_ids.append(row["id"])
+            if row.get("llm_errors"):
+                error_ids.append(row["id"])
+        file_name = version_file_name(stamp, version)
+        label = f"{version['name']} {param}={version['value']}" + (" ★" if version["is_baseline"] else "")
+        lines.append(
+            f"| {label} | {confirm_ok}/{confirm_total} 맞음 | {', '.join(empty_ids) if empty_ids else '없음'} | "
+            f"{', '.join(error_ids) if error_ids else '없음'} | [{file_name}]({file_name}) |"
+        )
+    lines.append("")
+    lines.append("## 원인 후보(교재 187쪽)")
+    lines.append("")
+    for version in versions:
+        if version["is_baseline"]:
+            lines.append(f"- {version['name']} {param}={version['value']}: 기준선")
+        else:
+            reasons = " / ".join(context["diagnoses"][version["name"]])
+            lines.append(f"- {version['name']} {param}={version['value']}: {reasons}")
+    lines.append("")
+    lines.append("## 문항별 비교")
+    lines.append("")
+    lines.append("평균만 보면 0점 문항이 가려지므로 문항마다 버전을 나란히 봄(교재 181쪽 노트).  ")
+    lines.append("▲, ▼는 같은 문항의 기준선 점수보다 흔들림 폭 넘게 오르거나 내린 칸임")
+    for metric in metric_names:
+        lines.append("")
+        lines.append(f"### {METRIC_LABELS[metric]}")
+        lines.append("")
+        header = "| 문항 |"
+        divider = "|---|"
+        for version in versions:
+            header = header + f" {version['name']} {param}={version['value']}{' ★' if version['is_baseline'] else ''} |"
+            divider = divider + "---|"
+        lines.append(header)
+        lines.append(divider)
+        for index, first_row in enumerate(first_rows):
+            if not first_row["answerable"]:
+                continue  # 답 없는 문항은 지표를 계산하지 않음(「확인 필요」 판정은 버전별 부가 정보에)
+            baseline_score = question_scores(rows_by_version[baseline["name"]][index])[metric]
+            line = f"| {first_row['id']} |"
+            for version in versions:
+                score = question_scores(rows_by_version[version["name"]][index])[metric]
+                line = line + f" {question_cell(score, baseline_score, noise[metric], version['is_baseline'])} |"
+            lines.append(line)
+
+    path = RESULTS_DIR / param / summary_file_name(stamp)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
 def write_result_files(context: dict) -> list[Path]:
     """버전마다 결과 마크다운 파일을 씀(계획서 6장). 쓴 파일 경로 목록을 돌려줌."""
     versions = context["versions"]
@@ -667,13 +821,7 @@ def write_result_files(context: dict) -> list[Path]:
         for metric in metric_names:
             change = core.format_delta(version_summary["delta"][metric], version_summary["change"][metric])
             lines.append(f"| {METRIC_LABELS[metric]} | {fmt(version_summary['mean'][metric])} | {change} |")
-        confirm_total = 0
-        confirm_ok = 0
-        for row in rows:
-            if not row["answerable"]:
-                confirm_total = confirm_total + 1
-                if row["confirm_ok"]:
-                    confirm_ok = confirm_ok + 1
+        confirm_ok, confirm_total = count_confirm(rows)
         lines.append("")
         lines.append(f"- 답 없는 문항 「확인 필요」 판정: {confirm_ok}/{confirm_total} 맞음  ")
         lines.append(f"- 최소 식별 변화: 답 있는 문항 대부분이 정답 근거 1개라 한 문항이 바뀌면 Recall 평균이 약 "
@@ -683,6 +831,8 @@ def write_result_files(context: dict) -> list[Path]:
         lines.append("## 버전 비교표")
         lines.append("")
         lines.extend(comparison_table_md(versions, summary, metric_names))
+        lines.append("")
+        lines.append(f"문항별 비교와 버전별 원인 후보는 [버전별 비교 파일]({summary_file_name(context['stamp'])})에 모아 둠")
         lines.append("")
         lines.append("## 원인 후보(교재 187쪽)")
         lines.append("")
@@ -764,7 +914,7 @@ def write_result_files(context: dict) -> list[Path]:
             lines.append("")
             lines.append("</details>")
 
-        path = out_dir / f"evaluate_{context['stamp']}_{version['name']}.md"
+        path = out_dir / version_file_name(context["stamp"], version)
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         written.append(path)
     return written
@@ -968,22 +1118,26 @@ def main() -> None:
         diagnoses[version["name"]] = core.diagnose(summary[version["name"]]["change"])  # 실습 함수
         print(f"  원인 후보 {version['name']}: " + " / ".join(diagnoses[version["name"]]))
 
-    written = write_result_files({
+    context = {
         "versions": versions,
         "summary": summary,
         "metric_names": metric_names,
         "rows_by_version": rows_by_version,
         "diagnoses": diagnoses,
         "started": started.strftime("%Y-%m-%d %H:%M"),
-        "stamp": started.strftime("%y%m%d%H%M"),
+        "stamp": started.strftime("%y%m%d%H%M"),  # 버전 파일과 버전별 비교 파일이 같은 값을 씀
         "fixed_settings": fixed_settings,
         "answerable_count": answerable_count,
+        "noise": noise,
         "noise_text": noise_text,
         "command": command,
-    })
+    }
+    written = write_result_files(context)
+    summary_path = write_summary_file(context)
     print_step("[결과 파일]")
     for path in written:
         print(f"  {path.relative_to(BASE_DIR)}")
+    print(f"  {summary_path.relative_to(BASE_DIR)}  ← 버전별 비교")
     print(f"  걸린 시간 {(datetime.now() - started).total_seconds():.0f}초")
 
 
