@@ -62,11 +62,14 @@ SECRETS_PATH = ROOT_DIR / "secrets" / ".env"  # API 키가 든 파일. 키 값�
 COHERE_API_KEY_NAME = "COHERE_API_KEY"  # secrets/.env 안의 변수 이름(검색기의 리랭커와 같은 키)
 
 COLLECTION_NAME = "card_docs"  # Chroma collection 이름(검색기와 약속한 값)
-EMBEDDING_MODEL = "embed-v5.0-fast"  # Cohere 임베딩 모델(API). 검색기도 같은 모델로 질문을 임베딩해야 함
+EMBEDDING_MODEL = "embed-v5.0-fast"  # Cohere 임베딩 모델(API). 검색기는 manifest.json에 적힌 이 값으로 질문을 임베딩함
 EMBED_DIMENSION = 2048  # 벡터 길이. 단계 5 출력이 이 값인지 확인함
 EMBED_BATCH_SIZE = 96  # Cohere 한 요청에 넣을 수 있는 최대 건수. 260청크면 호출 3회
+# 토큰을 셀 토크나이저 모델. 임베딩 모델을 바꿔도 청크 경계가 그대로이도록 따로 고정함(한 번에 하나만 바꿈)
+TOKENIZER_MODEL = "embed-v5.0-fast"
 CHUNK_SIZE = 800  # 청크 토큰 상한(Cohere 토크나이저 기준)
 CHUNK_OVERLAP = 200  # 앞뒤 청크가 겹치는 토큰 수
+# 위 세 값(EMBEDDING_MODEL, CHUNK_SIZE, CHUNK_OVERLAP)은 명령행 옵션으로도 바꿀 수 있음(RAGAS 평가의 재색인 버전이 씀)
 CARD_HEADER_TOKEN_BUDGET = 40  # D2 청크 앞에 붙일 "[카드: ...]" 머리말 몫. 미리 빼 두어야 800을 넘지 않음
 LOAD_BATCH_SIZE = 100  # Chroma에 한 번에 넣는 건수
 
@@ -285,7 +288,7 @@ def count_tokens(text: str) -> int:
         return 0  # 분할기가 빈 조각의 길이도 물어봄. 빈 글은 토크나이저에 보내지 않음
 
     # 입력 text를 토큰(자주 쓰는 글자 조각)으로 쪼개고, 조각마다 tokenizer.json 사전의 번호로 바꿈
-    response = cohere_client.tokenize(text=text, model=EMBEDDING_MODEL, offline=True)
+    response = cohere_client.tokenize(text=text, model=TOKENIZER_MODEL, offline=True)
 
     # response.tokens는 글자 조각이 아니라 사전 번호 목록임. 개수만 필요하므로 길이를 셈
     return len(response.tokens)
@@ -643,6 +646,9 @@ def write_bm25_sidecars(index_dir: Path, card_names: list[str], aliases: dict, r
         "b": BM25_B,
         "method": indexing.BM25_METHOD,
         "tokenizer_module": indexing.__name__,  # 검색기가 같은 모듈로 질문을 토큰화해야 함(core_indexing 또는 my_indexing)
+        "embedding_model": EMBEDDING_MODEL,  # 검색기가 같은 모델로 질문을 임베딩해야 함
+        "chunk_size": CHUNK_SIZE,
+        "chunk_overlap": CHUNK_OVERLAP,
         "kiwipiepy": package_version("kiwipiepy"),
         "bm25s": package_version("bm25s"),
         "created_at": datetime.now().isoformat(timespec="seconds"),
@@ -721,12 +727,26 @@ def step_bm25_index(chunks: list[dict], data_dir: Path) -> None:
 # main: 점검 뒤 7단계를 순서대로 실행함
 # ---------------------------------------------------------------------------
 def main() -> None:
-    """명령행 옵션을 읽고 인덱싱 7단계를 실행함. 전체 실행은 data/, --limit 실행은 data-limit/ 에 씀."""
-    parser = argparse.ArgumentParser(description="RAG 인덱싱 예제: 로드 → 정제 → 가명처리 → 청킹 → 임베딩 → 적재 → BM25 색인")
+    """명령행 옵션을 읽고 인덱싱 7단계를 실행함. 전체 실행은 data/, --limit 실행은 data-limit/, --out을 주면 그 폴더에 씀."""
+    # 옵션 값을 모듈 맨 위 상수에 넣어 단계 함수들이 그대로 읽게 함(global 선언은 함수에서 상수를 처음 쓰기 전에 둬야 함)
+    global CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDING_MODEL
+    parser =argparse.ArgumentParser(description="RAG 인덱싱 예제: 로드 → 정제 → 가명처리 → 청킹 → 임베딩 → 적재 → BM25 색인")
     parser.add_argument("--limit", type=int, default=None, help="문서마다 앞 N쪽(또는 N건)만 처리해 빨리 확인함")
     parser.add_argument("--mine", action="store_true", help="강사 코드 대신 교육생 코드(my_indexing.py)로 실행함")
+    parser.add_argument("--chunk-size", type=int, default=CHUNK_SIZE, help=f"청크 토큰 상한(기본 {CHUNK_SIZE})")
+    parser.add_argument("--chunk-overlap", type=int, default=CHUNK_OVERLAP, help=f"앞뒤 청크가 겹치는 토큰 수(기본 {CHUNK_OVERLAP})")
+    parser.add_argument("--embedding-model", default=EMBEDDING_MODEL, help=f"Cohere 임베딩 모델(기본 {EMBEDDING_MODEL})")
+    parser.add_argument("--out", default=None, help="결과 폴더(기본 data/). RAGAS 평가가 버전별 색인을 data-variants/ 아래에 만들 때 씀")
     args = parser.parse_args()
     limit = args.limit
+
+    CHUNK_SIZE = args.chunk_size
+    CHUNK_OVERLAP = args.chunk_overlap
+    EMBEDDING_MODEL = args.embedding_model
+    if CHUNK_OVERLAP < 0 or CHUNK_OVERLAP >= CHUNK_SIZE - CARD_HEADER_TOKEN_BUDGET:
+        print(f"오류: 오버랩은 0 이상, 청크 크기 - 카드 머리말 몫({CHUNK_SIZE} - {CARD_HEADER_TOKEN_BUDGET}) 미만이어야 함"
+              f"(지금 {CHUNK_OVERLAP})")
+        sys.exit(1)
 
     check_docs_dir()
     check_secrets()
@@ -734,7 +754,10 @@ def main() -> None:
     cohere_client = cohere.ClientV2(api_key=os.environ[COHERE_API_KEY_NAME])
 
     data_dir = DATA_DIR
-    if limit is not None:
+    if args.out is not None:
+        data_dir = Path(args.out).resolve()
+        print(f"--out: 결과는 {data_dir} 에 씀(청크 {CHUNK_SIZE}토큰, 중첩 {CHUNK_OVERLAP}토큰, 임베딩 {EMBEDDING_MODEL})")
+    elif limit is not None:
         data_dir = DATA_LIMIT_DIR  # 부분 결과가 검색기가 읽는 전체 결과를 덮어쓰지 않게 함
         print(f"--limit {limit}: 결과는 {data_dir} 에 씀(검색기는 data/ 를 읽으므로 영향 없음)")
         if limit < D2_CARD_INDEX_LAST_PAGE:

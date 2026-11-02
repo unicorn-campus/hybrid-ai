@@ -45,7 +45,8 @@ hands-on/solutions/ragas/
 ```
 
 읽기만 하는 입력: 검색기 `../rag/retriever/search_docs.py`, `core_search.py`, 색인 `../rag/indexing/data/`,  
-평가셋 `../eval-set.json`(10문항: 답 있음 8, 답 없음 Q20, Q21), 비밀값 `secrets/.env`(저장소 루트).
+평가셋 `../eval-set.json`(10문항: 답 있음 8, 답 없음 Q20, Q21), 비밀값 `secrets/.env`(저장소 루트).  
+재색인 하이퍼 파라미터(4.2 ⑥ ~ ⑧)를 돌리면 인덱서 `../rag/indexing/index_docs.py`를 불러 `../rag/indexing/data-variants/`에 버전별 색인을 씀.
 
 ## 3. 가상환경 설정과 패키지 설치
 
@@ -129,16 +130,20 @@ PowerShell에서 「스크립트를 실행할 수 없으므로」가 나오면 `
 
 ### 4.2 하이퍼 파라미터별 실행 명령
 
-재색인 없이 바꿀 수 있는 5개를 지원함. 기준선은 검색기의 현재 값이며 `--baseline`을 생략하면 그 값을 씀.  
+재색인 없이 바꿀 수 있는 5개와 재색인이 필요한 3개(임베딩 모델, 청크 크기, 오버랩)를 지원함.  
+기준선은 검색기의 현재 값(재색인 3개는 `rag/indexing/data/bm25/manifest.json`에 적힌 값)이며 `--baseline`을 생략하면 그 값을 씀.  
 한 번에 하나만 바꿈(교재 177쪽). 수업에서는 `top_k`를 씀(실측값은 7장).
 
-| 이름 | 뜻 | 기준선 | 교재 193쪽 순위 | 명령 |
+| 이름 | 뜻 | 기준선 | 비교 후보 | 명령 |
 |---|---|---|---|---|
-| `top_k` | 리랭크 뒤 근거 수(⑤에 넘기는 청크 수). 후보 수(×4, ×2)도 함께 늘어남 | 5 | 5 | 아래 ① |
-| `vector_weight` | 가중합 융합에서 벡터 점수 비중(BM25 비중은 1 - 값) | 0.6 | 9 | 아래 ② |
-| `fusion` | 벡터와 BM25 융합 방식(가중합 또는 RRF) | weighted | 15 | 아래 ③ |
-| `rerank_model` | Cohere 리랭커 모델 | rerank-v4.0-fast | 6 | 아래 ④ |
-| `llm_model` | Groq 생성 LLM(검색기의 질문 분류, 질문 변환, 답변 생성) | openai/gpt-oss-120b | 1 | 아래 ⑤ |
+| `top_k` | 리랭크 뒤 근거 수(⑤에 넘기는 청크 수). 후보 수(×4, ×2)도 함께 늘어남 | 5 | 3, 5, 10 | 아래 ① |
+| `vector_weight` | 가중합 융합에서 벡터 점수 비중(BM25 비중은 1 - 값) | 0.6 | 0.3, 0.6, 0.8 | 아래 ② |
+| `fusion` | 벡터와 BM25 융합 방식(가중합 또는 RRF) | weighted | weighted, rrf | 아래 ③ |
+| `rerank_model` | Cohere 리랭커 모델 | rerank-v4.0-fast | rerank-v4.0-fast, rerank-v4.0-pro | 아래 ④ |
+| `llm_model` | Groq 생성 LLM(검색기의 질문 분류, 질문 변환, 답변 생성) | openai/gpt-oss-120b | openai/gpt-oss-120b, openai/gpt-oss-20b | 아래 ⑤ |
+| `embedding_model` | Cohere 임베딩 모델(청크와 질문을 같은 모델로 임베딩). 재색인 | embed-v5.0-fast | embed-v5.0-fast, embed-v5.0-pro | 아래 ⑥ |
+| `chunk_size` | 청크 토큰 상한. 재색인 | 800 | 400, 800, 1200 | 아래 ⑦ |
+| `chunk_overlap` | 앞뒤 청크가 겹치는 토큰 수. 재색인 | 200 | 0, 100, 200 | 아래 ⑧ |
 
 ① Top-k(수업용)
 
@@ -170,7 +175,38 @@ python evaluate_rag.py --param rerank_model --values rerank-v4.0-fast rerank-v4.
 python evaluate_rag.py --param llm_model --values openai/gpt-oss-120b openai/gpt-oss-20b
 ```
 
-- 청크 크기, 오버랩, 임베딩 모델(193쪽 2 ~ 4위)은 바꾸면 다시 색인해야 하므로 이 예제가 지원하지 않음
+⑥ 임베딩 모델(재색인. 두 모델 모두 2048차원)
+
+```bash
+python evaluate_rag.py --param embedding_model --values embed-v5.0-fast embed-v5.0-pro
+```
+
+⑦ 청크 크기(재색인)
+
+```bash
+python evaluate_rag.py --param chunk_size --values 400 800 1200
+```
+
+⑧ 오버랩(재색인)
+
+```bash
+python evaluate_rag.py --param chunk_overlap --values 0 100 200
+```
+
+재색인 3개(⑥ ~ ⑧)의 동작
+
+- 설정이 기준 색인(`rag/indexing/data/`)과 같은 버전은 `data/`를 그대로 씀. 다른 버전은 인덱서 `index_docs.py`를 불러  
+  `rag/indexing/data-variants/{이름}-{값}/`에 색인을 만듦(한 벌에 약 20초, 임베딩 API 3회 이상. Git이 무시)
+- 같은 설정의 색인이 이미 있으면 다시 만들지 않음. 다시 만들려면 그 폴더를 지운 뒤 실행함
+- 바꾸는 값 하나만 버전 값이고 나머지 두 값은 기준선 값으로 고정함. 토큰은 늘 `embed-v5.0-fast` 토크나이저로 세므로  
+  임베딩 모델만 바꾼 버전은 청크 경계가 기준선과 같음
+- 청크 경계에 걸려 어느 청크에도 통째로 없는 정답 단서(끊긴 단서)는 기준 색인에서는 오류로 종료하지만,  
+  버전 색인에서는 그 값의 효과이므로 경고만 내고 결과 파일 「색인」 칸에 개수와 문항을 적음
+- 기준선 청크 800에서는 대부분의 글이 구분자(조항, 카드 코드, 발화자)에서 먼저 잘려 오버랩이 거의 생기지 않음  
+  (2026-11-02 실측: 오버랩 0과 200의 청크 수가 모두 260개, 본문 글자 합계 차이 0.2%). 그래서 ⑧은 점수 차이가 작게 나옴
+- 청크ID는 버전끼리 다름(예: 청크 400이면 484개). 순위 비교는 청크ID가 아니라 정답 근거로 맞춰 봄
+- 평가자 임베딩(AnswerRelevancy용 `embed-v5.0-fast`)은 채점 자이므로 `embedding_model` 버전을 돌려도 바꾸지 않음
+- 예전에 만든 `data/`(manifest.json에 세 값이 없음)는 인덱서 기본값(800, 200, embed-v5.0-fast)으로 만든 것으로 봄
 - `--baseline`을 주면 그 값이 ★기준선이 됨(예: `--param top_k --values 5 10 20 --baseline 10`)
 
 ### 4.3 실행 시간과 호출(강사 PC 실측, 7장)

@@ -85,11 +85,12 @@ hands-on/solutions/rag/
 │   ├── my_indexing.template.py  # 교육생용 뼈대(강사 템플릿). --mine 실행 때 my_indexing.py로 복사됨. 핵심 함수 8개만 채움(직접 5개, 빈칸 3개). 보조 함수 4개와 별칭 규칙 함수는 완성본
 │   ├── aliases_approved.json  # 사람 검수를 통과한 별칭(강사 제공). 단계 7이 읽음
 │   ├── README.md
-│   ├── .gitignore         # data/, data-limit/ 를 저장소에 올리지 않음
+│   ├── .gitignore         # data/, data-limit/, data-variants/ 를 저장소에 올리지 않음
 │   ├── data/              # 전체 실행이 만듦(검색기가 읽음)
 │   │   ├── chroma/        # Chroma 저장 폴더(본문, 메타데이터, 벡터)
 │   │   └── bm25/          # BM25 색인 폴더(bm25s 점수표, chunk_ids.json, dictionary.json, manifest.json 등)
-│   └── data-limit/        # --limit 실행이 만듦(확인용. 검색기는 읽지 않음)
+│   ├── data-limit/        # --limit 실행이 만듦(확인용. 검색기는 읽지 않음)
+│   └── data-variants/     # RAGAS 평가가 청크 크기, 오버랩, 임베딩 모델 버전마다 만듦(예: chunk_size-400/)
 └── retriever/             # 검색기(indexing/data/ 를 읽음)
 ```
 
@@ -140,6 +141,14 @@ python index_docs.py
 | 옵션 | 뜻 |
 |---|---|
 | `--limit N` | 문서마다 앞 N쪽(D3는 파일마다 앞 N건)만 처리함. 흐름 확인용. 기본은 전체 |
+| `--chunk-size N` | 청크 토큰 상한. 기본 800 |
+| `--chunk-overlap N` | 앞뒤 청크가 겹치는 토큰 수. 기본 200. 0 이상, 「청크 크기 - 40(카드 머리말 몫)」 미만 |
+| `--embedding-model 이름` | Cohere 임베딩 모델. 기본 `embed-v5.0-fast` |
+| `--out 폴더` | 결과 폴더. 기본 `data/`. RAGAS 평가가 버전별 색인을 `data-variants/` 아래에 만들 때 씀 |
+
+- 위 세 옵션 값(청크 크기, 오버랩, 임베딩 모델)은 `bm25/manifest.json`에 기록되고, 검색기는 기록된 임베딩 모델로 질문을 임베딩함  
+- 토큰 수는 임베딩 모델과 상관없이 늘 `embed-v5.0-fast` 토크나이저로 셈(상수 `TOKENIZER_MODEL`).  
+  임베딩 모델만 바꿨을 때 청크 경계까지 바뀌지 않게 하기 위함
 
 실행 규칙
 

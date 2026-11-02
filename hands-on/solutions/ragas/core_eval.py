@@ -89,7 +89,7 @@ def build_versions(param: str, values: list, baseline, supported: dict) -> list[
     반환값: 버전 dict 목록. 키 name(v01, v02, …), param, value, is_baseline(기준선이면 True).
     예외: 지원하지 않는 이름이거나 기준선 값이 값 목록에 없으면 ValueError(같은 잣대로 비교하려면 기준선도 돌려야 함).
     """
-    if param not in supported:  # 재색인이 필요한 값(청크 크기 등)은 지원 목록에 없음
+    if param not in supported:  # 지원 목록에 없는 이름(오타 등)이면 비교할 수 없음
         raise ValueError(f"지원하지 않는 하이퍼 파라미터: {param} → 지원 목록: {list(supported.keys())}")
 
     if baseline is None:  # 기준선을 주지 않으면 검색기의 현재 값이 기준선임

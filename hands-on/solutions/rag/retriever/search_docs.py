@@ -66,7 +66,9 @@ indexing = importlib.import_module(INDEXING_MODULE)
 COLLECTION_NAME = "card_docs"  # Chroma collection 이름(인덱서와 약속한 값)
 # 인덱서 index_docs.py의 COLLECTION_METADATA와 같아야 함. 코사인 거리, 교재 128쪽 권장 HNSW 값(M 16, 색인 폭 200, 검색 폭 100)
 COLLECTION_METADATA = {"hnsw:space": "cosine", "hnsw:M": 16, "hnsw:construction_ef": 200, "hnsw:search_ef": 100}
-EMBEDDING_MODEL = "embed-v5.0-fast"  # Cohere 임베딩(2048차원). 인덱서와 같은 모델이어야 질문과 청크가 같은 공간에 놓임
+# Cohere 임베딩(2048차원). 인덱서와 같은 모델이어야 질문과 청크가 같은 공간에 놓임.
+# load_resources가 색인의 manifest.json에 적힌 모델로 바꿔 씀(이 값은 예전 색인용 기본값)
+EMBEDDING_MODEL = "embed-v5.0-fast"
 RERANK_MODEL = "rerank-v4.0-fast"  # Cohere 리랭커
 LLM_MODEL = "openai/gpt-oss-120b"  # Groq LLM(② 질문유형 판정, ④ 질문 변환, ⑤ 답변)
 LLM_TEMPERATURE = 0.2  # 낮을수록 같은 질문에 같은 답. 근거 기반이라 창의성이 필요 없음
@@ -260,6 +262,12 @@ def load_resources() -> dict:
     secrets = load_secrets()
     check_index_files()
 
+    with open(BM25_DIR / "manifest.json", "r", encoding="utf-8") as file:
+        manifest = json.load(file)
+    # 질문은 색인을 만든 모델로 임베딩해야 청크 벡터와 같은 공간에 놓임. 예전 색인(이 칸이 없음)은 상수 값을 씀
+    global EMBEDDING_MODEL
+    EMBEDDING_MODEL = manifest.get("embedding_model", EMBEDDING_MODEL)
+
     started_at = time.time()
     embeddings = CohereEmbeddings(
         model=EMBEDDING_MODEL,
@@ -283,8 +291,6 @@ def load_resources() -> dict:
     for card_name in dictionary["card_names"]:
         card_tokens.add(core.card_token(card_name))
 
-    with open(BM25_DIR / "manifest.json", "r", encoding="utf-8") as file:
-        manifest = json.load(file)
     if manifest["tokenizer_module"] != indexing.__name__:
         print(f"  경고: 색인은 {manifest['tokenizer_module']} 로 토큰화했는데 검색기는 {indexing.__name__} 를 씀 → 색인을 다시 만들 것")
 
@@ -297,7 +303,7 @@ def load_resources() -> dict:
         max_retries=LLM_MAX_RETRIES,
     )
     print(f"  색인: Chroma {len(chunks)}건, BM25 {manifest['chunk_count']}건(k1={manifest['k1']}, b={manifest['b']}), "
-          f"카드명 {len(card_tokens)}개, 준비 {time.time() - started_at:.1f}초")
+          f"임베딩 {EMBEDDING_MODEL}, 카드명 {len(card_tokens)}개, 준비 {time.time() - started_at:.1f}초")
     return {
         "chunks": chunks,
         "bm25": bm25,
@@ -307,6 +313,7 @@ def load_resources() -> dict:
         "store": store,
         "cohere_client": cohere_client,
         "llm": llm,
+        "embedding_model": EMBEDDING_MODEL,  # 이 색인의 임베딩 모델 이름(색인을 여러 벌 여는 RAGAS 평가가 화면 표시를 맞출 때 씀)
         "calls": {"llm": 0, "embed": 0, "rerank": 0},
     }
 

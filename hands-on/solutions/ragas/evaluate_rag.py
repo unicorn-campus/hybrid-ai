@@ -7,6 +7,7 @@ import io
 import json
 import re
 import shutil
+import subprocess
 import sys
 import time
 from datetime import datetime
@@ -72,7 +73,8 @@ GROQ_BASE_URL = "https://api.groq.com/openai/v1"  # Groq의 OpenAI 호환 주소
 JUDGE_MAX_TOKENS = 4096  # 평가자 답(판정 JSON) 길이 상한. 기본 1024는 근거가 길면 잘릴 수 있음
 JUDGE_TIMEOUT_SECONDS = 60  # 평가자 호출 한 번의 제한 시간
 JUDGE_MAX_RETRIES = 3  # 429(호출 제한), 5xx 때 openai 클라이언트가 스스로 다시 부르는 횟수
-# AnswerRelevancy용 임베딩. 인덱서와 같은 Cohere 모델을 Cohere의 OpenAI 호환 주소로 부름(교재 184쪽 실행과 같음)
+# AnswerRelevancy용 임베딩. 인덱서 기본값과 같은 Cohere 모델을 Cohere의 OpenAI 호환 주소로 부름(교재 184쪽 실행과 같음).
+# 채점 자(평가자)이므로 embedding_model 버전을 돌려도 바꾸지 않음
 EMBEDDING_MODEL = "embed-v5.0-fast"
 COHERE_COMPAT_URL = "https://api.cohere.ai/compatibility/v1"
 # 동시에 채점할 행(질문) 수. asyncio.Semaphore의 자리 수로 쓰임.
@@ -89,7 +91,23 @@ ROLE = "auditor"  # 검색기 역할. 약관, 혜택, 상담 이력을 모두 �
 SNIPPET_LENGTH = 60  # 화면과 결과 파일에 보여 줄 본문 앞 글자 수
 CITATION_PATTERN = re.compile(r"\s*\[[A-Za-z0-9]+-[A-Za-z0-9-]+\]")  # 답변 끝 인용 표시(예: [D3-0019])
 
-# 지원하는 하이퍼 파라미터(재색인 없이 바꿀 수 있는 것)와 값의 형. 현재 값은 검색기 상수에서 읽음(기준선 기본값)
+# 재색인이 필요한 하이퍼 파라미터의 색인 폴더.
+# 기준선 값과 같은 설정이면 검색기가 읽는 data/를 쓰고, 다른 값이면 버전마다 data-variants/{이름}-{값}/에 색인을 만듦
+INDEXING_DIR = retriever.INDEXING_DIR  # rag/indexing
+INDEX_DOCS_PATH = INDEXING_DIR / "index_docs.py"  # 인덱서 main. 버전별 색인을 만들 때 하위 프로세스로 부름
+BASE_DATA_DIR = retriever.BM25_DIR.parent  # 검색기가 읽는 색인 폴더(rag/indexing/data)
+VARIANTS_DIR = INDEXING_DIR / "data-variants"  # 버전별 색인 폴더(Git이 무시)
+BASE_MANIFEST = {}  # 기준 색인의 요약. 청크 크기, 오버랩, 임베딩 모델이 적혀 있음
+if (retriever.BM25_DIR / "manifest.json").exists():
+    BASE_MANIFEST = json.loads((retriever.BM25_DIR / "manifest.json").read_text(encoding="utf-8"))
+# manifest.json에 칸이 없는 예전 색인이면 인덱서 기본값(index_docs.py 상수와 같은 값)으로 봄
+INDEX_DEFAULTS = {"embedding_model": "embed-v5.0-fast", "chunk_size": 800, "chunk_overlap": 200}
+INDEX_PARAMS = list(INDEX_DEFAULTS.keys())  # 재색인이 필요한 하이퍼 파라미터 이름
+EMBEDDING_CHOICES = ["embed-v5.0-fast", "embed-v5.0-pro"]  # 비교할 수 있는 임베딩 모델(둘 다 2048차원)
+INDEX_NOTE = ("버전마다 색인을 따로 만들어 비교함. 청크ID는 버전끼리 다르므로 순위는 청크ID가 아니라 정답 근거로 맞춰 봄. "
+              "「색인」 칸의 끊긴 정답 단서는 청크 경계에 걸려 어느 청크에도 통째로 없는 단서라 그 문항의 Recall을 낮춤")
+
+# 지원하는 하이퍼 파라미터와 값의 형. 현재 값은 검색기 상수와 기준 색인의 manifest.json에서 읽음(기준선 기본값)
 SUPPORTED = {
     "top_k": retriever.DEFAULT_TOP_K,
     "fusion": "weighted",
@@ -97,7 +115,10 @@ SUPPORTED = {
     "rerank_model": retriever.RERANK_MODEL,
     "llm_model": retriever.LLM_MODEL,
 }
-VALUE_TYPES = {"top_k": int, "fusion": str, "vector_weight": float, "rerank_model": str, "llm_model": str}
+for index_param, default_value in INDEX_DEFAULTS.items():
+    SUPPORTED[index_param] = BASE_MANIFEST.get(index_param, default_value)
+VALUE_TYPES = {"top_k": int, "fusion": str, "vector_weight": float, "rerank_model": str, "llm_model": str,
+               "embedding_model": str, "chunk_size": int, "chunk_overlap": int}
 FUSION_CHOICES = ["weighted", "rrf"]
 
 # 화면과 결과 파일의 열 이름(교재 약칭 병기)
@@ -161,6 +182,15 @@ def parse_value(param: str, raw: str):
     if param == "fusion" and value not in FUSION_CHOICES:
         print(f"  오류: fusion은 {FUSION_CHOICES} 중 하나")
         sys.exit(1)
+    if param == "embedding_model" and value not in EMBEDDING_CHOICES:
+        print(f"  오류: embedding_model은 {EMBEDDING_CHOICES} 중 하나")
+        sys.exit(1)
+    if param == "chunk_size" and value < 1:
+        print("  오류: chunk_size는 1 이상(오버랩과의 관계는 인덱서가 검사함)")
+        sys.exit(1)
+    if param == "chunk_overlap" and value < 0:
+        print("  오류: chunk_overlap은 0 이상")
+        sys.exit(1)
     return value
 
 
@@ -200,11 +230,14 @@ def check_judge_secrets() -> dict:
     return secrets
 
 
-def count_relevant_by_question(resources: dict, items: list[dict]) -> dict:
-    """문항마다 관련 청크(정답 단서를 하나라도 담은 청크) 수를 세고, 어느 청크에도 없는 정답 단서가 있으면 안내 뒤 종료함(시작 검사).
+def count_relevant_by_question(resources: dict, items: list[dict], strict: bool) -> tuple[dict, list[str]]:
+    """문항마다 관련 청크(정답 단서를 하나라도 담은 청크) 수를 세고, 어느 청크에도 없는 정답 단서(끊긴 단서)를 찾음(시작 검사).
 
     목적: 정답 단서가 청크 경계에 걸려 어느 청크에도 통째로 없으면 관련 청크가 0이 되어 Hit와 nDCG가 늘 0이 됨.
-          평가셋이나 청킹을 고쳐야 하는 문제이므로 채점을 시작하지 않음.
+          기준 색인(strict=True)에서 생기면 평가셋이나 청킹을 고쳐야 하는 문제이므로 채점을 시작하지 않음.
+          청크 크기, 오버랩을 바꾼 버전 색인(strict=False)에서는 단서가 끊기는 것 자체가 그 값의 효과이므로
+          종료하지 않고 끊긴 단서 목록을 돌려줘 결과 파일에 적음.
+    반환값: ({문항 번호: 관련 청크 수}, 끊긴 단서 목록(「문항 위치: 단서 앞부분」 글))
     """
     all_texts = []
     for chunk in resources["chunks"]:
@@ -225,13 +258,99 @@ def count_relevant_by_question(resources: dict, items: list[dict]) -> dict:
                     missing.append(f"{item['id']} {evidence['location']}: {clue[:40]}")
         relevant_counts[item["id"]] = len(relevant_chunk_ids)
 
-    if len(missing) > 0:
+    if len(missing) > 0 and strict:
         print("  오류: 색인 어느 청크에도 없는 정답 단서가 있음(청크 경계에 걸렸거나 원문과 다름)")
         for line in missing:
             print(f"    - {line}")
         print("  → 평가셋의 정답 단서를 원문 그대로 고치거나, 청크 크기와 오버랩을 바꿔 다시 색인함")
         sys.exit(1)
-    return relevant_counts
+    if len(missing) > 0:
+        print(f"  주의: 청크 경계에 걸려 끊긴 정답 단서 {len(missing)}개(이 버전의 Recall이 낮아지는 원인이 됨)")
+        for line in missing:
+            print(f"    - {line}")
+    return relevant_counts, missing
+
+
+# ---------------------------------------------------------------------------
+# 준비: 재색인 버전(임베딩 모델, 청크 크기, 오버랩)의 색인 만들기와 열기
+# ---------------------------------------------------------------------------
+def index_settings_of(version: dict) -> dict:
+    """버전이 쓸 색인 설정 3개를 돌려줌. 바꾸는 하나만 버전 값이고 나머지는 기준선 값(한 번에 하나만 바꿈)."""
+    settings = {}
+    for name in INDEX_PARAMS:
+        settings[name] = SUPPORTED[name]
+    if version["param"] in INDEX_PARAMS:
+        settings[version["param"]] = version["value"]
+    return settings
+
+
+def same_index_settings(manifest: dict, settings: dict) -> bool:
+    """색인 요약(manifest.json)이 원하는 설정과 같은지 봄. 칸이 없는 예전 색인은 인덱서 기본값으로 봄."""
+    for name in INDEX_PARAMS:
+        if manifest.get(name, INDEX_DEFAULTS[name]) != settings[name]:
+            return False
+    return manifest.get("tokenizer_module") == BASE_MANIFEST.get("tokenizer_module", "core_indexing")
+
+
+def prepare_index(version: dict) -> Path:
+    """버전이 쓸 색인 폴더를 돌려줌. 필요하면 인덱서(index_docs.py)를 하위 프로세스로 불러 색인을 만듦.
+
+    방법: 설정이 기준 색인(data/)과 같으면 data/를 그대로 씀. 다르면 data-variants/{이름}-{값}/을 씀.
+          그 폴더에 같은 설정의 색인이 이미 있으면 다시 만들지 않음(한 벌에 약 20초, 임베딩 호출 3회 이상).
+          기준 색인을 교육생 코드(--mine)로 만들었으면 버전 색인도 같은 코드로 만들어 토큰화 규칙을 맞춤.
+    예외: 인덱서가 실패하면 출력 끝부분을 보여 주고 종료함.
+    """
+    settings = index_settings_of(version)
+    if same_index_settings(BASE_MANIFEST, settings):
+        return BASE_DATA_DIR
+    out_dir = VARIANTS_DIR / f"{version['param']}-{version['value']}"
+    manifest_path = out_dir / "bm25" / "manifest.json"
+    if manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if same_index_settings(manifest, settings):
+            print(f"  {version['name']} 색인 있음(다시 만들지 않음): {out_dir.relative_to(INDEXING_DIR.parents[1])}")
+            return out_dir
+
+    command = [
+        sys.executable, str(INDEX_DOCS_PATH), "--out", str(out_dir),
+        "--chunk-size", str(settings["chunk_size"]),
+        "--chunk-overlap", str(settings["chunk_overlap"]),
+        "--embedding-model", settings["embedding_model"],
+    ]
+    if BASE_MANIFEST.get("tokenizer_module") == "my_indexing":
+        command.append("--mine")
+    print(f"  {version['name']} 색인 만드는 중: {out_dir.relative_to(INDEXING_DIR.parents[1])} "
+          f"(청크 {settings['chunk_size']}, 오버랩 {settings['chunk_overlap']}, 임베딩 {settings['embedding_model']})")
+    started_at = time.time()
+    completed = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if completed.returncode != 0:
+        print(f"  오류: 인덱서가 실패함(종료 코드 {completed.returncode}). 출력 끝부분:")
+        for line in (completed.stdout + completed.stderr).strip().splitlines()[-15:]:
+            print(f"    {line}")
+        sys.exit(1)
+    print(f"    다 만듦 {time.time() - started_at:.0f}초")
+    return out_dir
+
+
+def open_index(data_dir: Path, items: list[dict]) -> dict:
+    """색인 폴더 하나를 검색기로 열고 정답 단서 검사를 함. 기준 색인(data/)만 끊긴 단서를 오류로 봄.
+
+    방법: 검색기는 load_resources를 부를 때 모듈 상수 CHROMA_DIR, BM25_DIR을 읽으므로 바꿔 두고 부름.
+    반환값: {"resources", "relevant_counts", "missing"(끊긴 단서 목록), "label"(결과 파일에 적을 색인 설명)}
+    """
+    retriever.CHROMA_DIR = data_dir / "chroma"
+    retriever.BM25_DIR = data_dir / "bm25"
+    resources = retriever.load_resources()  # 검색기가 비밀값과 색인 파일을 검사한 뒤 색인을 엶
+    relevant_counts, missing = count_relevant_by_question(resources, items, data_dir == BASE_DATA_DIR)
+    label = f"{data_dir.relative_to(INDEXING_DIR.parents[1]).as_posix()}(청크 {len(resources['chunks'])}개)"
+    if len(missing) > 0:
+        missing_ids = []
+        for line in missing:
+            question_id = line.split(" ")[0]
+            if question_id not in missing_ids:
+                missing_ids.append(question_id)
+        label = label + f", 끊긴 정답 단서 {len(missing)}개({', '.join(missing_ids)})"
+    return {"resources": resources, "relevant_counts": relevant_counts, "missing": missing, "label": label}
 
 
 # ---------------------------------------------------------------------------
@@ -264,9 +383,12 @@ def apply_version(resources: dict, version: dict, originals: dict, retriever_sec
           ① 인자: top_k, fusion은 run_workflow 인자로 넘김
           ② 모듈 상수: vector_weight(VECTOR_WEIGHT와 BM25_WEIGHT를 함께), rerank_model은 호출 때 상수를 읽으므로 바꿔 두면 됨
           ③ 자원 다시 만들기: llm_model은 LLM 객체가 색인을 열 때 이미 만들어져 있어 새 ChatGroq를 만들어 끼움
+          ④ 색인 바꾸기: embedding_model, chunk_size, chunk_overlap은 main이 버전마다 다른 색인(resources)을 넘김.
+             여기서는 검색기 화면 표시용 임베딩 모델 이름만 그 색인에 맞춤
     부수효과: 검색기 모듈 상수와 resources["llm"]을 바꿈. 끝나면 restore_settings로 되돌림.
     """
     restore_settings(resources, originals)  # 늘 기준선 설정에서 출발(한 번에 하나만 바꿈)
+    retriever.EMBEDDING_MODEL = resources["embedding_model"]
     run_args = {"top_k": retriever.DEFAULT_TOP_K, "fusion": "weighted"}
     param = version["param"]
     value = version["value"]
@@ -747,11 +869,13 @@ def write_summary_file(context: dict) -> Path:
                  f"{MIN_DETECTABLE} 움직임. 통계적 유의성은 주장하지 않음")
     if param == "top_k":
         lines.append("- 참고: k가 커지면 Hit와 Recall은 기계적으로 오르므로 ContextPrecision과 짝지어 읽음")
+    if param in INDEX_PARAMS:
+        lines.append(f"- 참고: {INDEX_NOTE}")
     lines.append("")
     lines.append("## 버전별 부가 정보")
     lines.append("")
-    lines.append("| 버전 | 「확인 필요」 판정(답 없는 문항) | 근거 0개 문항 | 채점 실패 문항 | 결과 파일 |")
-    lines.append("|---|---|---|---|---|")
+    lines.append("| 버전 | 색인 | 「확인 필요」 판정(답 없는 문항) | 근거 0개 문항 | 채점 실패 문항 | 결과 파일 |")
+    lines.append("|---|---|---|---|---|---|")
     for version in versions:
         rows = rows_by_version[version["name"]]
         confirm_ok, confirm_total = count_confirm(rows)
@@ -765,7 +889,7 @@ def write_summary_file(context: dict) -> Path:
         file_name = version_file_name(stamp, version)
         label = f"{version['name']} {param}={version['value']}" + (" ★" if version["is_baseline"] else "")
         lines.append(
-            f"| {label} | {confirm_ok}/{confirm_total} 맞음 | {', '.join(empty_ids) if empty_ids else '없음'} | "
+            f"| {label} | {md_cell(context['index_labels'][version['name']])} | {confirm_ok}/{confirm_total} 맞음 | {', '.join(empty_ids) if empty_ids else '없음'} | "
             f"{', '.join(error_ids) if error_ids else '없음'} | [{file_name}]({file_name}) |"
         )
     lines.append("")
@@ -841,6 +965,7 @@ def write_result_files(context: dict) -> list[Path]:
         lines.append(f"| 실행 시각 | {context['started']} |")
         lines.append(f"| 하이퍼 파라미터 | {param} = {version['value']}{star} |")
         lines.append(f"| 고정한 나머지 설정 | {md_cell(context['fixed_settings'])} |")
+        lines.append(f"| 색인 | {md_cell(context['index_labels'][version['name']])} |")
         lines.append(f"| 평가셋 | {EVAL_SET_PATH.name} {len(rows)}문항(답 있음 {context['answerable_count']}) |")
         lines.append(f"| 검색기 | rag/retriever core_search(강사 코드), 역할 {ROLE} |")
         lines.append(f"| 평가자 LLM, 임베딩 | Groq {JUDGE_MODEL}, Cohere {EMBEDDING_MODEL} |")
@@ -876,6 +1001,8 @@ def write_result_files(context: dict) -> list[Path]:
                 lines.append(f"- {reason}")
         if param == "top_k":
             lines.append("- 참고: k가 커지면 Hit와 Recall은 기계적으로 오르므로 ContextPrecision과 짝지어 읽음")
+        if param in INDEX_PARAMS:
+            lines.append(f"- 참고: {INDEX_NOTE}")
         lines.append("")
         lines.append("## 문항별 검색 표")
         lines.append("")
@@ -1079,11 +1206,19 @@ def main() -> None:
         if item["answerable"]:
             answerable_count = answerable_count + 1
     print(f"  평가셋 {EVAL_SET_PATH.name}: {len(items)}문항(답 있음 {answerable_count}, 답 없음 {len(items) - answerable_count})")
-    resources = retriever.load_resources()  # 검색기가 비밀값과 색인 파일을 검사한 뒤 색인을 엶
     retriever_secrets = check_judge_secrets()  # llm_model 버전에서 LLM을 다시 만들 때 씀(검색기와 같은 키)
-    relevant_counts = count_relevant_by_question(resources, items)
-    print("  정답 단서 검사: 모든 정답 단서가 색인 청크에 있음")
-    originals = remember_settings(resources)
+    base_index = open_index(BASE_DATA_DIR, items)  # 기준 색인. 끊긴 정답 단서가 있으면 여기서 종료함
+    print("  정답 단서 검사: 모든 정답 단서가 기준 색인 청크에 있음")
+    index_by_version = {}  # 버전 이름 → 그 버전이 쓸 색인(open_index 결과)
+    opened = {BASE_DATA_DIR: base_index}  # 색인 폴더 → open_index 결과(같은 폴더는 한 번만 엶)
+    for version in versions:
+        data_dir = BASE_DATA_DIR
+        if args.param in INDEX_PARAMS:
+            data_dir = prepare_index(version)  # 재색인 버전: 기준선과 설정이 다르면 버전 색인을 만듦
+        if data_dir not in opened:
+            print(f"  {version['name']} 색인 열기")
+            opened[data_dir] = open_index(data_dir, items)
+        index_by_version[version["name"]] = opened[data_dir]
     fixed = []
     for name, current in SUPPORTED.items():
         if name != args.param:
@@ -1094,9 +1229,14 @@ def main() -> None:
     rows_by_version = {}
     for version in versions:
         print_step(f"[② 검색기 실행] {version['name']} {version['param']}={version['value']} — 문항마다 run_workflow")
+        resources = index_by_version[version["name"]]["resources"]
+        originals = remember_settings(resources)
         rows_by_version[version["name"]] = run_retriever(resources, items, version, originals, retriever_secrets)
 
-    calls = resources["calls"]
+    calls = {"llm": 0, "embed": 0, "rerank": 0}  # 색인마다 따로 센 호출 수를 더함
+    for index in opened.values():
+        for name in calls:
+            calls[name] = calls[name] + index["resources"]["calls"][name]
     print(f"  검색기 호출 합계: LLM {calls['llm']}회, 임베딩 {calls['embed']}회, 리랭크 {calls['rerank']}회")
     if args.until == "run":
         for version in versions:
@@ -1107,7 +1247,7 @@ def main() -> None:
     # ③ 코드 평가
     for version in versions:
         print_step(f"[③ 코드 평가] {version['name']} {version['param']}={version['value']} — 적중 청크와 4지표(교재 180쪽)")
-        evaluate_code(rows_by_version[version["name"]], relevant_counts)
+        evaluate_code(rows_by_version[version["name"]], index_by_version[version["name"]]["relevant_counts"])
 
     # ④ LLM 평가(RAGAS)
     noise = {}
@@ -1153,6 +1293,9 @@ def main() -> None:
         diagnoses[version["name"]] = core.diagnose(summary[version["name"]]["change"])  # 실습 함수
         print(f"  원인 후보 {version['name']}: " + " / ".join(diagnoses[version["name"]]))
 
+    index_labels = {}  # 버전 이름 → 결과 파일에 적을 색인 설명(폴더, 청크 수, 끊긴 정답 단서)
+    for version in versions:
+        index_labels[version["name"]] = index_by_version[version["name"]]["label"]
     context = {
         "versions": versions,
         "summary": summary,
@@ -1162,6 +1305,7 @@ def main() -> None:
         "started": started.strftime("%Y-%m-%d %H:%M"),
         "stamp": started.strftime("%y%m%d%H%M"),  # 버전 파일과 버전별 비교 파일이 같은 값을 씀
         "fixed_settings": fixed_settings,
+        "index_labels": index_labels,
         "answerable_count": answerable_count,
         "noise": noise,
         "noise_text": noise_text,
