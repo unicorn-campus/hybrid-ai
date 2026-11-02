@@ -234,10 +234,10 @@ def retrieval_metrics(hits: dict, k: int) -> dict:
 
 
 # ===========================================================================
-# 5. ③ 코드 평가: 앞(nDCG@k) (교재 180, 181쪽) — 빈칸 2곳
+# 5. ③ 코드 평가: 앞(nDCG@k) (교재 180, 181쪽) — 직접 작성
 # ===========================================================================
 def ndcg_at_k(hit_ranks: list[int], relevant_chunk_count: int, k: int) -> float | None:
-    """실습(빈칸). nDCG@k = DCG ÷ IDCG를 계산함.
+    """실습(직접). nDCG@k = DCG ÷ IDCG를 계산함.
 
     목적: 필요한 청크들을 얼마나 앞에 모아 검색했나(교재 180쪽 「앞」). 적중 청크가 위에 있을수록 점수가 큼.
     방법: DCG = 상위 k개 중 적중 청크 칸의 순위 가중치 합(적중하지 않은 칸은 0).
@@ -246,6 +246,12 @@ def ndcg_at_k(hit_ranks: list[int], relevant_chunk_count: int, k: int) -> float 
     인자: hit_ranks는 적중 순위 목록, relevant_chunk_count는 색인 전체의 관련 청크 수(evaluate_rag.py의 count_relevant_by_question이 셈), k는 top_k.
     반환값: 0 ~ 1 실수. 관련 청크가 0개면(답 없는 문항) None.
     예시: 181쪽 예 → 적중 2위, 4위, 관련 청크 4개, k 5 → (0.63 + 0.43) ÷ (1.00 + 0.63 + 0.50 + 0.43) = 0.41.
+
+    순서: ① relevant_chunk_count가 0이면 None
+          ② dcg = hit_ranks 중 k 이하인 순위마다 rank_weight(rank)를 더한 합
+          ③ ideal_count = min(relevant_chunk_count, k)
+          ④ idcg = 1위부터 ideal_count위까지 rank_weight(rank)를 더한 합
+          ⑤ dcg / idcg를 반환
     """
     if relevant_chunk_count == 0:  # IDCG가 0이 되어 나눌 수 없음
         return None
@@ -253,12 +259,12 @@ def ndcg_at_k(hit_ranks: list[int], relevant_chunk_count: int, k: int) -> float 
     dcg = 0.0
     for rank in hit_ranks:
         if rank <= k:  # 상위 k개 안의 적중 칸만 더함
-            dcg = dcg + rank_weight(rank)  # 빈칸 1: 그 순위의 가중치 rank_weight(rank)를 더함
+            dcg = dcg + rank_weight(rank)
 
     ideal_count = min(relevant_chunk_count, k)  # 이상적이면 관련 청크가 1위부터 몇 칸을 채우나(k칸이 최대)
     idcg = 0.0
     for rank in range(1, ideal_count + 1):  # 1위부터 ideal_count위까지
-        idcg = idcg + rank_weight(rank)  # 빈칸 2: 1위부터 채운 칸의 가중치를 더함
+        idcg = idcg + rank_weight(rank)
 
     return dcg / idcg
 

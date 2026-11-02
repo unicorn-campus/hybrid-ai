@@ -340,6 +340,20 @@ def run_retriever(resources: dict, items: list[dict], version: dict, originals: 
             result = {"status": "오류", "answer": f"{type(error).__name__}: {error}", "evidence": [], "queries": []}
 
         question_clean, answer_clean = clean_for_ragas(item["question"], result["answer"])
+
+        """
+        row["id"] = 문항 번호
+        row["answerable"] = 답 있는 문항이면 True, 답 없는 문항이면 False
+        row["status"] = 검색기 종료 상태(답변 완료, 되묻기, 잡담, 근거 부족, 검증 실패, 오류)
+        row["question"] = 질문(원문)
+        row["answer"] = 답변(원문)
+        row["chunk_ids"] = 검색결과 청크의 번호(랭킹 순)
+        row["relevance"] = 정답 근거 목록
+        row["user_input"] = 질문(회원번호, 답변의 출처 등을 제거한 정리본)
+        row["reference"] = 모범답안
+        row["retrieved_contexts"] = 검색결과 청크의 텍스트(랭킹 순)
+        row["response"] = 답변(회원번호, 답변의 출처 등을 제거한 정리본)
+        """
         row = core.make_result_row(item, result, question_clean, answer_clean)  # 실습 함수
 
         # 결과 파일과 이후 단계에 쓸 칸을 덧붙임
@@ -1063,6 +1077,7 @@ def main() -> None:
     for version in versions:
         print_step(f"[② 검색기 실행] {version['name']} {version['param']}={version['value']} — 문항마다 run_workflow")
         rows_by_version[version["name"]] = run_retriever(resources, items, version, originals, retriever_secrets)
+
     calls = resources["calls"]
     print(f"  검색기 호출 합계: LLM {calls['llm']}회, 임베딩 {calls['embed']}회, 리랭크 {calls['rerank']}회")
     if args.until == "run":

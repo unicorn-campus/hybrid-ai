@@ -6,7 +6,7 @@
    2 make_result_row      (빈칸 2곳)  ② 평가셋 문항 + 검색기 결과 → 결과 정보 4칸
    3 find_hits            (직접)      ③ 정답 단서를 글자 대조해 적중 청크와 찾은 정답 근거 판정
    4 retrieval_metrics    (직접)      ③ 하(Hit@k), 빠(Recall@k), 빨(MRR)
-   5 ndcg_at_k            (빈칸 2곳)  ③ 앞(nDCG@k) = DCG ÷ IDCG
+   5 ndcg_at_k            (직접)      ③ 앞(nDCG@k) = DCG ÷ IDCG
   [교시 3: ⑤, ④]
    6 summarize_versions   (직접)      ⑤ 버전별 평균(매크로 평균)과 기준선 대비 변화(▲, ▼, 변화 없음)
    7 diagnose             (빈칸 3곳)  ⑤ 떨어진 지표 조합으로 고칠 곳 후보(교재 187쪽)
@@ -149,10 +149,10 @@ def retrieval_metrics(hits: dict, k: int) -> dict:
 
 
 # ===========================================================================
-# 5. ③ 코드 평가: 앞(nDCG@k) (교재 180, 181쪽) — 빈칸 2곳
+# 5. ③ 코드 평가: 앞(nDCG@k) (교재 180, 181쪽) — 직접 작성
 # ===========================================================================
 def ndcg_at_k(hit_ranks: list[int], relevant_chunk_count: int, k: int) -> float | None:
-    """실습(빈칸). nDCG@k = DCG ÷ IDCG를 계산함.
+    """실습(직접). nDCG@k = DCG ÷ IDCG를 계산함.
 
     목적: 필요한 청크들을 얼마나 앞에 모아 검색했나(교재 180쪽 「앞」). 적중 청크가 위에 있을수록 점수가 큼.
     방법: DCG = 상위 k개 중 적중 청크 칸의 순위 가중치 합(적중하지 않은 칸은 0).
@@ -161,23 +161,14 @@ def ndcg_at_k(hit_ranks: list[int], relevant_chunk_count: int, k: int) -> float 
     인자: hit_ranks는 적중 순위 목록, relevant_chunk_count는 색인 전체의 관련 청크 수(evaluate_rag.py의 count_relevant_by_question이 셈), k는 top_k.
     반환값: 0 ~ 1 실수. 관련 청크가 0개면(답 없는 문항) None.
     예시: 181쪽 예 → 적중 2위, 4위, 관련 청크 4개, k 5 → (0.63 + 0.43) ÷ (1.00 + 0.63 + 0.50 + 0.43) = 0.41.
+
+    순서: ① relevant_chunk_count가 0이면 None
+          ② dcg = hit_ranks 중 k 이하인 순위마다 rank_weight(rank)를 더한 합
+          ③ ideal_count = min(relevant_chunk_count, k)
+          ④ idcg = 1위부터 ideal_count위까지 rank_weight(rank)를 더한 합
+          ⑤ dcg / idcg를 반환
     """
-    if relevant_chunk_count == 0:  # IDCG가 0이 되어 나눌 수 없음
-        return None
-
-    dcg = 0.0
-    for rank in hit_ranks:
-        if rank <= k:  # 상위 k개 안의 적중 칸만 더함
-            # 빈칸 1: dcg에 그 순위의 가중치 rank_weight(rank)를 더함
-            raise NotImplementedError("빈칸 1을 채울 것")
-
-    ideal_count = min(relevant_chunk_count, k)  # 이상적이면 관련 청크가 1위부터 몇 칸을 채우나(k칸이 최대)
-    idcg = 0.0
-    for rank in range(1, ideal_count + 1):  # 1위부터 ideal_count위까지
-        # 빈칸 2: idcg에 그 순위의 가중치를 더함
-        raise NotImplementedError("빈칸 2를 채울 것")
-
-    return dcg / idcg
+    raise NotImplementedError("여기에 본인 코드를 작성함")
 
 
 # ===========================================================================
