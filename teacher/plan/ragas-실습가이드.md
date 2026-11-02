@@ -167,7 +167,7 @@ python evaluate_rag.py --param top_k --values 3 5 10 --until code --qid Q01 Q17 
 5. `my_eval.py`는 Git이 무시하므로, 강사가 뼈대(`my_eval.template.py`)를 고쳐 올려도 pull 충돌이 없음.  
    `my_eval.template.py`는 직접 고치지 않고 복사본 `my_eval.py`만 고침
 
-함수 위쪽의 `compact_text`, `rank_weight`, `count_relevant_chunks`, `mean_of`, `format_delta`, `ascore_or_nan`은 **제공 함수**임.  
+함수 위쪽의 `compact_text`, `rank_weight`, `mean_of`, `format_delta`, `ascore_or_nan`은 **제공 함수**임.  
 미리 완성돼 있으니 읽고 가져다 쓰기만 하면 됨(`my_eval.py` 위쪽 `from core_eval import` 목록에 있음).
 
 ### Step 3. 교시 2: 함수 5개(직접 3 + 빈칸 2)

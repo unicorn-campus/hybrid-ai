@@ -35,26 +35,6 @@ def rank_weight(rank: int) -> float:
     return 1 / math.log2(rank + 1)
 
 
-def count_relevant_chunks(all_chunk_texts: list[str], relevance: list[dict]) -> int:
-    """제공. 색인된 청크 중 관련 청크(정답 단서를 하나라도 담은 청크)의 수를 셈(교재 179쪽 용어표).
-
-    목적: nDCG의 IDCG(이상적인 순서의 점수)는 관련 청크를 1위부터 채웠을 때의 합이라 관련 청크 수가 필요함.
-    방법: 청크마다 정답 근거의 정답 단서를 하나씩 글자 대조함. 한 청크에 단서가 여러 개 있어도 청크 1개로 셈.
-    반환값: 관련 청크 수. 답 없는 문항(정답 근거 0개)은 0.
-    """
-    count = 0
-    for chunk_text in all_chunk_texts:
-        body = compact_text(chunk_text)
-        is_relevant = False
-        for evidence in relevance:
-            for clue in evidence["clues"]:
-                if compact_text(clue) in body:
-                    is_relevant = True
-        if is_relevant:
-            count = count + 1
-    return count
-
-
 def mean_of(values: list) -> float | None:
     """제공. None(계산 안 함)과 nan(채점 실패)을 뺀 평균. 남는 값이 없으면 None."""
     total = 0.0
@@ -263,7 +243,7 @@ def ndcg_at_k(hit_ranks: list[int], relevant_chunk_count: int, k: int) -> float 
     방법: DCG = 상위 k개 중 적중 청크 칸의 순위 가중치 합(적중하지 않은 칸은 0).
           IDCG = 관련 청크를 1위부터 min(관련 청크 수, k)개 채웠을 때의 순위 가중치 합(이상적인 순서).
           관련 청크 기준이라 적중 청크 수가 IDCG의 칸 수를 넘지 않아 nDCG가 1을 넘지 않음.
-    인자: hit_ranks는 적중 순위 목록, relevant_chunk_count는 색인 전체의 관련 청크 수(count_relevant_chunks), k는 top_k.
+    인자: hit_ranks는 적중 순위 목록, relevant_chunk_count는 색인 전체의 관련 청크 수(evaluate_rag.py의 count_relevant_by_question이 셈), k는 top_k.
     반환값: 0 ~ 1 실수. 관련 청크가 0개면(답 없는 문항) None.
     예시: 181쪽 예 → 적중 2위, 4위, 관련 청크 4개, k 5 → (0.63 + 0.43) ÷ (1.00 + 0.63 + 0.50 + 0.43) = 0.41.
     """

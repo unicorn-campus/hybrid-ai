@@ -97,7 +97,7 @@ hands-on/solutions/ragas/
   빈칸 5개(`make_result_row`, `ndcg_at_k`, `diagnose`, `build_metrics`, `score_row`)
 - 다섯 단계 모두 실습 함수가 있음: ① 1개, ② 1개, ③ 3개, ⑤ 2개, ④ 2개. ⑤를 ④보다 먼저 실습함(코드 지표만으로 비교표가 나옴, 에듀니)
 - 제공 함수(읽고 이해, 클론 대상 아님): `compact_text`(공백 지우기), `rank_weight`(1 ÷ log₂(순위 + 1)),  
-  `count_relevant_chunks`(색인에서 관련 청크 수), `mean_of`(None, nan 뺀 평균), `format_delta`(▲, ▼ 표시)
+  `mean_of`(None, nan 뺀 평균), `format_delta`(▲, ▼ 표시)
 - main 제공(읽기): 시작 검사, `apply_version`, 검색기 실행, `clean_for_ragas`, ragas 평가자 준비,  
   `@experiment` 실험 함수와 `arun`, 결과 파일 쓰기, `--selftest`, 명령행
 

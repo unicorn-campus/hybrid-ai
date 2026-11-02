@@ -12,7 +12,7 @@
    7 diagnose             (빈칸 3곳)  ⑤ 떨어진 지표 조합으로 고칠 곳 후보(교재 187쪽)
    8 build_metrics        (빈칸 2곳)  ④ ragas 지표 객체 5개
    9 score_row            (빈칸 5곳)  ④ 지표마다 읽는 칸을 맞춰 ascore
-  제공(완성본, 읽기만): 지표 이름 상수, compact_text, rank_weight, count_relevant_chunks, mean_of, format_delta, ascore_or_nan은
+  제공(완성본, 읽기만): 지표 이름 상수, compact_text, rank_weight, mean_of, format_delta, ascore_or_nan은
   core_eval에서 그대로 가져옴(아래 import)
 
 함수 설명(docstring)과 주석은 core_eval.py의 같은 함수와 같음. 빈칸 자리만 「# 빈칸 n: ...」 안내와 NotImplementedError로 바꿨음
@@ -38,7 +38,6 @@ from core_eval import (  # noqa: F401
     LLM_METRICS,
     ascore_or_nan,
     compact_text,
-    count_relevant_chunks,
     format_delta,
     mean_of,
     rank_weight,
@@ -159,7 +158,7 @@ def ndcg_at_k(hit_ranks: list[int], relevant_chunk_count: int, k: int) -> float 
     방법: DCG = 상위 k개 중 적중 청크 칸의 순위 가중치 합(적중하지 않은 칸은 0).
           IDCG = 관련 청크를 1위부터 min(관련 청크 수, k)개 채웠을 때의 순위 가중치 합(이상적인 순서).
           관련 청크 기준이라 적중 청크 수가 IDCG의 칸 수를 넘지 않아 nDCG가 1을 넘지 않음.
-    인자: hit_ranks는 적중 순위 목록, relevant_chunk_count는 색인 전체의 관련 청크 수(count_relevant_chunks), k는 top_k.
+    인자: hit_ranks는 적중 순위 목록, relevant_chunk_count는 색인 전체의 관련 청크 수(evaluate_rag.py의 count_relevant_by_question이 셈), k는 top_k.
     반환값: 0 ~ 1 실수. 관련 청크가 0개면(답 없는 문항) None.
     예시: 181쪽 예 → 적중 2위, 4위, 관련 청크 4개, k 5 → (0.63 + 0.43) ÷ (1.00 + 0.63 + 0.50 + 0.43) = 0.41.
     """

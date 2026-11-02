@@ -162,7 +162,7 @@ def parse_value(param: str, raw: str):
 
 
 def load_eval_items(qids: list[str] | None) -> list[dict]:
-    """평가셋을 읽고 --qid로 고른 문항만 돌려줌. 없는 번호면 안내 뒤 종료함."""
+    """평가셋을 읽고 --qid로 고른 문항만 돌려줌. --qid가 없으면 전체 평가셋 리턴. 없는 번호면 안내 뒤 종료함."""
     with open(EVAL_SET_PATH, "r", encoding="utf-8") as file:
         eval_set = json.load(file)
     items = eval_set["questions"]
@@ -198,7 +198,7 @@ def check_judge_secrets() -> dict:
 
 
 def count_relevant_by_question(resources: dict, items: list[dict]) -> dict:
-    """문항마다 관련 청크 수를 세고, 어느 청크에도 없는 정답 단서가 있으면 안내 뒤 종료함(시작 검사).
+    """문항마다 관련 청크(정답 단서를 하나라도 담은 청크) 수를 세고, 어느 청크에도 없는 정답 단서가 있으면 안내 뒤 종료함(시작 검사).
 
     목적: 정답 단서가 청크 경계에 걸려 어느 청크에도 통째로 없으면 관련 청크가 0이 되어 Hit와 nDCG가 늘 0이 됨.
           평가셋이나 청킹을 고쳐야 하는 문제이므로 채점을 시작하지 않음.
@@ -210,16 +210,17 @@ def count_relevant_by_question(resources: dict, items: list[dict]) -> dict:
     missing = []
     relevant_counts = {}
     for item in items:
+        relevant_chunk_ids = set()  # 정답 단서를 하나라도 담은 청크 번호(같은 청크는 한 번만 셈)
         for evidence in item["relevance"]:
             for clue in evidence["clues"]:
                 found = False
-                for text in all_texts:
+                for chunk_id, text in enumerate(all_texts):
                     if core.compact_text(clue) in core.compact_text(text):
-                        found = True
-                        break
+                        relevant_chunk_ids.add(chunk_id)
+                        found = True  # break 하지 않음: 같은 단서가 다른 청크에도 있으면 그 청크도 관련 청크임
                 if not found:
                     missing.append(f"{item['id']} {evidence['location']}: {clue[:40]}")
-        relevant_counts[item["id"]] = core.count_relevant_chunks(all_texts, item["relevance"])
+        relevant_counts[item["id"]] = len(relevant_chunk_ids)
 
     if len(missing) > 0:
         print("  오류: 색인 어느 청크에도 없는 정답 단서가 있음(청크 경계에 걸렸거나 원문과 다름)")
