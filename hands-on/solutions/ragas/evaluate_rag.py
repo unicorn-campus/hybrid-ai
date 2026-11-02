@@ -490,9 +490,10 @@ async def run_llm_evaluation(rows: list[dict], metrics: dict, experiment_name: s
 
 
 async def evaluate_llm(rows: list[dict], metrics: dict, experiment_name: str, repeat: int) -> dict:
-    """④ 한 버전의 행들을 LLM 평가로 채점해 행에 담음. repeat가 2 이상이면 지표별 흔들림 폭(실측)을 돌려줌.
+    """④ 한 버전의 행들을 LLM 평가로 채점해 행에 담고, 평가 결과 dict {"noise_width": {지표: 폭}}를 돌려줌.
 
-    방법: repeat번 채점해 문항별 점수는 평균을 쓰고, 지표마다 「회차 평균의 최댓값 - 최솟값」을 흔들림 폭으로 봄.
+    방법: repeat번 채점해 문항별 점수는 평균을 쓰고, 지표마다 「회차 평균의 최댓값 - 최솟값」을 흔들림 폭(noise_width)으로 봄.
+    repeat가 1이거나 채점할 행이 없으면 noise_width는 빈 dict.
     부수효과: 행마다 llm(지표 5개 점수 또는 None), llm_note(채점 안 함 이유), llm_errors 칸을 채움.
     """
     targets = []
@@ -505,7 +506,7 @@ async def evaluate_llm(rows: list[dict], metrics: dict, experiment_name: str, re
             targets.append(row)
     if len(targets) == 0:
         print("  채점할 행 없음(모두 답 없음 또는 근거 0개)")
-        return {}
+        return {"noise_width": {}}
 
     runs = []  # 회차마다 {문항: 점수 dict}
     for run_number in range(1, repeat + 1):
@@ -539,7 +540,7 @@ async def evaluate_llm(rows: list[dict], metrics: dict, experiment_name: str, re
         for metric_name, message in row["llm_errors"].items():
             print(f"      채점 실패 {metric_name}: {message}")
 
-    widths = {}
+    noise_width = {}
     if repeat >= 2:
         for metric in core.LLM_METRICS:
             run_means = []
@@ -551,15 +552,15 @@ async def evaluate_llm(rows: list[dict], metrics: dict, experiment_name: str, re
                 if run_mean is not None:
                     run_means.append(run_mean)
             if len(run_means) >= 2:
-                widths[metric] = max(run_means) - min(run_means)
+                noise_width[metric] = max(run_means) - min(run_means)
         print("  흔들림 폭(실측, 회차 평균의 최대 - 최소): "
-              + ", ".join(f"{METRIC_LABELS[m].split()[1]} {widths[m]:.3f}" for m in widths))
-    return widths
+              + ", ".join(f"{METRIC_LABELS[m].split()[1]} {noise_width[m]:.3f}" for m in noise_width))
+    return {"noise_width": noise_width}
 
 
 async def evaluate_all_versions(versions: list[dict], rows_by_version: dict, metrics: dict, repeat: int) -> dict:
-    """④ 모든 버전을 차례로 LLM 평가함. 기준선만 repeat번 반복해 흔들림 폭(실측)을 돌려줌."""
-    widths = {}
+    """④ 모든 버전을 차례로 LLM 평가함. 기준선만 repeat번 반복하며, 평가 결과 dict {"noise_width": {지표: 폭}}를 돌려줌."""
+    eval_result = {"noise_width": {}}
     for version in versions:
         version_repeat = 1
         if version["is_baseline"]:
@@ -569,10 +570,10 @@ async def evaluate_all_versions(versions: list[dict], rows_by_version: dict, met
             title = title + f" — 기준선 {version_repeat}회 반복"
         print_step(title)
         experiment_name = f"{version['param']}/{version['name']}"
-        version_widths = await evaluate_llm(rows_by_version[version["name"]], metrics, experiment_name, version_repeat)
-        if len(version_widths) > 0:
-            widths = version_widths
-    return widths
+        version_result = await evaluate_llm(rows_by_version[version["name"]], metrics, experiment_name, version_repeat)
+        if len(version_result["noise_width"]) > 0:
+            eval_result = version_result
+    return eval_result
 
 
 # ---------------------------------------------------------------------------
@@ -1104,10 +1105,10 @@ def main() -> None:
         metrics = core.build_metrics(llm, embeddings)  # 실습 함수
         print_step(f"[④ LLM 평가] 평가자 Groq {JUDGE_MODEL}, 임베딩 Cohere {EMBEDDING_MODEL}, 지표 {list(metrics.keys())}")
         # 버전 전체를 이벤트 루프 하나에서 채점함. 루프를 여러 번 만들면 같은 API 클라이언트가 닫힌 루프를 쓰다 오류가 남
-        widths = asyncio.run(evaluate_all_versions(versions, rows_by_version, metrics, args.repeat))
-        if len(widths) > 0:
+        eval_result = asyncio.run(evaluate_all_versions(versions, rows_by_version, metrics, args.repeat))
+        if len(eval_result["noise_width"]) > 0:
             parts = []
-            for metric, width in widths.items():
+            for metric, width in eval_result["noise_width"].items():
                 noise[metric] = max(width, 0.01)  # 실측 폭이 0이어도 0.01 미만 차이는 변화로 보지 않음
                 parts.append(f"{metric} {noise[metric]:.3f}")
             noise_text = f"LLM 지표는 기준선 {args.repeat}회 실측({', '.join(parts)}), 코드 지표는 {NOISE}"
