@@ -247,10 +247,12 @@ def build_metrics(llm, embeddings) -> dict:
     인자: llm은 llm_factory로 만든 평가자 LLM, embeddings는 ragas 임베딩 객체(main이 만들어 넘김).
     반환값: {지표 이름: 지표 객체} 5개. 키는 LLM_METRICS와 같음.
 
-    순서: ① 평가자 LLM만 받는 지표 3개(context_recall, faithfulness, factual_correctness)를 llm=llm으로 만듦
-          ② context_precision은 평가셋에 모범 답안이 있으므로 모범 답안과 비교하는 ContextPrecisionWithReference를 llm=llm으로 만듦
-          ③ answer_relevancy는 역질문과 원래 질문을 임베딩으로 비교하므로 AnswerRelevancy를 llm=llm, embeddings=embeddings로 만듦
-          ④ 지표 이름 5개를 키로 한 dict를 반환
+    순서: 위, 정, 출, 관, 답 순서로 지표 5개를 만들어 dict에 담음
+          ① context_precision(위)은 평가셋에 모범 답안이 있으므로 모범 답안과 비교하는 ContextPrecisionWithReference를 llm=llm으로 만듦
+          ② context_recall(정), faithfulness(출)는 llm=llm만 넘겨 만듦
+          ③ answer_relevancy(관)는 역질문과 원래 질문을 임베딩으로 비교하므로 llm=llm, embeddings=embeddings를 둘 다 넘김
+          ④ factual_correctness(답)는 llm=llm만 넘겨 만듦
+          ⑤ 지표 이름 5개를 키로 한 dict를 반환
     """
     raise NotImplementedError("여기에 본인 코드를 작성함")
 

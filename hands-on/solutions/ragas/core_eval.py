@@ -369,17 +369,19 @@ def build_metrics(llm, embeddings) -> dict:
     인자: llm은 llm_factory로 만든 평가자 LLM, embeddings는 ragas 임베딩 객체(main이 만들어 넘김).
     반환값: {지표 이름: 지표 객체} 5개. 키는 LLM_METRICS와 같음.
 
-    순서: ① 평가자 LLM만 받는 지표 3개(context_recall, faithfulness, factual_correctness)를 llm=llm으로 만듦
-          ② context_precision은 평가셋에 모범 답안이 있으므로 모범 답안과 비교하는 ContextPrecisionWithReference를 llm=llm으로 만듦
-          ③ answer_relevancy는 역질문과 원래 질문을 임베딩으로 비교하므로 AnswerRelevancy를 llm=llm, embeddings=embeddings로 만듦
-          ④ 지표 이름 5개를 키로 한 dict를 반환
+    순서: 위, 정, 출, 관, 답 순서로 지표 5개를 만들어 dict에 담음
+          ① context_precision(위)은 평가셋에 모범 답안이 있으므로 모범 답안과 비교하는 ContextPrecisionWithReference를 llm=llm으로 만듦
+          ② context_recall(정), faithfulness(출)는 llm=llm만 넘겨 만듦
+          ③ answer_relevancy(관)는 역질문과 원래 질문을 임베딩으로 비교하므로 llm=llm, embeddings=embeddings를 둘 다 넘김
+          ④ factual_correctness(답)는 llm=llm만 넘겨 만듦
+          ⑤ 지표 이름 5개를 키로 한 dict를 반환
     """
     metrics = {
+        "context_precision": ContextPrecisionWithReference(llm=llm),  # 위: 검색 결과 위쪽에 필요한 청크가 있나(모범 답안과 비교)
         "context_recall": ContextRecall(llm=llm),  # 정: 모범 답안의 주장이 검색 결과에 있나
         "faithfulness": Faithfulness(llm=llm),  # 출: 답변의 주장이 검색 결과에서 나왔나(환각 탐지)
-        "factual_correctness": FactualCorrectness(llm=llm),  # 답: 답변과 모범 답안의 주장이 서로 맞나(기본 F1)
-        "context_precision": ContextPrecisionWithReference(llm=llm),  # 위: 검색 결과 위쪽에 필요한 청크가 있나(모범 답안과 비교)
         "answer_relevancy": AnswerRelevancy(llm=llm, embeddings=embeddings),  # 관: 답변이 질문과 관련 있나(역질문 임베딩 비교)
+        "factual_correctness": FactualCorrectness(llm=llm),  # 답: 답변과 모범 답안의 주장이 서로 맞나(기본 F1)
     }
     return metrics
 

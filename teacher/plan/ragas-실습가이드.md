@@ -324,14 +324,16 @@ python evaluate_rag.py --mine --param top_k --values 3 5 10 --until code --qid Q
 - **무엇을**: 평가자 LLM(`llm`)과 임베딩(`embeddings`)으로 ragas 지표 객체 5개를 만들어 `{지표 이름: 지표 객체}`로 돌려줌
 - **왜**: 지표마다 평가자 LLM이 하는 일이 다름(교재 188쪽). 모두 LLM이 필요하고, **AnswerRelevancy만 임베딩도 필요**함.  
   답변으로 만든 역질문과 원래 질문이 얼마나 비슷한지(코사인 유사도)를 재기 때문임
-- **알아둘 것**: 지표 5개를 모두 직접 만듦. 평가자 LLM만 받는 3개(`context_recall`, `faithfulness`, `factual_correctness`)는 `llm=llm`만 넘기면 됨
+- **알아둘 것**: 지표 5개를 위, 정, 출, 관, 답 순서로 모두 직접 만듦. `ContextPrecisionWithReference`와 `AnswerRelevancy`만 짚어 두면 되고, `AnswerRelevancy`만 `embeddings`도 넘김
 - **순서 안내(원문)**
 
 ```text
-순서: ① 평가자 LLM만 받는 지표 3개(context_recall, faithfulness, factual_correctness)를 llm=llm으로 만듦
-      ② context_precision은 평가셋에 모범 답안이 있으므로 모범 답안과 비교하는 ContextPrecisionWithReference를 llm=llm으로 만듦
-      ③ answer_relevancy는 역질문과 원래 질문을 임베딩으로 비교하므로 AnswerRelevancy를 llm=llm, embeddings=embeddings로 만듦
-      ④ 지표 이름 5개를 키로 한 dict를 반환
+순서: 위, 정, 출, 관, 답 순서로 지표 5개를 만들어 dict에 담음
+      ① context_precision(위)은 평가셋에 모범 답안이 있으므로 모범 답안과 비교하는 ContextPrecisionWithReference를 llm=llm으로 만듦
+      ② context_recall(정), faithfulness(출)는 llm=llm만 넘겨 만듦
+      ③ answer_relevancy(관)는 역질문과 원래 질문을 임베딩으로 비교하므로 llm=llm, embeddings=embeddings를 둘 다 넘김
+      ④ factual_correctness(답)는 llm=llm만 넘겨 만듦
+      ⑤ 지표 이름 5개를 키로 한 dict를 반환
 ```
 
 - **확인**: 아래 `score_row`와 함께 실행해 확인함(지표 객체는 채점할 때 처음 쓰임)
