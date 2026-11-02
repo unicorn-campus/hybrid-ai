@@ -75,10 +75,13 @@ JUDGE_MAX_RETRIES = 3  # 429(호출 제한), 5xx 때 openai 클라이언트가 �
 # AnswerRelevancy용 임베딩. 인덱서와 같은 Cohere 모델을 Cohere의 OpenAI 호환 주소로 부름(교재 184쪽 실행과 같음)
 EMBEDDING_MODEL = "embed-v5.0-fast"
 COHERE_COMPAT_URL = "https://api.cohere.ai/compatibility/v1"
-MAX_CONCURRENT_ROWS = 2  # 동시에 채점하는 행 수. arun은 모든 행을 한꺼번에 돌리므로 429를 피하려고 직접 제한함
+# 동시에 채점할 행(질문) 수. asyncio.Semaphore의 자리 수로 쓰임.
+# 한 행을 채점할 때 평가자 LLM 호출이 여러 번 일어나므로, 호출 수가 아니라 행 수를 제한함.
+# 값을 키우면 빨라지지만 429(호출 제한)가 늘고, 줄이면 느려지지만 안정적임
+MAX_CONCURRENT_ROWS = 2  # arun은 모든 행을 한꺼번에 돌리므로 429를 피하려고 직접 제한함
 
 # 흔들림 폭: 다시 채점만 해도 생기는 점수 차이. 이보다 작은 차이는 「변화 없음」(교재 177쪽).
-# 0.03은 교재 그림 예시값임. --repeat 3으로 기준선을 반복 채점하면 LLM 지표는 실측값으로 바꿔 씀
+# 0.03은 교재 그림 예시값임. 모든 지표(코드, LLM)의 변화 여부 기준으로 똑같이 씀. --repeat의 실측 폭은 참고로 출력만 함
 NOISE = 0.03
 MIN_DETECTABLE = 0.125  # 답 있는 8문항 중 6문항이 정답 근거 1개 → 한 문항이 바뀌면 Recall 평균이 1 ÷ 8 = 0.125 움직임
 
@@ -466,20 +469,26 @@ async def run_llm_evaluation(rows: list[dict], metrics: dict, experiment_name: s
     dataset = Dataset(name=experiment_name.replace("/", "_"), backend="inmemory")  # 메모리에만 담음(파일 안 만듦)
     for row in rows:
         dataset.append({
-            "id": row["id"],
-            "user_input": row["user_input"],
-            "reference": row["reference"],
-            "retrieved_contexts": row["retrieved_contexts"],
-            "response": row["response"],
+            "id": row["id"],    # 질문id
+            "user_input": row["user_input"],    # 원 질문
+            "reference": row["reference"],      # 모범 답안
+            "retrieved_contexts": row["retrieved_contexts"],    # 검색결과
+            "response": row["response"],        # LLM 답변 
         })
 
+    # 동시에 들어갈 수 있는 행 수를 MAX_CONCURRENT_ROWS개로 제한하는 자리표.
+    # 아래 async with semaphore에서 자리를 얻은 행만 채점하고, 끝나면 자리를 돌려줌
     semaphore = asyncio.Semaphore(MAX_CONCURRENT_ROWS)
 
-    @experiment()
+    @experiment()  # 데코레이터: 이 함수를 ragas 실험으로 등록함. arun(dataset)이 행마다 이 함수를 불러 결과를 모음
     async def ragas_eval(row):
         # 한 행(문항)을 지표 5개로 채점해 점수 행을 돌려줌. arun이 행마다 이 함수를 부름
         async with semaphore:  # 자리가 날 때까지 기다렸다가 들어감
             scores = await core.score_row(row, metrics)  # 실습 함수
+            
+        # **scores는 dict를 펼쳐 넣는 문법. scores에는 {지표 이름: 점수} 형식의 값이 옴(예: {"faithfulness": 0.9, ...}).
+        # 실패한 지표가 있으면 "errors": {지표 이름: 실패 사유}도 함께 들어 있음.
+        # 그래서 결과 행은 {"id": 질문id, 지표 이름: 점수, ...}가 됨
         return {"id": row["id"], **scores}
 
     experiment_result = await ragas_eval.arun(dataset, name=experiment_name)
@@ -499,9 +508,11 @@ async def evaluate_llm(rows: list[dict], metrics: dict, experiment_name: str, re
     targets = []
     for row in rows:
         allowed, note = can_score_with_llm(row)
+        # LLM 평가 결과, 채점 가능 판단 결과, LLM 평가 중 에러를 초기화함  
         row["llm"] = None
         row["llm_note"] = note
         row["llm_errors"] = {}
+        
         if allowed:
             targets.append(row)
     if len(targets) == 0:
@@ -570,7 +581,12 @@ async def evaluate_all_versions(versions: list[dict], rows_by_version: dict, met
             title = title + f" — 기준선 {version_repeat}회 반복"
         print_step(title)
         experiment_name = f"{version['param']}/{version['name']}"
-        version_result = await evaluate_llm(rows_by_version[version["name"]], metrics, experiment_name, version_repeat)
+        version_result = await evaluate_llm(
+            rows_by_version[version["name"]], 
+            metrics, 
+            experiment_name, 
+            version_repeat
+        )
         if len(version_result["noise_width"]) > 0:
             eval_result = version_result
     return eval_result
@@ -1013,7 +1029,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--until", choices=["versions", "run", "code", "all"], default="all",
                         help="어느 단계까지 실행할지(versions ①, run ②, code ③과 ⑤, all 전부. 기본 all)")
     parser.add_argument("--qid", nargs="+", default=None, help="일부 문항만(예: Q01 Q17 Q20)")
-    parser.add_argument("--repeat", type=int, default=1, help="기준선 LLM 평가를 N번 반복해 흔들림 폭을 실측(기본 1)")
+    parser.add_argument("--repeat", type=int, default=1, help="기준선 LLM 평가를 N번 반복해 흔들림 폭을 실측해 출력만 함(변화 여부 기준은 NOISE 고정, 기본 1)")
     parser.add_argument("--mine", action="store_true", help="평가 실습 함수를 교육생 코드(my_eval.py)로 실행")
     parser.add_argument("--selftest", action="store_true", help="API 없이 실습 함수만 점검(교재 181쪽 예)")
     return parser.parse_args()
@@ -1105,13 +1121,13 @@ def main() -> None:
         metrics = core.build_metrics(llm, embeddings)  # 실습 함수
         print_step(f"[④ LLM 평가] 평가자 Groq {JUDGE_MODEL}, 임베딩 Cohere {EMBEDDING_MODEL}, 지표 {list(metrics.keys())}")
         # 버전 전체를 이벤트 루프 하나에서 채점함. 루프를 여러 번 만들면 같은 API 클라이언트가 닫힌 루프를 쓰다 오류가 남
-        eval_result = asyncio.run(evaluate_all_versions(versions, rows_by_version, metrics, args.repeat))
-        if len(eval_result["noise_width"]) > 0:
-            parts = []
-            for metric, width in eval_result["noise_width"].items():
-                noise[metric] = max(width, 0.01)  # 실측 폭이 0이어도 0.01 미만 차이는 변화로 보지 않음
-                parts.append(f"{metric} {noise[metric]:.3f}")
-            noise_text = f"LLM 지표는 기준선 {args.repeat}회 실측({', '.join(parts)}), 코드 지표는 {NOISE}"
+        asyncio.run(evaluate_all_versions(
+            versions,           # 평가할 버전 목록(이름, 파라미터, 값, 기준선 여부)
+            rows_by_version,    # 버전 이름별 행 모음(각 행에 검색 결과와 코드 평가 결과가 들어 있음)
+            metrics,            # build_metrics가 만든 RAGAS 지표 dict
+            args.repeat,        # 기준선을 반복 채점할 횟수(흔들림 폭 측정용)
+        ))
+        # 돌려받는 실측 흔들림 폭(noise_width)은 평가 중에 이미 출력했으며, 변화 여부 기준(noise)에는 쓰지 않음
     else:
         metric_names = core.CODE_METRICS
         for version in versions:
