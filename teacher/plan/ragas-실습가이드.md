@@ -278,7 +278,7 @@ python evaluate_rag.py --mine --param top_k --values 3 5 10 --until code --qid Q
 |---|---|---|---|---|
 | 6 | `summarize_versions` | ⑤ 버전 비교 | 직접 | 약 30줄 |
 | 7 | `diagnose` | ⑤ 원인 후보 | 빈칸 3곳 | 1줄, 1줄, 4줄 |
-| 8 | `build_metrics` | ④ 지표 만들기 | 빈칸 2곳 | 1줄씩 |
+| 8 | `build_metrics` | ④ 지표 만들기 | 직접 | 2줄 |
 | 9 | `score_row` | ④ 한 행 채점 | 빈칸 5곳 | 빈칸마다 1 ~ 4줄 |
 
 #### 3.6 `summarize_versions`: 버전별 평균과 기준선 대비 변화(직접)
@@ -319,19 +319,19 @@ python evaluate_rag.py --mine --param top_k --values 3 5 10 --until code --qid Q
 기준선 행은 변화가 `-`이고, 다른 행은 `▲`, `▼` 또는 `변화 없음`이 나옴. `원인 후보 v01: ...` 문장이 이어짐.  
 이 명령은 LLM 평가를 하지 않으므로 코드 지표(Recall, nDCG)가 떨어진 경우의 원인 후보만 나옴.
 
-#### 3.8 `build_metrics`: ragas 지표 객체 5개 만들기(빈칸 2곳)
+#### 3.8 `build_metrics`: ragas 지표 객체 5개 만들기(직접 작성)
 
 - **무엇을**: 평가자 LLM(`llm`)과 임베딩(`embeddings`)으로 ragas 지표 객체 5개를 만들어 `{지표 이름: 지표 객체}`로 돌려줌
 - **왜**: 지표마다 평가자 LLM이 하는 일이 다름(교재 188쪽). 모두 LLM이 필요하고, **AnswerRelevancy만 임베딩도 필요**함.  
   답변으로 만든 역질문과 원래 질문이 얼마나 비슷한지(코사인 유사도)를 재기 때문임
-- **알아둘 것**: 지표 3개(`context_recall`, `faithfulness`, `factual_correctness`)는 이미 채워져 있음. 빈칸은 나머지 2개임
-- **빈칸 안내(원문)**
+- **알아둘 것**: 지표 5개를 모두 직접 만듦. 평가자 LLM만 받는 3개(`context_recall`, `faithfulness`, `factual_correctness`)는 `llm=llm`만 넘기면 됨
+- **순서 안내(원문)**
 
 ```text
-# 빈칸 1: metrics["context_precision"]에 위(ContextPrecision) 지표를 넣음.
-#         평가셋에 모범 답안이 있으므로 모범 답안과 비교하는 WithReference 클래스를 llm=llm으로 만듦
-# 빈칸 2: metrics["answer_relevancy"]에 관(AnswerRelevancy) 지표를 넣음.
-#         역질문과 원래 질문을 임베딩으로 비교하므로 llm과 embeddings를 둘 다 넘김
+순서: ① 평가자 LLM만 받는 지표 3개(context_recall, faithfulness, factual_correctness)를 llm=llm으로 만듦
+      ② context_precision은 평가셋에 모범 답안이 있으므로 모범 답안과 비교하는 ContextPrecisionWithReference를 llm=llm으로 만듦
+      ③ answer_relevancy는 역질문과 원래 질문을 임베딩으로 비교하므로 AnswerRelevancy를 llm=llm, embeddings=embeddings로 만듦
+      ④ 지표 이름 5개를 키로 한 dict를 반환
 ```
 
 - **확인**: 아래 `score_row`와 함께 실행해 확인함(지표 객체는 채점할 때 처음 쓰임)

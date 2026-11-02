@@ -10,7 +10,7 @@
   [교시 3: ⑤, ④]
    6 summarize_versions   (직접)      ⑤ 버전별 평균(매크로 평균)과 기준선 대비 변화(▲, ▼, 변화 없음)
    7 diagnose             (빈칸 3곳)  ⑤ 떨어진 지표 조합으로 고칠 곳 후보(교재 187쪽)
-   8 build_metrics        (빈칸 2곳)  ④ ragas 지표 객체 5개
+   8 build_metrics        (직접)      ④ ragas 지표 객체 5개
    9 score_row            (빈칸 5곳)  ④ 지표마다 읽는 칸을 맞춰 ascore
   제공(완성본, 읽기만): 지표 이름 상수, compact_text, rank_weight, mean_of, format_delta, ascore_or_nan은
   core_eval에서 그대로 가져옴(아래 import)
@@ -237,28 +237,22 @@ def diagnose(change: dict) -> list[str]:
 
 
 # ===========================================================================
-# 8. ④ LLM 평가 지표 만들기 (교재 188, 201쪽) — 빈칸 2곳
+# 8. ④ LLM 평가 지표 만들기 (교재 188, 201쪽) — 직접 작성
 # ===========================================================================
 def build_metrics(llm, embeddings) -> dict:
-    """실습(빈칸). ragas 0.4.3 collections의 지표 객체 5개를 만듦.
+    """실습(직접). ragas 0.4.3 collections의 지표 객체 5개를 만듦.
 
     목적: 지표마다 평가자 LLM이 하는 일이 다름(교재 188쪽). 모두 평가자 LLM이 필요하고, AnswerRelevancy만 임베딩도 필요함
           (답변으로 만든 역질문과 원래 질문의 코사인 유사도를 잼).
     인자: llm은 llm_factory로 만든 평가자 LLM, embeddings는 ragas 임베딩 객체(main이 만들어 넘김).
     반환값: {지표 이름: 지표 객체} 5개. 키는 LLM_METRICS와 같음.
+
+    순서: ① 평가자 LLM만 받는 지표 3개(context_recall, faithfulness, factual_correctness)를 llm=llm으로 만듦
+          ② context_precision은 평가셋에 모범 답안이 있으므로 모범 답안과 비교하는 ContextPrecisionWithReference를 llm=llm으로 만듦
+          ③ answer_relevancy는 역질문과 원래 질문을 임베딩으로 비교하므로 AnswerRelevancy를 llm=llm, embeddings=embeddings로 만듦
+          ④ 지표 이름 5개를 키로 한 dict를 반환
     """
-    metrics = {
-        "context_recall": ContextRecall(llm=llm),  # 정: 모범 답안의 주장이 검색 결과에 있나
-        "faithfulness": Faithfulness(llm=llm),  # 출: 답변의 주장이 검색 결과에서 나왔나(환각 탐지)
-        "factual_correctness": FactualCorrectness(llm=llm),  # 답: 답변과 모범 답안의 주장이 서로 맞나(기본 F1)
-    }
-    # 빈칸 1: metrics["context_precision"]에 위(ContextPrecision) 지표를 넣음.
-    #         평가셋에 모범 답안이 있으므로 모범 답안과 비교하는 WithReference 클래스를 llm=llm으로 만듦
-    raise NotImplementedError("빈칸 1을 채울 것")
-    # 빈칸 2: metrics["answer_relevancy"]에 관(AnswerRelevancy) 지표를 넣음.
-    #         역질문과 원래 질문을 임베딩으로 비교하므로 llm과 embeddings를 둘 다 넘김
-    raise NotImplementedError("빈칸 2를 채울 것")
-    return metrics
+    raise NotImplementedError("여기에 본인 코드를 작성함")
 
 
 # ===========================================================================

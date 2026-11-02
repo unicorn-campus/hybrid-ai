@@ -400,6 +400,7 @@ def evaluate_code(rows: list[dict], relevant_counts: dict) -> None:
         hits = core.find_hits(top_texts, row["relevance"])  # 실습 함수
         code = core.retrieval_metrics(hits, k)  # 실습 함수: hit, recall, mrr
         code["ndcg"] = core.ndcg_at_k(hits["hit_ranks"], relevant_counts[row["id"]], k)  # 실습 함수
+        
         row["hits"] = hits
         row["relevant_count"] = relevant_counts[row["id"]]
         row["code"] = code
@@ -1094,9 +1095,9 @@ def main() -> None:
     # ④ LLM 평가(RAGAS)
     noise = {}
     for metric in ALL_METRICS:
-        noise[metric] = NOISE
+        noise[metric] = NOISE   # 기본값. 기준선 대비 변화(절댓값)가 NOISE 이하이면 변화 없음으로 봄
     noise_text = f"모든 지표 {NOISE}(교재 177쪽 예시값)"
-    metric_names = core.CODE_METRICS
+
     if args.until == "all":
         metric_names = ALL_METRICS
         llm, embeddings = build_judge(check_judge_secrets())
@@ -1111,6 +1112,7 @@ def main() -> None:
                 parts.append(f"{metric} {noise[metric]:.3f}")
             noise_text = f"LLM 지표는 기준선 {args.repeat}회 실측({', '.join(parts)}), 코드 지표는 {NOISE}"
     else:
+        metric_names = core.CODE_METRICS
         for version in versions:
             for row in rows_by_version[version["name"]]:
                 row["llm"] = None
