@@ -1284,7 +1284,7 @@ def main() -> None:
         for row in rows_by_version[version["name"]]:
             scores.append(question_scores(row))
         scores_by_version[version["name"]] = scores
-    summary = core.summarize_versions(scores_by_version, metric_names, baseline_name, noise)  # 실습 함수
+    summary = core.summarize_versions(scores_by_version, metric_names, baseline_name, noise)  # 제공 함수
     print_comparison(versions, summary, metric_names)
     diagnoses = {}
     for version in versions:

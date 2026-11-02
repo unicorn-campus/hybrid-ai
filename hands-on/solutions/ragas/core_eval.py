@@ -60,6 +60,50 @@ def format_delta(delta: float | None, change: str) -> str:
     return f"{change} {delta:+.3f}"  # +는 양수에도 부호를 붙이라는 뜻
 
 
+def summarize_versions(rows_by_version: dict, metric_names: list[str], baseline_name: str, noise: dict) -> dict:
+    """제공. 버전마다 지표별 평균을 내고 기준선과 비교함.
+
+    목적: 점수 0.8 같은 고정 합격선보다 기준선 대비 변화로 채택 여부를 정함(교재 187쪽).
+    방법: 지표마다 문항 점수의 평균(매크로 평균, 교재 181쪽)을 mean_of로 냄(None과 nan은 뺌).
+          기준선이 아닌 버전은 평균 - 기준선 평균을 delta로 두고, 흔들림 폭(noise)보다 크면 ▲, 작으면 ▼, 그 사이면 「변화 없음」.
+    인자: rows_by_version은 {버전 이름: [문항 점수 dict, …]}(dict 키 = 지표 이름), metric_names는 비교할 지표 이름 목록,
+          baseline_name은 기준선 버전 이름(예: "v02"), noise는 {지표 이름: 흔들림 폭}.
+    반환값: {버전 이름: {"mean": {지표: 평균}, "delta": {지표: 차이}, "change": {지표: "▲", "▼", "변화 없음", "-", "비교 불가"}}}.
+    """
+    summary = {}
+    for version_name, rows in rows_by_version.items():  # 버전마다
+        means = {}
+        for metric in metric_names:  # 지표마다
+            values = []
+            for row in rows:  # 문항마다 그 지표 점수를 모음
+                values.append(row.get(metric))  # 점수가 없는 칸(채점 안 함)은 None
+            means[metric] = mean_of(values)  # 문항 점수의 평균(매크로 평균)
+        summary[version_name] = {"mean": means, "delta": {}, "change": {}}
+
+    baseline_means = summary[baseline_name]["mean"]
+    for version_name, version_summary in summary.items():
+        for metric in metric_names:
+            mean = version_summary["mean"][metric]
+            base = baseline_means[metric]
+            if version_name == baseline_name:  # 기준선 자신은 비교하지 않음
+                version_summary["delta"][metric] = None
+                version_summary["change"][metric] = "-"
+                continue
+            if mean is None or base is None:  # 어느 한쪽이 채점되지 않았으면 비교할 수 없음
+                version_summary["delta"][metric] = None
+                version_summary["change"][metric] = "비교 불가"
+                continue
+            delta = mean - base  # 기준선 대비 차이(+면 나아짐)
+            version_summary["delta"][metric] = delta
+            if delta > noise[metric]:  # 다시 채점만 해도 생기는 흔들림보다 크게 올랐을 때만 개선
+                version_summary["change"][metric] = "▲"
+            elif delta < -noise[metric]:
+                version_summary["change"][metric] = "▼"
+            else:
+                version_summary["change"][metric] = "변화 없음"
+    return summary
+
+
 async def ascore_or_nan(metric, metric_name: str, errors: dict, **inputs) -> float:
     """제공. ragas 지표 하나를 채점해 점수를 돌려줌. 실패하면 사유를 errors에 적고 nan을 돌려줌.
 
@@ -270,54 +314,7 @@ def ndcg_at_k(hit_ranks: list[int], relevant_chunk_count: int, k: int) -> float 
 
 
 # ===========================================================================
-# 6. ⑤ 버전 비교 (교재 177, 178, 181쪽) — 직접 작성
-# ===========================================================================
-def summarize_versions(rows_by_version: dict, metric_names: list[str], baseline_name: str, noise: dict) -> dict:
-    """실습(직접). 버전마다 지표별 평균을 내고 기준선과 비교함.
-
-    목적: 점수 0.8 같은 고정 합격선보다 기준선 대비 변화로 채택 여부를 정함(교재 187쪽).
-    방법: 지표마다 문항 점수의 평균(매크로 평균, 교재 181쪽)을 mean_of로 냄(None과 nan은 뺌).
-          기준선이 아닌 버전은 평균 - 기준선 평균을 delta로 두고, 흔들림 폭(noise)보다 크면 ▲, 작으면 ▼, 그 사이면 「변화 없음」.
-    인자: rows_by_version은 {버전 이름: [문항 점수 dict, …]}(dict 키 = 지표 이름), metric_names는 비교할 지표 이름 목록,
-          baseline_name은 기준선 버전 이름(예: "v02"), noise는 {지표 이름: 흔들림 폭}.
-    반환값: {버전 이름: {"mean": {지표: 평균}, "delta": {지표: 차이}, "change": {지표: "▲", "▼", "변화 없음", "-", "비교 불가"}}}.
-    """
-    summary = {}
-    for version_name, rows in rows_by_version.items():  # 버전마다
-        means = {}
-        for metric in metric_names:  # 지표마다
-            values = []
-            for row in rows:  # 문항마다 그 지표 점수를 모음
-                values.append(row.get(metric))  # 점수가 없는 칸(채점 안 함)은 None
-            means[metric] = mean_of(values)  # 문항 점수의 평균(매크로 평균)
-        summary[version_name] = {"mean": means, "delta": {}, "change": {}}
-
-    baseline_means = summary[baseline_name]["mean"]
-    for version_name, version_summary in summary.items():
-        for metric in metric_names:
-            mean = version_summary["mean"][metric]
-            base = baseline_means[metric]
-            if version_name == baseline_name:  # 기준선 자신은 비교하지 않음
-                version_summary["delta"][metric] = None
-                version_summary["change"][metric] = "-"
-                continue
-            if mean is None or base is None:  # 어느 한쪽이 채점되지 않았으면 비교할 수 없음
-                version_summary["delta"][metric] = None
-                version_summary["change"][metric] = "비교 불가"
-                continue
-            delta = mean - base  # 기준선 대비 차이(+면 나아짐)
-            version_summary["delta"][metric] = delta
-            if delta > noise[metric]:  # 다시 채점만 해도 생기는 흔들림보다 크게 올랐을 때만 개선
-                version_summary["change"][metric] = "▲"
-            elif delta < -noise[metric]:
-                version_summary["change"][metric] = "▼"
-            else:
-                version_summary["change"][metric] = "변화 없음"
-    return summary
-
-
-# ===========================================================================
-# 7. ⑤ 지표 조합으로 원인 찾기 (교재 187쪽) — 빈칸 3곳
+# 6. ⑤ 지표 조합으로 원인 찾기 (교재 187쪽) — 빈칸 3곳
 # ===========================================================================
 def diagnose(change: dict) -> list[str]:
     """실습(빈칸). 기준선보다 떨어진(▼) 지표의 조합으로 고칠 곳 후보를 고름(교재 187쪽 표).
@@ -359,7 +356,7 @@ def diagnose(change: dict) -> list[str]:
 
 
 # ===========================================================================
-# 8. ④ LLM 평가 지표 만들기 (교재 188, 201쪽) — 직접 작성
+# 7. ④ LLM 평가 지표 만들기 (교재 188, 201쪽) — 직접 작성
 # ===========================================================================
 def build_metrics(llm, embeddings) -> dict:
     """실습(직접). ragas 0.4.3 collections의 지표 객체 5개를 만듦.
@@ -387,7 +384,7 @@ def build_metrics(llm, embeddings) -> dict:
 
 
 # ===========================================================================
-# 9. ④ 한 행을 지표 5개로 채점 (교재 188, 202 ~ 203쪽) — 빈칸 5곳
+# 8. ④ 한 행을 지표 5개로 채점 (교재 188, 202 ~ 203쪽) — 빈칸 5곳
 # ===========================================================================
 async def score_row(row: dict, metrics: dict) -> dict:
     """실습(빈칸). 결과 정보 한 행을 LLM 평가 5지표로 채점함.

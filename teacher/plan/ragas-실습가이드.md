@@ -88,16 +88,20 @@ API 호출은 Groq, Cohere, 평가자 LLM(Groq) 모두 외부 호출임. 인덱�
 |---|---|---|
 | 1 이론 | 교재 176 ~ 193쪽(30), 강사 화면으로 결과 파일 읽기(10), `--mine` 교체와 `--selftest` 시연(10) | - |
 | 2 | 환경 점검(5), ① ②(15), ③(30) | `build_versions`, `make_result_row`, `find_hits`, `retrieval_metrics`, `ndcg_at_k` |
-| 3 | ⑤(20), `@experiment` 읽기 구간 해설(5), ④(25) | `summarize_versions`, `diagnose`, `build_metrics`, `score_row` |
+| 3 | ⑤(20, `summarize_versions` 코드 읽기 포함), `@experiment` 읽기 구간 해설(5), ④(25) | `diagnose`, `build_metrics`, `score_row` |
 
-방식 두 가지(모두 9개: 직접 4, 빈칸 5)
+방식 두 가지(실습 함수 8개: 직접 5, 빈칸 3)
 
-- **직접 작성**(4개): 함수 몸통이 `raise NotImplementedError("여기에 본인 코드를 작성함")` 한 줄임.  
+- **직접 작성**(5개): 함수 몸통이 `raise NotImplementedError("여기에 본인 코드를 작성함")` 한 줄임.  
   함수 설명(docstring)의 「순서」를 보고 씀
-- **빈칸 채우기**(5개): 거의 완성된 코드 중간에 `raise NotImplementedError("빈칸 N을 채울 것")`이 있음.  
+- **빈칸 채우기**(3개): 거의 완성된 코드 중간에 `raise NotImplementedError("빈칸 N을 채울 것")`이 있음.  
   바로 위 주석 「# 빈칸 N: ...」이 무엇을 채울지 알려 줌. 채운 뒤 그 `raise` 줄은 지움
 
 교시 3이 넘치면 `diagnose`는 숙제로 돌려도 됨(다른 함수와 독립).
+
+`summarize_versions`(⑤ 버전별 평균과 기준선 대비 변화)는 **제공 함수(완성본, 읽기만)**임.  
+채우지 않고 코드를 읽고 이해만 함.  
+`my_eval.py`는 이 함수를 `core_eval`에서 가져다 그대로 씀.
 
 ## 3. 따라하기
 
@@ -153,12 +157,12 @@ python evaluate_rag.py --param top_k --values 3 5 10 --until code --qid Q01 Q17 
 
    처음에는 `[--mine] my_eval.py 이 없어 my_eval.template.py 를 복사해 만듦`이 나오고, 이어서 `[실습 함수] my_eval`이 나오면  
    내 파일로 돌고 있다는 뜻임(강사 코드는 `[실습 함수] core_eval`). 검색기는 `core_search(강사 코드)`로 그대로임.
-2. `my_eval.py` 맨 아래 `USE_TEACHER_CODE` 목록을 봄. **여기 있는 함수는 강사 코드가 대신 돎**(처음에는 9개 모두 있음)
+2. `my_eval.py` 맨 아래 `USE_TEACHER_CODE` 목록을 봄. **여기 있는 함수는 강사 코드가 대신 돎**(처음에는 실습 함수 8개 모두 있음)
 
    ```python
    USE_TEACHER_CODE = [
        "build_versions", "make_result_row", "find_hits", "retrieval_metrics", "ndcg_at_k",
-       "summarize_versions", "diagnose", "build_metrics", "score_row",
+       "diagnose", "build_metrics", "score_row",
    ]
    ```
 
@@ -167,10 +171,10 @@ python evaluate_rag.py --param top_k --values 3 5 10 --until code --qid Q01 Q17 
 5. `my_eval.py`는 Git이 무시하므로, 강사가 뼈대(`my_eval.template.py`)를 고쳐 올려도 pull 충돌이 없음.  
    `my_eval.template.py`는 직접 고치지 않고 복사본 `my_eval.py`만 고침
 
-함수 위쪽의 `compact_text`, `rank_weight`, `mean_of`, `format_delta`, `ascore_or_nan`은 **제공 함수**임.  
+함수 위쪽의 `compact_text`, `rank_weight`, `mean_of`, `format_delta`, `summarize_versions`, `ascore_or_nan`은 **제공 함수**임.  
 미리 완성돼 있으니 읽고 가져다 쓰기만 하면 됨(`my_eval.py` 위쪽 `from core_eval import` 목록에 있음).
 
-### Step 3. 교시 2: 함수 5개(직접 3 + 빈칸 2)
+### Step 3. 교시 2: 함수 5개(직접 4 + 빈칸 1)
 
 | 순서 | 함수 | 단계 | 방식 | 채울 양 |
 |---|---|---|---|---|
@@ -178,7 +182,7 @@ python evaluate_rag.py --param top_k --values 3 5 10 --until code --qid Q01 Q17 
 | 2 | `make_result_row` | ② 결과 정보 | 빈칸 2곳 | 1줄, 4줄 |
 | 3 | `find_hits` | ③ 적중 청크 판정 | 직접 | 약 20줄 |
 | 4 | `retrieval_metrics` | ③ Hit, Recall, MRR | 직접 | 약 17줄 |
-| 5 | `ndcg_at_k` | ③ nDCG | 빈칸 2곳 | 1줄씩 |
+| 5 | `ndcg_at_k` | ③ nDCG | 직접 | 약 11줄 |
 
 (직접 함수의 줄 수는 완성본에서 주석과 빈 줄을 뺀 값에 가깝고, 사람마다 다름)
 
@@ -246,18 +250,16 @@ python evaluate_rag.py --mine --param top_k --values 5 --until run --qid Q17
 - **알아둘 것**: Recall은 **청크 수가 아니라 정답 근거 수**로 셈. 4위 청크가 이미 찾은 근거 ①을 또 담았다고 한 번 더 세면 Recall이 1.00으로 틀려짐
 - **확인**: `--selftest`에서 `하 Hit@5` 1, `빠 Recall@5` 0.667, `빨 MRR` 0.5, `답 없는 문항 Recall` None이 모두 `맞음`
 
-#### 3.5 `ndcg_at_k`: 앞쪽에 모여 있나(빈칸 2곳)
+#### 3.5 `ndcg_at_k`: 앞쪽에 모여 있나(직접)
 
 - **무엇을**: nDCG@k = DCG ÷ IDCG를 계산함. DCG는 적중 청크 칸의 순위 가중치 합, IDCG는 관련 청크를 1위부터 이상적으로 채웠을 때의 합임
 - **왜**: 필요한 청크가 앞쪽에 있을수록 점수가 큼. 순위 가중치는 제공 함수 `rank_weight`가 계산함(1 ÷ log₂(순위 + 1)):  
   1위 1.00, 2위 0.63, 3위 0.50, 4위 0.43, 5위 0.39
 - **계산 예**(교재 181쪽): 적중 2위, 4위, 관련 청크 4개, k 5이면 (0.63 + 0.43) ÷ (1.00 + 0.63 + 0.50 + 0.43) = 0.41
-- **빈칸 안내(원문)**
-
-```text
-# 빈칸 1: dcg에 그 순위의 가중치 rank_weight(rank)를 더함
-# 빈칸 2: idcg에 그 순위의 가중치를 더함
-```
+- **순서(docstring의 「순서」를 요약)**: ① `relevant_chunk_count`가 0이면 `None`  
+  ② `dcg` = `hit_ranks` 중 `k` 이하인 순위마다 `rank_weight(rank)`를 더한 합  
+  ③ `ideal_count` = `min(relevant_chunk_count, k)`  
+  ④ `idcg` = 1위부터 `ideal_count`위까지 `rank_weight(rank)`를 더한 합 ⑤ `dcg / idcg`를 반환
 
 - **확인**: `--selftest`의 `앞 nDCG@5`가 `내 값 0.4144..., 기대값 0.4144`로 `맞음`
 
@@ -272,31 +274,31 @@ python evaluate_rag.py --mine --param top_k --values 3 5 10 --until code --qid Q
 | `find_hits`, `retrieval_metrics`, `ndcg_at_k` | `--selftest` 맞음. Q17 기준선(`v02`)은 정답 근거 3/3, Hit 1, Recall 1.00, MRR 1.00, nDCG 0.97 |
 | 답이 없는 문항 | Q20이 `코드 지표 계산 안 함`이고 「확인 필요」 판정이 `맞음` |
 
-### Step 4. 교시 3: 함수 4개(직접 1 + 빈칸 3)
+### Step 4. 교시 3: 함수 3개(직접 1 + 빈칸 2)와 제공 함수 읽기 1개
 
 | 순서 | 함수 | 단계 | 방식 | 채울 양 |
 |---|---|---|---|---|
-| 6 | `summarize_versions` | ⑤ 버전 비교 | 직접 | 약 30줄 |
-| 7 | `diagnose` | ⑤ 원인 후보 | 빈칸 3곳 | 1줄, 1줄, 4줄 |
-| 8 | `build_metrics` | ④ 지표 만들기 | 직접 | 2줄 |
-| 9 | `score_row` | ④ 한 행 채점 | 빈칸 5곳 | 빈칸마다 1 ~ 4줄 |
+| - | `summarize_versions` | ⑤ 버전 비교 | 제공(읽기만) | 채우지 않음. 코드 읽기 |
+| 6 | `diagnose` | ⑤ 원인 후보 | 빈칸 3곳 | 1줄, 1줄, 4줄 |
+| 7 | `build_metrics` | ④ 지표 만들기 | 직접 | 8줄 |
+| 8 | `score_row` | ④ 한 행 채점 | 빈칸 5곳 | 빈칸마다 1 ~ 4줄 |
 
-#### 3.6 `summarize_versions`: 버전별 평균과 기준선 대비 변화(직접)
+#### 제공 함수 읽기 `summarize_versions`: 버전별 평균과 기준선 대비 변화(완성본, 읽기만)
 
 - **무엇을**: 버전마다 지표별 평균을 내고, 기준선 대비 차이(`delta`)와 변화 표시(`change`)를 돌려줌.  
   변화 표시는 `▲`(나아짐), `▼`(나빠짐), `변화 없음`, `-`(기준선 자신), `비교 불가` 중 하나임
 - **왜**: 「0.8점이면 합격」 같은 고정 기준보다 **기준선보다 얼마나 달라졌나**로 채택 여부를 정함(교재 187쪽)
 - **알아둘 것**: 문항마다 점수를 먼저 내고 그 평균을 냄(매크로 평균). 평균에서 `None`(계산 안 함)과 `nan`(채점 실패)을 빼는 일은  
   제공 함수 `mean_of`가 함. 차이가 흔들림 폭(`noise`, 초깃값 0.03)보다 작으면 `변화 없음`임
-- **순서(docstring의 「순서」를 요약)**: ① 버전마다, 지표마다 문항 점수를 모아 `mean_of`로 평균 ② 기준선 평균을 꺼냄  
+- **순서(docstring의 「순서」를 요약. 코드를 읽으며 따라감)**: ① 버전마다, 지표마다 문항 점수를 모아 `mean_of`로 평균 ② 기준선 평균을 꺼냄  
   ③ 기준선 자신이면 `delta` None, `change` `"-"` / 평균이나 기준선 평균이 None이면 `"비교 불가"` /  
   아니면 `delta` = 평균 - 기준선 평균, `delta > noise`이면 `"▲"`, `delta < -noise`이면 `"▼"`, 그 사이면 `"변화 없음"`
-- **확인**: `python evaluate_rag.py --mine --selftest`에서 `v01 Recall 평균` 0.5, `v01 ContextRecall 평균(None 뺌)` 0.6,  
+- **확인**: 코드를 읽은 뒤 `python evaluate_rag.py --mine --selftest`에서 `v01 Recall 평균` 0.5, `v01 ContextRecall 평균(None 뺌)` 0.6,  
   `v01 Recall 변화` ▼, `기준선 변화` -가 모두 `맞음`
 
-#### 3.7 `diagnose`: 떨어진 지표 조합으로 원인 후보 고르기(빈칸 3곳)
+#### 3.6 `diagnose`: 떨어진 지표 조합으로 원인 후보 고르기(빈칸 3곳)
 
-- **무엇을**: `summarize_versions`가 만든 한 버전의 변화(`change`)를 보고, 기준선보다 떨어진(`▼`) 지표의 조합으로 고칠 곳 후보 문장을 만듦
+- **무엇을**: 제공 함수 `summarize_versions`가 만든 한 버전의 변화(`change`)를 보고, 기준선보다 떨어진(`▼`) 지표의 조합으로 고칠 곳 후보 문장을 만듦
 - **왜**: 지표 하나만 보면 놓침. 검색 지표와 답변 지표를 함께 봐야 검색, 순위, 생성 중 어디서 새는지 보임(교재 187쪽 표)
 - **알아둘 것**: `change.get("이름")`은 그 지표가 없으면 `None`이라 `== "▼"` 조건이 거짓이 됨. 그래서 `--until code`처럼 LLM 평가를 안 돌려도 오류가 나지 않음
 - **빈칸 안내(원문)**
@@ -319,7 +321,7 @@ python evaluate_rag.py --mine --param top_k --values 3 5 10 --until code --qid Q
 기준선 행은 변화가 `-`이고, 다른 행은 `▲`, `▼` 또는 `변화 없음`이 나옴. `원인 후보 v01: ...` 문장이 이어짐.  
 이 명령은 LLM 평가를 하지 않으므로 코드 지표(Recall, nDCG)가 떨어진 경우의 원인 후보만 나옴.
 
-#### 3.8 `build_metrics`: ragas 지표 객체 5개 만들기(직접 작성)
+#### 3.7 `build_metrics`: ragas 지표 객체 5개 만들기(직접 작성)
 
 - **무엇을**: 평가자 LLM(`llm`)과 임베딩(`embeddings`)으로 ragas 지표 객체 5개를 만들어 `{지표 이름: 지표 객체}`로 돌려줌
 - **왜**: 지표마다 평가자 LLM이 하는 일이 다름(교재 188쪽). 모두 LLM이 필요하고, **AnswerRelevancy만 임베딩도 필요**함.  
@@ -338,7 +340,7 @@ python evaluate_rag.py --mine --param top_k --values 3 5 10 --until code --qid Q
 
 - **확인**: 아래 `score_row`와 함께 실행해 확인함(지표 객체는 채점할 때 처음 쓰임)
 
-#### 3.9 `score_row`: 한 행을 지표 5개로 채점(빈칸 5곳)
+#### 3.8 `score_row`: 한 행을 지표 5개로 채점(빈칸 5곳)
 
 - **무엇을**: 결과 정보 한 행을 5지표로 채점해 `{지표 이름: 점수(0 ~ 1)}`와 `"errors"`(실패 사유)를 돌려줌
 - **왜**: **지표마다 읽는 칸이 다름**(교재 188쪽). 맞는 칸을 맞는 이름으로 넘겨야 채점됨
@@ -418,7 +420,7 @@ python evaluate_rag.py --param top_k --values 3 5 10 --repeat 3
 | `NotImplementedError: 여기에 본인 코드를 작성함` | 직접 작성 함수를 아직 안 씀. docstring의 「순서」를 보고 씀 |
 | `--selftest`에서 `틀림  라벨: 내 값 ..., 기대값 ...` | 틀린 줄의 라벨이 틀린 함수를 알려 줌. 예: `빠 Recall@5`가 1.00이면 같은 근거를 두 번 센 것 |
 | `429`, `rate limit`, 채점 실패(`nan`) | 조별 한 대만 실행하고 1 ~ 2분 뒤 다시. 줄여서 `--qid`, `--until code`로 확인. 사유는 결과 파일의 채점 실패 표시에 있음 |
-| `TypeError`가 「채점 실패」로 표시됨 | `score_row`의 칸 이름(`user_input` 등)이 틀린 것. 3.9장 표와 맞춰 봄 |
+| `TypeError`가 「채점 실패」로 표시됨 | `score_row`의 칸 이름(`user_input` 등)이 틀린 것. 3.8장 표와 맞춰 봄 |
 | 본인 함수에서 예외(Traceback) | 실습 함수의 오류는 감추지 않고 그대로 보임. 맨 아래 줄의 파일과 함수가 본인 코드임. 단 `score_row`는 아래 줄 |
 | `Warning: Task failed with error: ...`, `채점 0/n행`, `채점 실패 행 전체: arun에서 행 채점 실패(경고 참고)` | `score_row` 안에서 예외가 난 것. ragas가 Traceback 대신 경고 한 줄로 알리고 그 행을 건너뜀. 경고 문구가 예외 메시지(예: `빈칸 1을 채울 것`)임 |
 | 강사와 LLM 점수가 다름 | 정상임. LLM 지표는 같은 입력도 흔들림. 코드 4지표와 선택 로직은 같아야 함 |

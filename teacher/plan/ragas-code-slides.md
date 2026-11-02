@@ -35,7 +35,7 @@
 | ② 검색기 실행 | 문항마다 run_workflow를 불러 질문, 모범 답안, 검색 결과, 답변을 한 행에 모음 | 검색기(LLM 포함) | make_result_row, clean_for_ragas |
 | ③ 코드 평가 | 적중 청크를 판정하고 하(Hit), 빠(Recall), 빨(MRR), 앞(nDCG)을 계산함 | 코드 계산(LLM 없음) | find_hits, retrieval_metrics, ndcg_at_k |
 | ④ LLM 평가 | 위, 정, 출, 관, 답 5지표를 평가자 LLM이 문항마다 판정함 | 평가자 LLM + 임베딩 | build_metrics, score_row, @experiment |
-| ⑤ 버전 비교 | 버전별 매크로 평균, 기준선 대비 변화, 원인 후보를 내고 결과 파일을 씀 | 코드 규칙 | summarize_versions, diagnose |
+| ⑤ 버전 비교 | 버전별 매크로 평균, 기준선 대비 변화, 원인 후보를 내고 결과 파일을 씀 | 코드 규칙 | summarize_versions(제공), diagnose |
 
 - 화면 출처: hands-on/solutions/ragas/evaluate_rag.py, core_eval.py, teacher/plan/ragas-개발계획서.md 4장, 교재 177, 188쪽
 - 발표자 노트:
@@ -160,7 +160,7 @@
   - dcg / idcg
 - 상세 보기 링크: https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/ragas/core_eval.py
 - 발표자 노트:
-  - 교육생 실습 함수 ndcg_at_k(빈칸 2곳: ❷, ❹의 더하기)의 정답임. rank_weight는 제공 함수임
+  - 교육생 실습 함수 ndcg_at_k(직접 작성)의 정답임. rank_weight는 제공 함수임
   - 관련 청크 수는 main이 시작할 때 색인 260청크에서 정답 단서를 대조해 문항마다 한 번 셉니다. 어느 청크에도 없는 정답 단서가 있으면 멈춥니다
   - Q07처럼 관련 청크가 많은 문항(38개)은 k가 커질수록 nDCG가 내려갑니다(README 7.3)
 
@@ -185,7 +185,7 @@
   - embeddings=embeddings
 - 상세 보기 링크: https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/ragas/core_eval.py
 - 발표자 노트:
-  - 교육생 실습 함수 build_metrics(빈칸 2곳: ❺, ❻)의 정답임. build_judge는 main의 제공 함수임
+  - 교육생 실습 함수 build_metrics(직접 작성)의 정답임. build_judge는 main의 제공 함수임
   - 평가자가 다르면 점수도 다릅니다. 184 ~ 185쪽 실제 예(Claude Haiku 5.5)와 값을 직접 비교하지 않습니다(README 9장)
   - ragas 0.4.3 collections 지표는 판정 이유(reason)를 채우지 않습니다(실측). 점수(value)만 씁니다
 
@@ -280,7 +280,7 @@
   - mean_of(values)
 - 상세 보기 링크: https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/ragas/core_eval.py
 - 발표자 노트:
-  - 교육생 실습 함수 summarize_versions(직접 작성)의 정답 앞부분임. 뒷부분(기준선 대비 변화)은 다음 장
+  - 제공 함수 summarize_versions(완성본, 교육생은 읽기만)의 앞부분임. 뒷부분(기준선 대비 변화)은 다음 장
   - 답 있는 8문항 중 6문항이 정답 근거 1개라 한 문항이 바뀌면 Recall 평균이 0.125 움직입니다. 통계적 유의성은 주장하지 않습니다(README 5.2)
 
 ## 슬라이드 12. ⑤ 기준선 대비 변화
@@ -304,7 +304,7 @@
   - delta < -noise[metric]
 - 상세 보기 링크: https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/ragas/core_eval.py
 - 발표자 노트:
-  - 교육생 실습 함수 summarize_versions(직접 작성)의 정답 뒷부분임
+  - 제공 함수 summarize_versions(완성본, 교육생은 읽기만)의 뒷부분임
   - 흔들림 폭은 상수 0.03(교재 177쪽 예시값)에서 출발하고, --repeat 3이면 기준선 반복 채점 실측값으로 바꿉니다. 실측에서는 평가자가 temperature 0.01이라 대부분 0.000이었고 Faithfulness만 한 번 0.125였습니다
   - 1회차 실측에서 코드 지표 ▲ +0.125는 기준선 Q17이 되묻기로 끝난 검색기 흔들림이었습니다(README 7.3). 평균만 보지 말고 문항별 표를 함께 봅니다
 

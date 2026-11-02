@@ -1,4 +1,4 @@
-"""교육생용 뼈대: core_eval.py와 같은 이름, 같은 인자의 실습 함수 9개를 본인 코드로 채우는 파일임.
+"""교육생용 뼈대: core_eval.py와 같은 이름, 같은 인자의 실습 함수 8개를 본인 코드로 채우는 파일임.
 
 채우는 순서(워크플로우 순서). "직접"은 NotImplementedError 자리에 본인 코드를 쓰고, "빈칸"은 거의 완성된 코드의 빈칸만 채움
   [교시 2: ①, ②, ③]
@@ -8,11 +8,11 @@
    4 retrieval_metrics    (직접)      ③ 하(Hit@k), 빠(Recall@k), 빨(MRR)
    5 ndcg_at_k            (직접)      ③ 앞(nDCG@k) = DCG ÷ IDCG
   [교시 3: ⑤, ④]
-   6 summarize_versions   (직접)      ⑤ 버전별 평균(매크로 평균)과 기준선 대비 변화(▲, ▼, 변화 없음)
-   7 diagnose             (빈칸 3곳)  ⑤ 떨어진 지표 조합으로 고칠 곳 후보(교재 187쪽)
-   8 build_metrics        (직접)      ④ ragas 지표 객체 5개
-   9 score_row            (빈칸 5곳)  ④ 지표마다 읽는 칸을 맞춰 ascore
-  제공(완성본, 읽기만): 지표 이름 상수, compact_text, rank_weight, mean_of, format_delta, ascore_or_nan은
+   6 diagnose             (빈칸 3곳)  ⑤ 떨어진 지표 조합으로 고칠 곳 후보(교재 187쪽)
+   7 build_metrics        (직접)      ④ ragas 지표 객체 5개
+   8 score_row            (빈칸 5곳)  ④ 지표마다 읽는 칸을 맞춰 ascore
+  제공(완성본, 읽기만): 지표 이름 상수, compact_text, rank_weight, mean_of, format_delta,
+  summarize_versions(⑤ 버전별 평균과 기준선 대비 변화), ascore_or_nan은
   core_eval에서 그대로 가져옴(아래 import)
 
 함수 설명(docstring)과 주석은 core_eval.py의 같은 함수와 같음. 빈칸 자리만 「# 빈칸 n: ...」 안내와 NotImplementedError로 바꿨음
@@ -21,10 +21,10 @@
   1) "python evaluate_rag.py --mine --selftest"처럼 --mine을 붙여 실행함. my_eval.py가 없으면 이 파일을 복사해 만듦
   2) 채울 함수 이름을 이 파일 맨 아래 USE_TEACHER_CODE 목록에서 지움(지우지 않은 함수는 강사 코드가 대신 돎)
   3) 함수를 채우고 README 6장의 확인 명령으로 실행해 강사 결과와 비교함. 막히면 이름을 목록에 다시 넣고 다음 함수로 넘어감
-  4) 코드 평가 함수(3, 4, 5)와 비교 함수(1, 6, 7)는 --selftest로 API 없이 확인할 수 있음
+  4) 코드 평가 함수(3, 4, 5)와 비교 함수(1, 6)는 --selftest로 API 없이 확인할 수 있음
 """
 
-from ragas.metrics.collections import (  # noqa: F401  (8 build_metrics에서 씀)
+from ragas.metrics.collections import (  # noqa: F401  (7 build_metrics에서 씀)
     AnswerRelevancy,
     ContextPrecisionWithReference,
     ContextRecall,
@@ -41,6 +41,7 @@ from core_eval import (  # noqa: F401
     format_delta,
     mean_of,
     rank_weight,
+    summarize_versions,
 )
 
 
@@ -172,29 +173,7 @@ def ndcg_at_k(hit_ranks: list[int], relevant_chunk_count: int, k: int) -> float 
 
 
 # ===========================================================================
-# 6. ⑤ 버전 비교 (교재 177, 178, 181쪽) — 직접 작성
-# ===========================================================================
-def summarize_versions(rows_by_version: dict, metric_names: list[str], baseline_name: str, noise: dict) -> dict:
-    """실습(직접). 버전마다 지표별 평균을 내고 기준선과 비교함.
-
-    목적: 점수 0.8 같은 고정 합격선보다 기준선 대비 변화로 채택 여부를 정함(교재 187쪽).
-    방법: 지표마다 문항 점수의 평균(매크로 평균, 교재 181쪽)을 mean_of로 냄(None과 nan은 뺌).
-          기준선이 아닌 버전은 평균 - 기준선 평균을 delta로 두고, 흔들림 폭(noise)보다 크면 ▲, 작으면 ▼, 그 사이면 「변화 없음」.
-    인자: rows_by_version은 {버전 이름: [문항 점수 dict, …]}(dict 키 = 지표 이름), metric_names는 비교할 지표 이름 목록,
-          baseline_name은 기준선 버전 이름(예: "v02"), noise는 {지표 이름: 흔들림 폭}.
-    반환값: {버전 이름: {"mean": {지표: 평균}, "delta": {지표: 차이}, "change": {지표: "▲", "▼", "변화 없음", "-", "비교 불가"}}}.
-
-    순서: ① 버전마다, 지표마다 문항 점수(row.get(지표))를 모아 mean_of로 평균 → summary[버전]["mean"][지표]
-          ② 기준선 평균 baseline_means = summary[baseline_name]["mean"]
-          ③ 버전마다, 지표마다: 기준선 자신이면 delta None, change "-"
-             평균이나 기준선 평균이 None이면 delta None, change "비교 불가"
-             아니면 delta = 평균 - 기준선 평균. delta > noise[지표]면 "▲", delta < -noise[지표]면 "▼", 그 사이면 "변화 없음"
-    """
-    raise NotImplementedError("여기에 본인 코드를 작성함")
-
-
-# ===========================================================================
-# 7. ⑤ 지표 조합으로 원인 찾기 (교재 187쪽) — 빈칸 3곳
+# 6. ⑤ 지표 조합으로 원인 찾기 (교재 187쪽) — 빈칸 3곳
 # ===========================================================================
 def diagnose(change: dict) -> list[str]:
     """실습(빈칸). 기준선보다 떨어진(▼) 지표의 조합으로 고칠 곳 후보를 고름(교재 187쪽 표).
@@ -237,7 +216,7 @@ def diagnose(change: dict) -> list[str]:
 
 
 # ===========================================================================
-# 8. ④ LLM 평가 지표 만들기 (교재 188, 201쪽) — 직접 작성
+# 7. ④ LLM 평가 지표 만들기 (교재 188, 201쪽) — 직접 작성
 # ===========================================================================
 def build_metrics(llm, embeddings) -> dict:
     """실습(직접). ragas 0.4.3 collections의 지표 객체 5개를 만듦.
@@ -258,7 +237,7 @@ def build_metrics(llm, embeddings) -> dict:
 
 
 # ===========================================================================
-# 9. ④ 한 행을 지표 5개로 채점 (교재 188, 202 ~ 203쪽) — 빈칸 5곳
+# 8. ④ 한 행을 지표 5개로 채점 (교재 188, 202 ~ 203쪽) — 빈칸 5곳
 # ===========================================================================
 async def score_row(row: dict, metrics: dict) -> dict:
     """실습(빈칸). 결과 정보 한 행을 LLM 평가 5지표로 채점함.
@@ -303,7 +282,7 @@ import core_eval as _teacher  # noqa: E402
 
 USE_TEACHER_CODE = [
     "build_versions", "make_result_row", "find_hits", "retrieval_metrics", "ndcg_at_k",
-    "summarize_versions", "diagnose", "build_metrics", "score_row",
+    "diagnose", "build_metrics", "score_row",
 ]
 for _name in USE_TEACHER_CODE:
     globals()[_name] = getattr(_teacher, _name)  # 이 파일의 빈 함수 대신 강사 함수를 같은 이름으로 둠

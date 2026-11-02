@@ -39,7 +39,7 @@ hands-on/solutions/ragas/
 ├─ requirements.txt          패키지 판 고정
 ├─ README.md                 이 문서
 ├─ evaluate_rag.py           main: 설정 상수, 시작 검사, ① ~ ⑤, 결과 파일, --selftest, 명령행(읽기)
-├─ core_eval.py              핵심 모듈(클론 코딩 대상): 실습 함수 9개 + 제공 함수
+├─ core_eval.py              핵심 모듈(클론 코딩 대상): 실습 함수 8개 + 제공 함수(summarize_versions 등)
 ├─ my_eval.template.py       교육생 뼈대(강사가 고침). --mine이 처음 한 번 my_eval.py로 복사함(my_eval.py는 Git이 무시)
 └─ results/                  결과 파일. results/top_k/evaluate_2610311725_v01.md, 버전별 비교는 _summary.md
 ```
@@ -269,12 +269,15 @@ python evaluate_rag.py --param chunk_overlap --values 0 100 200
 1. `python evaluate_rag.py --mine --selftest`처럼 `--mine`을 붙여 실행함. `my_eval.py`가 없으면 `my_eval.template.py`를 복사해 만듦
 2. 채울 함수 이름을 `my_eval.py` 맨 아래 `USE_TEACHER_CODE` 목록에서 지움(남은 함수는 강사 코드가 대신 돎)
 3. 함수를 채우고 아래 표의 명령으로 실행해 강사 결과와 비교함. 막히면 이름을 목록에 다시 넣고 다음 함수로 넘어감
-4. `my_eval.py`는 Git이 무시하므로 강사가 뼈대를 고쳐 push해도 pull 충돌이 없음
+4. `my_eval.py`는 Git이 무시하므로 강사가 뼈대를 고쳐 push해도 pull 충돌이 없음.  
+   대신 뼈대가 바뀌어도 이미 만든 `my_eval.py`에는 반영되지 않음. 예를 들어 2026-11-02에 `summarize_versions`가 제공 함수로  
+   바뀌었으므로, 그 전에 만든 `my_eval.py`는 빈 `summarize_versions` 함수를 지우고 맨 위 `from core_eval import (...)` 목록에  
+   `summarize_versions`를 넣어야 함
 
 | 실습 함수 | 확인 명령(이 폴더에서) | 정상 기준 |
 |---|---|---|
 | `find_hits`, `retrieval_metrics`, `ndcg_at_k` | `python evaluate_rag.py --mine --selftest` | 맞음 12/12. 4위 청크의 정답 근거 ①을 두 번 세면 Recall이 1.00으로 틀림 |
-| `build_versions`, `summarize_versions`, `diagnose` | 같은 명령 | 버전 목록 v01=3, v02=5★, v03=10. v01 Recall 변화 ▼, 기준선 「-」 |
+| `build_versions`, `diagnose` | 같은 명령 | 버전 목록 v01=3, v02=5★, v03=10. v01 Recall 변화 ▼, 기준선 「-」(변화 계산은 제공 함수 `summarize_versions`가 함) |
 | `build_versions`(오류 안내) | `python evaluate_rag.py --mine --param top_k --values 3 10 --until versions` | 「기준선 값 5 이(가) 값 목록에 없음」 오류 |
 | `make_result_row` | `python evaluate_rag.py --mine --param top_k --values 5 --until run --qid Q17` | user_input = 「회원과 상담할 때 …」(회원번호 없음), reference = 모범 답안, 검색 결과 4개, response = 인용 표시 없는 답변 |
 | 코드 평가 전체(실데이터) | `python evaluate_rag.py --mine --param top_k --values 3 5 --until code --qid Q01 Q17 Q20` | Q17 기준선: 정답 근거 3/3, Hit 1, Recall 1.00, MRR 1.00, nDCG 0.97(185쪽과 같음). Q20 「확인 필요」 맞음. 비교표에 ▼ |
