@@ -1,12 +1,12 @@
 # RAGAS 평가 교재 코드 장표 스크립트(W01 ~ W04 「품질 평가 및 튜닝 실습」 간지 뒤)
 
 - 대상: 『신한카드 하이브리드AI_W01 ~ W04』. 「코드로 보기」 장표 3장(옛 189 ~ 191쪽)을 지우고,  
-  간지 「품질 평가 및 튜닝 실습」 바로 뒤에 새 장표 13장(워크플로우 구성안 1장 + 코드 장표 12장)을 넣음
-- 덱 파일: `teacher/plan/ragas-code.pptx`(13장)
+  간지 「품질 평가 및 튜닝 실습」 바로 뒤에 새 장표 12장(워크플로우 구성안 1장 + 코드 장표 11장)을 넣음
+- 덱 파일: `teacher/plan/ragas-code.pptx`(12장)
 - 발췌: `python teacher/plan/build/extract-ragas-code.py` → `teacher/plan/build/ragas-code-slides.json`
 - 빌드: `NODE_PATH="C:\Users\hiond\.npm-global\node_modules" node teacher/plan/build/build-ragas-code.js`
 - 교재 반영: `python teacher/plan/build/fix_ph.py teacher/plan/ragas-code.pptx` →  
-  `python teacher/plan/build/merge-ragas-code.py {교재}.pptx`(「코드로 보기」 3장 삭제, 간지 뒤에 13장 삽입. 다시 돌리면 같은 제목을 바꿈)
+  `python teacher/plan/build/merge-ragas-code.py {교재}.pptx`(「코드로 보기」 3장 삭제, 간지 뒤에 12장 삽입. 다시 돌리면 같은 제목을 바꿈)
 - 코드 규칙: 실제 소스(`hands-on/solutions/ragas/`)에서 발췌기가 자동으로 꺼냄. docstring과 주석은 빼고 나머지 글자는 소스 그대로임.  
   「코드 빼기」에 적은 글이 든 줄(과 그 아래 더 들여 쓴 줄)은 「...」 한 줄로 줄임. 코드를 고치면 발췌와 빌드를 다시 돌림
 - 일련번호: 단계 번호 ① ~ ⑤와 헷갈리지 않게 ❶, ❷, ❸ …
@@ -22,11 +22,11 @@
 - 단계 2: ② 검색기 실행|버전 × 문항, 결과 정보 4칸
 - 단계 3: ③ 코드 평가|정답 단서 글자 대조, 4지표
 - 단계 4: ④ LLM 평가|평가자 LLM이 5지표(ragas)
-- 단계 5: ⑤ 버전 비교|평균, 기준선 대비 ▲ ▼, 원인
+- 단계 5: ⑤ 버전 비교|평균, 기준선 대비 ▲ ▼, 채택 여부 판단
 - 출력: 결과 파일|버전마다 1개(.md)
 - 분기 2: 근거 0개(근거 부족, 되묻기)면 ③ 0점, ④ 채점 안 함|답 없는 문항(Q20, Q21)은 「확인 필요」로 끝났는지만 봄
 - 분기 4: 지표마다 읽는 칸이 다름(질문, 모범 답안, 검색 결과, 답변)|채점 실패는 nan으로 두고 평균에서 뺌
-- 분기 5: 흔들림 폭보다 큰 차이만 ▲, ▼(교재 177쪽)|떨어진 지표 조합으로 고칠 곳 후보(교재 187쪽)
+- 분기 5: 흔들림 폭보다 큰 차이만 ▲, ▼(교재 177쪽)|▼ 없이 ▲가 있는 값은 채택해 새 기준선으로 삼음(교재 193쪽)
 - 표 열 너비: [1.5, 6.9, 2.3, 4.2]
 
 | 단계 | 하는 일 | 판단 방식 | 핵심 코드 |
@@ -35,7 +35,7 @@
 | ② 검색기 실행 | 문항마다 run_workflow를 불러 질문, 모범 답안, 검색 결과, 답변을 한 행에 모음 | 검색기(LLM 포함) | make_result_row, clean_for_ragas |
 | ③ 코드 평가 | 적중 청크를 판정하고 하(Hit), 빠(Recall), 빨(MRR), 앞(nDCG)을 계산함 | 코드 계산(LLM 없음) | find_hits, retrieval_metrics, ndcg_at_k |
 | ④ LLM 평가 | 위, 정, 출, 관, 답 5지표를 평가자 LLM이 문항마다 판정함 | 평가자 LLM + 임베딩 | build_metrics, score_row, @experiment |
-| ⑤ 버전 비교 | 버전별 매크로 평균, 기준선 대비 변화, 원인 후보를 내고 결과 파일을 씀 | 코드 규칙 | summarize_versions(제공), diagnose |
+| ⑤ 버전 비교 | 버전별 매크로 평균, 기준선 대비 변화를 내고 결과 파일을 씀 | 코드 규칙 | summarize_versions(제공) |
 
 - 화면 출처: hands-on/solutions/ragas/evaluate_rag.py, core_eval.py, teacher/plan/ragas-개발계획서.md 4장, 교재 177, 188쪽
 - 발표자 노트:
@@ -286,7 +286,7 @@
 ## 슬라이드 12. ⑤ 기준선 대비 변화
 - 넣을 자리: 평가 워크플로우: ⑤ 버전 비교 – 버전별 평균 실제 코드
 - 제목: 평가 워크플로우: ⑤ 버전 비교 – 기준선 대비 변화 실제 코드
-- 리드문: 기준선과의 차이를 흔들림 폭과 견줌. 점수 0.8 같은 고정 합격선 대신 기준선 대비 변화로 채택 여부를 정함(교재 187쪽)
+- 리드문: 기준선과의 차이를 흔들림 폭과 견줌. 점수 0.8 같은 고정 합격선 대신 기준선 대비 변화로 채택 여부를 정함(교재 193쪽)
 - 코드: core_eval.py summarize_versions
 - 코드 빼기
   - summary = {}
@@ -307,27 +307,3 @@
   - 제공 함수 summarize_versions(완성본, 교육생은 읽기만)의 뒷부분임
   - 흔들림 폭은 상수 0.03(교재 177쪽 예시값)에서 출발하고, --repeat 3이면 기준선 반복 채점 실측값으로 바꿉니다. 실측에서는 평가자가 temperature 0.01이라 대부분 0.000이었고 Faithfulness만 한 번 0.125였습니다
   - 1회차 실측에서 코드 지표 ▲ +0.125는 기준선 Q17이 되묻기로 끝난 검색기 흔들림이었습니다(README 7.3). 평균만 보지 말고 문항별 표를 함께 봅니다
-
-## 슬라이드 13. ⑤ 원인 찾기
-- 넣을 자리: 평가 워크플로우: ⑤ 버전 비교 – 기준선 대비 변화 실제 코드
-- 제목: 평가 워크플로우: ⑤ 원인 찾기 – 실제 코드
-- 리드문: 기준선보다 떨어진(▼) 지표의 조합으로 검색, 순위, 생성 중 어디를 고칠지 고름(교재 187쪽 표). 지표 하나만 보면 놓침
-- 코드: core_eval.py diagnose
-- 코드 빼기
-  - if change.get("ndcg") == "▼":
-  - if change.get("faithfulness") == "▼":
-  - if change.get("answer_relevancy") == "▼":
-  - if len(reasons) == 0:
-- 번호
-  - ❶ | if change.get("recall") == "▼": | 코드 지표 | LLM 평가를 안 돌려도 나옴. Recall ↓는 정답 근거를 놓친 것 → 청킹, 임베딩, Top-k
-  - ❷ | context_recall_dropped = change.get("context_recall") == "▼" | 정 ↓ | 검색 정답률 → 청킹, 임베딩, Top-k. change.get은 지표가 없으면 None이라 조건이 거짓
-  - ❸ | context_precision_dropped = change.get("context_precision") == "▼" | 위 ↓ | 상위에 답이 적음 → 리랭커, 하이브리드 비중
-  - ❹ | if change.get("factual_correctness") == "▼": | 답 ↓ | 정 ↓와 함께면 검색이 근거를 못 가져온 것, 정이 정상이면 답변이 근거 일부만 담은 것(교재 185쪽 Q17) → 답변 프롬프트
-- 굵게
-  - context_recall_dropped
-  - context_precision_dropped
-- 상세 보기 링크: https://github.com/unicorn-campus/hybrid-ai/blob/main/hands-on/solutions/ragas/core_eval.py
-- 발표자 노트:
-  - 교육생 실습 함수 diagnose(빈칸 3곳: ❷, ❸, ❹의 갈림)의 정답임
-  - 장표에서는 nDCG ↓, Faithfulness ↓(답변 프롬프트), Answer Relevancy ↓(질문 변환, 답변 프롬프트), 떨어진 지표 없음 문장을 ...로 줄였습니다
-  - 실측(README 7장)에서 1회차는 기준선 Q17이 되묻기로 끝나 코드 지표가 ▲ +0.125로 보였는데, 이는 검색기 흔들림이지 top_k 효과가 아니었습니다. 원인 후보를 읽기 전에 문항별 표를 먼저 봐야 하는 이유입니다

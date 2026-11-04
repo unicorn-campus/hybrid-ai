@@ -4,12 +4,12 @@
 |---|---|
 | 작성 | 클로니(오케스트레이터), 2026-10-31 |
 | 검토 | 지식니(지표와 평가 설계, 「수정 후 사용」), 에듀니(교육, 「조건부 통과」). 15장 「검토 이력」 |
-| 대상 교재 | 『신한카드 하이브리드AI_W01 ~ W04』 「품질 평가 및 튜닝 이해」 176 ~ 193쪽, 실습 코드 장표 195 ~ 207쪽(2026-10-31 반영, 16.4) |
+| 대상 교재 | 『신한카드 하이브리드AI_W01 ~ W04』 「품질 평가 및 튜닝 이해」 176 ~ 195쪽, 실습 코드 장표 197 ~ 208쪽(2026-10-31 반영, 16.4. 11-04 diagnose 장표 삭제) |
 | 평가 대상 | RAG 검색기 `hands-on/solutions/rag/retriever/`(교재 150쪽 ① ~ ⑥ 워크플로우. import해서 그대로 부름) |
 | 입력(읽기만) | 평가셋 `hands-on/solutions/eval-set.json`(10문항: 답 있음 8, 답 없음 2(Q20, Q21)),  
 RAG 인덱싱 결과 `rag/indexing/data/`(260청크) |
 | 산출 위치 | `hands-on/solutions/ragas/`(소스, requirements.txt, README.md), 결과 `ragas/results/{하이퍼 파라미터명}/` |
-| 상태 | **v0.2 승인(2026-10-31, `top_k` 3, 5, 10) 뒤 개발 완료, 교재 반영 완료(195 ~ 207쪽). 실행 결과는 16장** |
+| 상태 | **v0.2 승인(2026-10-31, `top_k` 3, 5, 10) 뒤 개발 완료, 교재 반영 완료(197 ~ 208쪽). 실행 결과는 16장** |
 
 ## 1. 목표
 
@@ -19,9 +19,9 @@ RAG 인덱싱 결과 `rag/indexing/data/`(260청크) |
   - 코드 평가 4지표(하, 빠, 빨, 앞): Hit@k, Recall@k, MRR, nDCG@k(180, 181쪽). LLM 없이 정답 단서로 계산
   - LLM 평가 5지표(위, 정, 출, 관, 답): ContextPrecision, ContextRecall, Faithfulness, AnswerRelevancy,  
     FactualCorrectness(182 ~ 185, 188쪽). ragas 0.4.3의 `@experiment`, `arun`, `ascore()`
-- 강사는 전체 예제를 보여 주고, 교육생은 **단계마다 1개 이상, 실습 함수 8개**를 클론 코딩한 뒤 본인 코드로 바꿔 끼워 실행함
+- 강사는 전체 예제를 보여 주고, 교육생은 **단계마다 1개 이상, 실습 함수 7개**를 클론 코딩한 뒤 본인 코드로 바꿔 끼워 실행함
 - 단계마다 결과를 화면과 결과 파일에 남김: 버전 목록과 기준선, 문항별 결과 정보 4칸, 순위별 적중 청크와 찾은 정답 근거,  
-  문항별 9지표, 버전별 평균과 기준선 대비 변화(▲, ▼, 변화 없음), 지표 조합으로 본 원인 후보(187쪽)
+  문항별 9지표, 버전별 평균과 기준선 대비 변화(▲, ▼, 변화 없음), 채택 여부 판단(193쪽 한 회차의 순환)
 - 한계를 숨기지 않음: 답 있는 8문항 중 6문항이 정답 근거 1개라 Recall@k가 0 또는 1임. 한 문항이 바뀌면 평균이 0.125 움직이므로  
   **최소 식별 변화 0.125, 통계적 유의성은 주장하지 않음**을 README와 결과 파일에 적음(지식니)
 
@@ -43,12 +43,12 @@ RAG 인덱싱 결과 `rag/indexing/data/`(260청크) |
 | 쪽 | 교재 | 실습 코드와 실측 | 제안 |
 |---|---|---|---|
 | 180, 181 노트 | 「정답 근거 3개 → IDCG 2.13 → nDCG 0.50」 | 본문(관련 청크 4 → 2.56 → 0.41)과 185쪽(0.97)은 관련 청크 수 기준. 코드도 이 기준 | 노트의 0.50 문장을 0.41로. 관련 청크 기준이면 「nDCG가 1을 넘는」 경우가 구조적으로 없음을 덧붙임 |
-| 옛 189 | `retrieval_metrics`가 Recall을 적중 청크 수로, IDCG를 정답 근거 수로 셈 | 실습 코드는 180쪽 정의(찾은 정답 근거 수, 관련 청크 수 기준 IDCG) | 해소: 장표를 지우고 실습 코드 장표(199 ~ 200쪽)로 대체함(16.4) |
+| 옛 189 | `retrieval_metrics`가 Recall을 적중 청크 수로, IDCG를 정답 근거 수로 셈 | 실습 코드는 180쪽 정의(찾은 정답 근거 수, 관련 청크 수 기준 IDCG) | 해소: 장표를 지우고 실습 코드 장표(201 ~ 202쪽)로 대체함(16.4) |
 | 176, 188 | MetricResult의 reason으로 「왜 낮은지 읽을 수 있음」 | 0.4.3 collections 지표는 reason이 빈 값 | 「0.4.3은 점수만 채움(실측)」으로 |
 | 182 / 183, 185 | 제목은 「답」, 카드와 185쪽은 「사」 | 실습은 182쪽 제목대로 「답」 | 한쪽으로 통일 |
 | 193 / 194 | 「평가셋 20문항」인데 Q25까지 있음 | 실습 평가셋은 10문항(`eval-set.json`), 전체는 `eval-set-full.json` | 문항 수 표기 정리 |
 | 181 노트 | 답 없는 문항 「Q18 ~ Q22」 | 실습 10문항의 답 없는 문항은 Q20, Q21 | README에 실습 기준을 적음(장표는 전체 평가셋 기준이라 그대로 둠) |
-| 옛 190 | 평가자 `gpt-4o-mini`, `text-embedding-3-small` | 실습은 Groq Qwen, Cohere | 해소: 장표를 지우고 실습 코드 장표(201쪽)로 대체함(16.4) |
+| 옛 190 | 평가자 `gpt-4o-mini`, `text-embedding-3-small` | 실습은 Groq Qwen, Cohere | 해소: 장표를 지우고 실습 코드 장표(203쪽)로 대체함(16.4) |
 
 ## 3. 디렉토리 구성
 
@@ -59,7 +59,7 @@ hands-on/solutions/ragas/
 ├─ README.md                 목표와 기능, 구조, 가상환경(PowerShell, Git Bash, macOS와 Linux), 실행 방법(하이퍼 파라미터 5개별 명령), 결과 읽는 법, 용어 풀이
 ├─ evaluate_rag.py           main: 설정 상수(모델, 경로, 지원 하이퍼 파라미터), 시작 검사, 버전 만들기, 검색기 실행,
 │                            코드 평가, LLM 평가(ragas), 비교, 결과 파일 쓰기, 자체 점검(--selftest), 명령행
-├─ core_eval.py              핵심(클론 코딩 대상): 실습 함수 8개 + 제공 함수(`summarize_versions` 포함)
+├─ core_eval.py              핵심(클론 코딩 대상): 실습 함수 7개 + 제공 함수(`summarize_versions` 포함)
 ├─ my_eval.template.py       교육생 뼈대(강사가 고침). --mine 실행 때 my_eval.py로 복사됨(Git 무시)
 └─ results/                  평가 결과 마크다운. results/{하이퍼 파라미터명}/evaluate_{YYMMDDHHMM}_{vNN}.md
 ```
@@ -76,7 +76,7 @@ hands-on/solutions/ragas/
 - **직접 작성**: 개념이 순수 파이썬 계산(비교, 합, 나눗셈)에 있어 손으로 써야 남는 함수. 코드 평가 지표(nDCG 포함)와 ragas 지표 만들기가 여기에 속함. 비교표(`summarize_versions`)는 제공 함수라 읽기만 함
 - **빈칸 채우기**: 개념이 라이브러리 호출의 「무엇에 어떤 칸을 넘기나」에 있거나, 공식이 길어 처음부터 쓰면 시간이 넘치는 함수.  
   결과 정보 칸 채우기, `ascore()` 인자, 지표 조합 진단이 여기에 속함
-- `@experiment` 실험 함수와 `arun` 호출은 main에 있는 **읽기 구간**임(178쪽과 거의 같은 모양, 교재 204쪽). 강사가 5분 해설함
+- `@experiment` 실험 함수와 `arun` 호출은 main에 있는 **읽기 구간**임(178쪽과 거의 같은 모양, 교재 206쪽). 강사가 5분 해설함
 
 결과 정보 = 한 문항을 한 버전으로 실행한 결과의 4칸(188쪽): 질문(user_input), 모범 답안(reference), 검색 결과(retrieved_contexts),  
 답변(response). 코드 평가를 위해 검색 결과의 청크ID, 평가셋의 정답 근거 목록(relevance), 종료 상태도 함께 담음.
@@ -88,13 +88,12 @@ hands-on/solutions/ragas/
 | ③ 코드 평가 | 문항마다 적중 판정 → 4지표. 관련 청크 수는 색인 260청크에서 셈(제공, 시작 검사 때 한 번) | 179 ~ 181, 189 | `find_hits` | 직접 | 적중 청크 = 정답 단서를 하나라도 담은 검색 결과 청크(공백 지우고 글자 대조). 찾은 정답 근거는 한 번만 셈 |
 | | | | `retrieval_metrics` | 직접 | 하(Hit@k: 적중 청크 있으면 1), 빠(Recall@k: 찾은 정답 근거 수 ÷ 전체 정답 근거 수), 빨(MRR: 1 ÷ 첫 적중 순위). 답 없는 문항은 None |
 | | | | `ndcg_at_k` | 직접 | 앞(nDCG@k) = DCG ÷ IDCG. DCG는 적중 칸 순위 가중치의 합, IDCG는 관련 청크를 1위부터 min(관련 청크 수, k)개 채운 합. 순위 가중치 `rank_weight`는 제공 |
-| ⑤ 버전 비교 | 버전별 평균(매크로 평균) → 기준선 대비 변화 → 원인 후보 | 177, 178, 181, 187 | (제공) `summarize_versions` | 제공(읽기만) | 지표마다 문항 점수의 평균(None, nan은 뺌), 기준선과의 차이, 흔들림 폭보다 작으면 「변화 없음」. 교육생은 코드를 읽고 이해만 함 |
-| | | | `diagnose` | 빈칸 3곳 | 187쪽 표를 `if`로: Context Recall ↓ → 청킹, 임베딩, Top-k / Context Precision ↓ → 리랭커, 하이브리드 비중 / Faithfulness ↓ → 프롬프트 / Answer Relevancy ↓ → 질문 변환, 프롬프트 / Factual Correctness ↓ → Recall 정상이면 답변 프롬프트, 낮으면 검색 |
+| ⑤ 버전 비교 | 버전별 평균(매크로 평균) → 기준선 대비 변화 → 채택 여부 판단 | 177, 178, 181, 193 | (제공) `summarize_versions` | 제공(읽기만) | 지표마다 문항 점수의 평균(None, nan은 뺌), 기준선과의 차이, 흔들림 폭보다 작으면 「변화 없음」. 교육생은 코드를 읽고 이해만 함 |
 | ④ LLM 평가(RAGAS) | 평가자 LLM과 임베딩 준비(main) → 지표 5개 → `@experiment` 실험 함수(main 읽기 구간)가 문항마다 `score_row` → `arun`이 문항 × 지표 표 | 182 ~ 185, 188, 190, 191 | `build_metrics` | 직접 | 지표 5개를 위, 정, 출, 관, 답 순서로 모두 직접 만듦. 모범 답안이 있을 때 쓰는 `ContextPrecisionWithReference`와 임베딩도 넘기는 `AnswerRelevancy(llm, embeddings)`를 짚어 둠 |
 | | | | `score_row` | 빈칸 5곳 | 지표마다 **읽는 칸이 다름**(188쪽 표): Precision(질문, 모범 답안, 검색 결과), Recall(질문, 검색 결과, 모범 답안), Faithfulness(질문, 답변, 검색 결과), AnswerRelevancy(질문, 답변), FactualCorrectness(답변, 모범 답안). 점수는 `MetricResult.value` |
 
-- 합계 8개: 직접 5개(`build_versions`, `find_hits`, `retrieval_metrics`, `ndcg_at_k`, `build_metrics`),  
-  빈칸 3개(`make_result_row` 2곳, `diagnose` 3곳, `score_row` 5곳)
+- 합계 7개: 직접 5개(`build_versions`, `find_hits`, `retrieval_metrics`, `ndcg_at_k`, `build_metrics`),  
+  빈칸 2개(`make_result_row` 2곳, `score_row` 5곳)
 - 다섯 단계 모두 실습 함수가 있음: ① 1개, ② 1개, ③ 3개, ⑤ 1개, ④ 2개.  
   ⑤의 `summarize_versions`는 제공 함수라 읽기만 함. ⑤를 ④보다 먼저 실습함(코드 지표만으로 비교표가 나옴, 에듀니)
 - 제공 함수(읽고 이해, 클론 대상 아님): `compact_text`(공백 지우기), `rank_weight`(1 ÷ log₂(순위 + 1)),  
@@ -113,7 +112,6 @@ hands-on/solutions/ragas/
 | `retrieval_metrics` | hits(`find_hits` 반환), k | dict. 키 hit, recall, mrr. 정답 근거 0개면 모두 None |
 | `ndcg_at_k` | hit_ranks, relevant_chunk_count, k | 0 ~ 1 실수. 관련 청크 0개면 None |
 | `summarize_versions`(제공) | rows_by_version(버전 이름 → 문항 점수 dict 목록), metric_names, baseline_name, noise | dict. 버전마다 mean(지표별 평균), delta(기준선과의 차이), change(▲, ▼, 변화 없음, -) |
-| `diagnose` | change(지표별 변화) | 원인 후보 문장 목록(187쪽 표) |
 | `build_metrics` | llm, embeddings | dict. 지표 이름 → 지표 객체 5개 |
 | `score_row` | row(결과 정보 행), metrics | dict. 지표 이름 → 점수(0 ~ 1). 실패한 지표는 nan |
 
@@ -130,7 +128,7 @@ hands-on/solutions/ragas/
 - 버전이 끝나면 상수를 원래 값으로 돌려놓음(다음 버전이 기준선에서 출발하게)
 - 청크 크기, 오버랩, 임베딩 모델(193쪽 2 ~ 4위)은 재색인이 필요해 이번 범위에서 뺌(10장 후속 과제)
 - **팀 추천: `top_k` 3, 5, 10(기준선 5)**. 재색인 없이 바로 바뀌고, 177, 178쪽 예시가 모두 top_k라 설명이 끊기지 않음.  
-  k가 커지면 Hit와 Recall은 기계적으로 오르므로 결과 파일 원인 후보에 「ContextPrecision과 짝지어 읽음」을 적음.  
+  k가 커지면 Hit와 Recall은 기계적으로 오르므로 결과 파일 읽는 순서에 「ContextPrecision과 짝지어 읽음」을 적음.  
   `vector_weight`는 리랭커가 다시 줄 세워 10문항으로는 차이가 묻힐 위험이 큼(지식니 의견). **최종 선택은 강사(14장 D1)**
 
 ### 4.3 문항 처리 규칙
@@ -191,11 +189,10 @@ hands-on/solutions/ragas/
 
 | 절 | 내용 |
 |---|---|
-| 읽는 순서 | 3줄: ① 요약에서 기준선 대비 ▲, ▼ ② 원인 후보 ③ 0점 문항은 문항별 상세. 범례(▲, ▼, 변화 없음, 채점 안 함, 종료 상태) |
+| 읽는 순서 | 3줄: ① 요약에서 기준선 대비 ▲, ▼ ② ▼ 없이 ▲가 있는 값은 채택해 새 기준선으로 삼고, 아니면 기준선 값 유지 ③ 0점 문항은 문항별 상세. 범례(▲, ▼, 변화 없음, 채점 안 함, 종료 상태) |
 | 머리 | 실행 시각, 하이퍼 파라미터명과 이 버전의 값, 고정한 나머지 설정, 평가셋(문항 수), 평가자 LLM과 임베딩, 흔들림 폭, 실행 옵션 |
 | 요약 | 코드 4지표 평균, LLM 5지표 평균, 기준선 대비 변화, 답 없는 문항의 「확인 필요」 맞음 수, 최소 식별 변화 0.125 안내 |
 | 버전 비교표 | 같은 실행의 모든 버전 평균을 한 표로(기준선 ★). 모든 버전 파일에 같은 표를 넣어 파일 하나만 열어도 비교됨 |
-| 원인 후보 | `diagnose` 결과(187쪽 표). 기준선 파일에는 「기준선」 |
 | 문항별 검색 표 | 문항, 종료 상태, 관련 청크 수, 적중 순위, 찾은 정답 근거 수, 하(Hit), 빠(Recall), 빨(MRR), 앞(nDCG), 위(Precision), 정(Recall) |
 | 문항별 답변 표 | 문항, 종료 상태, 출(Faithfulness), 관(AnswerRelevancy), 답(FactualCorrectness), 「확인 필요」 판정(답 없는 문항) |
 | 문항별 상세 | 원 질문과 ragas에 넘긴 질문, 모범 답안, 원 답변과 ragas에 넘긴 답변, 검색 결과(순위, 청크ID, 적중 여부, 본문 앞부분), 질의 수 |
@@ -205,22 +202,20 @@ hands-on/solutions/ragas/
 
 | 절 | 내용 |
 |---|---|
-| 읽는 순서, 범례 | ① 버전 비교표 ② 원인 후보 ③ 문항별 비교에서 평균을 움직인 문항을 찾아 버전 파일 상세로 감 |
+| 읽는 순서, 범례 | ① 버전 비교표 ② 채택 여부 판단(▼ 없이 ▲가 있는 값만 채택) ③ 문항별 비교에서 평균을 움직인 문항을 찾아 버전 파일 상세로 감 |
 | 실행 정보 | 실행 시각, 하이퍼 파라미터의 모든 버전 값(기준선 ★), 고정한 나머지 설정, 평가셋, 평가자, 흔들림 폭, 실행 옵션 |
 | 버전 비교표 | 버전 파일과 같은 표 + 최소 식별 변화 안내 |
 | 버전별 부가 정보 | 「확인 필요」 맞음 수, 근거 0개 문항, 채점 실패 문항, 버전 결과 파일 링크 |
-| 원인 후보 | 모든 버전의 `diagnose` 결과를 한곳에 |
 | 문항별 비교 | 지표마다 표 하나(행 = 답 있는 문항, 열 = 버전). 같은 문항의 기준선보다 흔들림 폭 넘게 오르면 ▲, 내리면 ▼ |
 
 ## 7. 실습 순서와 교시 배치(안)
 
 | 교시 | 내용(분) | 함수(순서대로, 예상 줄 수) | 직접 : 빈칸 | 교시 끝에 확인할 것 |
 |---|---|---|---|---|
-| 1 | 교재 176 ~ 193쪽 이론(30), 강사 화면으로 결과 파일 읽기(10), 교체 방법과 `--selftest` 시연(10) | - | - | 기준선과 버전의 차이, 지표 조합으로 원인 찾기 |
-| 2 | 환경 점검(5) → ①, ②(15) → ③(30) | `build_versions`(21) → `make_result_row`(빈칸 2) → `find_hits`(21) → `retrieval_metrics`(17) → `ndcg_at_k` | 4 : 1 | `--selftest` 맞음 12/12, `--until code --qid Q01 Q17 Q20`이 강사와 같음 |
-| 3 | ⑤(20, `summarize_versions` 코드 읽기 포함) → `@experiment` 읽기 구간 해설(5) → ④(25) | `summarize_versions`(제공, 코드 읽기) → `diagnose`(빈칸 3) → `build_metrics` → `score_row`(빈칸 5) | 1 : 2 | `--qid Q01 Q17 Q20`의 비교표와 5지표 |
+| 1 | 교재 176 ~ 195쪽 이론(30), 강사 화면으로 결과 파일 읽기(10), 교체 방법과 `--selftest` 시연(10) | - | - | 기준선과 버전의 차이, 채택 여부 판단 |
+| 2 | 환경 점검(5) → ①, ②(15) → ③(30) | `build_versions`(21) → `make_result_row`(빈칸 2) → `find_hits`(21) → `retrieval_metrics`(17) → `ndcg_at_k` | 4 : 1 | `--selftest` 맞음 11/11, `--until code --qid Q01 Q17 Q20`이 강사와 같음 |
+| 3 | ⑤(20, `summarize_versions` 코드 읽기 포함) → `@experiment` 읽기 구간 해설(5) → ④(25) | `summarize_versions`(제공, 코드 읽기) → `build_metrics` → `score_row`(빈칸 5) | 1 : 1 | `--qid Q01 Q17 Q20`의 비교표와 5지표 |
 
-- 넘치면 `diagnose`를 숙제로 돌림(교시 3의 다른 함수와 독립)
 - 함수 하나를 채울 때마다 그 단계까지만(`--until`) 돌려 확인함. LLM 평가 전체 실행(10문항 × 3버전, 약 10분)은 조별 1대만 함
 
 ### 7.1 교육생 확인표
@@ -229,11 +224,11 @@ hands-on/solutions/ragas/
 
 | 실습 함수 | 확인 명령 | 화면에서 볼 것 | 정상 기준 |
 |---|---|---|---|
-| `find_hits`, `retrieval_metrics`, `ndcg_at_k` | `python evaluate_rag.py --mine --selftest` | 4지표 기대값과 내 값 | 맞음 12/12(4지표 Hit 1, MRR 0.50, Recall 0.67, nDCG 0.41 포함). 4위 청크의 정답 근거 ①을 두 번 세면 Recall 1.00으로 틀림 |
+| `find_hits`, `retrieval_metrics`, `ndcg_at_k` | `python evaluate_rag.py --mine --selftest` | 4지표 기대값과 내 값 | 맞음 11/11(4지표 Hit 1, MRR 0.50, Recall 0.67, nDCG 0.41 포함). 4위 청크의 정답 근거 ①을 두 번 세면 Recall 1.00으로 틀림 |
 | `build_versions` | `python evaluate_rag.py --mine --param top_k --values 3 5 10 --until versions` | 버전 목록 | v01 top_k=3, v02 top_k=5 ★기준선, v03 top_k=10. `--param chunk_size`면 지원 목록 오류 |
 | `make_result_row` | `python evaluate_rag.py --mine --param top_k --values 5 --until run --qid Q17` | 결과 정보 4칸 | user_input = 회원번호를 지운 질문(「회원과 상담할 때 …」), reference = 모범 답안, 검색 결과 = 본문 4 ~ 5개, response = 인용 표시 없는 답변 |
 | `find_hits` 등(실데이터) | `python evaluate_rag.py --mine --param top_k --values 5 --until code --qid Q01 Q17 Q20` | 순위별 적중, 4지표 | Q01 (실측), Q17 정답 근거 3개 모두 찾음, Q20 「계산 안 함」과 「확인 필요」 맞음 |
-| `diagnose`(비교표는 제공 함수 `summarize_versions`가 만듦) | `python evaluate_rag.py --mine --param top_k --values 3 5 10 --until code --qid Q01 Q17 Q20` | 비교표, 원인 후보 | 기준선 행 변화 「-」, 다른 행 ▲, ▼ 또는 변화 없음. 원인 후보 문장 |
+| `summarize_versions`(제공 함수. 비교표 읽기) | `python evaluate_rag.py --mine --param top_k --values 3 5 10 --until code --qid Q01 Q17 Q20` | 비교표 | 기준선 행 변화 「-」, 다른 행 ▲, ▼ 또는 변화 없음 |
 | `build_metrics`, `score_row` | `python evaluate_rag.py --mine --param top_k --values 5 --qid Q17` | 5지표 | 오류 없이 5개 점수. 칸을 바꿔 넣으면 `TypeError`(인자 이름 오류)가 남. 184쪽(원 질문, Claude 평가자)과 값을 직접 비교하지 않음 |
 
 ## 8. 교체 방법
@@ -251,7 +246,7 @@ hands-on/solutions/ragas/
 | 임베딩(AnswerRelevancy) | Cohere `embed-v5.0-fast`. Cohere의 OpenAI 호환 주소로 ragas `OpenAIEmbeddings` 사용 |
 | 평가 대상 검색기 | RAG 검색기 그대로(Groq `openai/gpt-oss-120b`, Cohere `embed-v5.0-fast`, `rerank-v4.0-fast`) |
 | 가상환경 | `hands-on/solutions/ragas/.venv`(Python 3.13). RAG 공용 판(langchain-community만 0.3.31) + `ragas==0.4.3` + `pandas` |
-| LangChain | 검색기는 LangChain 그대로. 평가자는 ragas 0.4 방식(`llm_factory`, `OpenAIEmbeddings`). 0.4에서 LangChain 래퍼가 deprecated라 native 사용(교재 201쪽) |
+| LangChain | 검색기는 LangChain 그대로. 평가자는 ragas 0.4 방식(`llm_factory`, `OpenAIEmbeddings`). 0.4에서 LangChain 래퍼가 deprecated라 native 사용(교재 203쪽) |
 
 - 의존성(이전 예제 실측): ragas 0.4.3은 import 때 `langchain_community.chat_models.vertexai`를 부르는데 langchain-community 0.4에는  
   이 모듈이 없음 → `langchain-community==0.3.31`. 0.3.31은 `langchain<2`, `langchain-core<2`를 허용해 검색기의 langchain 1.x와 함께 설치됨(9.1)
@@ -364,6 +359,7 @@ DCG와 IDCG, 평가자 LLM, 코사인 유사도(AnswerRelevancy), 흔들림 폭,
 - LLM 평가는 버전 전체를 이벤트 루프 하나(`asyncio.run` 1번)에서 돌림. 버전마다 루프를 새로 만들면 같은 API 클라이언트가 닫힌 루프를 쓰다 오류가 남
 - 평가자 판정의 한계 3건(Q02 FactualCorrectness 0, Q14 ContextPrecision 0, Q17 Faithfulness 흔들림)을 원시 출력으로 확인해 README 7.4에 적음
 - 실습 함수 9개 → 8개(summarize_versions를 제공 함수로 변경, 2026-11-02)
+- 실습 함수 8개 → 7개: diagnose와 FIX_ 상수 삭제. 버전 비교에서는 원인을 이미 알아 원인 추정이 쓸모없고, 원인 유형 판단은 운영 중 정기 평가에서 교재 194쪽 그림으로 사람이 함(2026-11-04)
 
 ### 16.3 2회차 실행
 
@@ -393,8 +389,8 @@ Q07 nDCG(k가 커질수록 내려감)뿐임. LLM 지표의 방향은 두 회차�
 | 204 | ④ 실험 실행 | `run_llm_evaluation`(`@experiment`, `arun`) |
 | 205 | ⑤ 버전별 평균 | `summarize_versions` 앞부분(제공 함수 읽기) |
 | 206 | ⑤ 기준선 대비 변화 | `summarize_versions` 뒷부분(제공 함수 읽기) |
-| 207 | ⑤ 원인 찾기 | `diagnose` |
 
+- 이후 `diagnose` 코드 장표(위 표의 207쪽 행)는 삭제됨(2026-11-04)
 - 쪽 번호 이동: 옛 192 ~ 197쪽 → 189 ~ 194쪽, Q&A 198 → 208. 소스 주석, README, 실습 가이드, 가이드 슬라이드, 계획서의 쪽 번호를 맞춤  
   (옛 190쪽 「점 격자」는 188쪽 표로, 옛 191쪽 실험 코드는 178쪽과 새 204쪽으로)
 - 도구: 스크립트 `teacher/plan/ragas-code-slides.md`, 발췌 `build/extract-ragas-code.py`(구성안 장은 kind=overview),  

@@ -1,4 +1,4 @@
-"""교육생용 뼈대: core_eval.py와 같은 이름, 같은 인자의 실습 함수 8개를 본인 코드로 채우는 파일임.
+"""교육생용 뼈대: core_eval.py와 같은 이름, 같은 인자의 실습 함수 7개를 본인 코드로 채우는 파일임.
 
 채우는 순서(워크플로우 순서). "직접"은 NotImplementedError 자리에 본인 코드를 쓰고, "빈칸"은 거의 완성된 코드의 빈칸만 채움
   [교시 2: ①, ②, ③]
@@ -7,13 +7,11 @@
    3 find_hits            (직접)      ③ 정답 단서를 글자 대조해 적중 청크와 찾은 정답 근거 판정
    4 retrieval_metrics    (직접)      ③ 하(Hit@k), 빠(Recall@k), 빨(MRR)
    5 ndcg_at_k            (직접)      ③ 앞(nDCG@k) = DCG ÷ IDCG
-  [교시 3: ⑤, ④]
-   6 diagnose             (빈칸 3곳)  ⑤ 떨어진 지표 조합으로 원인 유형과 바꿔 볼 하이퍼 파라미터(교재 189쪽)
-   7 build_metrics        (직접)      ④ ragas 지표 객체 5개
-   8 score_row            (빈칸 5곳)  ④ 지표마다 읽는 칸을 맞춰 ascore
-  제공(완성본, 읽기만): 지표 이름 상수, 원인 유형별 조치 상수(FIX_), compact_text, rank_weight, mean_of, format_delta,
-  summarize_versions(⑤ 버전별 평균과 기준선 대비 변화), ascore_or_nan은
-  core_eval에서 그대로 가져옴(아래 import)
+  [교시 3: ④]
+   6 build_metrics        (직접)      ④ ragas 지표 객체 5개
+   7 score_row            (빈칸 5곳)  ④ 지표마다 읽는 칸을 맞춰 ascore
+  제공(완성본, 읽기만): 지표 이름 상수, compact_text, rank_weight, mean_of, format_delta,
+  summarize_versions(⑤ 버전별 평균과 기준선 대비 변화), ascore_or_nan은 core_eval에서 그대로 가져옴(아래 import)
 
 함수 설명(docstring)과 주석은 core_eval.py의 같은 함수와 같음. 빈칸 자리만 「# 빈칸 n: ...」 안내와 NotImplementedError로 바꿨음
 
@@ -21,10 +19,10 @@
   1) "python evaluate_rag.py --mine --selftest"처럼 --mine을 붙여 실행함. my_eval.py가 없으면 이 파일을 복사해 만듦
   2) 채울 함수 이름을 이 파일 맨 아래 USE_TEACHER_CODE 목록에서 지움(지우지 않은 함수는 강사 코드가 대신 돎)
   3) 함수를 채우고 README 6장의 확인 명령으로 실행해 강사 결과와 비교함. 막히면 이름을 목록에 다시 넣고 다음 함수로 넘어감
-  4) 코드 평가 함수(3, 4, 5)와 비교 함수(1, 6)는 --selftest로 API 없이 확인할 수 있음
+  4) 버전 함수(1)와 코드 평가 함수(3, 4, 5)는 --selftest로 API 없이 확인할 수 있음
 """
 
-from ragas.metrics.collections import (  # noqa: F401  (7 build_metrics에서 씀)
+from ragas.metrics.collections import (  # noqa: F401  (6 build_metrics에서 씀)
     AnswerRelevancy,
     ContextPrecisionWithReference,
     ContextRecall,
@@ -35,11 +33,6 @@ from ragas.metrics.collections import (  # noqa: F401  (7 build_metrics에서 �
 # 제공 상수와 함수는 강사 코드에서 그대로 가져옴(evaluate_rag.py가 core.이름 으로 부르므로 이 파일에도 있어야 함)
 from core_eval import (  # noqa: F401
     CODE_METRICS,
-    FIX_COMPLETENESS,
-    FIX_GROUNDING,
-    FIX_RANKING,
-    FIX_RELEVANCE,
-    FIX_RETRIEVAL,
     LLM_METRICS,
     ascore_or_nan,
     compact_text,
@@ -178,61 +171,7 @@ def ndcg_at_k(hit_ranks: list[int], relevant_chunk_count: int, k: int) -> float 
 
 
 # ===========================================================================
-# 6. ⑤ 지표 조합으로 원인 찾기 (교재 189쪽) — 빈칸 3곳
-# ===========================================================================
-def diagnose(change: dict) -> list[str]:
-    """실습(빈칸). 기준선보다 떨어진(▼) 지표의 조합으로 원인 유형과 바꿔 볼 하이퍼 파라미터를 고름(교재 189쪽 그림).
-
-    목적: 지표 하나만 보면 놓침(교재 185쪽 Q17). 같은 지표 변화도 다른 지표와 함께 보면 원인이 갈림.
-          예: 출 ↓는 정 ↓와 함께면 근거가 없어 지어낸 것(검색 불량), 정이 정상이면 할루시네이션.
-    방법: 원인 유형 5가지(검색 불량, 순위 불량, 질문 이해 부족, 할루시네이션, 출처 활용 부족)마다
-          바꿔 볼 하이퍼 파라미터(FIX_ 상수, 교재 195쪽 이름)를 붙임. 앞 항목부터 한 번에 하나씩 바꿔 다시 비교함.
-    인자: change는 summarize_versions가 만든 한 버전의 {지표 이름: 변화}. LLM 평가를 돌리지 않았으면 LLM 지표는 「비교 불가」.
-    반환값: 원인 후보 문장 목록(「지표 ↓: 원인 유형(설명) → 조치」). 떨어진 지표가 없으면 그렇다는 문장 하나.
-    """
-    reasons = []
-
-    # 코드 평가(LLM 없이도 나옴): 정답 근거를 놓쳤나(검색 불량), 뒤로 밀렸나(순위 불량)
-    if change.get("hit") == "▼":
-        reasons.append(f"Hit@k ↓ (코드): 검색 불량(근거를 하나도 못 찾은 문항이 늘어남) → {FIX_RETRIEVAL}")
-    if change.get("recall") == "▼":
-        reasons.append(f"Recall@k ↓ (코드): 검색 불량(정답 근거를 놓침) → {FIX_RETRIEVAL}")
-    if change.get("mrr") == "▼":
-        reasons.append(f"MRR ↓ (코드): 순위 불량(첫 정답 근거가 뒤로 밀림) → {FIX_RANKING}")
-    if change.get("ndcg") == "▼":
-        reasons.append(f"nDCG@k ↓ (코드): 순위 불량(정답 근거들이 뒤로 밀림) → {FIX_RANKING}")
-
-    # LLM 평가(교재 189쪽 그림). change.get(이름)은 그 지표가 없으면(LLM 평가를 안 돌림) None이라 조건이 거짓이 됨
-    # 빈칸 1: change.get("context_recall")이 "▼"와 같은지(True/False)를 context_recall_dropped에 받음
-    raise NotImplementedError("빈칸 1을 채울 것")
-    if context_recall_dropped:  # noqa: F821
-        reasons.append(f"Context Recall ↓: 검색 불량(필요한 근거를 못 찾음) → {FIX_RETRIEVAL}")
-    # 빈칸 2: 같은 방법으로 Context Precision이 떨어졌는지를 context_precision_dropped에 받음
-    raise NotImplementedError("빈칸 2를 채울 것")
-    if context_precision_dropped:  # noqa: F821
-        reasons.append(f"Context Precision ↓: 순위 불량(검색 상위에 답이 적음) → {FIX_RANKING}")
-    if change.get("faithfulness") == "▼":
-        # Context Recall도 떨어졌으면 근거가 없어 빈 곳을 지어낸 것, 아니면 근거를 받고도 없는 말을 한 것
-        if context_recall_dropped:  # noqa: F821
-            reasons.append(f"Faithfulness ↓ + Context Recall ↓: 검색 불량(근거가 없어 지어냄) → {FIX_RETRIEVAL}")
-        else:
-            reasons.append(f"Faithfulness ↓, Context Recall 정상: 할루시네이션(근거에 없는 말을 함) → {FIX_GROUNDING}")
-    if change.get("answer_relevancy") == "▼":
-        reasons.append(f"Answer Relevancy ↓: 질문 이해 부족(답이 질문과 어긋남) → {FIX_RELEVANCE}")
-    if change.get("factual_correctness") == "▼":
-        # 빈칸 3: 위 Faithfulness와 같은 모양. Context Recall도 떨어졌으면(context_recall_dropped) 검색이 근거를 못 가져온 것,
-        #         아니면 근거는 받았는데 답변에 일부만 쓴 것(교재 185쪽 Q17). 조건에 맞는 문장 하나를 reasons에 더함
-        #         f"Factual Correctness ↓ + Context Recall ↓: 검색 불량(근거를 못 가져옴) → {FIX_RETRIEVAL}"
-        #         f"Factual Correctness ↓, Context Recall 정상: 출처 활용 부족(근거를 일부만 씀) → {FIX_COMPLETENESS}"
-        raise NotImplementedError("빈칸 3을 채울 것")
-
-    if len(reasons) == 0:
-        reasons.append("기준선보다 떨어진 지표 없음")
-    return reasons
-
-
-# ===========================================================================
-# 7. ④ LLM 평가 지표 만들기 (교재 188, 201쪽) — 직접 작성
+# 6. ④ LLM 평가 지표 만들기 (교재 188, 201쪽) — 직접 작성
 # ===========================================================================
 def build_metrics(llm, embeddings) -> dict:
     """실습(직접). ragas 0.4.3 collections의 지표 객체 5개를 만듦.
@@ -253,7 +192,7 @@ def build_metrics(llm, embeddings) -> dict:
 
 
 # ===========================================================================
-# 8. ④ 한 행을 지표 5개로 채점 (교재 188, 202 ~ 203쪽) — 빈칸 5곳
+# 7. ④ 한 행을 지표 5개로 채점 (교재 188, 202 ~ 203쪽) — 빈칸 5곳
 # ===========================================================================
 async def score_row(row: dict, metrics: dict) -> dict:
     """실습(빈칸). 결과 정보 한 행을 LLM 평가 5지표로 채점함.
@@ -298,7 +237,7 @@ import core_eval as _teacher  # noqa: E402
 
 USE_TEACHER_CODE = [
     "build_versions", "make_result_row", "find_hits", "retrieval_metrics", "ndcg_at_k",
-    "diagnose", "build_metrics", "score_row",
+    "build_metrics", "score_row",
 ]
 for _name in USE_TEACHER_CODE:
     globals()[_name] = getattr(_teacher, _name)  # 이 파일의 빈 함수 대신 강사 함수를 같은 이름으로 둠

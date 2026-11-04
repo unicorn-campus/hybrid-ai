@@ -815,7 +815,7 @@ def question_cell(score, baseline_score, noise: float, is_baseline: bool) -> str
 def write_summary_file(context: dict) -> Path:
     """한 실행의 모든 버전을 한 파일로 비교함(버전별 비교 파일). 쓴 파일 경로를 돌려줌.
 
-    내용: 실행 정보, 버전 비교표, 버전별 부가 정보(「확인 필요」, 근거 0개, 결과 파일), 원인 후보,
+    내용: 실행 정보, 버전 비교표, 버전별 부가 정보(「확인 필요」, 근거 0개, 결과 파일),
           문항별 비교(검색 지표와 답변 지표를 버전끼리 나란히). 버전 파일과 같은 stamp를 써서 이름으로 묶임.
     """
     versions = context["versions"]
@@ -837,7 +837,7 @@ def write_summary_file(context: dict) -> Path:
     lines.append("## 읽는 순서")
     lines.append("")
     lines.append("1. 버전 비교표에서 기준선 대비 ▲(좋아짐), ▼(나빠짐)를 봄  ")
-    lines.append("2. 원인 후보에서 고칠 곳을 고름  ")
+    lines.append("2. ▼ 없이 ▲가 있는 값은 채택해 새 기준선으로 삼고, 아니면 기준선 값을 유지함(교재 193쪽 한 회차의 순환)  ")
     lines.append("3. 문항별 비교에서 어느 문항 때문에 평균이 움직였는지 찾고, 그 문항은 버전 결과 파일의 문항별 상세를 엶")
     lines.append("")
     lines.append("범례: ▲ 기준선보다 흔들림 폭 넘게 오름, ▼ 내림, 변화 없음 = 흔들림 폭 안, - = 기준선 자신 또는 계산 안 함,  ")
@@ -893,15 +893,6 @@ def write_summary_file(context: dict) -> Path:
             f"{', '.join(error_ids) if error_ids else '없음'} | [{file_name}]({file_name}) |"
         )
     lines.append("")
-    lines.append("## 원인 후보(교재 189쪽)")
-    lines.append("")
-    for version in versions:
-        if version["is_baseline"]:
-            lines.append(f"- {version['name']} {param}={version['value']}: 기준선")
-        else:
-            reasons = " / ".join(context["diagnoses"][version["name"]])
-            lines.append(f"- {version['name']} {param}={version['value']}: {reasons}")
-    lines.append("")
     lines.append("## 문항별 비교")
     lines.append("")
     lines.append("평균만 보면 0점 문항이 가려지므로 문항마다 버전을 나란히 봄(교재 181쪽 노트).  ")
@@ -952,7 +943,7 @@ def write_result_files(context: dict) -> list[Path]:
         lines.append("## 읽는 순서")
         lines.append("")
         lines.append("1. 요약에서 기준선 대비 ▲(좋아짐), ▼(나빠짐)를 봄  ")
-        lines.append("2. 원인 후보에서 고칠 곳을 고름  ")
+        lines.append("2. ▼ 없이 ▲가 있는 값은 채택해 새 기준선으로 삼고, 아니면 기준선 값을 유지함(교재 193쪽 한 회차의 순환)  ")
         lines.append("3. 0점이거나 「채점 안 함」인 문항은 문항별 상세에서 검색 결과와 답변을 확인함")
         lines.append("")
         lines.append("범례: ▲ 기준선보다 흔들림 폭 넘게 오름, ▼ 내림, 변화 없음 = 흔들림 폭 안, - = 기준선 자신 또는 계산 안 함,  ")
@@ -990,15 +981,8 @@ def write_result_files(context: dict) -> list[Path]:
         lines.append("")
         lines.extend(comparison_table_md(versions, summary, metric_names))
         lines.append("")
-        lines.append(f"문항별 비교와 버전별 원인 후보는 [버전별 비교 파일]({summary_file_name(context['stamp'])})에 모아 둠")
+        lines.append(f"문항별 비교는 [버전별 비교 파일]({summary_file_name(context['stamp'])})에 모아 둠")
         lines.append("")
-        lines.append("## 원인 후보(교재 189쪽)")
-        lines.append("")
-        if version["is_baseline"]:
-            lines.append("- 기준선")
-        else:
-            for reason in context["diagnoses"][version["name"]]:
-                lines.append(f"- {reason}")
         if param == "top_k":
             lines.append("- 참고: k가 커지면 Hit와 Recall은 기계적으로 오르므로 ContextPrecision과 짝지어 읽음")
         if param in INDEX_PARAMS:
@@ -1118,7 +1102,7 @@ def run_selftest() -> None:
     results.append(check("앞 nDCG@5", core.ndcg_at_k(hits["hit_ranks"], 4, 5), 0.4144))
     results.append(check("답 없는 문항 Recall", core.retrieval_metrics(core.find_hits(chunk_texts, []), 5)["recall"], None))
 
-    print_step("[자체 점검] 버전 만들기, 버전 비교, 원인 찾기")
+    print_step("[자체 점검] 버전 만들기, 버전 비교")
     versions = core.build_versions("top_k", [3, 5, 10], 5, SUPPORTED)
     names = []
     for version in versions:
@@ -1134,13 +1118,6 @@ def run_selftest() -> None:
     results.append(check("v01 ContextRecall 평균(None 뺌)", summary["v01"]["mean"]["context_recall"], 0.6))
     results.append(check("v01 Recall 변화", summary["v01"]["change"]["recall"], "▼"))
     results.append(check("기준선 변화", summary["v02"]["change"]["recall"], "-"))
-    reasons = core.diagnose(summary["v01"]["change"])
-    results.append(check("원인 후보 수", len(reasons), 2))
-    # 빈칸 3: 답 ↓의 원인 유형은 Context Recall과 함께 보고 정함(교재 189쪽 그림)
-    reasons = core.diagnose({"factual_correctness": "▼", "context_recall": "▼"})
-    results.append(check("답 ↓ + 정 ↓ 원인 유형", reasons[-1].split(": ")[1].split("(")[0], "검색 불량"))
-    reasons = core.diagnose({"factual_correctness": "▼", "context_recall": "변화 없음"})
-    results.append(check("답 ↓, 정 정상 원인 유형", reasons[-1].split(": ")[1].split("(")[0], "출처 활용 부족"))
 
     correct = 0
     for ok in results:
@@ -1282,7 +1259,7 @@ def main() -> None:
                 row["llm_errors"] = {}
 
     # ⑤ 버전 비교
-    print_step("[⑤ 버전 비교] 버전별 평균(매크로 평균)과 기준선 대비 변화(교재 178, 189쪽)")
+    print_step("[⑤ 버전 비교] 버전별 평균(매크로 평균)과 기준선 대비 변화(교재 178쪽)")
     scores_by_version = {}
     for version in versions:
         scores = []
@@ -1291,12 +1268,6 @@ def main() -> None:
         scores_by_version[version["name"]] = scores
     summary = core.summarize_versions(scores_by_version, metric_names, baseline_name, noise)  # 제공 함수
     print_comparison(versions, summary, metric_names)
-    diagnoses = {}
-    for version in versions:
-        if version["is_baseline"]:
-            continue
-        diagnoses[version["name"]] = core.diagnose(summary[version["name"]]["change"])  # 실습 함수
-        print(f"  원인 후보 {version['name']}: " + " / ".join(diagnoses[version["name"]]))
 
     index_labels = {}  # 버전 이름 → 결과 파일에 적을 색인 설명(폴더, 청크 수, 끊긴 정답 단서)
     for version in versions:
@@ -1306,7 +1277,6 @@ def main() -> None:
         "summary": summary,
         "metric_names": metric_names,
         "rows_by_version": rows_by_version,
-        "diagnoses": diagnoses,
         "started": started.strftime("%Y-%m-%d %H:%M"),
         "stamp": started.strftime("%y%m%d%H%M"),  # 버전 파일과 버전별 비교 파일이 같은 값을 씀
         "fixed_settings": fixed_settings,

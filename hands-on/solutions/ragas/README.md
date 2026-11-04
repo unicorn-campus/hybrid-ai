@@ -1,6 +1,6 @@
 # RAGAS 평가 실습 예제 — 하이퍼 파라미터 버전 비교
 
-하이브리드 AI 교육 4주차 「품질 평가 및 튜닝 이해」(교재 176 ~ 193쪽, 코드 장표 195 ~ 207쪽) 실습용 예제임.  
+하이브리드 AI 교육 4주차 「품질 평가 및 튜닝 이해」(교재 177 ~ 195쪽, 코드 장표 197 ~ 208쪽) 실습용 예제임.  
 W4에서 만든 RAG 검색기(`../rag/retriever/`)를 **하이퍼 파라미터 값마다(버전마다) 같은 평가셋으로 돌려** 코드 평가 4지표와  
 RAGAS(LLM 평가) 5지표로 채점하고, 기준선과 비교해 어디서 새는지 찾음.  
 레이어드 아키텍처 없이 **main 1개 + 핵심 모듈 1개**로 짰고, 교육생은 핵심 모듈만 클론 코딩한 뒤 본인 코드로 바꿔 끼움.  
@@ -24,12 +24,16 @@ python evaluate_rag.py --param top_k --values 3 5 10 --until code --qid Q01 Q17 
 | ② 검색기 실행 | 버전마다 문항마다 검색기 `run_workflow`를 불러 결과 정보 4칸(질문, 모범 답안, 검색 결과, 답변)을 만듦 | 188 |
 | ③ 코드 평가 | 정답 단서를 청크 본문과 글자 대조해 적중 청크를 판정하고 하(Hit@k), 빠(Recall@k), 빨(MRR), 앞(nDCG@k)을 계산. LLM 없음 | 180, 181 |
 | ④ LLM 평가 | ragas 0.4.3으로 위(ContextPrecision), 정(ContextRecall), 출(Faithfulness), 관(AnswerRelevancy), 답(FactualCorrectness) | 182 ~ 191 |
-| ⑤ 버전 비교 | 버전별 평균(매크로 평균)과 기준선 대비 변화(▲, ▼, 변화 없음), 지표 조합으로 원인 후보 | 178, 189 |
+| ⑤ 버전 비교 | 버전별 평균(매크로 평균)과 기준선 대비 변화(▲, ▼, 변화 없음). 이 변화로 값을 채택할지 정함 | 178, 193 |
 | 결과 파일 | `results/{하이퍼 파라미터명}/evaluate_{YYMMDDHHMM}_{vNN}.md`. 버전마다 1개, 파일마다 같은 비교표 | - |
 | 버전별 비교 파일 | `results/{하이퍼 파라미터명}/evaluate_{YYMMDDHHMM}_summary.md`. 실행마다 1개, 시각 값은 버전 파일과 같음 | - |
 
 - 평가 대상 검색기는 **언제나 강사 코드** `../rag/retriever/core_search.py`로 돎(`--mine`은 이 폴더의 평가 함수만 바꿈)
 - 실행 옵션 `--until`로 핵심 단계까지만 돌릴 수 있고, `--selftest`는 API 없이 교재 181쪽 예로 계산 함수를 점검함
+- **처음 튜닝**: 교재 193쪽 순서대로 `--param`을 하나씩 바꿔 돌림. 생성 LLM → 임베딩 모델 → 청크 크기, 오버랩 크기,  
+  Top-k, 리랭커 모델(셋째 단계 네 항목은 순서 없음). 좋아진 값은 검색기 설정에 반영해 다음 실험의 기준선으로 삼음
+- **운영 중 정기 평가**: 같은 명령을 정기적으로 돌려 배포 때의 결과 파일과 비교함. 떨어진 지표는 교재 194쪽 그림으로  
+  원인 유형과 조정할 하이퍼 파라미터를 고르고, 고른 값은 다시 버전 비교로 확인함(이 판단은 코드로 만들지 않음)
 
 ## 2. 디렉토리 구조
 
@@ -39,7 +43,7 @@ hands-on/solutions/ragas/
 ├─ requirements.txt          패키지 판 고정
 ├─ README.md                 이 문서
 ├─ evaluate_rag.py           main: 설정 상수, 시작 검사, ① ~ ⑤, 결과 파일, --selftest, 명령행(읽기)
-├─ core_eval.py              핵심 모듈(클론 코딩 대상): 실습 함수 8개 + 제공 함수(summarize_versions 등)
+├─ core_eval.py              핵심 모듈(클론 코딩 대상): 실습 함수 7개 + 제공 함수(summarize_versions 등)
 ├─ my_eval.template.py       교육생 뼈대(강사가 고침). --mine이 처음 한 번 my_eval.py로 복사함(my_eval.py는 Git이 무시)
 └─ results/                  결과 파일. results/top_k/evaluate_2610311725_v01.md, 버전별 비교는 _summary.md
 ```
@@ -236,7 +240,6 @@ python evaluate_rag.py --param chunk_overlap --values 0 100 200
 | 실행 정보 | 이 버전의 값과 ★기준선 여부, 고정한 나머지 설정, 평가자 LLM, 흔들림 폭, 실행 명령 |
 | 요약 | 9지표 평균과 기준선 대비 변화. 답 없는 문항의 「확인 필요」 맞음 수 |
 | 버전 비교표 | 같은 실행의 모든 버전을 한 표로(모든 파일에 같은 표가 있어 하나만 열어도 됨) |
-| 원인 후보 | 떨어진 지표 조합으로 본 원인 유형(검색 불량, 순위 불량, 질문 이해 부족, 할루시네이션, 출처 활용 부족)과 바꿔 볼 하이퍼 파라미터(교재 189쪽) |
 | 문항별 검색 표, 답변 표 | 문항마다 종료 상태, 관련 청크 수, 적중 순위, 9지표 |
 | 문항별 상세 | 원 질문과 ragas에 넘긴 질문, 모범 답안, 원 답변과 ragas에 넘긴 답변, 순위별 청크와 담긴 정답 근거, 검색기 실행 기록 |
 
@@ -250,7 +253,6 @@ python evaluate_rag.py --param chunk_overlap --values 0 100 200
 | 실행 정보 | 모든 버전의 값(★기준선), 고정한 나머지 설정, 평가자 LLM, 흔들림 폭, 실행 명령 |
 | 버전 비교표 | 버전 파일과 같은 표 |
 | 버전별 부가 정보 | 버전마다 「확인 필요」 맞음 수, 근거 0개 문항, 채점 실패 문항, 그 버전 결과 파일 링크 |
-| 원인 후보 | 모든 버전의 원인 후보를 한곳에 |
 | 문항별 비교 | 지표마다 표 하나(행 = 답 있는 문항, 열 = 버전). 같은 문항의 기준선보다 흔들림 폭 넘게 오르면 ▲, 내리면 ▼ |
 
 평균만 보면 0점 문항이 가려지므로 문항별 표를 함께 봄(교재 181쪽 노트).  
@@ -276,8 +278,8 @@ python evaluate_rag.py --param chunk_overlap --values 0 100 200
 
 | 실습 함수 | 확인 명령(이 폴더에서) | 정상 기준 |
 |---|---|---|
-| `find_hits`, `retrieval_metrics`, `ndcg_at_k` | `python evaluate_rag.py --mine --selftest` | 맞음 14/14. 4위 청크의 정답 근거 ①을 두 번 세면 Recall이 1.00으로 틀림 |
-| `build_versions`, `diagnose` | 같은 명령 | 버전 목록 v01=3, v02=5★, v03=10. v01 Recall 변화 ▼, 기준선 「-」(변화 계산은 제공 함수 `summarize_versions`가 함). 답 ↓ 원인 유형은 정 ↓와 함께면 「검색 불량」, 정 정상이면 「출처 활용 부족」 |
+| `find_hits`, `retrieval_metrics`, `ndcg_at_k` | `python evaluate_rag.py --mine --selftest` | 맞음 11/11. 4위 청크의 정답 근거 ①을 두 번 세면 Recall이 1.00으로 틀림 |
+| `build_versions` | 같은 명령 | 버전 목록 v01=3, v02=5★, v03=10. v01 Recall 변화 ▼, 기준선 「-」(변화 계산은 제공 함수 `summarize_versions`가 함) |
 | `build_versions`(오류 안내) | `python evaluate_rag.py --mine --param top_k --values 3 10 --until versions` | 「기준선 값 5 이(가) 값 목록에 없음」 오류 |
 | `make_result_row` | `python evaluate_rag.py --mine --param top_k --values 5 --until run --qid Q17` | user_input = 「회원과 상담할 때 …」(회원번호 없음), reference = 모범 답안, 검색 결과 4개, response = 인용 표시 없는 답변 |
 | 코드 평가 전체(실데이터) | `python evaluate_rag.py --mine --param top_k --values 3 5 --until code --qid Q01 Q17 Q20` | Q17 기준선: 정답 근거 3/3, Hit 1, Recall 1.00, MRR 1.00, nDCG 0.97(185쪽과 같음). Q20 「확인 필요」 맞음. 비교표에 ▼ |
@@ -320,7 +322,7 @@ python evaluate_rag.py --param chunk_overlap --values 0 100 200
   같은 판정을 냄. 따라서 LLM 지표의 흔들림은 평가자가 아니라 **검색기 쪽**(답변 문장이 실행마다 달라짐)에서 옴.  
   코드는 실측 폭이 0이면 0.01을 「변화 없음」 기준으로 씀
 - **Faithfulness ▼는 답변 문장 꼴 때문일 수 있음.** v01의 Q01, Q17이 0.00인데 평가자 판정 이유를 열어 보면 같은 뜻이라도  
-  「~해야 합니다」(1)와 「~하지 않으셔야 합니다」(0)처럼 문장 꼴에 따라 갈림. 원인 후보 「할루시네이션 → 생성 LLM, 생성 프롬프트」는 맞는 방향임
+  「~해야 합니다」(1)와 「~하지 않으셔야 합니다」(0)처럼 문장 꼴에 따라 갈림. 교재 194쪽 그림으로 읽으면 정이 정상인 출 ↓라 「할루시네이션 → 생성 LLM, 생성 프롬프트」이며 맞는 방향임
 
 ### 7.4 평가자(Groq Qwen 3.8 27B) 판정의 한계(실측)
 
