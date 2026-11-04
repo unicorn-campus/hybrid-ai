@@ -1136,6 +1136,11 @@ def run_selftest() -> None:
     results.append(check("기준선 변화", summary["v02"]["change"]["recall"], "-"))
     reasons = core.diagnose(summary["v01"]["change"])
     results.append(check("원인 후보 수", len(reasons), 2))
+    # 빈칸 3: 답 ↓의 원인 유형은 Context Recall과 함께 보고 정함(교재 189쪽 그림)
+    reasons = core.diagnose({"factual_correctness": "▼", "context_recall": "▼"})
+    results.append(check("답 ↓ + 정 ↓ 원인 유형", reasons[-1].split(": ")[1].split("(")[0], "검색 불량"))
+    reasons = core.diagnose({"factual_correctness": "▼", "context_recall": "변화 없음"})
+    results.append(check("답 ↓, 정 정상 원인 유형", reasons[-1].split(": ")[1].split("(")[0], "출처 활용 부족"))
 
     correct = 0
     for ok in results:

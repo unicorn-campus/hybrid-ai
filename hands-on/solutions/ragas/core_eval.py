@@ -19,18 +19,18 @@ CODE_METRICS = ["hit", "recall", "mrr", "ndcg"]
 LLM_METRICS = ["context_precision", "context_recall", "faithfulness", "answer_relevancy", "factual_correctness"]
 
 # ---------------------------------------------------------------------------
-# 원인별 조치(교재 189쪽 표): 바꿔 볼 하이퍼 파라미터. 이름은 교재 195쪽 목록을 따르고 P1 항목을 앞에 둠(앞부터 한 번에 하나씩)
+# 원인 유형별 조치(교재 189쪽 그림): 바꿔 볼 하이퍼 파라미터. 이름은 교재 195쪽 목록을 따르고 P1 항목을 앞에 둠(앞부터 한 번에 하나씩)
 # 괄호 안은 evaluate_rag.py --param 이름(바로 버전 비교 가능). 괄호가 없는 항목은 검색기 코드를 고쳐야 바꿀 수 있음
 # ---------------------------------------------------------------------------
-# 검색: 필요한 근거를 못 찾음(정 ↓, Recall@k ↓, 정 ↓와 함께인 답 ↓)
+# 검색 불량: 필요한 근거를 못 찾음(Hit@k ↓, Recall@k ↓, 정 ↓, 정 ↓와 함께인 출 ↓와 답 ↓)
 FIX_RETRIEVAL = "임베딩 모델(embedding_model), 청크 크기(chunk_size), Top-k(top_k), 청크 오버랩(chunk_overlap), 쿼리 변환 기법"
-# 순위: 근거는 찾았지만 상위에 적거나 뒤로 밀림(위 ↓, nDCG@k ↓)
+# 순위 불량: 근거는 찾았지만 상위에 적거나 뒤로 밀림(MRR ↓, nDCG@k ↓, 위 ↓)
 FIX_RANKING = "리랭커 모델(rerank_model), Top-k(top_k), 하이브리드 비중(vector_weight), 결과 융합 방식(fusion)"
-# 생성: 답변이 검색 결과에 없는 말을 함(출 ↓)
+# 할루시네이션: 근거를 받고도 근거에 없는 말을 지어냄(정이 정상인 출 ↓)
 FIX_GROUNDING = "생성 LLM(llm_model), 생성 프롬프트, LLM 하이퍼 파라미터"
-# 질문 이해: 답변이 질문과 어긋남(관 ↓)
+# 질문 이해 부족: 답변이 질문과 어긋남(관 ↓)
 FIX_RELEVANCE = "생성 LLM(llm_model), 생성 프롬프트, 쿼리 변환 기법, 질문 분류"
-# 생성: 검색은 됐는데 답변이 근거 일부만 담음(정이 정상인 답 ↓)
+# 출처 활용 부족: 근거는 받았는데 답변에 일부만 씀(정이 정상인 답 ↓)
 FIX_COMPLETENESS = "생성 LLM(llm_model), 생성 프롬프트, 문서 배치 순서"
 
 
@@ -332,39 +332,49 @@ def ndcg_at_k(hit_ranks: list[int], relevant_chunk_count: int, k: int) -> float 
 # 6. ⑤ 지표 조합으로 원인 찾기 (교재 189쪽) — 빈칸 3곳
 # ===========================================================================
 def diagnose(change: dict) -> list[str]:
-    """실습(빈칸). 기준선보다 떨어진(▼) 지표의 조합으로 고칠 곳과 바꿔 볼 하이퍼 파라미터를 고름(교재 189쪽 표).
+    """실습(빈칸). 기준선보다 떨어진(▼) 지표의 조합으로 원인 유형과 바꿔 볼 하이퍼 파라미터를 고름(교재 189쪽 그림).
 
-    목적: 지표 하나만 보면 놓침(교재 185쪽 Q17). 검색 지표와 답변 지표를 함께 봐야 검색, 순위, 생성 중 어디서 새는지 보임.
-    방법: 원인 단계마다 바꿔 볼 하이퍼 파라미터(FIX_ 상수, 교재 195쪽 이름)를 붙임. 앞 항목부터 한 번에 하나씩 바꿔 다시 비교함.
+    목적: 지표 하나만 보면 놓침(교재 185쪽 Q17). 같은 지표 변화도 다른 지표와 함께 보면 원인이 갈림.
+          예: 출 ↓는 정 ↓와 함께면 근거가 없어 지어낸 것(검색 불량), 정이 정상이면 할루시네이션.
+    방법: 원인 유형 5가지(검색 불량, 순위 불량, 질문 이해 부족, 할루시네이션, 출처 활용 부족)마다
+          바꿔 볼 하이퍼 파라미터(FIX_ 상수, 교재 195쪽 이름)를 붙임. 앞 항목부터 한 번에 하나씩 바꿔 다시 비교함.
     인자: change는 summarize_versions가 만든 한 버전의 {지표 이름: 변화}. LLM 평가를 돌리지 않았으면 LLM 지표는 「비교 불가」.
-    반환값: 원인 후보 문장 목록(「지표 ↓: 증상(원인 단계) → 조치」). 떨어진 지표가 없으면 그렇다는 문장 하나.
+    반환값: 원인 후보 문장 목록(「지표 ↓: 원인 유형(설명) → 조치」). 떨어진 지표가 없으면 그렇다는 문장 하나.
     """
     reasons = []
 
-    # 코드 평가(LLM 없이도 나옴): 정답 근거를 놓쳤나(정 ↓와 같은 조치), 뒤로 밀렸나(위 ↓와 같은 조치)
+    # 코드 평가(LLM 없이도 나옴): 정답 근거를 놓쳤나(검색 불량), 뒤로 밀렸나(순위 불량)
+    if change.get("hit") == "▼":
+        reasons.append(f"Hit@k ↓ (코드): 검색 불량(근거를 하나도 못 찾은 문항이 늘어남) → {FIX_RETRIEVAL}")
     if change.get("recall") == "▼":
-        reasons.append(f"Recall@k ↓ (코드): 정답 근거를 놓침(검색) → {FIX_RETRIEVAL}")
+        reasons.append(f"Recall@k ↓ (코드): 검색 불량(정답 근거를 놓침) → {FIX_RETRIEVAL}")
+    if change.get("mrr") == "▼":
+        reasons.append(f"MRR ↓ (코드): 순위 불량(첫 정답 근거가 뒤로 밀림) → {FIX_RANKING}")
     if change.get("ndcg") == "▼":
-        reasons.append(f"nDCG@k ↓ (코드): 정답 근거가 뒤로 밀림(순위) → {FIX_RANKING}")
+        reasons.append(f"nDCG@k ↓ (코드): 순위 불량(정답 근거들이 뒤로 밀림) → {FIX_RANKING}")
 
-    # LLM 평가(교재 189쪽 표). change.get(이름)은 그 지표가 없으면(LLM 평가를 안 돌림) None이라 조건이 거짓이 됨
+    # LLM 평가(교재 189쪽 그림). change.get(이름)은 그 지표가 없으면(LLM 평가를 안 돌림) None이라 조건이 거짓이 됨
     context_recall_dropped = change.get("context_recall") == "▼"  # 빈칸 1: Context Recall이 떨어졌나(True/False)
     if context_recall_dropped:
-        reasons.append(f"Context Recall ↓: 필요한 근거를 못 찾음(검색) → {FIX_RETRIEVAL}")
+        reasons.append(f"Context Recall ↓: 검색 불량(필요한 근거를 못 찾음) → {FIX_RETRIEVAL}")
     context_precision_dropped = change.get("context_precision") == "▼"  # 빈칸 2: Context Precision이 떨어졌나
     if context_precision_dropped:
-        reasons.append(f"Context Precision ↓: 검색 상위에 답이 적음(순위) → {FIX_RANKING}")
+        reasons.append(f"Context Precision ↓: 순위 불량(검색 상위에 답이 적음) → {FIX_RANKING}")
     if change.get("faithfulness") == "▼":
-        reasons.append(f"Faithfulness ↓: 답변이 검색 결과에 없는 말을 함(생성) → {FIX_GROUNDING}")
-    if change.get("answer_relevancy") == "▼":
-        reasons.append(f"Answer Relevancy ↓: 답변이 질문과 어긋남(질문 이해) → {FIX_RELEVANCE}")
-    if change.get("factual_correctness") == "▼":
-        # 빈칸 3: Context Recall도 떨어졌으면(context_recall_dropped) 검색이 근거를 못 가져온 것,
-        #         아니면 검색은 됐는데 답변이 근거 일부만 담은 것(교재 185쪽 Q17)
+        # Context Recall도 떨어졌으면 근거가 없어 빈 곳을 지어낸 것, 아니면 근거를 받고도 없는 말을 한 것
         if context_recall_dropped:
-            reasons.append(f"Factual Correctness ↓ + Context Recall ↓: 근거를 못 가져옴(검색) → {FIX_RETRIEVAL}")
+            reasons.append(f"Faithfulness ↓ + Context Recall ↓: 검색 불량(근거가 없어 지어냄) → {FIX_RETRIEVAL}")
         else:
-            reasons.append(f"Factual Correctness ↓, Context Recall 정상: 답변이 근거 일부만 담음(생성) → {FIX_COMPLETENESS}")
+            reasons.append(f"Faithfulness ↓, Context Recall 정상: 할루시네이션(근거에 없는 말을 함) → {FIX_GROUNDING}")
+    if change.get("answer_relevancy") == "▼":
+        reasons.append(f"Answer Relevancy ↓: 질문 이해 부족(답이 질문과 어긋남) → {FIX_RELEVANCE}")
+    if change.get("factual_correctness") == "▼":
+        # 빈칸 3: 위 Faithfulness와 같은 모양. Context Recall도 떨어졌으면(context_recall_dropped) 검색이 근거를 못 가져온 것,
+        #         아니면 근거는 받았는데 답변에 일부만 쓴 것(교재 185쪽 Q17)
+        if context_recall_dropped:
+            reasons.append(f"Factual Correctness ↓ + Context Recall ↓: 검색 불량(근거를 못 가져옴) → {FIX_RETRIEVAL}")
+        else:
+            reasons.append(f"Factual Correctness ↓, Context Recall 정상: 출처 활용 부족(근거를 일부만 씀) → {FIX_COMPLETENESS}")
 
     if len(reasons) == 0:
         reasons.append("기준선보다 떨어진 지표 없음")

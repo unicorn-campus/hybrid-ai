@@ -236,7 +236,7 @@ python evaluate_rag.py --param chunk_overlap --values 0 100 200
 | 실행 정보 | 이 버전의 값과 ★기준선 여부, 고정한 나머지 설정, 평가자 LLM, 흔들림 폭, 실행 명령 |
 | 요약 | 9지표 평균과 기준선 대비 변화. 답 없는 문항의 「확인 필요」 맞음 수 |
 | 버전 비교표 | 같은 실행의 모든 버전을 한 표로(모든 파일에 같은 표가 있어 하나만 열어도 됨) |
-| 원인 후보 | 떨어진 지표 조합으로 본 고칠 곳과 바꿔 볼 하이퍼 파라미터(교재 189쪽) |
+| 원인 후보 | 떨어진 지표 조합으로 본 원인 유형(검색 불량, 순위 불량, 질문 이해 부족, 할루시네이션, 출처 활용 부족)과 바꿔 볼 하이퍼 파라미터(교재 189쪽) |
 | 문항별 검색 표, 답변 표 | 문항마다 종료 상태, 관련 청크 수, 적중 순위, 9지표 |
 | 문항별 상세 | 원 질문과 ragas에 넘긴 질문, 모범 답안, 원 답변과 ragas에 넘긴 답변, 순위별 청크와 담긴 정답 근거, 검색기 실행 기록 |
 
@@ -276,8 +276,8 @@ python evaluate_rag.py --param chunk_overlap --values 0 100 200
 
 | 실습 함수 | 확인 명령(이 폴더에서) | 정상 기준 |
 |---|---|---|
-| `find_hits`, `retrieval_metrics`, `ndcg_at_k` | `python evaluate_rag.py --mine --selftest` | 맞음 12/12. 4위 청크의 정답 근거 ①을 두 번 세면 Recall이 1.00으로 틀림 |
-| `build_versions`, `diagnose` | 같은 명령 | 버전 목록 v01=3, v02=5★, v03=10. v01 Recall 변화 ▼, 기준선 「-」(변화 계산은 제공 함수 `summarize_versions`가 함) |
+| `find_hits`, `retrieval_metrics`, `ndcg_at_k` | `python evaluate_rag.py --mine --selftest` | 맞음 14/14. 4위 청크의 정답 근거 ①을 두 번 세면 Recall이 1.00으로 틀림 |
+| `build_versions`, `diagnose` | 같은 명령 | 버전 목록 v01=3, v02=5★, v03=10. v01 Recall 변화 ▼, 기준선 「-」(변화 계산은 제공 함수 `summarize_versions`가 함). 답 ↓ 원인 유형은 정 ↓와 함께면 「검색 불량」, 정 정상이면 「출처 활용 부족」 |
 | `build_versions`(오류 안내) | `python evaluate_rag.py --mine --param top_k --values 3 10 --until versions` | 「기준선 값 5 이(가) 값 목록에 없음」 오류 |
 | `make_result_row` | `python evaluate_rag.py --mine --param top_k --values 5 --until run --qid Q17` | user_input = 「회원과 상담할 때 …」(회원번호 없음), reference = 모범 답안, 검색 결과 4개, response = 인용 표시 없는 답변 |
 | 코드 평가 전체(실데이터) | `python evaluate_rag.py --mine --param top_k --values 3 5 --until code --qid Q01 Q17 Q20` | Q17 기준선: 정답 근거 3/3, Hit 1, Recall 1.00, MRR 1.00, nDCG 0.97(185쪽과 같음). Q20 「확인 필요」 맞음. 비교표에 ▼ |
@@ -320,7 +320,7 @@ python evaluate_rag.py --param chunk_overlap --values 0 100 200
   같은 판정을 냄. 따라서 LLM 지표의 흔들림은 평가자가 아니라 **검색기 쪽**(답변 문장이 실행마다 달라짐)에서 옴.  
   코드는 실측 폭이 0이면 0.01을 「변화 없음」 기준으로 씀
 - **Faithfulness ▼는 답변 문장 꼴 때문일 수 있음.** v01의 Q01, Q17이 0.00인데 평가자 판정 이유를 열어 보면 같은 뜻이라도  
-  「~해야 합니다」(1)와 「~하지 않으셔야 합니다」(0)처럼 문장 꼴에 따라 갈림. 원인 후보 「답변 프롬프트를 고침」은 맞는 방향임
+  「~해야 합니다」(1)와 「~하지 않으셔야 합니다」(0)처럼 문장 꼴에 따라 갈림. 원인 후보 「할루시네이션 → 생성 LLM, 생성 프롬프트」는 맞는 방향임
 
 ### 7.4 평가자(Groq Qwen 3.8 27B) 판정의 한계(실측)
 
