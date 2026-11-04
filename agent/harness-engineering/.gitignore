@@ -1,0 +1,9 @@
+node_modules/
+__pycache__/
+.pytest_cache/
+harness/logs/
+harness/daemon.lock
+harness/daemon.pid
+harness/STOP
+harness/machine.json
+output/*/logs/

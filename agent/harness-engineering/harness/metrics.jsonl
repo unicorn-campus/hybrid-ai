@@ -1,0 +1,8 @@
+{"at": "2026-11-03T01:14:56", "version": 1, "topic": "하네스엔지니어링", "chapter": "ch01", "kind": "text", "first_score": 8, "final_score": 8, "revisions": 0, "first_lint": 0, "passed": false, "forced": true}
+{"at": "2026-11-03T01:15:04", "version": 1, "topic": "하네스엔지니어링", "chapter": "ch03", "kind": "text", "first_score": 7.8, "final_score": 7.8, "revisions": 0, "first_lint": 0, "passed": false, "forced": true}
+{"at": "2026-11-03T01:41:09", "version": 1, "topic": "파이썬 AI 프로그램 하네스 엔지니어링", "chapter": "ch01", "kind": "text", "first_score": 7.3, "final_score": 8, "revisions": 1, "first_lint": 1, "passed": true, "forced": false}
+{"at": "2026-11-03T02:01:20", "version": 1, "topic": "파이썬 AI 프로그램 하네스 엔지니어링", "chapter": "ch02", "kind": "text", "first_score": 7.3, "final_score": 7.8, "revisions": 1, "first_lint": 0, "passed": false, "forced": true}
+{"at": "2026-11-03T02:02:10", "version": 1, "topic": "파이썬 AI 프로그램 하네스 엔지니어링", "chapter": "ch01", "kind": "slides", "first_score": 6.8, "final_score": 7.6, "revisions": 2, "first_lint": 2, "passed": false, "forced": true}
+{"at": "2026-11-03T02:06:26", "version": 1, "topic": "파이썬 AI 프로그램 하네스 엔지니어링", "chapter": "ch03", "kind": "text", "first_score": 7.6, "final_score": 7.7, "revisions": 1, "first_lint": 0, "passed": false, "forced": true}
+{"at": "2026-11-03T02:15:29", "version": 2, "topic": "파이썬 AI 프로그램 하네스 엔지니어링", "chapter": "ch02", "kind": "slides", "first_score": 7.5, "final_score": 8.1, "revisions": 1, "first_lint": 1, "passed": false, "forced": true}
+{"at": "2026-11-03T02:24:03", "version": 2, "topic": "파이썬 AI 프로그램 하네스 엔지니어링", "chapter": "ch03", "kind": "slides", "first_score": 7.3, "final_score": 8, "revisions": 3, "first_lint": 2, "passed": true, "forced": false}

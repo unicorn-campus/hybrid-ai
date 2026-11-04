@@ -1,0 +1,765 @@
+{
+  "slides": [
+    {
+      "pattern": "objectives",
+      "title": "학습 목표",
+      "lead": "",
+      "items": [
+        {
+          "heading": "하네스, 하네스 엔지니어링, 평가 하네스의 차이를 예시로 설명한다",
+          "text": "정의 범위와 측정 관계까지 구분한다"
+        },
+        {
+          "heading": "AI 프로그램 구성도에서 모델과 하네스 구성요소를 구분해 표시한다",
+          "text": "루프, 도구, 컨텍스트, 상태, 가드레일, 관측, 비용, 평가"
+        },
+        {
+          "heading": "가이드/센서, 계산적/추론적 통제의 틀로 하네스 장치를 분류한다",
+          "text": ""
+        },
+        {
+          "heading": "워크플로와 에이전트 중 과제에 맞는 방식을 근거를 들어 고른다",
+          "text": ""
+        },
+        {
+          "heading": "SDK 버전을 고정한 실습 환경에서 첫 API 호출의 request_id와 usage를 확인한다",
+          "text": "uv, anthropic, claude-agent-sdk, pydantic, pydantic-ai, pytest"
+        }
+      ],
+      "left": {
+        "header": "",
+        "points": []
+      },
+      "right": {
+        "header": "",
+        "points": []
+      },
+      "table": {
+        "label": "",
+        "columns": [],
+        "rows": []
+      },
+      "code": {
+        "language": "",
+        "text": ""
+      },
+      "side_points": [],
+      "message": "",
+      "source": "",
+      "notes": "이번 장은 교재 전체의 지도를 그리는 장입니다. 하네스가 무엇인지 정의하고, 분류 틀과 구성요소 지도를 익힌 뒤, 이후 장에서 계속 키울 실습 환경을 만듭니다. 마지막 목표인 request_id와 usage 확인은 오늘 실습에서 직접 해 봅니다."
+    },
+    {
+      "pattern": "cards",
+      "title": "데모는 되는데 운영에서는 안 된다",
+      "lead": "열 줄짜리 사내 문서 Q&A 봇이 실제 사용에서 드러낸 실패들",
+      "items": [
+        {
+          "heading": "환각",
+          "text": "- 연차 규정을 묻자 없는 규정을 답함\n- 그럴듯해서 사용자가 믿기 쉬움\n- 막을 장치: 검색 주입 + 인용 검사(3, 5장)"
+        },
+        {
+          "heading": "파싱 실패",
+          "text": "- JSON 앞에 설명 문장이 붙음\n- 화면 연동 코드의 파싱이 깨짐\n- 막을 장치: pydantic 형식 검증(5장)"
+        },
+        {
+          "heading": "답변 잘림",
+          "text": "- 긴 절차 답이 중간에 끊김\n- 잘린 사실을 아무도 모름\n- 막을 장치: stop_reason 검사(2장)"
+        },
+        {
+          "heading": "가짜 행동",
+          "text": "- '생성했습니다'라고 답함\n- 실제로 만든 티켓은 없음\n- 막을 장치: 실제 도구 실행기(3장)"
+        },
+        {
+          "heading": "추적 불가",
+          "text": "- 요금 청구서만 도착함\n- 질문별 비용 기록이 없음\n- 막을 장치: JSONL 로그, 비용 기록(9장)"
+        },
+        {
+          "heading": "해법의 위치",
+          "text": "- 검색 주입, 형식 검사, 잘림 확인\n- 도구 실행, 호출 기록\n- 모두 모델 바깥의 코드\n- 2~9장에서 하나씩 구현"
+        }
+      ],
+      "left": {
+        "header": "",
+        "points": []
+      },
+      "right": {
+        "header": "",
+        "points": []
+      },
+      "table": {
+        "label": "",
+        "columns": [],
+        "rows": []
+      },
+      "code": {
+        "language": "",
+        "text": ""
+      },
+      "side_points": [],
+      "message": "하네스(harness): 말의 힘을 원하는 방향으로 쓰게 하는 마구",
+      "source": "",
+      "notes": "첫 버전은 질문을 client.messages.create()에 넘기고 텍스트를 출력하는 열 줄짜리 코드였습니다. 모델을 더 좋은 것으로 바꾸면 일부는 줄겠지만 대부분은 남습니다. 카드마다 적은 막을 장치는 모두 모델 바깥에 있는 코드이고, 그 바깥 구조를 하네스라고 부릅니다."
+    },
+    {
+      "pattern": "table",
+      "title": "같은 모델, 다른 하네스, 다른 결과",
+      "lead": "하네스는 성능과 비용을 함께 끌어올린다",
+      "items": [],
+      "left": {
+        "header": "",
+        "points": []
+      },
+      "right": {
+        "header": "",
+        "points": []
+      },
+      "table": {
+        "label": "하네스가 결과를 좌우한 근거 사례",
+        "columns": [
+          "사례",
+          "하네스 변화",
+          "결과"
+        ],
+        "rows": [
+          [
+            "Anthropic 멀티에이전트 리서치",
+            "단일 → 오케스트레이터-워커",
+            "내부 eval에서 +90.2% 성능"
+          ],
+          [
+            "Meta-Harness 논문",
+            "하네스 코드만 자동 탐색",
+            "텍스트 분류 +7.7점, 토큰 4배 절감"
+          ],
+          [
+            "Anthropic 레트로 게임 메이커",
+            "단독 → 계획, 생성, 평가 분리",
+            "20분/$9 → 6시간/$200"
+          ],
+          [
+            "Anthropic 토큰 사용량 측정",
+            "채팅 → 에이전트 → 멀티",
+            "에이전트 약 4배, 멀티에이전트 약 15배"
+          ]
+        ]
+      },
+      "code": {
+        "language": "",
+        "text": ""
+      },
+      "side_points": [
+        "Meta-Harness: 수학 RAG에서 보지 않은 모델 5종 평균 +4.7점",
+        "게임 메이커: $9 결과는 핵심 기능 고장, $200 결과는 완성도 높음",
+        "하네스는 잘 되게 하는 장치이자 쓸 금액을 통제하는 장치"
+      ],
+      "message": "성능이 오르면 비용도 오른다: 예산 통제도 하네스의 기본 기능",
+      "source": "출처: Anthropic 엔지니어링 블로그(멀티에이전트 리서치 시스템, 장시간 앱 하네스 설계), Meta-Harness 논문(arXiv 2603.28052)",
+      "notes": "같은 모델이라도 하네스만 바꿔서 결과가 크게 달라진 사례들입니다. 눈여겨볼 점은 성능과 함께 비용도 오른다는 것입니다. 게임 메이커 사례는 20분, 9달러에서 6시간, 200달러로 늘었으므로, 하네스는 얼마까지 쓸지 통제하는 장치여야 합니다."
+    },
+    {
+      "pattern": "cards",
+      "title": "에이전트 = 모델 + 하네스",
+      "lead": "LangChain Trivedy: 모델이 아니면 전부 하네스다",
+      "items": [
+        {
+          "heading": "모델",
+          "text": "- 다음 토큰을 예측함\n- 텍스트 또는 tool_use 요청을 냄\n- model= 설정과 호출 코드는 하네스 쪽"
+        },
+        {
+          "heading": "하네스",
+          "text": "- 프롬프트와 도구 정의를 모델에 전달\n- 상태, 도구 실행, 피드백 루프, 제약 제공\n- 구성: 루프, 도구, 컨텍스트, 검증\n- 권한, 재시도, 상태, 관측, 비용"
+        },
+        {
+          "heading": "하네스 엔지니어링",
+          "text": "- 바깥 구조를 의도적으로 설계\n- 테스트하고 계속 고쳐 나감\n- 모델은 그대로 두고 신뢰성, 안전, 비용 개선"
+        },
+        {
+          "heading": "교재 기본 정의",
+          "text": "- 에이전트 하네스 = 모델 바깥 런타임 구조\n- 루프, 도구 실행기, 검증기, 권한 검사\n- 재시도, 체크포인트, 로그, 예산 카운터\n- 모두 파이썬으로 직접 만드는 부분"
+        }
+      ],
+      "left": {
+        "header": "",
+        "points": []
+      },
+      "right": {
+        "header": "",
+        "points": []
+      },
+      "table": {
+        "label": "",
+        "columns": [],
+        "rows": []
+      },
+      "code": {
+        "language": "",
+        "text": ""
+      },
+      "side_points": [],
+      "message": "사용자 요청 → 하네스 ⇄ 모델 → 결과, 부작용, 로그",
+      "source": "출처: Vivek Trivedy, The Anatomy of an Agent Harness (LangChain 블로그)",
+      "notes": "사용자 요청은 하네스가 받고, 하네스가 프롬프트와 도구 정의를 모델에 넘기면 모델은 텍스트나 tool_use 요청으로 답하며, 이 왕복 끝에 하네스가 결과, 부작용, 로그를 남깁니다. 하네스는 모델이 스스로 갖지 못한 상태, 도구 실행, 피드백 루프, 제약을 제공합니다. 모델 ID 설정값과 호출 코드조차 하네스에 속한다는 점은 뒤의 확인 문제에서 다시 봅니다. 이 교재에서 그냥 하네스라고 하면 모델 호출을 감싸는 런타임 구조, 즉 우리가 파이썬으로 직접 만드는 부분을 뜻합니다."
+    },
+    {
+      "pattern": "table",
+      "title": "출처마다 다른 하네스의 정의",
+      "lead": "2026년 초 빠르게 퍼져 범위와 기원 설명이 엇갈린다",
+      "items": [],
+      "left": {
+        "header": "",
+        "points": []
+      },
+      "right": {
+        "header": "",
+        "points": []
+      },
+      "table": {
+        "label": "출처별 정의 비교",
+        "columns": [
+          "출처(시기)",
+          "정의의 초점",
+          "범위"
+        ],
+        "rows": [
+          [
+            "Hashimoto (2026-02)",
+            "같은 실수를 막는 엔지니어링 습관",
+            "실천 중심, 코딩 에이전트 사용자"
+          ],
+          [
+            "LangChain (2026-03)",
+            "모델을 뺀 모든 것",
+            "가장 넓음"
+          ],
+          [
+            "Böckeler (2026-04)",
+            "사용자가 프로젝트에 씌우는 바깥 층",
+            "사용자 측 바깥 하네스"
+          ],
+          [
+            "OpenAI Codex 팀 (2026-02)",
+            "환경 설계, 의도 명세, 피드백 루프",
+            "대규모 저장소 운영(2차 보도)"
+          ],
+          [
+            "Anthropic evals (2026-01)",
+            "에이전트 하네스와 평가 하네스 구분",
+            "한 단어가 두 뜻으로 쓰임"
+          ],
+          [
+            "Meta-Harness (2026-03)",
+            "모델이 볼 것을 통제하는 코드",
+            "컨텍스트 엔지니어링에 가까움"
+          ]
+        ]
+      },
+      "code": {
+        "language": "",
+        "text": ""
+      },
+      "side_points": [
+        "InfoQ 의역: 컨텍스트 엔지니어링은 무엇을 볼지, 하네스 엔지니어링은 무엇을 막고 측정하고 교정할지",
+        "OpenAI 원문은 미확인이라 직접 표현인지 단정하지 않음",
+        "Fowler 사이트와 LangChain은 컨텍스트 엔지니어링을 하위 영역으로 봄: 경계는 미합의"
+      ],
+      "message": "이 교재의 하네스 = 모델 바깥의 런타임 구조",
+      "source": "출처: Hashimoto 블로그, LangChain 블로그, martinfowler.com(Böckeler), InfoQ(2026-02), Anthropic evals 글, arXiv 2603.28052",
+      "notes": "용어가 짧은 기간에 퍼져서 출처마다 범위가 다르고, 누가 처음 썼는지에 대한 설명도 엇갈립니다. LangChain은 모델 외 전부로 가장 넓게, Meta-Harness는 모델이 볼 것을 통제하는 코드로 좁게 봅니다. OpenAI 원문은 접근이 막혀 InfoQ 보도로 확인했다는 점을 함께 알려 주십시오."
+    },
+    {
+      "pattern": "table",
+      "title": "에이전트 하네스와 평가 하네스",
+      "lead": "한 단어가 두 뜻: 동작시키는 하네스와 측정하는 하네스",
+      "items": [],
+      "left": {
+        "header": "",
+        "points": []
+      },
+      "right": {
+        "header": "",
+        "points": []
+      },
+      "table": {
+        "label": "두 하네스의 구분(Anthropic evals 글 기준)",
+        "columns": [
+          "구분",
+          "에이전트 하네스(scaffold)",
+          "평가 하네스"
+        ],
+        "rows": [
+          [
+            "하는 일",
+            "모델을 에이전트로 동작시킴",
+            "eval 실행, 기록, 채점, 집계"
+          ],
+          [
+            "도는 시점",
+            "운영 중 매 요청마다",
+            "개발 중, CI, 모델 교체 시"
+          ],
+          [
+            "파이썬 예",
+            "run_agent 루프, pydantic 검증",
+            "pytest, grader, pass^k 집계"
+          ],
+          [
+            "다루는 장",
+            "2~9장",
+            "10~11장"
+          ]
+        ]
+      },
+      "code": {
+        "language": "",
+        "text": ""
+      },
+      "side_points": [
+        "pass^k: k번 시도해 k번 모두 성공할 확률(일관성)",
+        "pass@k: k번 중 한 번 이상 성공할 확률(10장에서 자세히)",
+        "eval 점수는 언제나 모델 + 에이전트 하네스 조합의 점수"
+      ],
+      "message": "평가 하네스로 측정하고, 그 결과로 에이전트 하네스를 고친다",
+      "source": "출처: Anthropic, Demystifying evals for AI agents",
+      "notes": "소프트웨어 테스트에는 원래 test harness라는 말이 있었고, Anthropic eval 글도 두 뜻을 분명히 나눕니다. 예를 들어 run_agent 함수가 에이전트 하네스라면, 이 함수를 과제마다 세 번 돌려 모두 성공해야 통과시키는 pytest 코드가 평가 하네스입니다. 점수는 모델 단독이 아니라 모델과 하네스 조합의 점수라는 점을 강조합니다."
+    },
+    {
+      "pattern": "steps",
+      "title": "하네스 엔지니어링의 형성 과정",
+      "lead": "이름은 최근이지만 기법은 몇 년에 걸쳐 쌓였다",
+      "items": [
+        {
+          "heading": "2024-12 에이전트 패턴 정착",
+          "text": "Building effective agents: 체이닝, 라우팅, 병렬화 등 패턴 정리. 가장 단순한 해법, API 직접 호출부터"
+        },
+        {
+          "heading": "2025-06 멀티에이전트 리서치",
+          "text": "오케스트레이터-워커 구조로 +90.2% 성능, 토큰은 약 15배"
+        },
+        {
+          "heading": "2025-09 컨텍스트 엔지니어링",
+          "text": "컨텍스트 부패 대응: 컴팩션, 구조화 노트, 서브에이전트, JIT 검색"
+        },
+        {
+          "heading": "2025-11 장시간 에이전트",
+          "text": "feature list JSON, progress 파일, git 커밋으로 세션 간 기억을 이음"
+        },
+        {
+          "heading": "2026-02~04 용어 확산",
+          "text": "Hashimoto, OpenAI 사례 보도, LangChain, Böckeler 글로 분야 이름이 됨"
+        },
+        {
+          "heading": "2026-03 자동 최적화",
+          "text": "Meta-Harness: 코딩 에이전트가 이전 후보의 코드, 점수, 트레이스를 읽고 하네스를 고침(11장)"
+        }
+      ],
+      "left": {
+        "header": "",
+        "points": []
+      },
+      "right": {
+        "header": "",
+        "points": []
+      },
+      "table": {
+        "label": "",
+        "columns": [],
+        "rows": []
+      },
+      "code": {
+        "language": "",
+        "text": ""
+      },
+      "side_points": [],
+      "message": "",
+      "source": "출처: Anthropic, Building effective agents; Effective context engineering for AI agents; Effective harnesses for long-running agents",
+      "notes": "출발점은 증강 LLM을 기본 블록으로 놓고 패턴을 정리한 Building effective agents입니다. 이후 컨텍스트가 길어질수록 기억 능력이 떨어지는 컨텍스트 부패가 알려지면서 컨텍스트를 유한한 예산으로 관리하는 기법이 정리되었습니다. 2026년 2월부터 4월 사이에 여러 글이 이어지며 하네스 엔지니어링이 하나의 분야 이름으로 자리 잡았습니다."
+    },
+    {
+      "pattern": "table",
+      "title": "워크플로와 에이전트 고르기",
+      "lead": "가장 단순한 해법에서 시작해 위에서부터 묻고, 처음 예가 나오는 곳에서 멈춘다",
+      "items": [],
+      "left": {
+        "header": "",
+        "points": []
+      },
+      "right": {
+        "header": "",
+        "points": []
+      },
+      "table": {
+        "label": "워크플로와 에이전트 비교",
+        "columns": [
+          "기준",
+          "워크플로",
+          "에이전트"
+        ],
+        "rows": [
+          [
+            "제어 흐름",
+            "개발자의 파이썬 코드",
+            "모델의 tool_use 결정"
+          ],
+          [
+            "예측 가능성",
+            "높음, 단계 수 고정",
+            "낮음, 턴 수 가변"
+          ],
+          [
+            "비용과 지연",
+            "상한 계산이 쉬움",
+            "정지 조건이 꼭 필요"
+          ],
+          [
+            "잘 맞는 과제",
+            "분류, 추출, 요약",
+            "탐색, 조사, 다단계 작업"
+          ],
+          [
+            "하네스 부담",
+            "검증, 재시도 중심",
+            "루프, 정지 조건, 권한, 상태"
+          ]
+        ]
+      },
+      "code": {
+        "language": "",
+        "text": ""
+      },
+      "side_points": [
+        "단발 호출 + 프롬프트 + 검색 주입으로 충분하면 거기서 끝",
+        "단계를 미리 나열할 수 있으면 워크플로",
+        "실행 중에만 알 수 있으면 에이전트 + 정지 조건(2장)"
+      ],
+      "message": "예제는 워크플로(분류)와 에이전트(검색 후 티켓)를 섞는다",
+      "source": "출처: Anthropic, Building effective agents",
+      "notes": "워크플로는 LLM과 도구를 미리 정한 코드 경로로 엮고, 에이전트는 LLM이 절차와 도구 사용을 스스로 정합니다. 같은 사내 문서 Q&A도 분류, 검색, 생성으로 고정한 워크플로와 search_docs, create_ticket을 모델이 골라 쓰는 에이전트로 만들 수 있습니다. 에이전트는 유연하지만 토큰과 지연이 늘고 오류가 누적되기 쉬우므로, 오른쪽 질문을 위에서부터 차례로 던지고 처음 '예'가 나오는 곳에서 멈춥니다."
+    },
+    {
+      "pattern": "table",
+      "title": "하네스를 분류하는 두 축",
+      "lead": "모델이 결정하기 전이면 가이드, 결정을 보고 판정하면 센서",
+      "items": [],
+      "left": {
+        "header": "",
+        "points": []
+      },
+      "right": {
+        "header": "",
+        "points": []
+      },
+      "table": {
+        "label": "가이드/센서와 계산적/추론적 통제(2×2)",
+        "columns": [
+          "통제",
+          "가이드(결정 전)",
+          "센서(결정 후)"
+        ],
+        "rows": [
+          [
+            "계산적",
+            "strict 도구 스키마, 출력 스키마, 고정된 워크플로 라우팅, 도구 허용 목록(delete_* 미노출)",
+            "pydantic 검증기, 인용 ID 검사, max_tokens 검사, 실행기 허용 목록, PreToolUse 훅, 예산 카운터, pytest 회귀 eval"
+          ],
+          [
+            "추론적",
+            "시스템 프롬프트, 도구 docstring, few-shot 예시, AGENTS.md",
+            "LLM-as-judge, AI 코드 리뷰, 회의적으로 튜닝한 평가자 에이전트"
+          ]
+        ]
+      },
+      "code": {
+        "language": "",
+        "text": ""
+      },
+      "side_points": [
+        "계산적: 결정적, 빠름, 저렴 → 먼저 쓴다 / 추론적: 의미 판단",
+        "가이드만 있으면 효과를 모르고, 센서만 있으면 실수가 반복된다",
+        "AGENTS.md 한 줄 = 추론적 가이드, 린터와 구조 테스트 = 계산적 센서(코딩 에이전트 사용자 하네스)"
+      ],
+      "message": "'삭제 금지'는 목록에서 빼고(가이드) 실행 전에 막는다(센서)",
+      "source": "출처: Birgitta Böckeler, Harness engineering for coding agent users (martinfowler.com)",
+      "notes": "가이드는 앞먹임, 센서는 되먹임이며, 이 교재에서는 모델이 tool_use를 결정한 뒤 실행 직전에 막는 게이트도 센서로 분류합니다. 한 요구사항을 네 칸 모두에 걸쳐 막을 수도 있는데, 근거 문서 ID 요구사항이라면 프롬프트 지시는 추론적 가이드, sources 필드는 계산적 가이드, ID 존재 검사는 계산적 센서, LLM 판정은 추론적 센서이며 5장에서 이 중 세 겹을 구현합니다. 코딩 에이전트 사용자 하네스도 같은 틀로 나뉘어, AGENTS.md 한 줄은 추론적 가이드, 린터와 구조 테스트는 계산적 센서입니다. 센서의 오류 메시지는 LLM이 읽고 스스로 고칠 수 있게 쓰는 것이 좋습니다."
+    },
+    {
+      "pattern": "table",
+      "title": "하네스 구성요소 지도와 로드맵",
+      "lead": "구성요소마다 막는 실패가 있고, 그것이 교재의 목차다",
+      "items": [],
+      "left": {
+        "header": "",
+        "points": []
+      },
+      "right": {
+        "header": "",
+        "points": []
+      },
+      "table": {
+        "label": "에이전트 하네스 구성요소(2~9장)",
+        "columns": [
+          "구성요소(장)",
+          "막아 주는 대표 실패",
+          "코드에서 알아보는 단서"
+        ],
+        "rows": [
+          [
+            "루프와 정지 조건(2장)",
+            "무한 루프, 비용 폭주",
+            "max_turns, stop_reason 분기"
+          ],
+          [
+            "도구 실행기(3장)",
+            "잘못된 인자, 예외로 루프 붕괴",
+            "execute_tool, tool_result"
+          ],
+          [
+            "컨텍스트, 메모리(4장)",
+            "컨텍스트 부패, 기억 단절",
+            "검색 결과와 요약을 조립"
+          ],
+          [
+            "구조화 출력, 검증(5장)",
+            "파싱 실패, 가짜 인용",
+            "pydantic 모델 검증"
+          ],
+          [
+            "가드레일, 권한(6장)",
+            "위험한 동작, 프롬프트 인젝션",
+            "승인 프롬프트, 허용 목록, 훅"
+          ],
+          [
+            "재시도(7장), 상태(8장)",
+            "일시적 API 장애, 중복 실행, 작업 손실",
+            "timeout=, 체크포인트"
+          ],
+          [
+            "관측, 비용(9장)",
+            "원인 추적 불가, 예산 초과",
+            "JSONL 로그, request_id"
+          ]
+        ]
+      },
+      "code": {
+        "language": "",
+        "text": ""
+      },
+      "side_points": [
+        "평가, 회귀(10장): eval 과제 + grader로 측정",
+        "자기 개선(11장): 실패 트레이스로 하네스 수정",
+        "구성요소는 모델 한계에 대한 가정(예: Opus 4.6)"
+      ],
+      "message": "모델이 바뀌면 eval로 재검증하고 쓸모없는 부분은 걷어낸다",
+      "source": "출처: Anthropic, Harness design for long-running application development",
+      "notes": "이 표는 교재 전체의 목차이기도 합니다. 코드 단서 열은 학습 목표 2를 연습하는 데 쓰며, 바로 다음 슬라이드에서 확인 문제 1번의 봇 코드 발췌를 이 지도에 대응시켜 봅니다. Opus 4.6에서는 스프린트 구조를 걷어내고 평가를 1회로 줄여도 DAW를 약 3시간 50분, 124.70달러에 만들었듯이, 모델이 좋아지면 하네스 일부가 필요 없어지므로 하네스는 모델이 바뀔 때마다 검증하고 걷어내는 대상입니다."
+    },
+    {
+      "pattern": "code",
+      "title": "확인 문제: 코드에서 하네스 찾기",
+      "lead": "handle() 발췌의 (가)~(카)를 구성요소 지도에 대응시킨다",
+      "items": [],
+      "left": {
+        "header": "",
+        "points": []
+      },
+      "right": {
+        "header": "",
+        "points": []
+      },
+      "table": {
+        "label": "",
+        "columns": [],
+        "rows": []
+      },
+      "code": {
+        "language": "python",
+        "text": "def handle(q: str) -> Reply:\n    msgs = build_context(q, search_docs(q))  # (가)\n    for turn in range(MAX_TURNS):  # (나)\n        msg = with_retry(client.messages.create,  # (다)\n            model=MODEL, timeout=30, ...)  # (라)\n        spent_usd += cost_of(msg.usage)  # (마)\n        if spent_usd > BUDGET_USD: raise BudgetExceeded\n        log_jsonl(msg._request_id, msg.usage)  # (바)\n        if msg.stop_reason != \"tool_use\":\n            return Reply.model_validate_json(...)  # (사)\n        for b in tool_uses(msg):\n            if b.name == \"create_ticket\": approve(b)  # (아)\n            msgs += execute_tool(b)  # (자)\n        save_checkpoint(msgs)  # (차)"
+      },
+      "side_points": [
+        "모델은 (라)의 MODEL이 가리키는 LLM뿐: 설정값과 호출 코드는 하네스",
+        "(다)는 with_retry와 timeout으로 API 장애에 대비(7장)",
+        "(카) 회귀 테스트 3회 실행: 평가 하네스(10장)",
+        "(카)는 tests/test_regression.py, 나머지는 지도에 대응"
+      ],
+      "message": "모델이 아닌 줄은 모두 하네스다",
+      "source": "",
+      "notes": "학습자에게 먼저 각 기호가 어느 구성요소인지 적게 한 뒤 답을 맞춥니다. 정답 요약: (가) 컨텍스트 조립(4장), (나) 루프와 정지 조건(2장), (다) 재시도와 타임아웃(7장), (라) MODEL이 가리키는 LLM 자체(모델), (마) 비용 누적과 BUDGET_USD 초과 시 중단(9장), (바) 관측 로그(9장), (사) 구조화 출력 검증(5장), (아) create_ticket 사람 승인 가드레일(6장), (자) 도구 실행기(3장), (차) 상태와 체크포인트(8장), (카) tests/test_regression.py의 평가 하네스(10장)입니다. 분기를 stop_reason != \"tool_use\"로 둔 이유는 max_tokens로 잘린 응답이 도구 실행 경로로 새지 않게 하기 위해서입니다. 가장 흔한 오답은 client.messages.create 호출 전체를 모델로 표시하는 것인데, 호출 코드와 설정값은 하네스이고 그 ID가 가리키는 LLM만 모델이라는 점을 짚어 줍니다."
+    },
+    {
+      "pattern": "two_column",
+      "title": "예제 프로젝트와 SDK 버전 고정",
+      "lead": "사내 문서 Q&A와 티켓 처리 에이전트를 장마다 키운다",
+      "items": [],
+      "left": {
+        "header": "예제와 도구",
+        "points": [
+          "예제: 규정을 검색해 근거와 함께 답하고, 미해결 문제는 IT 티켓으로",
+          "코딩 에이전트 사용자는 안쪽 하네스(루프, 권한, 컴팩션)를 못 바꾸지만 우리는 직접 만든다 → claude-agent-sdk는 비교 기준점(2, 6, 8장)",
+          "pydantic은 계산적 센서의 핵심, pydantic-ai는 5장 비교 대안",
+          "변경 리스크: SDK 메이저 버전, Agent SDK 옵션, OTel GenAI 규약(9장)"
+        ]
+      },
+      "right": {
+        "header": "고정 전략",
+        "points": [
+          "핵심 패키지를 pyproject.toml에 ==로 정확히 고정한다",
+          "uv.lock을 커밋하고 CI에서는 uv sync --locked로 설치한다",
+          "업그레이드는 별도 PR로, 10장 회귀 eval 통과 후 병합한다",
+          "실행 로그마다 SDK 버전을 남긴다(9장)"
+        ]
+      },
+      "table": {
+        "label": "",
+        "columns": [],
+        "rows": []
+      },
+      "code": {
+        "language": "",
+        "text": ""
+      },
+      "side_points": [],
+      "message": "업그레이드 전 changelog 재확인: 예) output_format → output_config.format",
+      "source": "출처: Hashimoto 블로그, InfoQ(2026-02), Anthropic Python SDK 문서, Structured outputs 문서, Claude Agent SDK reference(2026-10 기준)",
+      "notes": "Hashimoto는 Ghostty 개발에서 에이전트가 실수할 때마다 AGENTS.md에 한 줄을 더하고 전용 스크립트를 만들어 같은 실수를 막았습니다. OpenAI Codex 팀은 docs 디렉터리에 지식을 모으고 커스텀 린터와 구조 테스트로 규칙을 강제했습니다(2차 보도). 둘 다 사용자가 바깥에 씌우는 하네스일 뿐 안쪽 루프는 못 바꾸지만, 우리는 anthropic으로 루프부터 직접 만들고 같은 일을 claude-agent-sdk나 pydantic-ai가 어떻게 처리하는지 비교합니다. 구조화 출력의 output_format이 output_config.format으로 대체된 것처럼 SDK는 빠르게 바뀌므로, 버전을 올리기 전에 반드시 공식 문서와 changelog를 다시 확인하라고 안내합니다."
+    },
+    {
+      "pattern": "code",
+      "title": "기준선 코드: 무엇을 기록하나",
+      "lead": "단발 호출 응답에서 기록할 값을 꺼내 JSONL로 남긴다",
+      "items": [],
+      "left": {
+        "header": "",
+        "points": []
+      },
+      "right": {
+        "header": "",
+        "points": []
+      },
+      "table": {
+        "label": "",
+        "columns": [],
+        "rows": []
+      },
+      "code": {
+        "language": "python",
+        "text": "msg = client.messages.create(\n    model=MODEL, max_tokens=MAX_TOKENS,\n    messages=[{\"role\": \"user\", \"content\": q}],\n)\ntext = ...  # 응답의 텍스트 블록\nrecord = {\n    \"request_id\": msg._request_id,\n    \"stop_reason\": msg.stop_reason,\n    \"usage\": {\"input_tokens\": msg.usage.input_tokens,\n              \"output_tokens\": msg.usage.output_tokens},\n    \"sdk_version\": version(\"anthropic\"),\n    \"auto_observation\": observe(q, msg, text),\n}\nf.write(json.dumps(record, ensure_ascii=False) + \"\\n\")"
+      },
+      "side_points": [
+        "request_id는 보통 req_로 시작",
+        "Q2: stop_reason=max_tokens 예상",
+        "모델 ID는 models.list()로 확인",
+        "version()은 importlib.metadata에서 가져옴"
+      ],
+      "message": "JSONL 한 줄 = 질문 하나의 기준선 기록",
+      "source": "",
+      "notes": "ch01_baseline.py에서 호출 한 번과 기록 한 줄의 핵심만 발췌했으며, 다음 슬라이드 실습 2단계에서 이 흐름으로 기록합니다. request_id는 응답 객체의 _request_id에서, 토큰 수는 usage.input_tokens와 usage.output_tokens에서 꺼내고, SDK 버전은 importlib.metadata.version(\"anthropic\")으로 남깁니다. 실습에서는 Q2의 stop_reason이 max_tokens로 찍히는지 확인하게 하고, 모델 ID는 models.list()로 직접 확인한 값을 쓰게 합니다."
+    },
+    {
+      "pattern": "steps",
+      "title": "실습 안내",
+      "lead": "하네스 없는 단발 호출로 기준선을 만들고 요구사항을 뽑는다",
+      "items": [
+        {
+          "heading": "프로젝트 생성과 버전 고정",
+          "text": "uv init --package로 만들고 핵심 패키지를 ==로 고정. tests/test_env.py로 고정 상태 확인"
+        },
+        {
+          "heading": "하네스 없는 단발 호출",
+          "text": "질문 5개(Q1~Q5)를 던지고 stop_reason, usage, request_id를 runs/ch01_baseline.jsonl에 기록"
+        },
+        {
+          "heading": "관찰한 실패 정리",
+          "text": "환각, 잘림, JSON 파싱 실패, 가짜 행동, 인젝션을 직접 읽고 관찰됨 또는 미재현으로 기입"
+        },
+        {
+          "heading": "하네스 요구사항 시트 작성",
+          "text": "실패마다 막을 구성요소, 장, 측정 가능한 수용 기준을 적는다(미재현 행도 유지)"
+        },
+        {
+          "heading": "결과 확인",
+          "text": "JSONL 5줄의 기준선, pytest 2개 통과, 고정을 풀면 테스트가 실패하는지 확인"
+        }
+      ],
+      "left": {
+        "header": "",
+        "points": []
+      },
+      "right": {
+        "header": "",
+        "points": []
+      },
+      "table": {
+        "label": "",
+        "columns": [],
+        "rows": []
+      },
+      "code": {
+        "language": "",
+        "text": ""
+      },
+      "side_points": [],
+      "message": "하네스는 운 좋은 결과가 아니라 최악의 입력을 기준으로 설계한다",
+      "source": "",
+      "notes": "준비물은 Python 3.12 이상, uv, Anthropic API 키이며, 모델 ID는 models.list()로 직접 확인한 값을 씁니다. 한 번 실행에 입출력 토큰은 약 2,000개 이하이고, 줄마다 남길 핵심 필드는 앞 슬라이드에서 본 request_id, stop_reason, usage(input_tokens와 output_tokens), sdk_version 네 가지입니다. 최신 모델에서는 Q4와 Q5가 재현되지 않을 수 있지만 정상 결과이며, 예시를 베끼지 말고 실제로 본 것을 적게 합니다. 요구사항 시트는 12장 인수 테스트의 기준이 됩니다."
+    },
+    {
+      "pattern": "summary",
+      "title": "핵심 정리",
+      "lead": "",
+      "items": [
+        {
+          "heading": "Agent = Model + Harness: 모델 바깥 전체가 하네스다",
+          "text": "이를 설계, 측정, 개선하는 일이 하네스 엔지니어링"
+        },
+        {
+          "heading": "정의 범위는 출처마다 다르며, 교재는 모델 바깥 런타임 구조로 정의한다",
+          "text": ""
+        },
+        {
+          "heading": "에이전트 하네스는 동작시키고, 평가 하네스는 그 조합을 측정한다",
+          "text": "eval 점수는 언제나 모델 + 하네스의 점수"
+        },
+        {
+          "heading": "하네스는 성능과 비용을 함께 좌우한다",
+          "text": "+90.2%, +7.7점, 토큰 4~15배, $9 → $200"
+        },
+        {
+          "heading": "가장 단순한 해법에서 시작한다",
+          "text": "단계를 나열할 수 있으면 워크플로, 아니면 정지 조건을 갖춘 에이전트"
+        },
+        {
+          "heading": "가이드/센서, 계산적/추론적 두 축으로 빈 곳을 찾는다",
+          "text": "가능하면 계산적 통제를 먼저 쓴다"
+        },
+        {
+          "heading": "구성요소는 모델 한계에 대한 가정이다",
+          "text": "모델이 바뀌면 eval로 재검증하고 필요 없는 부분은 걷어낸다"
+        },
+        {
+          "heading": "SDK는 ==로 고정하고 lock 파일을 커밋한다",
+          "text": "업그레이드는 회귀 eval 통과 후 반영"
+        }
+      ],
+      "left": {
+        "header": "",
+        "points": []
+      },
+      "right": {
+        "header": "",
+        "points": []
+      },
+      "table": {
+        "label": "",
+        "columns": [],
+        "rows": []
+      },
+      "code": {
+        "language": "",
+        "text": ""
+      },
+      "side_points": [],
+      "message": "",
+      "source": "",
+      "notes": "실습에서 기준선과 요구사항 시트를 만든 뒤, 여덟 가지 요점을 다시 짚습니다. 특히 두 분류 축과 구성요소 지도는 이후 모든 장에서 계속 쓰는 틀입니다. 원시 클라이언트로 직접 짠 하네스와 claude-agent-sdk 같은 기성 하네스를 구분해서 쓴다는 점도 함께 정리합니다."
+    }
+  ]
+}

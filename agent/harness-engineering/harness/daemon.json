@@ -1,0 +1,27 @@
+{
+  "topics": [
+    {
+      "topic": "하네스엔지니어링",
+      "slug": "harness-engineering",
+      "audience": "AI 에이전트를 실무에 도입하려는 개발자와 기술 리더",
+      "scope": "",
+      "enabled": false
+    },
+    {
+      "topic": "파이썬 AI 프로그램 하네스 엔지니어링",
+      "slug": "python-ai-harness-engineering",
+      "audience": "파이썬으로 LLM 기반 AI 프로그램(에이전트, RAG, 업무 자동화)을 개발하는 개발자",
+      "scope": "파이썬으로 개발하는 AI 프로그램(LLM 에이전트, RAG, 자동화 파이프라인)에 하네스를 설계하고 구현하는 방법. 에이전트 루프, 도구 정의와 실행, 컨텍스트와 메모리 관리, 구조화 출력과 검증, 가드레일과 권한, 재시도와 타임아웃, 상태 저장과 재개, 평가(eval)와 회귀 테스트, 관측(로깅, 트레이싱), 비용 관리, 자기 개선 루프를 파이썬 코드(Anthropic SDK, Claude Agent SDK, pydantic, pytest 등)로 직접 구현하는 실습 중심으로 다룬다. Claude Code나 Codex 같은 코딩 에이전트의 사용법(AGENTS.md 작성 등)은 비교와 배경으로만 짧게 다룬다.",
+      "enabled": true
+    }
+  ],
+  "interval_minutes": 20,
+  "daily_budget_usd": 40.0,
+  "max_cycles_per_day": 48,
+  "notify": {
+    "enabled": true,
+    "min_interval_minutes": 10,
+    "sender_name": "교재 제작 에이전트",
+    "subject_prefix": "[교재 RSI]"
+  }
+}

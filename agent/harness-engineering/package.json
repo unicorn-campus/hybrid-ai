@@ -1,0 +1,8 @@
+{
+  "name": "courseware-agent-pptx",
+  "private": true,
+  "description": "pptxgenjs runtime for courseware_agent slide builds (references/pptx-guide.md)",
+  "dependencies": {
+    "pptxgenjs": "4.0.1"
+  }
+}

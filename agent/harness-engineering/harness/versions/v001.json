@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "parent": null,
+  "status": "stable",
+  "created_at": "2026-11-03T01:03:45",
+  "prompt_rules": {
+    "planner": [],
+    "writer": [],
+    "reviewer": [],
+    "slides": [],
+    "slide_reviewer": [],
+    "improver": []
+  },
+  "lint_rules": [],
+  "config": {},
+  "next_id": 1
+}

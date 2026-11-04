@@ -1,0 +1,1 @@
+{"start": "2026-11-03T02:10:17", "topic": "파이썬 AI 프로그램 하네스 엔지니어링", "harness_before": 2, "failed": true, "action": "교재 제작(이어하기)", "result": "오류: [course-review0] 3회 시도 모두 실패: Claude Code returned an error result: You've hit your 5-hour limit · resets 5:30am (Asia/Seoul) (exit code: 1)", "end": "2026-11-03T02:32:15", "harness_after": 2, "calls": 13, "cost_usd": 25.3009}
