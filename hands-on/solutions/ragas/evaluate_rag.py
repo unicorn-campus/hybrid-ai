@@ -893,7 +893,7 @@ def write_summary_file(context: dict) -> Path:
             f"{', '.join(error_ids) if error_ids else '없음'} | [{file_name}]({file_name}) |"
         )
     lines.append("")
-    lines.append("## 원인 후보(교재 187쪽)")
+    lines.append("## 원인 후보(교재 189쪽)")
     lines.append("")
     for version in versions:
         if version["is_baseline"]:
@@ -992,7 +992,7 @@ def write_result_files(context: dict) -> list[Path]:
         lines.append("")
         lines.append(f"문항별 비교와 버전별 원인 후보는 [버전별 비교 파일]({summary_file_name(context['stamp'])})에 모아 둠")
         lines.append("")
-        lines.append("## 원인 후보(교재 187쪽)")
+        lines.append("## 원인 후보(교재 189쪽)")
         lines.append("")
         if version["is_baseline"]:
             lines.append("- 기준선")
@@ -1277,7 +1277,7 @@ def main() -> None:
                 row["llm_errors"] = {}
 
     # ⑤ 버전 비교
-    print_step("[⑤ 버전 비교] 버전별 평균(매크로 평균)과 기준선 대비 변화(교재 178, 187쪽)")
+    print_step("[⑤ 버전 비교] 버전별 평균(매크로 평균)과 기준선 대비 변화(교재 178, 189쪽)")
     scores_by_version = {}
     for version in versions:
         scores = []
