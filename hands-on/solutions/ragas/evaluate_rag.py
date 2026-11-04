@@ -67,13 +67,13 @@ SECRETS_ENV_PATH = ROOT_DIR / "secrets" / ".env"  # GROQ_API_KEY, COHERE_API_KEY
 EVAL_SET_PATH = ROOT_DIR / "hands-on" / "solutions" / "eval-set.json"  # 평가셋(검색기와 같은 파일)
 RESULTS_DIR = BASE_DIR / "results"  # 결과 파일: results/{하이퍼 파라미터명}/evaluate_{YYMMDDHHMM}_{vNN 또는 summary}.md
 
-# 평가자(채점관) LLM. 답변 LLM(openai/gpt-oss-120b)과 다른 모델이라 자기 답을 자기가 채점하지 않음(교재 176쪽)
+# 평가자(채점관) LLM. 답변 LLM(openai/gpt-oss-120b)과 다른 모델이라 자기 답을 자기가 채점하지 않음(교재 177쪽)
 JUDGE_MODEL = "qwen/qwen3.8-27b"
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"  # Groq의 OpenAI 호환 주소. openai 패키지로 그대로 부름
 JUDGE_MAX_TOKENS = 4096  # 평가자 답(판정 JSON) 길이 상한. 기본 1024는 근거가 길면 잘릴 수 있음
 JUDGE_TIMEOUT_SECONDS = 60  # 평가자 호출 한 번의 제한 시간
 JUDGE_MAX_RETRIES = 3  # 429(호출 제한), 5xx 때 openai 클라이언트가 스스로 다시 부르는 횟수
-# AnswerRelevancy용 임베딩. 인덱서 기본값과 같은 Cohere 모델을 Cohere의 OpenAI 호환 주소로 부름(교재 184쪽 실행과 같음).
+# AnswerRelevancy용 임베딩. 인덱서 기본값과 같은 Cohere 모델을 Cohere의 OpenAI 호환 주소로 부름(교재 185쪽 실행과 같음).
 # 채점 자(평가자)이므로 embedding_model 버전을 돌려도 바꾸지 않음
 EMBEDDING_MODEL = "embed-v5.0-fast"
 COHERE_COMPAT_URL = "https://api.cohere.ai/compatibility/v1"
@@ -82,7 +82,7 @@ COHERE_COMPAT_URL = "https://api.cohere.ai/compatibility/v1"
 # 값을 키우면 빨라지지만 429(호출 제한)가 늘고, 줄이면 느려지지만 안정적임
 MAX_CONCURRENT_ROWS = 2  # arun은 모든 행을 한꺼번에 돌리므로 429를 피하려고 직접 제한함
 
-# 흔들림 폭: 다시 채점만 해도 생기는 점수 차이. 이보다 작은 차이는 「변화 없음」(교재 177쪽).
+# 흔들림 폭: 다시 채점만 해도 생기는 점수 차이. 이보다 작은 차이는 「변화 없음」(교재 178쪽).
 # 0.03은 교재 그림 예시값임. 모든 지표(코드, LLM)의 변화 여부 기준으로 똑같이 씀. --repeat의 실측 폭은 참고로 출력만 함
 NOISE = 0.03
 MIN_DETECTABLE = 0.125  # 답 있는 8문항 중 6문항이 정답 근거 1개 → 한 문항이 바뀌면 Recall 평균이 1 ÷ 8 = 0.125 움직임
@@ -500,7 +500,7 @@ def run_retriever(resources: dict, items: list[dict], version: dict, originals: 
 
 
 def print_result_info(rows: list[dict]) -> None:
-    """--until run: 결과 정보 4칸을 문항마다 보여 줌(교재 188쪽)."""
+    """--until run: 결과 정보 4칸을 문항마다 보여 줌(교재 189쪽)."""
     for row in rows:
         print(f"  [{row['id']}] 종료 상태: {row['status']}")
         print(f"    user_input(질문)          : {row['user_input']}")
@@ -554,10 +554,10 @@ def evaluate_code(rows: list[dict], relevant_counts: dict) -> None:
 # ④ LLM 평가(RAGAS)
 # ---------------------------------------------------------------------------
 def build_judge(secrets: dict):
-    """평가자 LLM(Groq Qwen)과 임베딩(Cohere)을 만듦(교재 201쪽).
+    """평가자 LLM(Groq Qwen)과 임베딩(Cohere)을 만듦(교재 203쪽).
 
     방법: 둘 다 OpenAI 호환 주소라 openai 패키지의 AsyncOpenAI 클라이언트로 부름. llm_factory는 ragas 0.4 방식이고
-          LangChain 래퍼(LangchainLLMWrapper)는 0.4에서 deprecated라 쓰지 않음(교재 201쪽).
+          LangChain 래퍼(LangchainLLMWrapper)는 0.4에서 deprecated라 쓰지 않음(교재 203쪽).
     """
     judge_client = AsyncOpenAI(
         api_key=secrets["GROQ_API_KEY"],
@@ -585,7 +585,7 @@ def can_score_with_llm(row: dict) -> tuple[bool, str]:
 async def run_llm_evaluation(rows: list[dict], metrics: dict, experiment_name: str) -> dict:
     """④ 채점할 행을 ragas Dataset에 담고 @experiment 실험 함수를 arun으로 돌려 {문항: 점수 dict}를 돌려줌.
 
-    방법: 교재 178쪽과 같은 모양(204쪽이 이 코드). 한 행 = 한 문항, 실험 함수가 행마다 score_row(지표 5개)를 부르고 arun이 표로 모음.
+    방법: 교재 179쪽 ④와 같은 모양(206쪽이 이 코드). 한 행 = 한 문항, 실험 함수가 행마다 score_row(지표 5개)를 부르고 arun이 표로 모음.
           arun은 모든 행을 한꺼번에 돌리므로 세마포어(동시에 들어갈 수 있는 수를 세는 문지기)로 동시 채점 수를 제한함.
     """
     dataset = Dataset(name=experiment_name.replace("/", "_"), backend="inmemory")  # 메모리에만 담음(파일 안 만듦)
@@ -895,7 +895,7 @@ def write_summary_file(context: dict) -> Path:
     lines.append("")
     lines.append("## 문항별 비교")
     lines.append("")
-    lines.append("평균만 보면 0점 문항이 가려지므로 문항마다 버전을 나란히 봄(교재 181쪽 노트).  ")
+    lines.append("평균만 보면 0점 문항이 가려지므로 문항마다 버전을 나란히 봄(교재 182쪽 노트).  ")
     lines.append("▲, ▼는 같은 문항의 기준선 점수보다 흔들림 폭 넘게 오르거나 내린 칸임")
     for metric in metric_names:
         lines.append("")
@@ -1065,7 +1065,7 @@ def write_result_files(context: dict) -> list[Path]:
 
 
 # ---------------------------------------------------------------------------
-# --selftest: API 없이 실습 함수 점검(교재 181쪽 가상 예)
+# --selftest: API 없이 실습 함수 점검(교재 182쪽 가상 예)
 # ---------------------------------------------------------------------------
 def check(label: str, actual, expected, tolerance: float = 0.005) -> bool:
     """값 하나를 기대값과 비교해 맞음/틀림을 찍음. 실수는 tolerance 안이면 맞음."""
@@ -1078,8 +1078,8 @@ def check(label: str, actual, expected, tolerance: float = 0.005) -> bool:
 
 
 def run_selftest() -> None:
-    """교재 181쪽 가상 예와 작은 비교 예로 실습 함수를 API 없이 점검함."""
-    print_step("[자체 점검] 교재 181쪽 예: 관련 청크 4개, 정답 근거 3개(①②③), 상위 k = 5")
+    """교재 182쪽 가상 예와 작은 비교 예로 실습 함수를 API 없이 점검함."""
+    print_step("[자체 점검] 교재 182쪽 예: 관련 청크 4개, 정답 근거 3개(①②③), 상위 k = 5")
     relevance = [
         {"clues": ["정산 기한: 복귀 후 7일 이내"]},  # ①
         {"clues": ["증빙 서류: 영수증 원본 첨부"]},  # ②
@@ -1140,7 +1140,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--qid", nargs="+", default=None, help="일부 문항만(예: Q01 Q17 Q20)")
     parser.add_argument("--repeat", type=int, default=1, help="기준선 LLM 평가를 N번 반복해 흔들림 폭을 실측해 출력만 함(변화 여부 기준은 NOISE 고정, 기본 1)")
     parser.add_argument("--mine", action="store_true", help="평가 실습 함수를 교육생 코드(my_eval.py)로 실행")
-    parser.add_argument("--selftest", action="store_true", help="API 없이 실습 함수만 점검(교재 181쪽 예)")
+    parser.add_argument("--selftest", action="store_true", help="API 없이 실습 함수만 점검(교재 182쪽 예)")
     return parser.parse_args()
 
 
@@ -1159,7 +1159,7 @@ def main() -> None:
     command = "python evaluate_rag.py " + " ".join(sys.argv[1:])
 
     # ① 버전 만들기
-    print_step("[① 버전 만들기] 하이퍼 파라미터 하나만 바꾸고 나머지는 기준선 값으로 고정함(교재 177쪽)")
+    print_step("[① 버전 만들기] 하이퍼 파라미터 하나만 바꾸고 나머지는 기준선 값으로 고정함(교재 178쪽)")
     values = []
     for raw in args.values:
         values.append(parse_value(args.param, raw))
@@ -1222,20 +1222,20 @@ def main() -> None:
     print(f"  검색기 호출 합계: LLM {calls['llm']}회, 임베딩 {calls['embed']}회, 리랭크 {calls['rerank']}회")
     if args.until == "run":
         for version in versions:
-            print_step(f"[② 결과 정보 4칸] {version['name']} {version['param']}={version['value']}(교재 188쪽)")
+            print_step(f"[② 결과 정보 4칸] {version['name']} {version['param']}={version['value']}(교재 189쪽)")
             print_result_info(rows_by_version[version["name"]])
         return
 
     # ③ 코드 평가
     for version in versions:
-        print_step(f"[③ 코드 평가] {version['name']} {version['param']}={version['value']} — 적중 청크와 4지표(교재 180쪽)")
+        print_step(f"[③ 코드 평가] {version['name']} {version['param']}={version['value']} — 적중 청크와 4지표(교재 181쪽)")
         evaluate_code(rows_by_version[version["name"]], index_by_version[version["name"]]["relevant_counts"])
 
     # ④ LLM 평가(RAGAS)
     noise = {}
     for metric in ALL_METRICS:
         noise[metric] = NOISE   # 기본값. 기준선 대비 변화(절댓값)가 NOISE 이하이면 변화 없음으로 봄
-    noise_text = f"모든 지표 {NOISE}(교재 177쪽 예시값)"
+    noise_text = f"모든 지표 {NOISE}(교재 178쪽 예시값)"
 
     if args.until == "all":
         metric_names = ALL_METRICS
