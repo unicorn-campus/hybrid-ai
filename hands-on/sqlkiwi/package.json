@@ -1,0 +1,52 @@
+{
+  "name": "sqlkiwi",
+  "version": "0.1.0",
+  "description": "SQLite, PostgreSQL, MySQL desktop SQL client (Electron + React)",
+  "main": "./out/main/index.js",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run",
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "postinstall": "electron-rebuild -f -w better-sqlite3",
+    "test:db": "cross-env ELECTRON_RUN_AS_NODE=1 SQLKIWI_DB_TEST=1 electron node_modules/vitest/vitest.mjs run test/drivers.db.test.ts",
+    "test:e2e": "electron-vite build && node test/e2e.mjs test-results"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "mysql2": "^3.24.6",
+    "pg": "^8.23.1",
+    "pg-cursor": "^2.22.1"
+  },
+  "devDependencies": {
+    "@codemirror/autocomplete": "^6.0.0",
+    "@codemirror/commands": "^6.0.0",
+    "@codemirror/lang-sql": "^6.10.0",
+    "@codemirror/language": "^6.0.0",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.15",
+    "@electron/rebuild": "^4.2.1",
+    "@tanstack/react-virtual": "^3.14.26",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.23.1",
+    "@types/pg-cursor": "^2.7.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "codemirror": "^6.0.2",
+    "cross-env": "^10.1.0",
+    "electron": "^45.2.3",
+    "electron-vite": "^6.0.0",
+    "playwright-core": "^1.65.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.6",
+    "vitest": "^5.1.0"
+  }
+}

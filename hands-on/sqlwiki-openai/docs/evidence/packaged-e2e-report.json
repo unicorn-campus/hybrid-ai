@@ -1,0 +1,21 @@
+{
+  "checks": [
+    "startup renders real sample JOIN results",
+    "SQLite schema, DDL and safe integer values",
+    "SQL quoting, row limit and stop after error",
+    "SQLite transactions persist between executions",
+    "dangerous SQL requires explicit confirmation",
+    "SQLite read-only connection prevents writes",
+    "long-running SQLite query cancels and connection recovers",
+    "postgres real connection, schema, query, transaction and password storage",
+    "postgres cancellation interrupts server query",
+    "mysql real connection, schema, query, transaction and password storage",
+    "mysql cancellation interrupts server query",
+    "query tabs and Ctrl+Enter execute through the UI",
+    "SQL save, open and CSV export write actual local files",
+    "connection dialog tests and saves a real read-only SQLite connection",
+    "workspace persists SQL tabs after restart"
+  ],
+  "errors": [],
+  "passed": true
+}

@@ -1,0 +1,124 @@
+{
+  "scope": "static installed JAR metadata, no runtime observation",
+  "root": "C:\\Users\\hiond\\AppData\\Local\\DBeaver",
+  "artifacts": [
+    {
+      "file": "org.jkiss.dbeaver.core_25.0.5.202505181758.jar",
+      "sha256": "213e2771d7647f1fb6d250be2abc03c98080eb883bfb04189aa2bdf0362e2ef9",
+      "entryCount": 410,
+      "selectedClasses": []
+    },
+    {
+      "file": "org.jkiss.dbeaver.ui.editors.sql_1.0.155.202505181758.jar",
+      "sha256": "c7bea38a21688d8043096eb5b5bde91f9a0fd5a51c252b1b3358e51332d5c862",
+      "entryCount": 598,
+      "selectedClasses": [
+        {
+          "path": "org/jkiss/dbeaver/ui/editors/sql/execute/SQLQueryJob.class",
+          "sha256": "f02c63a3a2ceba1c3c52ea21a08b38275d8e0adff85e9e9308522f6b30a29951"
+        }
+      ],
+      "keyBindings": [
+        {
+          "commandId": "org.jkiss.dbeaver.ui.editors.sql.run.statement",
+          "contextId": "org.jkiss.dbeaver.ui.editors.sql.script.focused",
+          "schemeId": "org.eclipse.ui.defaultAcceleratorConfiguration",
+          "platform": "win32",
+          "sequence": "CTRL+Enter"
+        },
+        {
+          "commandId": "org.jkiss.dbeaver.ui.editors.sql.run.statement",
+          "contextId": "org.jkiss.dbeaver.ui.editors.sql.script.focused",
+          "schemeId": "org.eclipse.ui.defaultAcceleratorConfiguration",
+          "platform": "gtk",
+          "sequence": "CTRL+Enter"
+        },
+        {
+          "commandId": "org.jkiss.dbeaver.ui.editors.sql.run.statement",
+          "contextId": "org.jkiss.dbeaver.ui.editors.sql.script.focused",
+          "schemeId": "org.eclipse.ui.defaultAcceleratorConfiguration",
+          "platform": "cocoa",
+          "sequence": "COMMAND+Enter"
+        },
+        {
+          "commandId": "org.jkiss.dbeaver.ui.editors.sql.run.script",
+          "contextId": "org.jkiss.dbeaver.ui.editors.sql.script.focused",
+          "schemeId": "org.eclipse.ui.defaultAcceleratorConfiguration",
+          "sequence": "ALT+X"
+        }
+      ],
+      "handlers": [
+        {
+          "commandId": "org.jkiss.dbeaver.ui.editors.sql.run.statement",
+          "class": "org.jkiss.dbeaver.ui.editors.sql.handlers.SQLEditorHandlerExecute"
+        },
+        {
+          "commandId": "org.jkiss.dbeaver.ui.editors.sql.run.script",
+          "class": "org.jkiss.dbeaver.ui.editors.sql.handlers.SQLEditorHandlerExecute"
+        },
+        {
+          "commandId": "org.jkiss.dbeaver.ui.editors.sql.cancel.query",
+          "class": "org.jkiss.dbeaver.ui.editors.sql.handlers.SQLEditorHandlerCancelActiveQuery"
+        }
+      ]
+    },
+    {
+      "file": "org.jkiss.dbeaver.model.sql_1.0.145.202505181758.jar",
+      "sha256": "8c473835851ec9759bf5211696cdd15619be75f78868c22a5d0a9589dd2f9548",
+      "entryCount": 446,
+      "selectedClasses": [
+        {
+          "path": "org/jkiss/dbeaver/model/sql/parser/SQLScriptParser.class",
+          "sha256": "6a64e19c269d24fdd0e7686276c4b32cb810d597b6cbcfa9f57ec6b178831bb0"
+        }
+      ]
+    },
+    {
+      "file": "org.jkiss.dbeaver.model_2.0.15.202505181758.jar",
+      "sha256": "3aa7754c3f4bf24232a0ba8f52537968a2fb28015033fd7414c5f78a1833d5e4",
+      "entryCount": 1603,
+      "selectedClasses": [
+        {
+          "path": "org/jkiss/dbeaver/ModelPreferences.class",
+          "sha256": "0fb481e94661197fb45da2b097911baa72a67f1039b44b164d3f83f3d9f86c60"
+        }
+      ]
+    },
+    {
+      "file": "org.jkiss.dbeaver.ui.editors.data_1.0.155.202505181758.jar",
+      "sha256": "047b4a2f1a4f1abb1be5fd2596b5a13967192ea1abacbe565702caab36f30e69",
+      "entryCount": 731,
+      "selectedClasses": []
+    },
+    {
+      "file": "org.jkiss.dbeaver.ui.navigator_1.0.155.202505181758.jar",
+      "sha256": "23da3b97a6e49c2492777ea14fc3dfb8735f1ac58285880203156d875430e06f",
+      "entryCount": 433,
+      "selectedClasses": []
+    },
+    {
+      "file": "org.jkiss.dbeaver.ext.sqlite_1.0.204.202505181758.jar",
+      "sha256": "d201f08d868d547bcf123e45cb0c26eeb3ec4b9574e12599800167288b860c0e",
+      "entryCount": 63,
+      "selectedClasses": []
+    },
+    {
+      "file": "org.jkiss.dbeaver.ext.postgresql_2.1.228.202505181758.jar",
+      "sha256": "b3e0786effc47a60d6ac19aa941bbeab3b22204a3ddac8872bfe82b5c348ec4d",
+      "entryCount": 431,
+      "selectedClasses": []
+    },
+    {
+      "file": "org.jkiss.dbeaver.ext.mysql_2.1.240.202505181758.jar",
+      "sha256": "322c29d8473fbe1e496911a804b47762f5cae2229a7d053644640b477c13f2bb",
+      "entryCount": 189,
+      "selectedClasses": []
+    },
+    {
+      "file": "org.jkiss.dbeaver.registry_1.0.149.202505181758.jar",
+      "sha256": "8d2297385eb291e731277dbef03b96ec6796c3fb887986c92e08d2fe80cabe8f",
+      "entryCount": 222,
+      "selectedClasses": []
+    }
+  ]
+}

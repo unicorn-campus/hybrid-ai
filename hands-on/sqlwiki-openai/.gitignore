@@ -1,0 +1,11 @@
+node_modules/
+out/
+release/
+test-results/
+*.log
+*.db
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.db-wal
+*.db-shm
