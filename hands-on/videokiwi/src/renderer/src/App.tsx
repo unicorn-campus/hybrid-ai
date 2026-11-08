@@ -197,6 +197,7 @@ function ComposePanel({ composeMode, input, setInput, image, endImage, extension
             <option value="">완료 영상에서 선택</option>
             {completedJobs.map(job => <option value={job.id} key={job.id}>{formatDate(job.createdAt)} · {(job.input.originalPrompt || job.input.prompt).slice(0, 38)}</option>)}
           </select>
+          <div className="or-divider"><span>또는</span></div>
           <button type="button" className="video-upload-button" onClick={() => videoRef.current?.click()}
             disabled={extensionBusy || !extensionAvailable}>
             {extensionBusy ? <LoaderCircle className="spin" size={16} /> : <Upload size={16} />}
