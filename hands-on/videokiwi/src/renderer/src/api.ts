@@ -60,6 +60,9 @@ export const api: VideoKiwiAPI = {
   refreshJob: id => post(`/api/jobs/${encodeURIComponent(id)}/refresh`),
   cancelJob: id => post(`/api/jobs/${encodeURIComponent(id)}/cancel`),
   deleteJob: id => request(`/api/jobs/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  renameJob: (id, title) => request(`/api/jobs/${encodeURIComponent(id)}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title })
+  }),
   saveVideo: async id => { download(`/api/jobs/${encodeURIComponent(id)}/video?download=1`); return '브라우저 다운로드' },
   exportRecipe: async id => { download(`/api/jobs/${encodeURIComponent(id)}/recipe`) },
   onJobsChanged: callback => {

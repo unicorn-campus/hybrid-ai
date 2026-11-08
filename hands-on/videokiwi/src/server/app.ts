@@ -5,6 +5,13 @@ import { timingSafeEqual } from 'node:crypto'
 import { isIP } from 'node:net'
 import { VideoService } from './service.js'
 
+/** Download name from the job title, safe on Windows and macOS: "창가 고양이-9cf1046d.mp4". */
+export function downloadName(job: { id: string; title?: string }, extension: string): string {
+  const shortId = job.id.slice(0, 8)
+  const base = (job.title || '').replace(/[\\/:*?"<>|\u0000-\u001f\u007f]/gu, ' ').replace(/\s+/gu, ' ')
+    .trim().replace(/[. ]+$/u, '')
+  return `${base ? `${[...base].slice(0, 60).join('')}-${shortId}` : `videokiwi-${shortId}`}.${extension}`
+}
 function sameSecret(a: string, b: string) {
   const left = Buffer.from(a), right = Buffer.from(b)
   return left.length === right.length && timingSafeEqual(left, right)
@@ -77,9 +84,10 @@ export function createApp(service: VideoService, accessToken = '') {
   app.post('/api/jobs/:id/refresh', async (req, res) => { res.json(await service.refresh(req.params.id)) })
   app.post('/api/jobs/:id/cancel', async (req, res) => { res.json(await service.cancel(req.params.id)) })
   app.delete('/api/jobs/:id', async (req, res) => { await service.delete(req.params.id); res.status(204).end() })
+  app.patch('/api/jobs/:id', async (req, res) => { res.json(await service.rename(req.params.id, req.body?.title)) })
   app.get('/api/jobs/:id/recipe', (req, res) => {
     const job = service.store.job(req.params.id)
-    res.attachment(`videokiwi-${job.id.slice(0, 8)}.json`).json({ version: 1, model: 'MiniMax H3',
+    res.attachment(downloadName(job, 'json')).json({ version: 1, model: 'MiniMax H3', title: job.title,
       input: job.input, plan: job.plan, optimization: job.optimization,
       elapsedSeconds: job.elapsedSeconds, status: job.status, createdAt: job.createdAt,
       extension: job.extension,
@@ -89,7 +97,7 @@ export function createApp(service: VideoService, accessToken = '') {
   app.get('/api/jobs/:id/video', async (req, res) => {
     const local = await service.localVideo(req.params.id)
     if (local) {
-      if (req.query.download === '1') res.attachment(`videokiwi-${req.params.id.slice(0, 8)}.mp4`)
+      if (req.query.download === '1') res.attachment(downloadName(service.store.job(req.params.id), 'mp4'))
       res.type('video/mp4').sendFile(local, { dotfiles: 'allow' })
       return
     }
@@ -107,7 +115,7 @@ export function createApp(service: VideoService, accessToken = '') {
         const value = remote.headers.get(name)
         if (value) res.setHeader(name, value)
       }
-      if (req.query.download === '1') res.attachment(`videokiwi-${req.params.id.slice(0, 8)}.mp4`)
+      if (req.query.download === '1') res.attachment(downloadName(service.store.job(req.params.id), 'mp4'))
       const stream = Readable.fromWeb(remote.body as import('node:stream/web').ReadableStream)
       stream.on('error', error => { if (!res.destroyed) res.destroy(error) })
       stream.pipe(res)

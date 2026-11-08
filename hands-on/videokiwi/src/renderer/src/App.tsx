@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Aperture, ArrowDownToLine, BookOpen, Check, ChevronDown, CircleAlert, CircleStop,
   Clapperboard, Clock3, Download, FileJson2, Film, Gauge, ImagePlus, Images, Info,
-  Library, LoaderCircle, Menu, MonitorCog, MoreHorizontal, Play, Plus, RefreshCw,
+  Library, LoaderCircle, Menu, MonitorCog, MoreHorizontal, Pencil, Play, Plus, RefreshCw,
   RotateCcw, Search, Settings2, Sparkles, Trash2, Upload, WandSparkles, X, Zap
 } from 'lucide-react'
 import { api } from './api'
@@ -10,6 +10,9 @@ import type {
   AppSettings, AspectRatio, EngineStatus, ExtensionSource, GenerationInput, ImageAsset, JobStatus,
   PerformanceProfile, PromptOptimization, VideoJob
 } from '../../shared/types'
+import { jobDisplayTitle } from '../../shared/types'
+
+const MAX_TITLE_LENGTH = 60
 
 type View = 'create' | 'library' | 'engine'
 type ComposeMode = 'create' | 'extend'
@@ -188,6 +191,12 @@ function ComposePanel({ composeMode, input, setInput, image, endImage, extension
         <div className="panel-heading"><div><span className="eyebrow">MINIMAX H3 LOCAL</span><h2>{composeMode === 'extend' ? '영상 이어 만들기' : '새 영상'}</h2></div><Clapperboard size={19} /></div>
         <Segment label="작업 방식" value={composeMode} onChange={onComposeMode}
           options={[{ value: 'create', label: '새 영상' }, { value: 'extend', label: '영상 이어 만들기' }]} />
+        <div className="title-field">
+          <label className="field-label" htmlFor="job-title">제목 <span>선택 사항, {MAX_TITLE_LENGTH}자까지</span></label>
+          <input id="job-title" className="text-input" value={input.title || ''} maxLength={MAX_TITLE_LENGTH}
+            onChange={event => change({ title: event.target.value })} placeholder="예: 창가 고양이 첫 시도" />
+          <p className="field-hint"><Info size={12} />기록을 구분하는 이름입니다. 영상 생성에는 전달되지 않으며, 비우면 설명이 제목 대신 보입니다.</p>
+        </div>
         {composeMode === 'extend' ? <section className="extension-source" aria-label="이어 만들 원본 영상">
           <input ref={videoRef} hidden type="file" accept="video/mp4,video/quicktime,video/webm,.mov"
             onChange={event => receive(event, onVideo)} />
@@ -195,7 +204,7 @@ function ComposePanel({ composeMode, input, setInput, image, endImage, extension
           <select id="extension-job" value={extensionSource?.sourceJobId || ''}
             onChange={event => event.target.value && onSelectExtension(event.target.value)} disabled={extensionBusy}>
             <option value="">완료 영상에서 선택</option>
-            {completedJobs.map(job => <option value={job.id} key={job.id}>{formatDate(job.createdAt)} · {(job.input.originalPrompt || job.input.prompt).slice(0, 38)}</option>)}
+            {completedJobs.map(job => <option value={job.id} key={job.id}>{formatDate(job.createdAt)} · {jobDisplayTitle(job).slice(0, 38)}</option>)}
           </select>
           <div className="or-divider"><span>또는</span></div>
           <button type="button" className="video-upload-button" onClick={() => videoRef.current?.click()}
@@ -227,10 +236,11 @@ function ComposePanel({ composeMode, input, setInput, image, endImage, extension
               onClear={onClearEndImage} disabled={uploadBusy} />
           </div>
           <p className="field-hint"><Upload size={13} /> PNG, JPG, WebP, 최대 10MB</p>
-          <label className="field-label" htmlFor="image-description">이미지 내용 <span>선택 사항</span></label>
+          <label className="field-label" htmlFor="image-description">이미지 설명 <span>선택 사항</span></label>
           <input id="image-description" className="text-input" value={input.imageDescription || ''}
             onChange={e => change({ imageDescription: e.target.value }, true)}
-            placeholder="예: 노을 아래 서 있는 인물" />
+            placeholder="예: 창가에 앉은 주황색 고양이, 오후 햇살" />
+          <p className="field-hint"><Sparkles size={12} />Claude가 이미지를 이해하도록 돕는 설명입니다. Claude 제안을 쓸 때만 참고합니다.</p>
         </>}</>}
         <input ref={endFileRef} hidden type="file" accept="image/png,image/jpeg,image/webp" onChange={e => receive(e, onEndImage)} />
         {composeMode === 'extend' && extensionSource && <><label className="field-label">마지막 장면 <span>선택 사항</span></label>
@@ -303,9 +313,35 @@ function JobVisual({ job, large = false }: { job: VideoJob; large?: boolean }) {
   </div>
 }
 
-function JobDetail({ job, onCancel, onDelete, onDownload, onRecipe, onRefresh, onReuse, onExtend, busy, extensionAvailable }: {
+function TitleEditor({ job, onRename }: { job: VideoJob; onRename(title: string): Promise<boolean> }) {
+  const [editing, setEditing] = useState(false), [draft, setDraft] = useState(''), [saving, setSaving] = useState(false)
+  useEffect(() => { setEditing(false) }, [job.id])
+  const start = () => { setDraft(job.title || ''); setEditing(true) }
+  const save = async () => {
+    if (saving) return
+    if (draft.trim() === (job.title || '')) { setEditing(false); return }
+    setSaving(true)
+    const saved = await onRename(draft)
+    setSaving(false)
+    if (saved) setEditing(false)
+  }
+  if (!editing) return <div className="title-view">
+    <h2 className={job.title ? '' : 'untitled'}>{jobDisplayTitle(job)}</h2>
+    <button type="button" className="title-edit-button" onClick={start} aria-label="제목 수정" title="제목 수정"><Pencil size={13} />{job.title ? '' : '제목 붙이기'}</button>
+  </div>
+  return <form className="title-editor" onSubmit={event => { event.preventDefault(); void save() }}>
+    <input autoFocus value={draft} maxLength={MAX_TITLE_LENGTH} disabled={saving} aria-label="영상 제목"
+      placeholder="제목을 입력하세요. 비우면 설명을 보여 줍니다." onChange={event => setDraft(event.target.value)}
+      onKeyDown={event => { if (event.key === 'Escape') setEditing(false) }} />
+    <button type="submit" className="title-save" disabled={saving} aria-label="제목 저장">{saving ? <LoaderCircle className="spin" size={14} /> : <Check size={14} />}</button>
+    <button type="button" className="title-cancel" onClick={() => setEditing(false)} disabled={saving} aria-label="제목 수정 취소"><X size={14} /></button>
+    <span>{[...draft].length}/{MAX_TITLE_LENGTH}</span>
+  </form>
+}
+
+function JobDetail({ job, onCancel, onDelete, onDownload, onRecipe, onRefresh, onReuse, onExtend, onRename, busy, extensionAvailable }: {
   job: VideoJob; onCancel(): void; onDelete(): void; onDownload(): void; onRecipe(): void;
-  onRefresh(): void; onReuse(): void; onExtend(): void; busy: boolean; extensionAvailable: boolean
+  onRefresh(): void; onReuse(): void; onExtend(): void; onRename(title: string): Promise<boolean>; busy: boolean; extensionAvailable: boolean
 }) {
   const active = job.status === 'queued' || job.status === 'in_progress'
   const preparing = job.status === 'uploading'
@@ -320,7 +356,9 @@ function JobDetail({ job, onCancel, onDelete, onDownload, onRecipe, onRefresh, o
           <i style={{ width: `${progress.percent}%` }} /></div>}
       </div>
       <div className="detail-content">
-        <div className="detail-title"><div><span className="eyebrow">{formatDate(job.createdAt)}</span><h2>{job.input.originalPrompt || job.input.prompt}</h2></div>
+        <div className="detail-title"><div><span className="eyebrow">{formatDate(job.createdAt)}</span>
+          <TitleEditor job={job} onRename={onRename} />
+          {job.title && <p className="detail-prompt">{job.input.originalPrompt || job.input.prompt}</p>}</div>
           <div className="detail-actions">
             {active && <button className="secondary-button danger" onClick={onCancel} disabled={busy}><CircleStop size={15} />취소</button>}
             {job.status === 'interrupted' && <button className="secondary-button" onClick={onRefresh} disabled={busy}><RefreshCw size={15} />상태 다시 확인</button>}
@@ -366,14 +404,14 @@ function JobDetail({ job, onCancel, onDelete, onDownload, onRecipe, onRefresh, o
 function LibraryView({ jobs, selectedId, onSelect }: { jobs: VideoJob[]; selectedId?: string; onSelect(id: string): void }) {
   const [query, setQuery] = useState(''), [filter, setFilter] = useState<'all' | JobStatus>('all')
   const filtered = useMemo(() => jobs.filter(job => (filter === 'all' || job.status === filter) &&
-    `${job.input.originalPrompt || ''} ${job.input.prompt}`.toLowerCase().includes(query.toLowerCase())), [jobs, query, filter])
+    `${job.title || ''} ${job.input.originalPrompt || ''} ${job.input.prompt}`.toLowerCase().includes(query.toLowerCase())), [jobs, query, filter])
   return <div className="library-view"><header className="view-header"><div><span className="eyebrow">LOCAL LIBRARY</span><h1>생성 기록</h1><p>로컬에서 만든 영상과 실행 설정을 다시 확인합니다.</p></div><span>{jobs.length}개 작업</span></header>
-    <div className="library-tools"><label className="search-field"><Search size={16} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="프롬프트 검색" /></label>
+    <div className="library-tools"><label className="search-field"><Search size={16} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="제목 또는 프롬프트 검색" /></label>
       <select value={filter} onChange={e => setFilter(e.target.value as 'all' | JobStatus)} aria-label="상태 필터"><option value="all">모든 상태</option>
         {(Object.keys(STATUS_META) as JobStatus[]).map(status => <option key={status} value={status}>{STATUS_META[status].label}</option>)}</select></div>
     {filtered.length ? <div className="library-grid">{filtered.map(job => <button className={`library-card ${selectedId === job.id ? 'selected' : ''}`} key={job.id} onClick={() => onSelect(job.id)}>
       <div className="card-visual"><JobVisual job={job} /><span className={`status-badge ${STATUS_META[job.status].tone}`}><i />{STATUS_META[job.status].label}</span></div>
-      <div className="card-copy"><b>{job.input.originalPrompt || job.input.prompt}</b><span>{formatDate(job.createdAt)}<i />{job.input.duration}초<i />{PROFILE_META[job.input.profile].label}</span></div>
+      <div className="card-copy"><b>{jobDisplayTitle(job)}</b><span>{formatDate(job.createdAt)}<i />{job.input.duration}초<i />{PROFILE_META[job.input.profile].label}</span></div>
     </button>)}</div> : <div className="empty-list"><Images /><h2>조건에 맞는 작업이 없습니다.</h2><p>검색어 또는 상태 필터를 바꿔 보세요.</p></div>}</div>
 }
 
@@ -403,7 +441,7 @@ export default function App() {
   const [image, setImage] = useState<ImageAsset>(), [endImage, setEndImage] = useState<ImageAsset>()
   const [extensionSource, setExtensionSource] = useState<ExtensionSource>()
   const latestProposalInput = useRef('')
-  latestProposalInput.current = JSON.stringify({ ...input, imageId: image?.id, endImageId: endImage?.id })
+  latestProposalInput.current = JSON.stringify({ ...input, title: undefined, imageId: image?.id, endImageId: endImage?.id })
   const [selectedId, setSelectedId] = useState<string>(), [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false), [uploadBusy, setUploadBusy] = useState(false)
   const [extensionBusy, setExtensionBusy] = useState(false)
@@ -472,7 +510,7 @@ export default function App() {
     setExtensionSource(undefined); setImage(undefined); setEndImage(undefined)
     setOptimization(undefined); setOptimizedText('')
     setInput(value => ({ ...DEFAULT_INPUT, duration: value.duration, resolution: value.resolution,
-      profile: value.profile, seed: value.seed, extensionSourceId: undefined }))
+      profile: value.profile, seed: value.seed, title: value.title, extensionSourceId: undefined }))
     setSelectedId(undefined); setView('create')
   }
   const optimize = async () => {
@@ -503,6 +541,7 @@ export default function App() {
         originalPrompt: manual ? input.prompt : undefined, prompt: manual ? optimizedText : input.prompt, optimize: manual ? false : input.optimize }
       const job = await api.createJob(jobInput)
       setJobs(current => [job, ...current.filter(item => item.id !== job.id)]); setSelectedId(job.id); setView('create')
+      setInput(value => ({ ...value, title: undefined }))
       toast('작업을 로컬 생성 큐에 넣었습니다.', 'success')
     } catch (error) { toast(errorText(error), 'error') } finally { setSubmitting(false) }
   }
@@ -514,9 +553,17 @@ export default function App() {
     setActionBusy(true); try { await action(); if (success) toast(success, 'success') } catch (error) { toast(errorText(error), 'error') } finally { setActionBusy(false) }
   }
   const selectJob = (id: string) => { setSelectedId(id); setView('create') }
+  const renameJob = async (id: string, title: string) => {
+    try {
+      const next = await api.renameJob(id, title)
+      setJobs(current => current.map(item => item.id === next.id ? next : item))
+      toast(next.title ? '제목을 저장했습니다.' : '제목을 지웠습니다. 설명을 대신 보여 줍니다.', 'success')
+      return true
+    } catch (error) { toast(errorText(error), 'error'); return false }
+  }
   const reuseJob = (job: VideoJob) => {
     setComposeMode('create'); setExtensionSource(undefined)
-    setInput({ ...job.input, prompt: job.input.originalPrompt || job.input.prompt, optimize: false, extensionSourceId: undefined })
+    setInput({ ...job.input, title: undefined, prompt: job.input.originalPrompt || job.input.prompt, optimize: false, extensionSourceId: undefined })
     setImage(job.image); setEndImage(job.endImage)
     if (job.optimization || job.input.originalPrompt && job.input.originalPrompt !== job.input.prompt) {
       setOptimization(job.optimization || {
@@ -541,9 +588,9 @@ export default function App() {
       </nav>
       <div className="main-shell">
         <header className="top-bar"><div className="top-left"><button className="mobile-menu" onClick={() => setMobileNav(value => !value)} aria-label="메뉴 열기"><Menu /></button>
-          <div><span className="top-project">로컬 스튜디오</span><h1>{view === 'create' ? '영상 만들기' : view === 'library' ? '라이브러리' : '엔진 상태'}</h1></div></div>
+          <div><span className="top-project">Kiwi Studio</span><h1>{view === 'create' ? '영상 만들기' : view === 'library' ? '라이브러리' : '엔진 상태'}</h1></div></div>
           <div className="top-actions"><EnginePill engine={settings?.engine} /><div className="local-badge"><Zap size={14} />내 컴퓨터에서 실행</div></div></header>
-        {loading ? <div className="page-loader"><Logo /><LoaderCircle className="spin" /><span>로컬 스튜디오를 준비하고 있어요.</span></div> : view === 'create' ?
+        {loading ? <div className="page-loader"><Logo /><LoaderCircle className="spin" /><span>Kiwi Studio를 준비하고 있어요.</span></div> : view === 'create' ?
           <div className="studio-layout">
             <ComposePanel composeMode={composeMode} extensionSource={extensionSource} completedJobs={completedJobs}
               onComposeMode={changeComposeMode} onSelectExtension={jobId => void prepareExtension(jobId)}
@@ -566,10 +613,10 @@ export default function App() {
                 onDownload={() => void jobAction(() => api.saveVideo(selectedJob.id), '영상 다운로드를 시작했습니다.')}
                 onRecipe={() => void jobAction(() => api.exportRecipe(selectedJob.id), '실행 레시피 다운로드를 시작했습니다.')}
                 onRefresh={() => void jobAction(async () => { const next = await api.refreshJob(selectedJob.id); setJobs(current => current.map(item => item.id === next.id ? next : item)) }, '작업 상태를 다시 확인했습니다.')}
-                onReuse={() => reuseJob(selectedJob)} onExtend={() => void prepareExtension(selectedJob.id)}
+                onReuse={() => reuseJob(selectedJob)} onRename={title => renameJob(selectedJob.id, title)} onExtend={() => void prepareExtension(selectedJob.id)}
                 extensionAvailable={extensionAvailable && !extensionBusy} /> : <div className="blank-workspace"><EmptyScene />
                 {jobs.length > 0 && <section className="recent-strip"><header><div><span className="eyebrow">RECENT</span><h3>최근 생성</h3></div><button onClick={() => setView('library')}>전체 보기</button></header>
-                  <div>{jobs.slice(0, 4).map(job => <button key={job.id} onClick={() => setSelectedId(job.id)}><JobVisual job={job} /><span>{job.input.originalPrompt || job.input.prompt}</span></button>)}</div></section>}</div>}
+                  <div>{jobs.slice(0, 4).map(job => <button key={job.id} onClick={() => setSelectedId(job.id)}><JobVisual job={job} /><span>{jobDisplayTitle(job)}</span></button>)}</div></section>}</div>}
             </main>
           </div> : view === 'library' ? <LibraryView jobs={jobs} selectedId={selectedId} onSelect={selectJob} /> :
             <EngineView settings={settings} onRefresh={() => void refreshEngine()} refreshing={refreshing} />}

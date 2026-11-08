@@ -43,6 +43,18 @@ const optionalString = (value: unknown, name: string, maxLength: number): string
   return normalized
 }
 
+export const MAX_TITLE_LENGTH = 60
+
+/** A record title is only a human label for the library. It is never sent to Claude or the H3 engine. */
+export function normalizeTitle(value: unknown): string | undefined {
+  if (value === undefined || value === null) return undefined
+  if (typeof value !== 'string') throw new Error('제목은 문자열이어야 합니다.')
+  const normalized = value.replace(/[\u0000-\u001f\u007f]/gu, ' ').replace(/\s+/gu, ' ').trim()
+  if (!normalized) return undefined
+  if ([...normalized].length > MAX_TITLE_LENGTH) throw new Error(`제목은 ${MAX_TITLE_LENGTH}자 이하로 입력해 주세요.`)
+  return normalized
+}
+
 const imageId = (value: unknown, name: string): string | undefined => {
   const normalized = optionalString(value, name, 200)
   if (normalized && !/^[A-Za-z0-9_-]+$/u.test(normalized)) {
@@ -99,6 +111,7 @@ export function validateInput(value: unknown): GenerationInput {
     extensionSourceId,
     originalPrompt,
     imageDescription: optionalString(value.imageDescription, '이미지 설명', 1_000),
+    title: normalizeTitle(value.title),
     audio: optionalString(value.audio, '소리 설명', 1_000),
     optimize: value.optimize ?? true
   }

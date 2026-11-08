@@ -29,6 +29,8 @@ export interface GenerationInput {
   audio?: string
   optimize?: boolean
   extensionSourceId?: string
+  /** Library label only. The server moves it to VideoJob.title and never sends it to a model. */
+  title?: string
 }
 export interface ExtensionSource {
   id: string
@@ -71,6 +73,8 @@ export interface EngineStatus {
 }
 export interface VideoJob {
   id: string
+  /** Human label for the library, editable after creation. Falls back to the prompt when absent. */
+  title?: string
   requestId?: string
   createdAt: string
   updatedAt: string
@@ -140,6 +144,7 @@ export interface VideoKiwiAPI {
   refreshJob(id: string): Promise<VideoJob>
   cancelJob(id: string): Promise<VideoJob>
   deleteJob(id: string): Promise<void>
+  renameJob(id: string, title: string): Promise<VideoJob>
   saveVideo(id: string): Promise<string | null>
   exportRecipe(id: string): Promise<void>
   onJobsChanged(callback: (jobs: VideoJob[]) => void): () => void
@@ -151,5 +156,9 @@ export const CAMERA_PROMPTS: Record<GenerationInput['camera'], string> = {
   orbit: 'Smooth cinematic camera orbit around the subject.',
   'pan-left': 'Slow cinematic camera pan to the left.',
   static: 'Locked-off static camera. Only the subject moves.'
+}
+/** The name shown for a job: its title, or the user's original description when no title was given. */
+export function jobDisplayTitle(job: Pick<VideoJob, 'title' | 'input'>): string {
+  return job.title || job.input.originalPrompt || job.input.prompt
 }
 export const TERMINAL_STATUSES: JobStatus[] = ['completed', 'failed', 'canceled', 'interrupted']

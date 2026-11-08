@@ -17,7 +17,7 @@ import type {
 } from '../shared/types.js'
 import { CAMERA_PROMPTS, TERMINAL_STATUSES } from '../shared/types.js'
 import { Store, displayImageName, type StoredAsset, type StoredExtensionSource } from './store.js'
-import { buildPlan, optimizePrompt, validateInput, ensureAudioBoundaries } from './harness.js'
+import { buildPlan, optimizePrompt, validateInput, ensureAudioBoundaries, normalizeTitle } from './harness.js'
 import { ComfyClient } from './comfy.js'
 import { concatenateExtendedVideo, extractExtensionGuide, probeVideo } from './video-media.js'
 
@@ -353,11 +353,13 @@ export class VideoService extends EventEmitter {
         if (input.audio && !manualPrompt.includes(input.audio)) manualPrompt += `\n\nAudio: ${input.audio}`
       }
       if (extension) manualPrompt += '\n\nContinue directly from the supplied ending motion. Preserve subject identity, movement direction, camera motion, lighting, and spatial continuity without a cut or reset.'
-      const actualInput = { ...input, originalPrompt: input.originalPrompt || input.prompt,
+      // The title is a library label; keep it on the job, out of the engine input and the recipe input.
+      const { title, ...engineInput } = input
+      const actualInput: GenerationInput = { ...engineInput, originalPrompt: input.originalPrompt || input.prompt,
         prompt: ensureAudioBoundaries(input, optimization?.optimized || manualPrompt) }
       const plan = buildPlan(actualInput, engine, image, extension)
       const now = new Date().toISOString()
-      const job: VideoJob = { id: randomUUID(), input: actualInput, status: 'uploading', createdAt: now, updatedAt: now,
+      const job: VideoJob = { id: randomUUID(), title, input: actualInput, status: 'uploading', createdAt: now, updatedAt: now,
         image: image ? publicAsset(image) : undefined, endImage: endImage ? publicAsset(endImage) : undefined,
         plan, optimization, stage: '입력 준비', warnings: plan.warnings,
         extension: extension ? {
@@ -534,6 +536,17 @@ export class VideoService extends EventEmitter {
       await this.changed()
       return job
     } finally { this.canceling.delete(id) }
+  }
+  async rename(id: string, value: unknown): Promise<VideoJob> {
+    const job = this.store.job(id)
+    let title: string | undefined
+    try { title = normalizeTitle(value) }
+    catch (error) { throw fail((error as Error).message) }
+    if (title) job.title = title
+    else delete job.title
+    job.updatedAt = new Date().toISOString()
+    await this.changed()
+    return job
   }
   async delete(id: string) {
     const job = this.store.job(id)

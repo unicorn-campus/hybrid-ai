@@ -183,4 +183,37 @@ describe('웹 API 경계', () => {
     expect(preview.headers.get('content-type')).toContain('image/png')
     expect(new Uint8Array(await preview.arrayBuffer()).slice(0, 4)).toEqual(new Uint8Array([137, 80, 78, 71]))
   })
+  it('제목은 기록에만 저장하고 엔진 입력에는 넣지 않으며, 나중에 고치거나 지울 수 있다', async () => {
+    const { url, service, submitted } = await web()
+    const create = await fetch(`${url}/api/jobs`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...input, title: '  창가   고양이\n첫 시도 ' }) })
+    const job = await create.json()
+    await settled(service, job.id)
+    expect(job.title).toBe('창가 고양이 첫 시도')
+    expect(job.input.title).toBeUndefined()
+    expect(submitted()?.title).toBeUndefined()
+    expect(JSON.stringify(submitted())).not.toContain('창가 고양이')
+
+    const renamed = await fetch(`${url}/api/jobs/${job.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: '최종: 고양이/산책?' }) })
+    expect(renamed.status).toBe(200)
+    expect((await renamed.json()).title).toBe('최종: 고양이/산책?')
+    const recipe = await fetch(`${url}/api/jobs/${job.id}/recipe`)
+    const disposition = decodeURIComponent(recipe.headers.get('content-disposition') || '')
+    expect(disposition).toContain(`최종 고양이 산책-${job.id.slice(0, 8)}.json`)
+    expect((await recipe.json()).title).toBe('최종: 고양이/산책?')
+
+    const tooLong = await fetch(`${url}/api/jobs/${job.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: '가'.repeat(61) }) })
+    expect(tooLong.status).toBe(400)
+    expect((await tooLong.json()).error).toContain('60자')
+
+    const cleared = await fetch(`${url}/api/jobs/${job.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: '   ' }) })
+    expect((await cleared.json()).title).toBeUndefined()
+    const fallback = await fetch(`${url}/api/jobs/${job.id}/recipe`)
+    expect(fallback.headers.get('content-disposition')).toContain(`videokiwi-${job.id.slice(0, 8)}.json`)
+    const persisted = JSON.parse(await readFile(join(service.store.directory, 'state.json'), 'utf8'))
+    expect(persisted.jobs[0].title).toBeUndefined()
+  })
 })
