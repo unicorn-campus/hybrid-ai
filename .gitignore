@@ -45,3 +45,5 @@ desktop.ini
 
 # PPT 미리보기 산출물 (scripts/render-pptx.py)
 research/build/preview/
+
+hands-on/videokiwi/.data/

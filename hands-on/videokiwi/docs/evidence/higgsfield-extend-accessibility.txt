@@ -1,0 +1,183 @@
+- document:
+  - dialog "cookieconsent":
+    - paragraph:
+      - text: We use cookies to run Higgsfield and understand use. You can reject analytics in Cookie Preferences. With your permission, we share device and activity data with advertising partners to measure results and support advertising. See our
+      - link "Cookie Notice":
+        - /url: https://higgsfield.ai/cookie-notice
+    - link "Cookie Notice visit this link to learn more about cookies. Opens in new window":
+      - /url: https://higgsfield.ai/cookie-notice
+      - text: Cookie Notice
+    - button "Accept All Cookies"
+    - button "Reject Analytics and Advertising Cookies"
+    - button "Cookie Preferences"
+  - banner:
+    - button "Get an additional discount on premium plans after signing up Get your discount"
+    - button "Close promotion"
+  - banner:
+    - link "Higgsfield":
+      - /url: /
+      - img "Higgsfield"
+    - navigation "Main":
+      - list:
+        - listitem:
+          - link "Explore":
+            - /url: /
+        - listitem:
+          - link "Image":
+            - /url: /ai/image?model=gpt_image_2
+        - listitem:
+          - link "Video":
+            - /url: /ai/video
+        - listitem:
+          - link "Audio":
+            - /url: /audio
+        - listitem:
+          - link "MCP":
+            - /url: /mcp
+        - listitem:
+          - link "API":
+            - /url: https://console.higgsfield.ai
+        - separator
+        - listitem:
+          - link "Genjutsu New":
+            - /url: /ai/video?model=genjutsu
+        - listitem:
+          - link "Shorts Studio New":
+            - /url: /shorts-studio
+        - listitem:
+          - link "Content Factory":
+            - /url: /content-factory
+        - listitem:
+          - link "Playable":
+            - /url: /playable
+        - listitem:
+          - link "Mangaka New":
+            - /url: /mangaka
+        - listitem:
+          - link "AI Influencer":
+            - /url: /ai-influencer-studio
+        - listitem:
+          - link "Academy New":
+            - /url: /academy
+        - listitem:
+          - link "Katana":
+            - /url: /katana
+        - listitem:
+          - link "ChatGPT Plugin":
+            - /url: /mcp?tab=chatgpt
+        - listitem:
+          - link "Ads Studio":
+            - /url: /ads-studio
+        - listitem:
+          - link "Effects":
+            - /url: /effects/use
+        - listitem:
+          - link "Cinema Studio":
+            - /url: /generate
+        - listitem:
+          - link "Contests":
+            - /url: /community/contests
+        - listitem:
+          - link "Marketing Studio":
+            - /url: /marketing-studio
+        - listitem:
+          - link "Supercomputer":
+            - /url: /supercomputer
+        - listitem:
+          - link "Edit":
+            - /url: /layers
+        - listitem:
+          - link "Community":
+            - /url: /community
+        - listitem:
+          - link "Plugins":
+            - /url: /plugins/after-effects
+        - listitem:
+          - link "Canvas":
+            - /url: /canvas
+        - listitem:
+          - link "Originals":
+            - /url: /original-series
+    - button "Search Higgsfield"
+    - button "Change language"
+    - link "Enterprise":
+      - /url: https://higgsfield.ai/enterprise
+    - link "Pricing -30%":
+      - /url: /pricing
+    - button "Login"
+    - button "Sign up"
+  - main:
+    - navigation: Create Video Edit Video Motion Control
+    - group:
+      - button "General Seedance 2.5 Extend":
+        - text: Your browser does not support the video.
+        - paragraph: General
+        - paragraph: Seedance 2.5 Extend
+        - button "Change":
+          - img
+          - text: Change
+    - tablist:
+      - tab "References":
+        - img
+        - text: References
+      - tab "Extend Video" [selected]:
+        - img
+        - text: Extend Video
+    - button "Add video to extend"
+    - text: Add video to extend Up to 30s
+    - button "Add elements or references"
+    - text: Add elements or references Up to 50 image or audio
+    - button "Direction":
+      - text: Direction Sequel
+      - img
+    - paragraph: Prompt
+    - textbox "Prompt"
+    - button "Elements"
+    - text: "On"
+    - checkbox "On" [checked]
+    - button "Model":
+      - text: Model
+      - paragraph: Seedance 2.5
+      - img
+      - img
+    - group:
+      - button "Duration":
+        - text: Duration 5s
+        - img
+      - button "Quality":
+        - text: Quality 1080p
+        - img
+      - button "Bitrate":
+        - text: Bitrate High
+        - img
+    - button "Generate 80"
+    - tablist "Page view":
+      - tab "History":
+        - img
+        - text: History
+      - tab "How it works" [selected]:
+        - img
+        - text: How it works
+    - heading "Make videos in one click" [level=1]
+    - paragraph: 250+ presets for camera control, framing, and high-quality VFX - or use the general preset for manual control.
+    - article:
+      - figure:
+        - img "Add image"
+      - heading "Add image" [level=2]
+      - paragraph: Upload or generate an image to start your animation
+    - article:
+      - figure: Your browser does not support the video.
+      - heading "Choose preset" [level=2]
+      - paragraph: Pick a preset to control your image movement
+    - article:
+      - figure: Your browser does not support the video.
+      - heading "Get video" [level=2]
+      - paragraph: Click generate to create your final animated video!
+    - link "Don’t know where to start? Go to the Academy and start your journey":
+      - /url: /academy
+    - button "Need help?"
+  - region "Notifications Alt+T"
+  - region "Notifications alt+T"
+  - region "Notifications alt+T"
+  - region "Notifications"
+  - listbox "Typeahead menu"

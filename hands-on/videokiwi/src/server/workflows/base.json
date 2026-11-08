@@ -1,0 +1,16 @@
+{
+  "1":{"inputs":{"unet_name":"minimax_h3_fl2va_pruned-Q4_K.gguf"},"class_type":"UnetLoaderGGUF"},
+  "2":{"inputs":{"clip_name":"qwen3vl-32B-MiniMax-H3-Q2_K.gguf","type":"minimax"},"class_type":"CLIPLoaderGGUF"},
+  "3":{"inputs":{"vae_name":"minimax_h3_video_vae_fp16.safetensors"},"class_type":"VAELoader"},
+  "4":{"inputs":{"vae_name":"minimax_h3_audio_vae_fp32.safetensors"},"class_type":"VAELoader"},
+  "5":{"inputs":{"prompt":"","width":640,"height":352,"length":124,"clip":["2",0],"vae":["3",0]},"class_type":"MiniMaxH3ImageToVideo"},
+  "6":{"inputs":{"noise_seed":42},"class_type":"RandomNoise"},
+  "7":{"inputs":{"model":["1",0],"conditioning":["5",0]},"class_type":"BasicGuider"},
+  "8":{"inputs":{"sampler_name":"res_multistep"},"class_type":"KSamplerSelect"},
+  "9":{"inputs":{"scheduler":"simple","steps":20,"denoise":1,"model":["1",0]},"class_type":"BasicScheduler"},
+  "10":{"inputs":{"noise":["6",0],"guider":["7",0],"sampler":["8",0],"sigmas":["9",0],"latent_image":["5",1]},"class_type":"SamplerCustomAdvanced"},
+  "11":{"inputs":{"tile_size":256,"overlap":64,"temporal_size":32,"temporal_overlap":8,"samples":["10",0],"vae":["3",0]},"class_type":"VAEDecodeTiled"},
+  "12":{"inputs":{"samples":["10",0],"vae":["4",0]},"class_type":"VAEDecodeAudio"},
+  "13":{"inputs":{"fps":24,"bit_depth":8,"color_space":"sRGB","codec":"none","images":["11",0],"audio":["12",0]},"class_type":"CreateVideo"},
+  "14":{"inputs":{"filename_prefix":"video/VideoKiwi","format":"mp4","format.codec":"h264","format.codec.encoding":"auto","codec":"auto","video":["13",0]},"class_type":"SaveVideo"}
+}

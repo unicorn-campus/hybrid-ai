@@ -1,0 +1,921 @@
+- document:
+  - dialog "cookieconsent":
+    - paragraph:
+      - text: We use cookies to run Higgsfield and understand use. You can reject analytics in Cookie Preferences. With your permission, we share device and activity data with advertising partners to measure results and support advertising. See our
+      - link "Cookie Notice":
+        - /url: https://higgsfield.ai/cookie-notice
+    - link "Cookie Notice visit this link to learn more about cookies. Opens in new window":
+      - /url: https://higgsfield.ai/cookie-notice
+      - text: Cookie Notice
+    - button "Accept All Cookies"
+    - button "Reject Analytics and Advertising Cookies"
+    - button "Cookie Preferences"
+  - banner:
+    - link "Higgsfield":
+      - /url: /
+      - img "Higgsfield"
+    - navigation "Main":
+      - list:
+        - listitem:
+          - link "Explore":
+            - /url: /
+        - listitem:
+          - link "Image":
+            - /url: /ai/image?model=gpt_image_2
+        - listitem:
+          - link "Video":
+            - /url: /ai/video
+        - listitem:
+          - link "Audio":
+            - /url: /audio
+        - listitem:
+          - link "MCP":
+            - /url: /mcp
+        - listitem:
+          - link "API":
+            - /url: https://console.higgsfield.ai
+        - separator
+        - listitem:
+          - link "Genjutsu New":
+            - /url: /ai/video?model=genjutsu
+        - listitem:
+          - link "Shorts Studio New":
+            - /url: /shorts-studio
+        - listitem:
+          - link "Content Factory":
+            - /url: /content-factory
+        - listitem:
+          - link "Playable":
+            - /url: /playable
+        - listitem:
+          - link "Mangaka New":
+            - /url: /mangaka
+        - listitem:
+          - link "AI Influencer":
+            - /url: /ai-influencer-studio
+        - listitem:
+          - link "Academy New":
+            - /url: /academy
+        - listitem:
+          - link "Katana":
+            - /url: /katana
+        - listitem:
+          - link "ChatGPT Plugin":
+            - /url: /mcp?tab=chatgpt
+        - listitem:
+          - link "Ads Studio":
+            - /url: /ads-studio
+        - listitem:
+          - link "Effects":
+            - /url: /effects/use
+        - listitem:
+          - link "Cinema Studio":
+            - /url: /generate
+        - listitem:
+          - link "Contests":
+            - /url: /community/contests
+        - listitem:
+          - link "Marketing Studio":
+            - /url: /marketing-studio
+        - listitem:
+          - link "Supercomputer":
+            - /url: /supercomputer
+        - listitem:
+          - link "Edit":
+            - /url: /layers
+        - listitem:
+          - link "Community":
+            - /url: /community
+        - listitem:
+          - link "Plugins":
+            - /url: /plugins/after-effects
+        - listitem:
+          - link "Canvas":
+            - /url: /canvas
+        - listitem:
+          - link "Originals":
+            - /url: /original-series
+    - button "Search Higgsfield"
+    - button "Change language"
+    - link "Enterprise":
+      - /url: https://higgsfield.ai/enterprise
+    - link "Pricing -30%":
+      - /url: /pricing
+    - button "Login"
+    - button "Sign up"
+  - main:
+    - text: Your browser does not support the video.
+    - heading "AI VIDEO GENERATOR. STUDIO-GRADE RESULTS." [level=1]
+    - paragraph: From prompt to cinematic video in seconds. Every top model, one workspace. Bring impossible shots to life.
+    - link "Create Video Now":
+      - /url: /ai/video?model=seedance_2_0
+    - text: Prompt
+    - button "Choose File"
+    - button "Upload image"
+    - textbox "Prompt":
+      - /placeholder: Describe any visual idea. We will generate a video.
+    - button "Seedance 2.0":
+      - img
+      - text: Seedance 2.0
+    - button "8s"
+    - button "Auto"
+    - button "On"
+    - button "Generate"
+    - heading "ONE STUDIO. EVERY AI VIDEO MODEL. TOTAL CONTROL." [level=2]
+    - paragraph: Pick a model, write a prompt, set your frames. Generate cinematic video in clicks, not hours. All top-tier models in one workspace built for speed and precision
+    - figure "How it looks":
+      - img "How it looks"
+    - paragraph: AI video that bends to your creative vision, not the other way around. Control every frame, every motion, every detail - with the precision of a professional editing suite
+    - link "First and Last image reference First and Last image reference Achieve seamless consistency by locking in your starting point and final frame":
+      - /url: /ai/video?model=seedance_2_0
+      - figure "First and Last image reference":
+        - img "First and Last image reference"
+      - heading "First and Last image reference" [level=5]
+      - paragraph: Achieve seamless consistency by locking in your starting point and final frame
+    - link "Edit any video Edit any video Upload existing footage to change styles, swap objects, or refine details without reshooting":
+      - /url: /ai/video/edit
+      - figure "Edit any video":
+        - img "Edit any video"
+      - heading "Edit any video" [level=5]
+      - paragraph: Upload existing footage to change styles, swap objects, or refine details without reshooting
+    - link "Motion control everything Motion control everything Upload a reference video to dictate the exact pace and gesture of the generation":
+      - /url: /ai/video/motion
+      - figure "Motion control everything":
+        - img "Motion control everything"
+      - heading "Motion control everything" [level=5]
+      - paragraph: Upload a reference video to dictate the exact pace and gesture of the generation
+    - link "Top models in a single place Top models in a single place Access Veo, Seedance, Kling, Wan, and more - all integrated into one creative workspace with no setup needed":
+      - /url: /ai/video?model=seedance_2_0
+      - figure "Top models in a single place":
+        - img "Top models in a single place"
+      - heading "Top models in a single place" [level=5]
+      - paragraph: Access Veo, Seedance, Kling, Wan, and more - all integrated into one creative workspace with no setup needed
+    - text: Your browser does not support the video.
+    - heading "Cinema studio" [level=2]
+    - paragraph: The first AI Cinema Studio with real optical physics for cinematic video generation. Move from random generation to a deterministic, professional workflow
+    - link "Try Cinema Studio":
+      - /url: /generate
+    - heading "FROM SCRIPT TO SCREEN" [level=2]
+    - figure "Cinema feature preview":
+      - img "Cinema feature preview"
+    - paragraph: BESPOKE OPTICAL STACK. Build the camera that doesn't exist. Combine the grit of 16mm film with the sharpness of modern Anamorphic glass.
+    - figure "Cinema feature preview":
+      - img "Cinema feature preview"
+    - paragraph: MULTI-AXIS MOTION CONTROL. Simple pans are for amateurs. The Cinema Studio allows you to stack up to 3 simultaneous camera movements
+    - figure "Cinema feature preview":
+      - img "Cinema feature preview"
+    - paragraph: HYBRID WORKFLOW. Stop switching tabs. Easily toggle between Photography Mode and Videography Mode instantly. Iterate on your still image.
+    - figure "Cinema feature preview":
+      - img "Cinema feature preview"
+    - paragraph: SCRIPT TO SCENE. Describe your vision in words and watch it come to life. Scene, lighting, subject, mood, all from a single prompt
+    - figure "Cinema feature preview":
+      - img "Cinema feature preview"
+    - paragraph: VISUAL REFERENCE. Upload an image to set the creative direction. Guide the look and feel of every generation before it starts
+    - button "Previous" [disabled]:
+      - img
+    - button "Next":
+      - img
+    - figure:
+      - img "Media fallback"
+      - text: Camera Modular 8K Digital Lens Classic Anamorphic Focal Length 35mm
+    - button "Select item 0":
+      - img "Select item 0"
+    - button "Select item 1":
+      - img "Select item 1"
+    - button "Select item 2":
+      - img "Select item 2"
+    - button "Select item 3":
+      - img "Select item 3"
+    - button "Select item 4":
+      - img "Select item 4"
+    - button:
+      - img
+    - img "Kling 3.0"
+    - img
+    - text: Kling 3.0
+    - paragraph: The new standard in photorealism with advanced motion complexity
+    - link "Generate":
+      - /url: /ai/video?model=kling3_0
+      - button "Generate"
+    - img "Seedance 2.0"
+    - img
+    - text: Seedance 2.0
+    - paragraph: "The first native audio-video model: synced lip-sync, SFX, and music in one pass"
+    - link "Generate":
+      - /url: /ai/video?model=seedance_2_0
+      - button "Generate"
+    - img "Wan 2.7"
+    - img
+    - text: Wan 2.7
+    - paragraph: The perfect balance of generation speed and visual richness
+    - link "Generate":
+      - /url: /ai/video?model=wan2_7
+      - button "Generate"
+    - img "Kling o1"
+    - img
+    - text: Kling o1
+    - paragraph: Next-gen reasoning model for complex, multi-layered scene composition
+    - link "Generate":
+      - /url: /ai/video?model=kling-omni-flf
+      - button "Generate"
+    - img "MiniMax H3"
+    - img
+    - text: MiniMax H3
+    - paragraph: Create 2K videos from text, keyframes, or multimodal references
+    - link "Generate":
+      - /url: /ai/video?model=minimax_h3
+      - button "Generate"
+    - img "Veo 3.1"
+    - img
+    - text: Veo 3.1
+    - paragraph: Crystal clear 4K generation with native cinematic visual flows
+    - link "Generate":
+      - /url: /ai/video?model=veo-3-1-preview
+      - button "Generate"
+    - img "Kling 2.6"
+    - img
+    - text: Kling 2.6
+    - paragraph: The proven engine for fast, stable, and consistent character animations
+    - link "Generate":
+      - /url: /ai/video?model=kling2_6
+      - button "Generate"
+    - text: Get access to new models on the day they're released
+    - heading "The world's best AI video generators unlimited" [level=2]
+    - paragraph: Use one or all. Best of breed products. Integrated as a platform.
+    - button "Explore All"
+    - paragraph: Whether you are directing a film, scaling a brand, or creating daily content, Higgsfield gives you the tools to ship faster.
+    - button "Get started"
+    - text: Your browser does not support the video.
+    - heading "Filmmakers & Directors" [level=3]
+    - button
+    - text: Visualize your screenplay instantly with precise camera control, cinematic lighting, and consistent characters. Your browser does not support the video.
+    - heading "Marketing Agencies" [level=3]
+    - button
+    - text: Produce high-performing video campaigns at the speed of social media. Scale your creative output without scaling your budget. Your browser does not support the video.
+    - heading "Content Creators" [level=3]
+    - button
+    - text: Generate scroll-stopping visuals across every platform and format - from a single workspace. Your browser does not support the video.
+    - heading "E-commerce Brands" [level=3]
+    - button
+    - text: Turn static product photos into high-converting video ads. Drop your product into any environment without booking a photoshoot.
+    - button "Previous" [disabled]:
+      - img
+    - button "Next":
+      - img
+    - heading "Pick your plan" [level=2]
+    - paragraph: Get access to more generations and priority access to new features
+    - paragraph: Monthly
+    - switch "Toggle between monthly and annual billing" [checked]
+    - paragraph: Annual
+    - text: 30% OFF Starter
+    - paragraph: For first-time AI content creators
+    - img
+    - text: 2 7 0 credits/mo. = 135 Nano Banana Pro Generations ~ 15 Seedance 2.0 Fast videos Fixed amount of 270 credits/mo $19 per month, billed annually
+    - button "Get Plan"
+    - text: No difference compared to monthly
+    - heading "Free generations" [level=3]:
+      - img
+      - text: Free generations
+    - button "Learn more"
+    - list:
+      - listitem:
+        - img
+        - text: Higgsfield Genjutsu No free gens
+      - listitem:
+        - img
+        - text: Genjutsu Lite 1080p 5 free gens
+      - listitem:
+        - img
+        - text: Higgsfield Mangaka 1 free gen
+      - listitem:
+        - img
+        - text: Higgsfield AI Influencer 10 free gens
+    - img
+    - text: Unlimited & free gens
+    - button "Learn more"
+    - img
+    - text: Seedance 2.5 No unlimited
+    - img
+    - text: Nano Banana Pro No unlimited
+    - img
+    - text: Seedream 5.0 Pro No unlimited
+    - img
+    - text: GPT Image 2.6 No unlimited
+    - button "3 unlimited & free generation models":
+      - img
+      - text: 3 unlimited & free generation models
+      - img
+    - text: "Parallel generations: up to 2 Videos, 4 Images"
+    - button
+    - text: Seedance 2.0 Fast & 2.0 Mini access Access to selected models only & features
+    - button
+    - text: Early access to advanced AI features Credit top-ups with discount 365-DAY UNLIMITED & FREE GENS Soul V2 & Cinema
+    - button
+    - text: 300 FREE GENS Seedream 5.0 Lite
+    - button
+    - text: 365 UNLIMITED Flux.2 Pro (1K)
+    - button
+    - text: 365 UNLIMITED Seedream 4.5 Nano Banana Kling O1 Image GPT Image Plus
+    - paragraph: 20% OFF
+    - paragraph:
+      - img
+      - text: Seedance 2.0
+    - paragraph: For consistent and easy AI content creation
+    - img
+    - text: 1 , 2 0 0 credits/mo. = 600 Nano Banana Pro Generations
+    - button "~ 80 Seedance 2.5 videos"
+    - text: Fixed amount of 1,200 credits/mo $59 $47 per month, billed annually
+    - button "Get Plan"
+    - text: Save $144 compared to monthly
+    - heading "Free generations" [level=3]:
+      - img
+      - text: Free generations
+    - button "Learn more"
+    - list:
+      - listitem:
+        - img
+        - text: Higgsfield Genjutsu 720p 3 free gens
+      - listitem:
+        - img
+        - text: Genjutsu Lite 1080p 5 free gens
+      - listitem:
+        - img
+        - text: Higgsfield Mangaka 2 free gens
+      - listitem:
+        - img
+        - text: Higgsfield AI Influencer 30 free gens
+    - img
+    - text: Unlimited & free gens
+    - button "Learn more"
+    - img
+    - button "Seedance 2.5"
+    - text: 720p 7-day unlimited
+    - img
+    - button "Nano Banana Pro"
+    - text: 2K 7-day unlimited
+    - img
+    - button "Seedream 5.0 Pro"
+    - text: 2K 7-day unlimited
+    - img
+    - button "GPT Image 2.6"
+    - text: 2K 7-day unlimited
+    - button "6 unlimited & free generation models":
+      - img
+      - text: 6 unlimited & free generation models
+      - img
+    - text: Unlimited paid parallel generations
+    - button
+    - text: New All Seedance models All models & features
+    - button
+    - text: Early access to advanced AI features
+    - button
+    - text: Credit top-ups with discount 365-DAY UNLIMITED & FREE GENS Soul V2 & Cinema
+    - button
+    - text: 5,000 FREE GENS Seedream 5.0 Lite
+    - button
+    - text: 365 UNLIMITED Flux.2 Pro (1K)
+    - button
+    - text: 365 UNLIMITED Seedream 4.5
+    - button
+    - text: 365 UNLIMITED Nano Banana
+    - button
+    - text: 365 UNLIMITED Kling O1 Image
+    - button
+    - text: 365 UNLIMITED GPT Image
+    - button
+    - text: 365 UNLIMITED Most popular Ultra
+    - paragraph: 23% OFF
+    - paragraph:
+      - img
+      - text: Seedance 2.0
+    - paragraph: For creators building AI projects
+    - img
+    - text: 3 , 0 0 0 credits/mo. = 1500 Nano Banana Pro Generations
+    - button "~ 200 Seedance 2.5 videos"
+    - button "3,000"
+    - button "6,000"
+    - button "9,000"
+    - text: $129 $99 per month, billed annually
+    - button "Get Plan"
+    - text: Save $360 compared to monthly
+    - heading "Free generations" [level=3]:
+      - img
+      - text: Free generations
+    - button "Learn more"
+    - list:
+      - listitem:
+        - img
+        - text: Higgsfield Genjutsu 720p 3 free gens
+      - listitem:
+        - img
+        - text: Genjutsu Lite 1080p 5 free gens
+      - listitem:
+        - img
+        - text: Higgsfield Mangaka 2 free gens
+      - listitem:
+        - img
+        - text: Higgsfield AI Influencer 30 free gens
+    - img
+    - text: Unlimited & free gens
+    - button "Learn more"
+    - img
+    - button "Seedance 2.5"
+    - text: 1080p 7-day unlimited
+    - img
+    - button "Nano Banana Pro"
+    - text: 2K 7-day unlimited
+    - img
+    - button "Seedream 5.0 Pro"
+    - text: 2K 7-day unlimited
+    - img
+    - button "GPT Image 2.6"
+    - text: 2K 7-day unlimited
+    - button "6 unlimited & free generation models":
+      - img
+      - text: 6 unlimited & free generation models
+      - img
+    - text: Unlimited paid parallel generations
+    - button
+    - text: New All Seedance models All models & features
+    - button
+    - text: Early access to advanced AI features
+    - button
+    - text: Credit top-ups with discount 365-DAY UNLIMITED & FREE GENS Soul V2 & Cinema
+    - button
+    - text: 10,000 FREE GENS Seedream 5.0 Lite
+    - button
+    - text: 365 UNLIMITED Flux.2 Pro (1K)
+    - button
+    - text: 365 UNLIMITED Seedream 4.5
+    - button
+    - text: 4K 365 UNLIMITED Nano Banana
+    - button
+    - text: 365 UNLIMITED Kling O1 Image
+    - button
+    - text: 365 UNLIMITED GPT Image
+    - button
+    - text: 365 UNLIMITED BEST VALUE Team
+    - paragraph: 18% OFF
+    - paragraph:
+      - img
+      - text: Seedance 2.0
+    - paragraph: For agencies and small teams
+    - img
+    - text: 2 , 0 0 0 credits in total/mo
+    - list:
+      - listitem: = 1,000 credits per seat/mo
+      - listitem: = 1,000 Nano Banana Pro images
+      - listitem:
+        - text: ~ 133
+        - button "Seedance 2.5 videos"
+    - text: $79 $65 per seat/mo, billed annually
+    - button "Get Plan"
+    - text: Save $168 compared to monthly
+    - button "Decrease team size" [disabled]:
+      - img
+    - paragraph: 2 seats
+    - button "Increase team size":
+      - img
+    - text: "Workspace & Collaboration 2 to 9 members in one shared workspace Parallel generations: up to 16 video & 16 image Access to all features & models Shared credit pool Shared workspace for your team Early access to advanced AI features Access to Seedance 2.0 Analytics & Support Basic analytics Priority support Admin & Control SSO Admin spend control Priority queue Security & Compliance Delegated top-up access Indemnification No training on your data SOC 2 security AI Educator & Slack support Unlimited models and Free Generations on plans are accessible only via higgsfield.ai and are not accessible on MCP/CLI, Canvas or Supercomputer. Prices exclude VAT and local taxes, calculated at checkout. Unlimited usage may be subject to dynamic speed adjustments during high-traffic periods. Learn more Access to new models and advanced features may be done on a rolling basis and not available to all users at launch."
+    - heading "Get insights from experts blog" [level=2]
+    - paragraph: Get the insights you need. Our experts share actionable hacks, break down the hottest topics, and provide essential how-to guides to help you build, optimize, and scale.
+    - link "Read our blog":
+      - /url: /blog
+      - button "Read our blog"
+    - link:
+      - /url: /blog/sports-product-video-ads-ai-2026
+      - article:
+        - figure:
+          - img "How to Turn Sports Product Photos into AI Video Ads in 2026"
+        - heading "How to Turn Sports Product Photos into AI Video Ads in 2026" [level=3]
+    - link:
+      - /url: /blog/seedance4k-breakdown
+      - article:
+        - figure:
+          - img "Recreate Our 1-Minute Seedance 4K Film - The Full Seedance 4K Breakdown With All Prompts"
+        - heading "Recreate Our 1-Minute Seedance 4K Film - The Full Seedance 4K Breakdown With All Prompts" [level=3]
+    - link:
+      - /url: /blog/ai-car-commercial-youtube-guide
+      - article:
+        - figure:
+          - img "Full AI Car Commercial Tutorial"
+        - heading "Full AI Car Commercial Tutorial" [level=3]
+    - link:
+      - /url: /blog/ai-vs-vfx
+      - article:
+        - figure:
+          - img "How To Make Realistic VFX Shots With Seedance 2.5 (Full Workflow)"
+        - heading "How To Make Realistic VFX Shots With Seedance 2.5 (Full Workflow)" [level=3]
+    - link:
+      - /url: /blog/Product-Videos-TikTok-Reels-Without-Filming
+      - article:
+        - figure:
+          - 'img "How to Make Product Videos for TikTok and Reels Without Filming: 10 AI Formats That Work"'
+        - 'heading "How to Make Product Videos for TikTok and Reels Without Filming: 10 AI Formats That Work" [level=3]'
+    - link:
+      - /url: /blog/Higgsfield-Omni-VFX
+      - article:
+        - figure:
+          - img "How to Edit Real Footage with Gemini Omni Flash"
+        - heading "How to Edit Real Footage with Gemini Omni Flash" [level=3]
+    - link:
+      - /url: /blog/seedance-2-5
+      - article:
+        - figure:
+          - img "Seedance 2.5 vs Seedance 2.0 — We Tested Both in 6 Categories (And Found the One Catch Nobody Mentions)"
+        - heading "Seedance 2.5 vs Seedance 2.0 — We Tested Both in 6 Categories (And Found the One Catch Nobody Mentions)" [level=3]
+    - link:
+      - /url: /blog/vfx_4k
+      - article:
+        - figure:
+          - img "AI VFX Just Got Insane — Seedance 2.0 in 4K Turns Real Footage Into Movies"
+        - heading "AI VFX Just Got Insane — Seedance 2.0 in 4K Turns Real Footage Into Movies" [level=3]
+    - link:
+      - /url: /blog/Santiago-breakdown
+      - article:
+        - figure:
+          - img "How To Direct an AI Short Film Like a Filmmaker (Full Workflow + Prompts)"
+        - heading "How To Direct an AI Short Film Like a Filmmaker (Full Workflow + Prompts)" [level=3]
+    - link:
+      - /url: /blog/61UhiQpNLVrX41WA7QGFdc
+      - article:
+        - figure:
+          - img "OpenAI Image Styles x Higgsfield = All-in-One Animated Studio"
+        - heading "OpenAI Image Styles x Higgsfield = All-in-One Animated Studio" [level=3]
+    - heading "Still have questions?" [level=2]
+    - paragraph: We’ve answered the most frequently asked questions
+    - group: What is AI video generation? AI video generation is the process of creating videos using artificial intelligence models. Instead of filming with a physical camera, you describe what you want (through text prompts, reference images, or both) and the AI produces a video clip. Modern AI video tools like Higgsfield go far beyond basic prompt-to-video by giving you control over camera movement, character consistency, optical style, and more.
+    - group:
+      - text: What AI video models are available on Higgsfield?
+      - img
+    - group:
+      - text: What is Cinema Studio?
+      - img
+    - group:
+      - text: Do I need video editing experience to use Higgsfield?
+      - img
+    - group:
+      - text: Can I use my own images or videos as input?
+      - img
+    - group:
+      - text: What can I use AI-generated videos for?
+      - img
+    - group:
+      - text: How is Higgsfield different from other AI video generators?
+      - img
+    - group:
+      - text: What video quality and formats does Higgsfield support?
+      - img
+    - group:
+      - text: Is Higgsfield free to use?
+      - img
+    - heading "Explore more AI features" [level=2]
+    - link "Cinematic Video Generator":
+      - /url: /cinematic-video-generator
+    - link "Kling 3.0":
+      - /url: /kling-3.0
+    - link "Wan 2.6":
+      - /url: /wan-2.6
+    - link "Grok Imagine":
+      - /url: /grok-imagine
+    - link "Wan AI Video":
+      - /url: /wan-ai-video
+    - link "Seedance":
+      - /url: /seedance
+    - link "Veo 3.1":
+      - /url: /veo3.1
+    - link "Seedance 2.0":
+      - /url: /seedance/2.0
+    - link "Seedance 2.5":
+      - /url: /seedance/2.5
+    - link "Effects":
+      - /url: /motion
+    - link "Camera Controls":
+      - /url: /camera-controls
+    - link "MiniMax":
+      - /url: /minimax
+    - link "Claude AI Video Generator":
+      - /url: /claude-ai-video-generator
+    - link "Transitions":
+      - /url: /apps/transitions
+    - link "Recast":
+      - /url: /apps/recast
+    - link "AI Face Swap":
+      - /url: /apps/face-swap
+    - link "Bullet Time Scene":
+      - /url: /apps/bullet-time-scene
+    - link "3D Rotation":
+      - /url: /apps/3d-rotation
+    - link "Cloud Surf":
+      - /url: /apps/cloud-surf
+    - link "Mukbang":
+      - /url: /apps/mukbang
+    - link "Video Background Remover":
+      - /url: /apps/video-background-remover
+    - link "Video Editing":
+      - /url: /apps/video-editing
+    - link "Mixed Media Intro":
+      - /url: /mixed-media-intro
+    - link "AI Image Generator":
+      - /url: /ai-image
+    - link "Nano Banana Pro Intro":
+      - /url: /nano-banana-intro
+    - link "GPT Image 2":
+      - /url: /gpt-2
+    - link "AI Video Editor":
+      - /url: /ai-video-editor
+    - link "AI Video Upscaler":
+      - /url: /ai-video-upscaler
+    - link "AI Commercial Generator":
+      - /url: /ai-commercial-generator
+    - link "AI Brand Video Generator":
+      - /url: /ai-brand-video-generator
+    - link "AI Product Video Generator":
+      - /url: /ai-product-video-generator
+    - link "AI Invitation Video Maker":
+      - /url: /ai-invitation-video-maker
+    - link "AI Car Video Generator":
+      - /url: /ai-car-video-generator
+    - link "AI Nature Video Generator":
+      - /url: /ai-nature-video-generator
+    - link "AI Background Video Generator":
+      - /url: /ai-background-video-generator
+    - link "AI Anime Video Generator":
+      - /url: /ai-anime-video-generator
+    - link "AI Animal Video Generator":
+      - /url: /ai-animal-video-generator
+    - link "AI Human Video Generator":
+      - /url: /ai-human-video-generator
+    - link "AI Video Extender":
+      - /url: /ai-video-extender
+    - link "AI Prompt Generator":
+      - /url: /ai-prompt-generator
+    - link "AI Podcast Generator":
+      - /url: /ai-podcast-generator
+    - link "Text to Video AI":
+      - /url: /text-to-video-ai
+    - link "Image to Video AI":
+      - /url: /image-to-video-ai
+    - link "Video to Video AI":
+      - /url: /video-to-video
+    - link "AI Ad Generator":
+      - /url: /ai-ad-generator
+    - link "AI Long Video Generator":
+      - /url: /ai-long-video-generator
+    - link "AI Movie Maker":
+      - /url: /ai-movie-generator
+    - link "AI Voice Generator":
+      - /url: /ai-voice-generator
+    - link "Faceless Studio":
+      - /url: /faceless-studio-intro
+    - heading "AI-native creative suite" [level=2]
+    - heading "Create" [level=3]
+    - list:
+      - listitem:
+        - link "AI Video":
+          - /url: /ai-video
+      - listitem:
+        - link "AI Video Effects":
+          - /url: /motion
+      - listitem:
+        - link "AI Image to Video":
+          - /url: /image-to-video-ai
+      - listitem:
+        - link "AI Text to Video":
+          - /url: /text-to-video-ai
+      - listitem:
+        - link "AI Video Editor":
+          - /url: /ai-video-editor
+      - listitem:
+        - link "Genjutsu for Reels":
+          - /url: https://higgsfield.ai/genjutsu-for-reels-intro
+      - listitem:
+        - link "Faceless Studio":
+          - /url: https://higgsfield.ai/faceless-studio-intro
+      - listitem:
+        - link "AI Explainer":
+          - /url: https://higgsfield.ai/explainer-intro
+      - listitem:
+        - link "AI Image":
+          - /url: /ai-image
+      - listitem:
+        - link "Edit Image":
+          - /url: /layers?model=nano_banana_pro_inpaint
+      - listitem:
+        - link "Inpaint":
+          - /url: /image-editing
+      - listitem:
+        - link "Upscale":
+          - /url: /upscale
+      - listitem:
+        - link "AI Video Upscaler":
+          - /url: /ai-video-upscaler
+      - listitem:
+        - link "Mixed Media":
+          - /url: /mixed-media-intro
+      - listitem:
+        - link "AI Face Swap":
+          - /url: /apps/face-swap
+      - listitem:
+        - link "AI Influencer":
+          - /url: /ai-influencer
+      - listitem:
+        - link "Apps":
+          - /url: /apps
+    - heading "Video Models" [level=3]
+    - list:
+      - listitem:
+        - link "Seedance 2.5":
+          - /url: /seedance/2.5
+      - listitem:
+        - link "Seedance 2.0":
+          - /url: /seedance/2.0
+      - listitem:
+        - link "Kling 3.0":
+          - /url: /kling-3.0
+      - listitem:
+        - link "Kling 4.0":
+          - /url: /kling-4-0-intro
+      - listitem:
+        - link "Veo 3.1 Introduction":
+          - /url: /veo3.1
+      - listitem:
+        - link "WAN 2.6":
+          - /url: /wan-2.6
+      - listitem:
+        - link "Grok Imagine 1.5":
+          - /url: /grok-imagine-1.5
+      - listitem:
+        - link "Gemini Omni Flash":
+          - /url: /gemini-omni-flash
+      - listitem:
+        - link "MiniMax H3":
+          - /url: /minimax/h3
+    - heading "Image Models" [level=3]
+    - list:
+      - listitem:
+        - link "Nano Banana":
+          - /url: /nano-banana-intro
+      - listitem:
+        - link "Flux 2":
+          - /url: /flux-2-intro
+      - listitem:
+        - link "Seedream 5":
+          - /url: /seedream-5.0
+      - listitem:
+        - link "GPT Image 2.6":
+          - /url: /chatgpt-image-2-6
+      - listitem:
+        - link "GPT Image 2":
+          - /url: /gpt-2
+      - listitem:
+        - link "Ideogram 4.5":
+          - /url: /ideogram-4-5-intro
+    - heading "Studios" [level=3]
+    - list:
+      - listitem:
+        - link "Cinema Studio":
+          - /url: /cinematic-video-generator
+      - listitem:
+        - link "Marketing Studio":
+          - /url: /marketing-studio-intro
+      - listitem:
+        - link "Lipsync Studio":
+          - /url: /lipsync-studio
+      - listitem:
+        - link "Higgsfield Popcorn":
+          - /url: /storyboard-generator
+      - listitem:
+        - link "Higgsfield Canvas":
+          - /url: /canvas-intro
+      - listitem:
+        - link "Higgsfield Mangaka":
+          - /url: /mangaka-intro
+    - heading "Soul" [level=3]
+    - list:
+      - listitem:
+        - link "Soul 2.0":
+          - /url: /soul-intro
+      - listitem:
+        - link "Soul ID Character":
+          - /url: /character
+      - listitem:
+        - link "Soul Cinema":
+          - /url: /soul-cinema
+    - heading "Platform" [level=3]
+    - list:
+      - listitem:
+        - link "Supercomputer":
+          - /url: /supercomputer-intro
+      - listitem:
+        - link "AI Motion Designer":
+          - /url: /ai-motion-designer
+      - listitem:
+        - link "MCP/CLI":
+          - /url: /mcp
+      - listitem:
+        - link "API":
+          - /url: https://higgsfield.ai/higgsfield-api
+      - listitem:
+        - link "Collab":
+          - /url: /chat-intro
+      - listitem:
+        - link "Games":
+          - /url: /games-intro
+      - listitem:
+        - link "Reference Extension":
+          - /url: https://chromewebstore.google.com/detail/higgsfield-reference/oohmjaflbknghbidmaoonmchcodhmkgj
+    - heading "Resources" [level=3]
+    - list:
+      - listitem:
+        - link "Blog":
+          - /url: /blog
+      - listitem:
+        - link "Help Center":
+          - /url: /creator-hub/help-center
+      - listitem:
+        - link "Academy":
+          - /url: /academy
+      - listitem:
+        - link "Prompt Guide":
+          - /url: /nano-banana-pro-prompt-guide
+    - heading "Company" [level=3]
+    - list:
+      - listitem:
+        - link "About":
+          - /url: /about
+      - listitem:
+        - link "Trust":
+          - /url: /trust
+      - listitem:
+        - link "Report a vulnerability":
+          - /url: https://bugcrowd.com/engagements/higgsfield-ai-vdp-pro
+      - listitem:
+        - link "Enterprise":
+          - /url: /enterprise
+      - listitem:
+        - link "Team":
+          - /url: /team-plan
+      - listitem:
+        - link "Pricing":
+          - /url: /pricing
+      - listitem:
+        - link "Careers":
+          - /url: https://jobs.ashbyhq.com/higgsfieldai
+      - listitem:
+        - link "Contact":
+          - /url: /contact
+    - heading "Community" [level=3]
+    - list:
+      - listitem:
+        - link "Community":
+          - /url: /community
+      - listitem:
+        - link "Contests":
+          - /url: /community/contests
+      - listitem:
+        - link "Creative Partners":
+          - /url: https://higgsfield.ai/creator-partnership-program
+    - paragraph: 535 Mission St, 14th floor, San Francisco, CA, 94105
+    - list:
+      - listitem:
+        - link "X / Twitter":
+          - /url: https://x.com/higgsfield
+      - listitem:
+        - link "Youtube":
+          - /url: https://www.youtube.com/@HiggsfieldAI
+      - listitem:
+        - link "LinkedIn":
+          - /url: https://www.linkedin.com/company/higgsfield
+      - listitem:
+        - link "Tiktok":
+          - /url: https://www.tiktok.com/@higgsfield.ai90
+      - listitem:
+        - link "Discord":
+          - /url: https://discord.com/invite/higgsfield
+  - contentinfo:
+    - navigation:
+      - paragraph: © 2026 Higgsfield, Inc. All rights reserved.
+      - list:
+        - listitem:
+          - button "Change language":
+            - img "English flag"
+            - text: English
+            - img
+        - listitem:
+          - link "Help center":
+            - /url: /creator-hub/help-center
+        - listitem:
+          - link "Cookie Notice":
+            - /url: /cookie-notice
+        - listitem:
+          - button "Cookie Settings"
+        - listitem:
+          - link "Terms":
+            - /url: /terms-of-use-agreement
+        - listitem:
+          - link "Privacy":
+            - /url: /privacy-policy
+        - listitem:
+          - link "Report a vulnerability":
+            - /url: https://bugcrowd.com/engagements/higgsfield-ai-vdp-pro

@@ -1,0 +1,10 @@
+node_modules/
+out/
+dist/
+.data/
+release/
+test-results/
+.env
+.temp/
+docs/evidence/rea-session.json
+docs/evidence/rea-extension-session.json
