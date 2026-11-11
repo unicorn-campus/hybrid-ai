@@ -190,3 +190,21 @@ python check_graph.py --help
 
 검증을 통과하지 못한 세대는 게시되지 않습니다.  
 자세한 환경 설정과 서비스 중지 방법은 [GraphRAG 공통 안내](../README.md)를 참고합니다.
+
+## 부록. VS Code import 경고 해결
+
+VS Code가 `kr_tokenizer` 같은 저장소 안의 모듈을 찾지 못하면 import 경고를 표시할 수 있습니다.  
+저장소 루트 `hybrid-ai`를 VS Code로 연 상태에서 `.vscode/settings.json`에 다음 경로를 설정합니다.
+
+```json
+{
+  "python.analysis.extraPaths": [
+    "hands-on/solutions/rag/indexing",
+    "hands-on/solutions/graphrag/indexer"
+  ]
+}
+```
+
+기존 `settings.json`이 있다면 파일을 덮어쓰지 않고 `python.analysis.extraPaths` 항목을 기존 설정에 합칩니다.  
+이어서 `Ctrl+Shift+P`에서 `Python: Select Interpreter`를 열고  
+`hands-on/solutions/graphrag/.venv`를 선택하면 설치한 패키지의 import 경고도 확인할 수 있습니다.
