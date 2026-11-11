@@ -1,10 +1,10 @@
 """KG 구축 서브 워크플로우.
 
-준비 prepare(): K1 추출 단위 나누기 → K2 추출(LLM) → K3 가지치기. 결과는 파일로 보관만 하고 Neo4j에는 쓰지 않음
+준비 prepare(): K1 추출 청크 나누기 → K2 추출(LLM) → K3 가지치기. 결과는 파일로 보관만 하고 Neo4j에는 쓰지 않음
 반영 apply():   K4 적재(Neo4j에 새 청크 넣기) → K5 병합(관련 엔티티만) → K6 노드 설명 임베딩
 정리 cleanup(): K7 청크 정리(옛 청크 노드와 고아 엔티티 지우기)
 
-추출 단위(약관 조항)는 LLM에 넣을 글을 정하는 데만 씀. 그래프의 Chunk 노드는 검색엔진 청크와 1대1이고
+추출 청크(약관 조항)는 LLM에 넣을 글을 정하는 데만 씀. 그래프의 Chunk 노드는 검색엔진 청크와 1대1이고
 노드의 chunk_id가 검색엔진 chunk_id와 같음. 검색 결과에서 그래프로 들어갈 때 ID 일치 하나로 찾게 하려는 것임.
 
 활성 세대 파일은 바꾸지 않음(게시는 오케스트레이터가 함).
@@ -30,7 +30,7 @@ SYSTEM_PROPS = {"generation", "run_id", "embedding"}  # 엔티티 설명을 만�
 # ---------------------------------------------------------------- 스키마 읽기
 
 def load_schemas() -> dict[str, dict]:
-    """문서 유형마다 승인 기록이 있는 graph_schema.json, 추출 단위 규칙, 머리줄 칸을 읽음."""
+    """문서 유형마다 승인 기록이 있는 graph_schema.json, 추출 청크 규칙, 머리줄 칸을 읽음."""
 
     out = {}
     for doc_type in config.DOC_TYPES:
@@ -41,7 +41,7 @@ def load_schemas() -> dict[str, dict]:
         approval = load_json(folder / "approval.json")
         out[doc_type] = {
             "schema": GraphSchema.from_file(str(path)),
-            "unit_rule": approval.get("extraction_unit_rule"),  # 없으면 청크를 그대로 추출 단위로 씀
+            "unit_rule": approval.get("extraction_unit_rule"),  # 없으면 청크를 그대로 추출 청크로 씀
             "header": load_json(folder / "schema_spec.json").get("metadata_header", []),
             "signature": sha256_file(path),  # 스키마가 바뀌면 보관한 추출 결과를 다시 쓰지 않음
             "below_criteria": approval.get("below_criteria"),
@@ -49,7 +49,7 @@ def load_schemas() -> dict[str, dict]:
     return out
 
 
-# ---------------------------------------------------------------- K1 추출 단위 나누기
+# ---------------------------------------------------------------- K1 추출 청크 나누기
 
 def _split_by_heading(chunk: dict, rule: dict) -> list[dict]:
     """제목 줄(예: 「제16조(할부 거래)」) 다음 줄이 ①로 시작할 때만 단위를 시작함. 차례 줄은 단위가 되지 않음."""
@@ -70,9 +70,9 @@ def _split_by_heading(chunk: dict, rule: dict) -> list[dict]:
 
 
 def k1_split_units(chunks: list[dict], schemas: dict) -> tuple[list[dict], list[str]]:
-    """청크를 추출 단위로 나눔. 규칙이 있는 문서 유형(약관)만 나누고 나머지는 청크 하나가 단위 하나.
+    """청크를 추출 청크로 나눔. 규칙이 있는 문서 유형(약관)만 나누고 나머지는 청크 하나가 단위 하나.
 
-    반환: (추출 단위 목록, 단위가 하나도 안 나온 청크 ID 목록). 단위의 chunk_ids는 이 단위가 나온 검색용 청크 ID.
+    반환: (추출 청크 목록, 단위가 하나도 안 나온 청크 ID 목록). 단위의 chunk_ids는 이 단위가 나온 검색용 청크 ID.
     chunk_ids는 준비 결과 파일에만 두는 기록임. K4가 이 목록으로 엔티티를 청크 노드에 잇고, 그래프에는 쓰지 않음.
     """
 

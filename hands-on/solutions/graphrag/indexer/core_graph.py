@@ -3,7 +3,7 @@
 이 파일의 함수는 main(index_graph.py)이 순서대로 부름. 단계와 함수의 대응은 아래와 같음(교재 30 ~ 62쪽).
   ① 세대 ID 발급      issue_generation          (직접 작성)
   ② 공통 단계         prepare_chunks            (빈칸 2곳)   doc_id와 chunk_id 규칙
-  K1 추출 단위 나누기  split_by_heading          (직접 작성)  조항 제목 줄로 자르기
+  K1 추출 청크 나누기  split_by_heading          (직접 작성)  조항 제목 줄로 자르기
                       k1_split_units            (빈칸 2곳)   단위 ID, 겹친 조항 합치기
   K2 추출, K3 가지치기 extract_one               (빈칸 2곳)   추출기 호출, 가지치기 호출
   K4 적재             build_graph_rows          (빈칸 2곳)   청크 노드, FROM_CHUNK
@@ -54,7 +54,7 @@ def next_nonblank_line(lines: list[str], index: int) -> str:
 
 
 def head_line(metadata: dict, fields: list[str]) -> str:
-    """메타데이터를 「칸: 값 | 칸: 값」 한 줄로 만들어 추출 단위 앞에 붙임(교재 35쪽 ②).
+    """메타데이터를 「칸: 값 | 칸: 값」 한 줄로 만들어 추출 청크 앞에 붙임(교재 35쪽 ②).
 
     값이 없는 칸은 뺌. 상담 번호나 날짜처럼 본문에 없는 키 속성을 LLM이 채우게 하려는 것임.
     """
@@ -160,15 +160,15 @@ def prepare_chunks(rows: list[dict]) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# K1 추출 단위 나누기 (교재 32, 34쪽)
+# K1 추출 청크 나누기 (교재 32, 34쪽)
 # ---------------------------------------------------------------------------
 def split_by_heading(text: str, rule: dict) -> list[dict]:
-    """청크 본문을 조항 제목 줄 기준으로 잘라 추출 단위 조각 목록을 돌려줌. — 직접 작성
+    """청크 본문을 조항 제목 줄 기준으로 잘라 추출 청크 조각 목록을 돌려줌. — 직접 작성
 
     목적: 약관 청크 하나에 조항이 여러 개 섞여 있으면 LLM이 조항 안의 조건과 기한을 놓치므로, 조항마다 따로 넣으려는 것임.
     방법: ① 제목 줄(예: 「제16조(할부 거래)」)이면서 ② 다음 줄이 본문 시작 표시(①)로 시작하는 줄만 시작점으로 잡음
           (차례에 있는 제목 줄은 다음 줄이 또 제목이라 제외됨). ③ 다음 시작점 전까지가 한 조각. ④ 장 제목 줄은 버림.
-    인자: rule은 스키마 승인 기록의 추출 단위 규칙 {"heading": 제목 줄 정규식(그룹 1이 조항 번호), "body_start": "①",
+    인자: rule은 스키마 승인 기록의 추출 청크 규칙 {"heading": 제목 줄 정규식(그룹 1이 조항 번호), "body_start": "①",
           "drop_lines": 버릴 줄 정규식(없을 수 있음)}.
     반환값: [{"key": "제16조의2", "section_label": "제16조의2(할부 거래의 철회 요청)", "text": 조각 본문}, ...].
             제목 줄이 하나도 없으면 빈 목록.
@@ -211,9 +211,9 @@ def split_by_heading(text: str, rule: dict) -> list[dict]:
 
 
 def k1_split_units(chunks: list[dict], schemas: dict) -> tuple[list[dict], list[str]]:
-    """청크 목록을 추출 단위 목록으로 바꿈. 규칙이 있는 문서 유형(약관)만 나누고 나머지는 청크 하나가 단위 하나. — 빈칸 2곳
+    """청크 목록을 추출 청크 목록으로 바꿈. 규칙이 있는 문서 유형(약관)만 나누고 나머지는 청크 하나가 단위 하나. — 빈칸 2곳
 
-    목적: LLM에 한 번에 넣을 글 조각(추출 단위)을 정함. 단위는 LLM 입력에만 쓰고 그래프 노드가 되지 않음(교재 32쪽).
+    목적: LLM에 한 번에 넣을 글 조각(추출 청크)을 정함. 단위는 LLM 입력에만 쓰고 그래프 노드가 되지 않음(교재 32쪽).
     방법: 문서 유형의 unit_rule이 없으면 청크 그대로. 있으면 split_by_heading으로 나누고,
           단위 ID = 문서 ID + "#" + 조항 번호. 같은 단위 ID가 다른 청크에서 또 나오면(겹침) 긴 글을 남기고 청크 ID를 모두 모음.
     인자: schemas는 {문서 유형: {"schema", "unit_rule", "header", "signature"}}.
@@ -272,7 +272,7 @@ def k1_split_units(chunks: list[dict], schemas: dict) -> tuple[list[dict], list[
 # K2 추출, K3 가지치기 (교재 35, 36쪽) — 빈칸 2곳
 # ---------------------------------------------------------------------------
 def extract_one(unit: dict, spec: dict, llm, retries: int) -> dict:
-    """추출 단위 하나를 LLM에 넣어 노드와 관계를 뽑고(K2), 스키마 밖은 바로 지움(K3).
+    """추출 청크 하나를 LLM에 넣어 노드와 관계를 뽑고(K2), 스키마 밖은 바로 지움(K3).
 
     목적: 단위마다 「머리줄 + 본문」과 문서 유형의 그래프 스키마를 추출기에 주어 스키마 모양대로 JSON 그래프를 받음.
     방법: neo4j-graphrag의 LLMEntityRelationExtractor(추출 프롬프트는 라이브러리 것 그대로)와 GraphPruning을 씀.
@@ -370,7 +370,7 @@ def build_graph_rows(chunks: list[dict], units: list[dict], schemas: dict, gener
 def k5_merge(driver, generation: str, merge_keys: set) -> int:
     """같은 세대에서 스키마 고유 속성 값이 같은 노드를 하나로 합침.
 
-    목적: 여러 추출 단위에 흩어진 같은 대상(예: 상품 안내 노드 ProductGuide D2-C021이 청크 4개에서 각각 뽑힘)을 한 노드로 모음.
+    목적: 여러 추출 청크에 흩어진 같은 대상(예: 상품 안내 노드 ProductGuide D2-C021이 청크 4개에서 각각 뽑힘)을 한 노드로 모음.
     방법: (라벨, 속성, 값)마다 같은 세대에서 값이 같은 노드를 모아 2개 이상이면 APOC mergeNodes로 합침.
           속성이 다르면 목록 첫 노드 값을 남기고(discard), 관계는 모두 합친 노드로 옮김(mergeRels).
     인자: merge_keys는 K4가 모은 {(라벨, 속성 이름, 값)}. 이번에 들어온 값만 검사함(교재 40쪽 ①).

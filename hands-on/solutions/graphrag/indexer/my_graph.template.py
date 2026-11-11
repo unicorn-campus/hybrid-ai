@@ -1,7 +1,7 @@
 """교육생용 뼈대: core_graph.py와 같은 이름, 같은 인자의 실습 함수 16개를 본인 코드로 채우는 파일임.
 
 채우는 순서(워크플로우 순서). "직접"은 NotImplementedError 자리에 본인 코드를 쓰고, "빈칸"은 거의 완성된 코드의 빈칸만 채움
-  [교시 A: 세대와 청크, 추출 단위, 추출]
+  [교시 A: 세대와 청크, 추출 청크, 추출]
    1 issue_generation        (직접)      ① 세대 ID 규칙과 사전 검사
    2 prepare_chunks          (빈칸 2곳)  ② doc_id 규칙, chunk_id 규칙
    3 split_by_heading        (직접)      K1 조항 제목 줄로 자르기
@@ -60,7 +60,7 @@ def next_nonblank_line(lines: list[str], index: int) -> str:
 
 
 def head_line(metadata: dict, fields: list[str]) -> str:
-    """메타데이터를 「칸: 값 | 칸: 값」 한 줄로 만들어 추출 단위 앞에 붙임(교재 35쪽 ②). 값이 없는 칸은 뺌."""
+    """메타데이터를 「칸: 값 | 칸: 값」 한 줄로 만들어 추출 청크 앞에 붙임(교재 35쪽 ②). 값이 없는 칸은 뺌."""
     parts = []
     for field in fields:
         value = metadata.get(field)
@@ -141,10 +141,10 @@ def prepare_chunks(rows: list[dict]) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# 3. K1 추출 단위 나누기 (교재 32, 34쪽) — 직접 작성
+# 3. K1 추출 청크 나누기 (교재 32, 34쪽) — 직접 작성
 # ---------------------------------------------------------------------------
 def split_by_heading(text: str, rule: dict) -> list[dict]:
-    """청크 본문을 조항 제목 줄 기준으로 잘라 추출 단위 조각 목록을 돌려줌.
+    """청크 본문을 조항 제목 줄 기준으로 잘라 추출 청크 조각 목록을 돌려줌.
 
     방법: ① 제목 줄(rule["heading"] 정규식에 맞는 줄)이면서 ② 다음 줄(next_nonblank_line)이 rule["body_start"]로
           시작하는 줄만 시작점으로 잡음(차례에 있는 제목 줄은 다음 줄이 또 제목이라 제외됨).
@@ -160,7 +160,7 @@ def split_by_heading(text: str, rule: dict) -> list[dict]:
 # 4. K1 단위 목록 만들기 — 빈칸 2곳
 # ---------------------------------------------------------------------------
 def k1_split_units(chunks: list[dict], schemas: dict) -> tuple[list[dict], list[str]]:
-    """청크 목록을 추출 단위 목록으로 바꿈. 규칙이 있는 문서 유형(약관)만 나누고 나머지는 청크 하나가 단위 하나.
+    """청크 목록을 추출 청크 목록으로 바꿈. 규칙이 있는 문서 유형(약관)만 나누고 나머지는 청크 하나가 단위 하나.
 
     반환값: (단위 목록, 단위가 하나도 안 나온 청크 ID 목록). 단위는 {"unit_id", "doc_type", "doc_id", "metadata",
             "text", "chunk_ids", "text_hash"}. chunk_ids는 이 단위가 나온 검색용 청크 ID(K4가 FROM_CHUNK를 이을 때 씀).
@@ -216,7 +216,7 @@ def k1_split_units(chunks: list[dict], schemas: dict) -> tuple[list[dict], list[
 # 5. K2 추출, K3 가지치기 (교재 35, 36쪽) — 빈칸 2곳
 # ---------------------------------------------------------------------------
 def extract_one(unit: dict, spec: dict, llm, retries: int) -> dict:
-    """추출 단위 하나를 LLM에 넣어 노드와 관계를 뽑고(K2), 스키마 밖은 바로 지움(K3).
+    """추출 청크 하나를 LLM에 넣어 노드와 관계를 뽑고(K2), 스키마 밖은 바로 지움(K3).
 
     인자: spec은 schemas[문서 유형]({"schema": GraphSchema, "header": 머리줄 칸, ...}). llm은 main이 만든 LLMInterface.
     반환값: 성공이면 {"graph": 가지치기 뒤 그래프(dict), "raw_nodes": 가지치기 전 노드 수, "kept_nodes": 뒤 노드 수},

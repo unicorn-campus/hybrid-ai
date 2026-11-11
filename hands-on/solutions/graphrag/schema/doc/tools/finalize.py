@@ -48,7 +48,7 @@ def main() -> None:
     if not metrics["all_pass"]:
         approval["below_criteria"] = {"failed": [q for q, m in metrics["metrics"].items() if not m["pass"]],
                                       "reason": accept_below}
-    # 인덱싱이 스키마 설계와 같은 단위로 추출하도록 추출 단위 규칙을 함께 남김(규칙이 있는 문서 종류만)
+    # 인덱싱이 스키마 설계와 같은 단위로 추출하도록 추출 청크 규칙을 함께 남김(규칙이 있는 문서 종류만)
     unit_rule = load_json("decisions.json")["input"].get("extraction_units", {}).get(doc)
     if unit_rule:
         approval["extraction_unit_rule"] = unit_rule

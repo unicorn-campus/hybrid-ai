@@ -155,7 +155,7 @@ def step3_build_full(chunks, generation, gen_dir, run_id, active, driver, commun
 
 def step4_verify(chunks, generation, index, kg_prepared, driver, communities: bool = False) -> dict:
     """④ 검증. 검색엔진 chunk_id 집합 = 전체 청크 = KG 청크 노드 chunk_id 집합인지, 청크 하나에 노드가 하나인지 봄.
-    추출 단위가 없거나 추출에 실패한 청크도 청크 노드는 있으므로 예외 목록이 필요 없음(엔티티만 없음)."""
+    추출 청크가 없거나 추출에 실패한 청크도 청크 노드는 있으므로 예외 목록이 필요 없음(엔티티만 없음)."""
 
     all_ids = {c["chunk_id"] for c in chunks}
     search_ids = search_index.chunk_ids(index)

@@ -3,7 +3,7 @@
 순서: 시험용 표본을 먼저 떼어 둔 뒤 남은 청크에서 발견용 순서를 정함. 작은 묶음에서 발견용이 청크를 다 가져가
 시험용이 비는 일을 막기 위함. 같은 시드면 다시 돌려도 같은 표본과 순서가 나옴.
 실행: python tools/plan_samples.py [문서종류 ...] → 적은 문서 종류만 다시 짜고 나머지는 기존 sample_plan.json을 유지함.
-추출 단위 규칙이 있는 문서 종류는 표본으로 뽑힌 청크만 단위(예: 조항)로 나눠 {doc}/units.json에 저장함.
+추출 청크 규칙이 있는 문서 종류는 표본으로 뽑힌 청크만 단위(예: 조항)로 나눠 {doc}/units.json에 저장함.
 """
 
 from __future__ import annotations
@@ -59,7 +59,7 @@ def split_even(groups: dict[str, list], total: int) -> dict[str, int]:
 
 
 def plan_split_doc(doc: str, groups: dict[str, list], chunks: dict, unit_rule: dict, rng) -> tuple[dict, list]:
-    """추출 단위 규칙이 있는 문서 종류: 청크 순서를 먼저 정하고, 그 순서대로 필요한 단위 수가 찰 때까지만 청크를 나눔.
+    """추출 청크 규칙이 있는 문서 종류: 청크 순서를 먼저 정하고, 그 순서대로 필요한 단위 수가 찰 때까지만 청크를 나눔.
 
     시험용 단위를 먼저 채우고 발견용은 그 뒤 청크에서 채움. 청크가 겹쳐 같은 단위가 양쪽에 나올 수 있어
     시험용에 이미 있는 단위 번호는 발견용에서 뺌. 쓰지 않은 청크는 나누지 않음.
