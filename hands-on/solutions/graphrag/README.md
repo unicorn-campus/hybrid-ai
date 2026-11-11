@@ -1,6 +1,6 @@
 # GraphRAG 실습 예제 — 스키마, 인덱싱, 검색
 
-하이브리드 AI 교육 W5 ~ W7 「관계로 찾기(GraphRAG)」 실습용 예제임(교재 『신한카드 하이브리드AI_W05 ~ W07』).  
+하이브리드 AI 교육 W5 ~ W7 「관계로 찾기(GraphRAG)」 실습용 예제임(교재 『하이브리드AI_W05 ~ W07』).  
 RAG 실습(W3)이 만든 청크를 입력으로 지식 그래프(Neo4j)와 검색엔진 인덱스(OpenSearch)를 만들고, 그 위에서 에이전트 검색을 돌림.  
 가상환경과 패키지 설치는 **이 폴더(`hands-on/solutions/graphrag`)에서만** 하고, 서브 폴더는 같은 가상환경을 활성화한 채 실행함.
 
@@ -37,6 +37,7 @@ Neo4j(그래프 DB)와 OpenSearch(검색엔진)는 indexer와 retriever가 쓰�
 명령은 모두 **저장소 루트의 `backing-services` 폴더**에서 실행함(가상환경과 상관없음). Docker Desktop이 켜져 있어야 함.
 
 처음 한 번: Neo4j 비밀번호 파일을 만듦(`backing-services/neo4j/.env.example`을 복사해 `.env`로 저장하고 `NEO4J_PASSWORD`를 적음.  
+비밀번호는 8자리 이상이어야 합니다.      
 자세한 것은 [neo4j/README.md](../../../backing-services/neo4j/README.md))
 
 ```bash
@@ -179,17 +180,40 @@ VS Code에 경로를 알려 주면 경고가 사라지고, 함수 이름 자동 
 #    PowerShell은 .venv\Scripts\Activate.ps1
 source .venv/Scripts/activate
 
-# 1) 그래프 인덱싱 — 표본 10청크로 ① ~ ⑤ 끝까지(약 1분), 결과를 질문 하나로 확인
+# 1) 그래프 인덱싱(indexer 폴더에서)
 cd indexer
+
+# 1-1) 단계별로 멈춰 결과 보기 — 그 단계까지만 수행하고, 한 일과 실제 결과와 직접 확인할 명령을 보여 줌(게시하지 않음)
+#      KG 구축은 k1, k3, k5, k6, k8, 검색엔진 인덱싱은 s1, s2, s3. 값만 바꿔 차례로 돌림
+python index_graph.py --run {별명}-u1 --sample --until k3
+
+# 1-2) 표본 10청크로 ① ~ ⑤ 끝까지(약 1분). 게시까지 해서 활성 세대가 됨. 결과를 질문 하나로 확인
 python index_graph.py --run {별명}-s1 --sample
 python check_graph.py --qid Q09
+
+# 1-3) 정식 전체 인덱싱(청크 260개) — 강사 배포본을 재사용해 LLM 호출을 줄임(몇 분)
+python index_graph.py --run {별명}-f1 --reuse data/teacher
+python check_graph.py --qid Q01
 
 # 2) 그래프 검색 — 질문 하나를 ① ~ ⑩ 단계별 출력으로 확인
 cd ../retriever
 python search_graph.py --qid Q01
 ```
 
-각 단계의 옵션과 출력 읽는 법은 [indexer/README.md](indexer/README.md), [retriever/README.md](retriever/README.md)에 있음.  
+인덱싱은 1-1, 1-2, 1-3 중 필요한 것을 고름(1-2와 1-3은 마지막에 게시한 쪽이 활성 세대가 되고, 검색은 활성 세대를 읽음).  
+
+| 단계 | 언제 | 비고 |
+|---|---|---|
+| 1-1 단계별 확인 | 각 단계가 무엇을 하고 결과가 어떤지 보고 싶을 때 | 게시하지 않아 활성 세대는 그대로. 실행 이름은 1-2와 다르게 줌 |
+| 1-2 표본 실행 | 처음 해 보거나 수업 중 빠르게 돌릴 때 | 표본 세대에서는 Q09와 상담 질문만 맞고, 약관 질문(Q01, Q02)은 전체 세대에서 확인함 |
+| 1-3 정식 전체 인덱싱 | 260청크 전체로 검색 결과를 볼 때 | 강사 배포본(`data/teacher`)이 없으면 `--reuse`를 빼고 돌림(LLM 약 300번, 10분 안팎) |
+
+- 1-3은 2026-11-11 실측으로 186초가 걸렸고, 강사 배포본에 없는 부분만 LLM을 불렀음(추출 48번, 커뮤니티 요약 12번)  
+- 같은 입력과 설정으로 다시 돌리면 「할 일 없음」으로 끝남. 그래도 새로 만들려면 `--full-reindex`와 **새 실행 이름**을 줌  
+- `--until`로 단계를 보는 중에는 활성 세대가 바뀌지 않으므로 검색과 `check_graph.py`는 이전과 똑같이 동작함  
+
+각 단계의 옵션과 출력 읽는 법은 [indexer/README.md](indexer/README.md)(전체 실행은 4.2, 단계별 확인은 4.5),  
+[retriever/README.md](retriever/README.md)에 있음.  
 `schema/` 도구는 강사용이며, 같은 가상환경을 활성화한 채 `schema/doc` 또는 `schema/rdb` 폴더에서 `python tools/{도구}.py`로 실행함  
 (실행 예는 각 도구 파일 맨 위 설명에 있음).
 
