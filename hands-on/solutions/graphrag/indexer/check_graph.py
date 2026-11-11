@@ -12,6 +12,7 @@
 
 import argparse
 import json
+import re
 import sys
 
 import cohere
@@ -138,17 +139,24 @@ def rerank_chunks(question: str, chunks: list[dict]) -> list[tuple[dict, float]]
     return [(chunks[r.index], r.relevance_score) for r in response.results]
 
 
+def squash(text: str) -> str:
+    """공백과 줄바꿈을 모두 지움. 원문은 줄이 띄어쓰기 자리나 낱말 중간에서 끊겨 있어(예: 「7일\\n이내에」, 「시점\\n에」)
+    글자 그대로 비교하면 정답이 있어도 어긋나므로, 비교할 때만 양쪽에서 지움(화면에 보이는 글은 그대로)."""
+    return re.sub(r"\s+", "", text)
+
+
 def hit_check(item: dict, chunks: list[dict], entities: list[dict]) -> list[str]:
-    """평가셋 relevance.clues(정답 단서)가 상위 청크 본문이나 엔티티 설명에 있으면 적중으로 봄."""
-    texts = [c["source"]["text"] for c in chunks]
-    descriptions = [main.core.entity_description(e["label"], e["props"]) for e in entities]
+    """평가셋 relevance.clues(정답 단서)가 상위 청크 본문이나 엔티티 설명에 있으면 적중으로 봄. 공백과 줄바꿈은 무시함."""
+    texts = [squash(c["source"]["text"]) for c in chunks]
+    descriptions = [squash(main.core.entity_description(e["label"], e["props"])) for e in entities]
     results = []
     for rel in item.get("relevance", []):
         for phrase in rel.get("clues", []):
             where = []
-            if any(phrase in t for t in texts):
+            needle = squash(phrase)
+            if any(needle in t for t in texts):
                 where.append("청크")
-            if any(phrase in d for d in descriptions):
+            if any(needle in d for d in descriptions):
                 where.append("엔티티")
             results.append(f"{'적중' if where else '빗나감'}({', '.join(where) or '-'}): {short(phrase, 50)}")
     return results
