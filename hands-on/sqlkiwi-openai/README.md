@@ -2,7 +2,7 @@
 
 sqlkiwi는 테이블 구조를 살펴보고 SQL을 작성한 뒤 결과를 확인하는 데스크톱 SQL 클라이언트입니다.
 설치된 DBeaver Community 25.0.5를 REA로 분석하고, 자주 사용하는 SQL 작업 흐름을 독립적으로 구현했습니다.
-프로젝트 폴더 이름은 요청하신 `sqlwiki-openai`이며, 앱 이름은 `sqlkiwi`입니다.
+프로젝트 폴더 이름은 `sqlkiwi-openai`이며, 앱 이름은 `sqlkiwi`입니다.
 
 처음 실행하면 Kiwi Shop 예제 SQLite 데이터베이스에 연결합니다.
 고객, 상품, 주문, 주문 항목이 준비되어 있어 서버를 따로 설치하지 않고 JOIN 쿼리부터 실행할 수 있습니다.
@@ -16,7 +16,7 @@ SQLite 실행은 Electron에 포함된 Node.js의 `node:sqlite`를 사용하므�
 최초 의존성 설치와 Electron 다운로드에는 인터넷 연결이 필요합니다.
 
 ```powershell
-cd C:\Users\hiond\class\hybrid-ai\hands-on\sqlwiki-openai
+cd C:\Users\hiond\class\hybrid-ai\hands-on\sqlkiwi-openai
 npm ci
 npm run build
 npm start
@@ -24,6 +24,8 @@ npm start
 
 Windows에서는 프로젝트의 `start.ps1`로 설치, 빌드와 실행을 순서대로 진행할 수도 있습니다.
 개발 중 화면을 자동으로 다시 읽으려면 `npm run dev`를 사용합니다.
+`npm run dev`, `npm start`, `npm run package:win`은 실행 전에 Electron 바이너리를 확인합니다.
+바이너리가 없으면 `install-electron`이 현재 Electron 버전에 맞는 파일을 내려받습니다.
 
 Windows용 앱 폴더를 만들려면 다음 명령을 실행합니다.
 
