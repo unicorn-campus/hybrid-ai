@@ -94,13 +94,13 @@ def k1_split_units(chunks: list[dict], schemas: dict) -> tuple[list[dict], list[
         for p in parts:
             uid = f"{base['doc_id']}#{p['key']}"  # 예) D1_27223010abe31291#제16조의2
             md = {**base["metadata"], "section_label": p["section_label"]}
-            old = units.get(uid)
-            if old is None:
+            unit = units.get(uid)
+            if unit is None:
                 units[uid] = {**base, "metadata": md, "unit_id": uid, "text": p["text"],
                               "chunk_ids": [c["chunk_id"]]}
-            elif c["chunk_id"] not in old["chunk_ids"]:  # 겹침으로 같은 조항이 또 나오면 긴 글을 남기고 청크 ID는 모두 모음
-                keep = max(old["text"], p["text"], key=len)  # 길이가 같으면 먼저 나온 글을 남김
-                old.update(text=keep, chunk_ids=old["chunk_ids"] + [c["chunk_id"]])
+            elif c["chunk_id"] not in unit["chunk_ids"]:  # 겹침으로 같은 조항이 또 나오면 긴 글을 남기고 청크 ID는 모두 모음
+                keep = max(unit["text"], p["text"], key=len)  # 길이가 같으면 먼저 나온 글을 남김
+                unit.update(text=keep, chunk_ids=unit["chunk_ids"] + [c["chunk_id"]])
     for u in units.values():
         u["text_hash"] = sha256_text(u["text"])
     return list(units.values()), empty

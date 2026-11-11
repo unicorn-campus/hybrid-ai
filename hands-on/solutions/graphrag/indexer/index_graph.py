@@ -7,7 +7,9 @@
   ../.venv/Scripts/python.exe index_graph.py --run {별명}-s1 --sample      표본 10청크(수업용)
   ../.venv/Scripts/python.exe index_graph.py --run {별명}-f1               전체 260청크
 옵션: --full-reindex(사전 검사 무시), --skip-communities(K8 생략), --reuse {폴더}(강사 배포 추출 결과 재사용),
-      --chunks {파일}(Chroma 대신 청크 파일 입력)
+      --chunks {파일}(Chroma 대신 청크 파일 입력),
+      --until {단계}(그 단계까지만 수행하고 멈춰 결과를 보여 줌. k1, k3, k5, k6, k8은 KG 구축만, s1, s2, s3은 검색엔진 인덱싱만.
+                    멈추면 ④ 검증과 ⑤ 게시는 하지 않아 활성 세대는 그대로. 결과 보기는 stage_view.py)
 """
 
 import argparse
@@ -58,6 +60,7 @@ if use_student_code("my_graph"):
 else:
     import core_graph as core  # 강사 코드(기본)
 import kr_tokenizer
+import stage_view  # --until 옵션의 단계별 결과 보기(제공)
 
 sys.stdout.reconfigure(encoding="utf-8")  # Windows 콘솔에서 한글이 깨지지 않게 함
 logging.getLogger("neo4j_graphrag").setLevel(logging.ERROR)  # "LLMInterface is deprecated" 경고를 숨김(동작에는 영향 없음)
@@ -433,16 +436,19 @@ def read_active() -> dict | None:
     return load_json(ACTIVE_FILE) if ACTIVE_FILE.exists() else None
 
 
-def clean_leftovers(driver, os_client: OpenSearch, generation: str) -> None:
+def clean_leftovers(driver, os_client: OpenSearch, generation: str, kg: bool = True, search: bool = True) -> None:
     """중단 뒤 같은 실행 이름으로 다시 돌릴 때, 그 세대에 남은 노드와 검색엔진 인덱스를 지우고 처음부터 다시 만듦.
 
     K4는 노드를 새로 만들기(CREATE)만 하므로, 지우지 않으면 청크 노드가 두 벌이 되어 ④ 검증에 걸림.
+    kg와 search는 이번 실행이 만드는 트랙만 지우려는 것임(--until k8 뒤에 --until s3을 같은 --run으로 돌려도 앞 결과가 남음).
     """
-    records, _, _ = driver.execute_query(
-        "MATCH (n {generation: $g}) WITH n LIMIT 100000 DETACH DELETE n RETURN count(*) AS n", g=generation)
-    deleted_nodes = records[0]["n"]
+    deleted_nodes = 0
+    if kg:
+        records, _, _ = driver.execute_query(
+            "MATCH (n {generation: $g}) WITH n LIMIT 100000 DETACH DELETE n RETURN count(*) AS n", g=generation)
+        deleted_nodes = records[0]["n"]
     deleted_index = False
-    if os_client.indices.exists(index=index_name(generation)):
+    if search and os_client.indices.exists(index=index_name(generation)):
         os_client.indices.delete(index=index_name(generation))
         deleted_index = True
     if deleted_nodes or deleted_index:
@@ -720,12 +726,21 @@ def label_counts(driver, generation: str) -> dict[str, int]:
 # 전체 흐름
 # ---------------------------------------------------------------------------
 def run(args) -> None:
-    """① ~ ⑤를 순서대로 실행함(명령줄 인자 args를 받음)."""
+    """① ~ ⑤를 순서대로 실행함(명령줄 인자 args를 받음). --until이 있으면 그 단계에서 멈추고 결과를 보여 줌."""
+    until = stage_view.parse_until(args.until)  # None이면 끝까지. 잘못된 값이나 k7이면 여기서 안내하고 종료
+    kg_track = until is None or until["track"] == "kg"  # --until k*는 KG 구축만, s*는 검색엔진 인덱싱만 돌림(두 트랙은 서로 독립)
+    search_track = until is None or until["track"] == "search"
+    if until and until["step"] == "K8" and args.skip_communities:
+        raise SystemExit("--until k8은 K8을 수행하므로 --skip-communities와 함께 쓸 수 없음")
     started = time.time()
     driver = neo4j_driver()
     os_client = opensearch_client()
-    gds_ok = check_environment(driver, os_client, want_communities=not args.skip_communities)
+    # K8 전(또는 검색엔진 트랙)까지만 보는 실행은 GDS가 없어도 안내 없이 진행함
+    gds_ok = check_environment(driver, os_client, want_communities=not args.skip_communities
+                               and (until is None or until["step"] == "K8"))
     communities = gds_ok and not args.skip_communities
+    if until and until["step"] == "K8" and not communities:
+        raise SystemExit("--until k8은 Neo4j GDS가 필요함(neo4j/README.md 「gds.version을 찾지 못함」 참고)")
 
     # ② 공통 단계(앞부분): 입력을 읽어 청크 한 건으로 만듦. 세대 ID의 사전 검사에 청크 지문이 필요해 ①보다 먼저 읽음
     if args.chunks:
@@ -745,18 +760,24 @@ def run(args) -> None:
     active = read_active()
     issued = core.issue_generation(args.run, active, input_sha256, config_signature(), args.full_reindex, GENERATION_TAG)
     generation = issued["generation"]
-    if issued["skip"]:
+    if issued["skip"] and until is None:
         log(f"① 세대 ID {generation} → 사전 검사: 입력과 설정이 활성 세대 {active['generation']}와 같아 할 일 없음"
             "(그래도 만들려면 --full-reindex)")
         return
     if active and generation == active["generation"]:
         raise SystemExit(f"세대 {generation}는 지금 활성 세대임: 전체 재색인은 새 실행 이름(--run)으로 해야 함")
     log(f"① 세대 ID {generation}")
-    clean_leftovers(driver, os_client, generation)
+    if until:  # 단계를 보려는 실행이므로 사전 검사로 건너뛰지 않음
+        log(f"① --until {until['step'].lower()}: {stage_view.TRACK_NAME[until['track']]} 트랙만 수행하고 "
+            f"{until['step']}에서 멈춤(④ 검증과 ⑤ 게시는 하지 않아 활성 세대는 그대로)")
+        if until["note"]:
+            log(f"      {until['note']}")
+    clean_leftovers(driver, os_client, generation, kg=kg_track, search=search_track)
     run_id = f"{args.run}@{time.strftime('%Y%m%d%H%M%S')}"
 
     # ② 공통 단계(뒷부분): 청크 파일을 세대 폴더에 고정
     gen_dir = GENERATIONS_DIR / generation
+    stage = stage_view.StageReporter(until, generation, gen_dir, BASE_DIR, args, log)  # --until이 없으면 아무것도 안 함
     save_json(gen_dir / "prepared-chunks.json", chunks)
     log(f"② 공통 단계: 청크 {len(chunks)}개를 {gen_dir.relative_to(BASE_DIR).as_posix()}/prepared-chunks.json 에 고정")
 
@@ -773,79 +794,114 @@ def run(args) -> None:
             f"보고서 {len(previous_reports)}개)")
 
     # ③ 인덱스 구축 — KG 구축(K1 ~ K6, K8). 전체 재색인은 새 세대에 쓰므로 검색엔진 쪽과 순서가 없음(여기서는 차례로 돌림)
-    log("③ 인덱스 구축 시작: KG 구축(K1 ~ K6, K8) → 검색엔진 인덱싱(S1 ~ S3)")
-    schemas = load_schemas()
-    units, empty_chunks = core.k1_split_units(chunks, schemas)
-    multi = [u for u in units if len(u["chunk_ids"]) > 1]
-    by_type_units = {}
-    for unit in units:
-        by_type_units[unit["doc_type"]] = by_type_units.get(unit["doc_type"], 0) + 1
-    log(f"[K1] 청크 {len(chunks)}개 → 추출 단위 {len(units)}개 {by_type_units}, 청크 2개 이상에 걸친 단위 {len(multi)}개, "
-        f"단위가 없는 청크 {len(empty_chunks)}개 {[c[:22] for c in empty_chunks][:5]}")
-    sample_unit = next((u for u in units if u["doc_type"] == "regulation"), units[0] if units else None)
-    if sample_unit:
-        log(f"      단위 예: {sample_unit['unit_id']} ← 청크 {sample_unit['chunk_ids']}, 본문 {len(sample_unit['text'])}자")
+    if kg_track:
+        log("③ 인덱스 구축 시작: KG 구축(K1 ~ K6, K8)" + (" → 검색엔진 인덱싱(S1 ~ S3)" if search_track else ""))
+        schemas = load_schemas()
+        units, empty_chunks = core.k1_split_units(chunks, schemas)
+        multi = [u for u in units if len(u["chunk_ids"]) > 1]
+        by_type_units = {}
+        for unit in units:
+            by_type_units[unit["doc_type"]] = by_type_units.get(unit["doc_type"], 0) + 1
+        log(f"[K1] 청크 {len(chunks)}개 → 추출 단위 {len(units)}개 {by_type_units}, 청크 2개 이상에 걸친 단위 {len(multi)}개, "
+            f"단위가 없는 청크 {len(empty_chunks)}개 {[c[:22] for c in empty_chunks][:5]}")
+        sample_unit = next((u for u in units if u["doc_type"] == "regulation"), units[0] if units else None)
+        if sample_unit:
+            log(f"      단위 예: {sample_unit['unit_id']} ← 청크 {sample_unit['chunk_ids']}, 본문 {len(sample_unit['text'])}자")
+        if stage.done("K1", lambda: stage_view.k1_view(chunks, units, empty_chunks)):  # --until k1이면 여기서 멈춤
+            driver.close()
+            return
 
-    k2 = k2_k3_extract(units, schemas, previous_kg)
-    failed = [u for u in units if "error" in u]
-    raw_nodes = sum(u.get("raw_nodes", 0) for u in units)
-    kept_nodes = sum(len(u.get("graph", {}).get("nodes", [])) for u in units)
-    log(f"[K3] 가지치기: 새로 추출한 단위의 노드 {raw_nodes}개 → 남은 노드(재사용 포함) {kept_nodes}개, "
-        f"실패 단위 {len(failed)}개, 토큰 {k2['usage'].get('total_tokens', 0):,}")
-    if failed:
-        log(f"      첫 실패: {failed[0]['unit_id']} — {failed[0]['error'][:100]}")
-    log(f"      머리줄 채움률(%): {header_fill_rate(units, schemas)}")
-    shown = next((u for u in units if "graph" in u and u["graph"]["nodes"]), None)
-    if shown:
-        labels = [n["label"] for n in shown["graph"]["nodes"]][:8]
-        rels = [r["type"] for r in shown["graph"]["relationships"]][:6]
-        log(f"      단위 {shown['unit_id'][:40]}의 노드 {labels}, 관계 {rels}")
-    kg_prepared = {"chunks": [{"chunk_id": c["chunk_id"], "doc_id": c["doc_id"], "doc_type": c["doc_type"]} for c in chunks],
-                   "units": units, "no_unit_chunks": empty_chunks, "failed_units": [u["unit_id"] for u in failed],
-                   "llm_usage": k2["usage"]}
-    save_json(gen_dir / "kg_prepared.json", kg_prepared)  # 준비 결과 보관: 뒤에서 실패해도 LLM을 다시 부르지 않음
+        k2 = k2_k3_extract(units, schemas, previous_kg)
+        failed = [u for u in units if "error" in u]
+        raw_nodes = sum(u.get("raw_nodes", 0) for u in units)
+        kept_nodes = sum(len(u.get("graph", {}).get("nodes", [])) for u in units)
+        log(f"[K3] 가지치기: 새로 추출한 단위의 노드 {raw_nodes}개 → 남은 노드(재사용 포함) {kept_nodes}개, "
+            f"실패 단위 {len(failed)}개, 토큰 {k2['usage'].get('total_tokens', 0):,}")
+        if failed:
+            log(f"      첫 실패: {failed[0]['unit_id']} — {failed[0]['error'][:100]}")
+        log(f"      머리줄 채움률(%): {header_fill_rate(units, schemas)}")
+        shown = next((u for u in units if "graph" in u and u["graph"]["nodes"]), None)
+        if shown:
+            labels = [n["label"] for n in shown["graph"]["nodes"]][:8]
+            rels = [r["type"] for r in shown["graph"]["relationships"]][:6]
+            log(f"      단위 {shown['unit_id'][:40]}의 노드 {labels}, 관계 {rels}")
+        kg_prepared = {"chunks": [{"chunk_id": c["chunk_id"], "doc_id": c["doc_id"], "doc_type": c["doc_type"]} for c in chunks],
+                       "units": units, "no_unit_chunks": empty_chunks, "failed_units": [u["unit_id"] for u in failed],
+                       "llm_usage": k2["usage"]}
+        save_json(gen_dir / "kg_prepared.json", kg_prepared)  # 준비 결과 보관: 뒤에서 실패해도 LLM을 다시 부르지 않음
+        kg_prepared_path = (gen_dir / "kg_prepared.json").relative_to(BASE_DIR).as_posix()
+        if stage.done("K3", lambda: stage_view.k3_view(units, k2, failed, header_fill_rate(units, schemas), kg_prepared_path)):
+            driver.close()  # --until k2나 k3이면 여기서 멈춤
+            return
 
-    nodes, relationships, merge_keys = core.build_graph_rows(chunks, units, schemas, generation, run_id)
-    k4_write(driver, nodes, relationships)
-    from_chunk = sum(1 for r in relationships if r.type == "FROM_CHUNK")
-    log(f"[K4] 적재: 노드 {len(nodes)}개(청크 노드 {len(chunks)}개 포함), 관계 {len(relationships)}개"
-        f"(FROM_CHUNK {from_chunk}, 추출 관계 {len(relationships) - from_chunk})")
+        nodes, relationships, merge_keys = core.build_graph_rows(chunks, units, schemas, generation, run_id)
+        k4_write(driver, nodes, relationships)
+        from_chunk = sum(1 for r in relationships if r.type == "FROM_CHUNK")
+        log(f"[K4] 적재: 노드 {len(nodes)}개(청크 노드 {len(chunks)}개 포함), 관계 {len(relationships)}개"
+            f"(FROM_CHUNK {from_chunk}, 추출 관계 {len(relationships) - from_chunk})")
+        entities_before = stage_view.count_entities(driver, generation) if stage.active else 0  # K5 병합 전 엔티티 수(보여 주기용)
 
-    merged = core.k5_merge(driver, generation, merge_keys)
-    removed = dedup_from_chunk(driver, generation)
-    examples = sorted(merge_keys)[:3]
-    log(f"[K5] 병합: 검사한 값 {len(merge_keys)}개 중 {merged}묶음 합침, FROM_CHUNK 중복 {removed}개 지움. 값 예: {examples}")
+        merged = core.k5_merge(driver, generation, merge_keys)
+        removed = dedup_from_chunk(driver, generation)
+        examples = sorted(merge_keys)[:3]
+        log(f"[K5] 병합: 검사한 값 {len(merge_keys)}개 중 {merged}묶음 합침, FROM_CHUNK 중복 {removed}개 지움. 값 예: {examples}")
+        if stage.done("K5", lambda: stage_view.k5_view(driver, generation, chunks, len(nodes), len(relationships), from_chunk,
+                                                       entities_before, len(merge_keys), merged, removed)):
+            driver.close()  # --until k4나 k5이면 여기서 멈춤
+            return
 
-    embedded = core.k6_embed_descriptions(driver, generation, embed_texts, EMBED_DIMENSION, ENTITY_INDEX)
-    records, _, _ = driver.execute_query(
-        "MATCH (n:__Entity__ {generation: $g}) RETURN [l IN labels(n) WHERE NOT l STARTS WITH '__'][0] AS label, "
-        "properties(n) AS props LIMIT 3", g=generation)
-    log(f"[K6] 엔티티 설명 임베딩 {embedded}개({EMBED_DIMENSION}차원), 벡터 인덱스 {ENTITY_INDEX}")
-    for record in records:
-        log(f"      설명 글 예: {core.entity_description(record['label'], dict(record['props']))[:110]}")
+        embedded = core.k6_embed_descriptions(driver, generation, embed_texts, EMBED_DIMENSION, ENTITY_INDEX)
+        records, _, _ = driver.execute_query(
+            "MATCH (n:__Entity__ {generation: $g}) RETURN [l IN labels(n) WHERE NOT l STARTS WITH '__'][0] AS label, "
+            "properties(n) AS props LIMIT 3", g=generation)
+        log(f"[K6] 엔티티 설명 임베딩 {embedded}개({EMBED_DIMENSION}차원), 벡터 인덱스 {ENTITY_INDEX}")
+        for record in records:
+            log(f"      설명 글 예: {core.entity_description(record['label'], dict(record['props']))[:110]}")
+        if stage.done("K6", lambda: stage_view.k6_view(driver, generation, embedded, EMBED_DIMENSION, ENTITY_INDEX,
+                                                       EMBEDDING_MODEL, core.entity_description)):
+            driver.close()  # --until k6이면 여기서 멈춤
+            return
 
-    k8_result = None
-    if communities:
-        k8_result, reports = k8_summarize(driver, generation, run_id, previous_reports)
-        save_json(gen_dir / "community_reports.json", reports)
+        k8_result = None
+        if communities:
+            k8_result, reports = k8_summarize(driver, generation, run_id, previous_reports)
+            save_json(gen_dir / "community_reports.json", reports)
+            if stage.done("K8", lambda: stage_view.k8_view(driver, generation, k8_result)):
+                driver.close()  # --until k8이면 여기서 멈춤
+                return
 
     # ③ 인덱스 구축 — 검색엔진 인덱싱(S1 ~ S3)
-    index = index_name(generation)
-    old_vectors = read_old_vectors(os_client, active["search_index"] if active else None)
-    texts = [c["text"] for c in chunks]
-    hashes = [c["text_hash"] for c in chunks]
-    vectors, new_count = core.embed_with_reuse(texts, hashes, old_vectors, embed_texts)
-    log(f"[S1] 임베딩 {new_count}개 새로, {len(chunks) - new_count}개 재사용({EMBEDDING_MODEL}, {len(vectors[0])}차원). "
-        f"벡터 앞 3개: {[round(v, 4) for v in vectors[0][:3]]}")
+    if search_track:
+        if not kg_track:  # --until s*: 검색엔진 트랙만 돌 때의 시작 안내
+            log("③ 인덱스 구축 시작: 검색엔진 인덱싱(S1 ~ S3)")
+        index = index_name(generation)
+        old_vectors = read_old_vectors(os_client, active["search_index"] if active else None)
+        texts = [c["text"] for c in chunks]
+        hashes = [c["text_hash"] for c in chunks]
+        vectors, new_count = core.embed_with_reuse(texts, hashes, old_vectors, embed_texts)
+        log(f"[S1] 임베딩 {new_count}개 새로, {len(chunks) - new_count}개 재사용({EMBEDDING_MODEL}, {len(vectors[0])}차원). "
+            f"벡터 앞 3개: {[round(v, 4) for v in vectors[0][:3]]}")
+        if stage.done("S1", lambda: stage_view.s1_view(chunks, vectors, new_count, EMBEDDING_MODEL, len(vectors[0]))):
+            driver.close()  # --until s1이면 여기서 멈춤
+            return
 
-    lexicon = kr_tokenizer.lexicon_from_chunks(chunks, kr_tokenizer.load_approved_aliases(ALIASES_APPROVED_PATH))
-    docs = core.build_search_docs(chunks, hashes, vectors, lexicon, META_FIELDS)
-    alias_count = sum(len(v) for v in lexicon.aliases.values())
-    log(f"[S2] 키워드 분석 {len(docs)}개 (카드명 사전 {len(lexicon.card_names)}개, 별칭 {alias_count}개). "
-        f"예: {docs[0]['text_tokens'][:80]}")
+        lexicon = kr_tokenizer.lexicon_from_chunks(chunks, kr_tokenizer.load_approved_aliases(ALIASES_APPROVED_PATH))
+        docs = core.build_search_docs(chunks, hashes, vectors, lexicon, META_FIELDS)
+        alias_count = sum(len(v) for v in lexicon.aliases.values())
+        log(f"[S2] 키워드 분석 {len(docs)}개 (카드명 사전 {len(lexicon.card_names)}개, 별칭 {alias_count}개). "
+            f"예: {docs[0]['text_tokens'][:80]}")
+        if stage.done("S2", lambda: stage_view.s2_view(docs, lexicon)):
+            driver.close()  # --until s2이면 여기서 멈춤
+            return
 
-    s3 = core.apply_search(os_client, index, docs, index_mapping(lexicon.meta()))
-    log(f"[S3] 적재: 인덱스 {index}, 문서 {s3['documents']}개, 옛 청크 {s3['deleted']}건 지우고 {s3['indexed']}건 넣음")
+        s3 = core.apply_search(os_client, index, docs, index_mapping(lexicon.meta()))
+        log(f"[S3] 적재: 인덱스 {index}, 문서 {s3['documents']}개, 옛 청크 {s3['deleted']}건 지우고 {s3['indexed']}건 넣음")
+        if stage.done("S3", lambda: stage_view.s3_view(os_client, index, s3, docs, OPENSEARCH_URL)):
+            driver.close()  # --until s3이면 여기서 멈춤
+            return
+
+    if until:  # --until은 위 단계 중 하나에서 반드시 멈춤. 여기까지 왔다면 단계 이름과 코드가 어긋난 것임
+        raise SystemExit(f"--until {until['step'].lower()} 에서 멈추지 못함(코드 확인 필요)")
 
     # ④ 검증
     all_ids = {c["chunk_id"] for c in chunks}
@@ -890,6 +946,10 @@ def main() -> None:
     parser.add_argument("--sample", action="store_true", help="표본 10청크만(수업용)")
     parser.add_argument("--full-reindex", action="store_true", help="사전 검사를 건너뛰고 새 세대를 만듦")
     parser.add_argument("--skip-communities", action="store_true", help="K8 커뮤니티 요약을 건너뜀")
+    parser.add_argument("--until", default=None, metavar="단계",
+                        help="이 단계까지만 수행하고 멈춰 결과를 보여 줌. KG 구축: k1, k3(k2도 가능), k5(k4도 가능), k6, k8. "
+                             "검색엔진 인덱싱: s1, s2, s3. 트랙은 접두어로 정해 k*는 KG만, s*는 검색엔진만 돌림. "
+                             "멈추면 ④ 검증과 ⑤ 게시를 하지 않아 활성 세대는 그대로")
     parser.add_argument("--reuse", default=None, help="앞 결과 폴더(kg_prepared.json, community_reports.json). 강사 배포본 등")
     parser.add_argument("--chunks", default=None, help="Chroma 대신 쓸 청크 파일(prepared-chunks.json)")
     parser.add_argument("--mine", action="store_true", help="강사 코드 대신 교육생 코드(my_graph.py)로 실행함")

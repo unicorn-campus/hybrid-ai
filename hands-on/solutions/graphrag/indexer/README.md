@@ -36,6 +36,7 @@ python check_graph.py --qid Q09
 - K2 추출 결과와 K8 보고서를 **재사용**함(본문 해시, 스키마 지문, 머리줄이 같으면 LLM을 부르지 않음). 강사 배포본으로 LLM 0번 실행 가능
 - 시작 검사가 키, Neo4j(APOC, GDS), OpenSearch, 벡터 인덱스 차원을 확인하고 모자라면 할 일을 알려 줌
 - 중단 뒤 같은 `--run`으로 다시 돌리면 그 세대의 흔적을 지우고 처음부터 만듦. ④ 검증에 실패하면 게시하지 않음
+- `--until {단계}`로 그 단계까지만 수행하고 멈춰, 단계가 한 일과 실제 결과를 화면과 파일로 확인함(4.5)
 
 ## 2. 디렉토리 구조
 
@@ -50,10 +51,12 @@ hands-on/solutions/graphrag/
    ├─ core_graph.py            핵심(클론 코딩 대상): 실습 함수 16개 + 제공 함수 5개
    ├─ my_graph.template.py     교육생 작업 파일의 뼈대(강사 템플릿). --mine 실행 때 my_graph.py로 복사됨. 맨 아래 USE_TEACHER_CODE 목록으로 안 채운 함수는 강사 코드가 대신 돎
    ├─ kr_tokenizer.py          제공(읽지 않아도 됨): RAG 실습 W3에서 작성한 Kiwi 토크나이저와 카드 별칭 규칙
+   ├─ stage_view.py            제공(읽지 않아도 됨): --until 옵션의 단계별 결과 보기(화면 출력, 결과 파일, 확인 명령)
    ├─ check_graph.py           결과 확인 도구(읽기만): 질문 → 검색엔진 → 청크 → 엔티티 → 커뮤니티 → 리랭크 → 적중 판정. --drop으로 세대 지우기
    └─ data/                    실행 결과(Git에 올리지 않음)
       ├─ active_generation.json              활성 세대 파일(⑤ 게시가 바꾸는 유일한 파일)
-      ├─ generations/{세대 ID}/              prepared-chunks.json, kg_prepared.json, community_reports.json, build_report.json
+      ├─ generations/{세대 ID}/              prepared-chunks.json, kg_prepared.json, community_reports.json, build_report.json,
+      │                                      stages/(--until 결과 일부: K1_units.json, K3_extract.json, K5_graph.json, ...)
       └─ teacher/                            강사 배포본(선택). --reuse data/teacher 로 LLM 없이 전체 그래프를 만듦
 ```
 
@@ -164,6 +167,38 @@ python check_graph.py "할부로 산 상품의 철회는 며칠 안에 요청해
 
 ① 사전 검사가 「입력과 설정이 활성 세대와 같아 할 일 없음」으로 끝남. 그래도 새로 만들려면 `--full-reindex`를 붙이고  
 **새 실행 이름**을 줌(활성 세대와 같은 이름은 거부함).
+
+### 4.5 단계별로 멈춰 결과 보기(--until)
+
+`--until {단계}`를 주면 그 단계까지만 수행하고 멈춤. 단계가 **무슨 일을 했는지**와 **실제 결과가 무엇인지**를 보려는 옵션임.  
+멈출 때 화면에 「이 단계가 한 일」, 「실제 결과」(수와 예시), 「직접 확인하는 명령」을 보여 주고, 결과 일부를 파일로 저장함.
+
+```bash
+python index_graph.py --run {별명}-s1 --sample --until k3
+```
+
+| 값 | 멈추는 곳 | 직접 확인하는 곳 |
+|---|---|---|
+| `k1` | K1 추출 청크 나누기 | 화면과 결과 파일(DB에는 아직 없음) |
+| `k3` (`k2`도 가능) | K2 추출 + K3 가지치기 | 화면과 결과 파일(DB에는 아직 없음) |
+| `k5` (`k4`도 가능) | K4 적재 + K5 병합 | Neo4j Browser(http://localhost:7474) |
+| `k6` | K6 엔티티 설명 임베딩 | Neo4j Browser |
+| `k8` | K8 커뮤니티 요약 | Neo4j Browser |
+| `s1` | S1 청크 임베딩 | 화면과 결과 파일(검색엔진에는 아직 없음) |
+| `s2` | S2 키워드 분석 | 화면과 결과 파일(검색엔진에는 아직 없음) |
+| `s3` | S3 검색엔진 적재 | 터미널(`curl.exe`) |
+
+- **트랙은 접두어로 정함.** `k*`는 KG 구축만, `s*`는 검색엔진 인덱싱만 돌림. 두 트랙은 서로 독립이라 `--until s2`가 KG 단계를 기다리지 않음  
+- K2와 K3, K4와 K5는 한 묶음이라 `k2`를 주면 K3까지, `k4`를 주면 K5까지 수행함. K7(청크 정리)은 증분 색인용이라 하지 않음  
+- 멈추면 ④ 검증과 ⑤ 게시를 하지 않음. **활성 세대 파일은 그대로**라서 `check_graph.py`와 검색은 이전과 똑같이 동작함  
+- 화면에 나오는 Cypher는 Neo4j Browser 입력창에, `curl.exe` 줄은 터미널에 한 개씩 붙여 넣음. 같은 명령이 결과 파일에도 저장됨  
+- 결과 파일은 `data/generations/{세대 ID}/stages/`에 단계마다 하나씩 생김. 화면 끝에 `json.tool`로 읽는 명령이 나옴  
+- 단계를 늘려 가며 보려면 같은 `--run`에 값만 바꿔 다시 돌림(`k1` → `k3` → `k5` → `k6` → `k8`). 다시 돌릴 때마다 그 트랙을 처음부터  
+  다시 만들고, 추출 청크마다 LLM을 다시 부름. LLM을 아끼려면 `--reuse data/teacher`(강사 배포본) 또는 `--reuse data/generations/{세대 ID}`를 붙임.  
+  단, K2와 K3 코드를 고쳐 결과를 비교하는 중이면 `--reuse`를 붙이지 않음(옛 결과가 재사용되어 고친 코드가 반영되지 않음)  
+- 같은 `--run`으로 `k*`와 `s*`를 번갈아 돌려도 앞 트랙의 결과가 지워지지 않음. 지우는 범위가 그 트랙뿐임  
+- `--until`을 주면 ① 사전 검사의 「할 일 없음」으로 끝나지 않고 항상 그 단계까지 수행함  
+- 확인을 마친 세대는 `python check_graph.py --drop {세대 ID}`로 지움(화면 끝에 명령이 나옴)
 
 ## 5. 단계별 출력 읽는 법
 
@@ -292,6 +327,7 @@ python check_graph.py "할부로 산 상품의 철회는 며칠 안에 요청해
 | `--skip-communities` | K8 커뮤니티 요약을 건너뜀 | K1 ~ K6, S1 ~ S3만 빨리 볼 때. GDS가 없으면 자동 |
 | `--reuse {폴더}` | 앞 결과 폴더(kg_prepared.json, community_reports.json) | 강사 배포본으로 LLM 없이 돌릴 때. 없으면 활성 세대 폴더를 씀 |
 | `--chunks {파일}` | Chroma 대신 쓸 청크 파일(prepared-chunks.json) | 강사 배포 청크로 맞출 때 |
+| `--until {단계}` | 그 단계까지만 수행하고 멈춰 결과를 보여 줌(k1, k3, k5, k6, k8은 KG만, s1, s2, s3은 검색엔진만). 게시하지 않음 | 단계가 한 일과 결과를 볼 때(4.5) |
 | `check_graph.py --drop {세대}` | 그 세대의 노드와 검색엔진 인덱스를 지움(활성 세대는 거부) | 실패한 세대 정리 |
 
 환경변수: `NEO4J_URI`(기본 bolt://localhost:7687), `NEO4J_USER`, `NEO4J_PASSWORD`, `OPENSEARCH_URL`(기본 http://127.0.0.1:9200).  
@@ -306,6 +342,8 @@ python check_graph.py "할부로 산 상품의 철회는 며칠 안에 요청해
 | `GDS가 없어 K8을 건너뜀` | `neo4j/README.md` 문제 해결의 `gds.version` 항목. 수업은 K8 없이 진행 가능 |
 | `… 인덱스가 768차원으로 이미 있음` | 다른 실습 데이터가 있는 DB임. 안내대로 `DROP INDEX` 하거나 실습용 Neo4j를 따로 띄움 |
 | 429(호출 제한)로 K2가 느림 | 기다렸다 다시 부름(최대 6번). 계속 막히면 `--reuse data/teacher` |
+| `--until k6` 화면에 「다른 이름의 인덱스가 먼저 있어 …」, 「차원이 다름」 | 다른 실습이 `__Entity__`의 `embedding`에 남긴 인덱스임. 그대로 두면 K6의 `CREATE VECTOR INDEX ... IF NOT EXISTS`가 새로 만들지 않아 엔티티 벡터 검색이 되지 않음. Neo4j Browser에서 `DROP INDEX {화면에 나온 이름}` 한 뒤 다시 돌림 |
+| `--until k8`에서 종료 | GDS가 없거나 `--skip-communities`를 함께 준 경우임. GDS는 위 「GDS가 없어 K8을 건너뜀」 항목을 따름 |
 | 중단된 뒤 다시 돌림 | 같은 `--run`으로 다시 실행하면 ① 에서 흔적을 지우고 처음부터 만듦 |
 | `④ 검증 실패` | `data/generations/{세대}/build_report.json`의 missing, extra, duplicate 목록을 봄. 활성 세대는 그대로임 |
 | 본인 코드로 바꿨더니 수가 다름 | `--mine`을 빼고 실행해 강사 결과와 비교. 함수 하나씩 USE_TEACHER_CODE에서 빼며 확인 |

@@ -247,8 +247,8 @@ def k1_split_units(chunks: list[dict], schemas: dict) -> tuple[list[dict], list[
 
             metadata = dict(chunk["metadata"])
             metadata["section_label"] = piece["section_label"]  # 머리줄에 조항 제목을 넣으려고 보탬
-            old = units.get(unit_id)
-            if old is None:  # 처음 나온 조항
+            unit = units.get(unit_id)
+            if unit is None:  # 처음 나온 조항
                 units[unit_id] = {
                     "unit_id": unit_id,
                     "doc_type": doc_type,
@@ -257,11 +257,11 @@ def k1_split_units(chunks: list[dict], schemas: dict) -> tuple[list[dict], list[
                     "text": piece["text"],
                     "chunk_ids": [chunk["chunk_id"]],
                 }
-            elif chunk["chunk_id"] not in old["chunk_ids"]:
+            elif chunk["chunk_id"] not in unit["chunk_ids"]:
                 # 빈칸 2: 겹친 조항. 두 청크에 걸친 조항은 더 긴 글을 남기고(길이가 같으면 먼저 나온 글), 청크 ID를 모두 모음
-                if len(piece["text"]) > len(old["text"]):
-                    old["text"] = piece["text"]
-                old["chunk_ids"] = old["chunk_ids"] + [chunk["chunk_id"]]
+                if len(piece["text"]) > len(unit["text"]):
+                    unit["text"] = piece["text"]
+                unit["chunk_ids"] = unit["chunk_ids"] + [chunk["chunk_id"]]
 
     for unit in units.values():
         unit["text_hash"] = sha256_text(unit["text"])  # K2 재사용 판정(같은 본문은 다시 묻지 않음)에 씀

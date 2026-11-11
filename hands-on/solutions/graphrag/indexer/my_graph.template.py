@@ -192,8 +192,8 @@ def k1_split_units(chunks: list[dict], schemas: dict) -> tuple[list[dict], list[
 
             metadata = dict(chunk["metadata"])
             metadata["section_label"] = piece["section_label"]  # 머리줄에 조항 제목을 넣으려고 보탬
-            old = units.get(unit_id)
-            if old is None:  # 처음 나온 조항
+            unit = units.get(unit_id)
+            if unit is None:  # 처음 나온 조항
                 units[unit_id] = {
                     "unit_id": unit_id,
                     "doc_type": doc_type,
@@ -202,9 +202,9 @@ def k1_split_units(chunks: list[dict], schemas: dict) -> tuple[list[dict], list[
                     "text": piece["text"],
                     "chunk_ids": [chunk["chunk_id"]],
                 }
-            elif chunk["chunk_id"] not in old["chunk_ids"]:
-                # 빈칸 2: 겹친 조항. 더 긴 글을 old["text"]에 남기고(길이가 같으면 먼저 나온 글),
-                #         old["chunk_ids"]에 이 청크 ID를 더함
+            elif chunk["chunk_id"] not in unit["chunk_ids"]:
+                # 빈칸 2: 겹친 조항. 더 긴 글을 unit["text"]에 남기고(길이가 같으면 먼저 나온 글),
+                #         unit["chunk_ids"]에 이 청크 ID를 더함
                 raise NotImplementedError("빈칸 2를 채우고 이 줄을 지울 것")
 
     for unit in units.values():
