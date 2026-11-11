@@ -253,7 +253,7 @@ def build_graph_rows(chunks: list[dict], units: list[dict], schemas: dict, gener
                      run_id: str) -> tuple[list, list, set]:
     """Neo4j에 한 번에 쓸 노드 목록, 관계 목록, K5에서 합칠 값을 만듦.
 
-    방법: ① 청크 노드(라벨 Chunk)를 청크마다 만듦 ② 추출 성공 단위의 노드마다 세대와 실행 표시를 붙이고
+    방법: ① 청크 노드(라벨 Chunk)를 청크마다 만듦(원문은 넣지 않고 ID만 둠) ② 추출 성공 단위의 노드마다 세대와 실행 표시를 붙이고
           그 단위가 나온 청크마다 FROM_CHUNK 관계를 만듦(겹친 조항이면 청크 2개) ③ 스키마 고유 속성(UNIQUENESS)의
           라벨과 같은 노드면 (라벨, 속성, 값)을 모아 K5에 넘김 ④ LLM이 뽑은 관계를 그대로 더함.
     반환값: (노드 목록, 관계 목록, 병합 키 집합). 노드와 관계는 neo4j-graphrag의 Neo4jNode, Neo4jRelationship.
@@ -267,7 +267,8 @@ def build_graph_rows(chunks: list[dict], units: list[dict], schemas: dict, gener
         return f"{generation}|{chunk_id}|{run_id}"
 
     # 빈칸 1: 청크 노드. 청크마다 Neo4jNode(id=chunk_node_id(chunk_id), label="Chunk", properties={...})를 nodes에 더함.
-    #         properties에는 generation, run_id, chunk_id, doc_id, doc_type, text를 넣음
+    #         properties에는 generation, run_id, chunk_id, doc_id, doc_type을 넣음.
+    #         원문(text)은 넣지 않음. 원문은 검색엔진에만 두고 chunk_id로 가져옴(KG에는 ID와 최소 속성만, 교재 6쪽)
     raise NotImplementedError("빈칸 1을 채울 것")
 
     for unit in units:

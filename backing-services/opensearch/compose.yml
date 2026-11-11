@@ -6,7 +6,7 @@
 name: hybrid-ai-opensearch
 services:
   opensearch:
-    image: opensearchproject/opensearch:2.19.1
+    image: opensearchproject/opensearch:3.9.0
     container_name: hybrid-ai-opensearch
     environment:
       discovery.type: single-node

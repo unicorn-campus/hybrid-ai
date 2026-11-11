@@ -155,7 +155,7 @@ hands-on/solutions/graphrag/
 |---|---|---|
 | 1 | RAG 실습(W3) 인덱싱 결과 `rag/indexing/data/chroma`가 있음(없으면 강사 배포본 복사) | 폴더 안 `chroma.sqlite3` 존재 |
 | 2 | Docker Desktop 설치, `backing-services/neo4j/.env` 비밀번호 설정, Neo4j와 OpenSearch 기동 | `docker compose ... ps`가 둘 다 `healthy` |
-| 3 | APOC과 GDS 확인 | `RETURN apoc.version(), gds.version()`이 둘 다 `2026.09.0` |
+| 3 | APOC과 GDS 확인 | `RETURN apoc.version(), gds.version()`이 둘 다 `2026.10.2` |
 | 4 | 가상환경 설치(README 3절) | 설치 확인 명령이 `ok` 출력 |
 | 5 | `secrets/.env`에 키 2개 | `index_graph.py --run {별명}-s1 --sample`의 시작 검사 통과 |
 

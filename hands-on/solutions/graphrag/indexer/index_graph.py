@@ -825,9 +825,13 @@ def run(args) -> None:
             labels = [n["label"] for n in shown["graph"]["nodes"]][:8]
             rels = [r["type"] for r in shown["graph"]["relationships"]][:6]
             log(f"      단위 {shown['unit_id'][:40]}의 노드 {labels}, 관계 {rels}")
-        kg_prepared = {"chunks": [{"chunk_id": c["chunk_id"], "doc_id": c["doc_id"], "doc_type": c["doc_type"]} for c in chunks],
-                       "units": units, "no_unit_chunks": empty_chunks, "failed_units": [u["unit_id"] for u in failed],
-                       "llm_usage": k2["usage"]}
+        kg_prepared = {
+            "chunks": [{"chunk_id": c["chunk_id"], "doc_id": c["doc_id"], "doc_type": c["doc_type"]} for c in chunks],
+            "units": units, 
+            "no_unit_chunks": empty_chunks, 
+            "failed_units": [u["unit_id"] for u in failed],
+            "llm_usage": k2["usage"]
+        }
         save_json(gen_dir / "kg_prepared.json", kg_prepared)  # 준비 결과 보관: 뒤에서 실패해도 LLM을 다시 부르지 않음
         kg_prepared_path = (gen_dir / "kg_prepared.json").relative_to(BASE_DIR).as_posix()
         if stage.done("K3", lambda: stage_view.k3_view(units, k2, failed, header_fill_rate(units, schemas), kg_prepared_path)):
@@ -851,6 +855,9 @@ def run(args) -> None:
             return
 
         embedded = core.k6_embed_descriptions(driver, generation, embed_texts, EMBED_DIMENSION, ENTITY_INDEX)
+        # 로그에 보여 줄 예시로 이번 세대 엔티티 3개를 꺼냄
+        # - label: '__'로 시작하는 내부 레이블(__Entity__ 등)을 빼고 남은 첫 레이블(예: Person)
+        # - props: 노드 속성 전체. 아래에서 core.entity_description()으로 임베딩에 쓴 설명 글을 다시 만들어 보여 줌
         records, _, _ = driver.execute_query(
             "MATCH (n:__Entity__ {generation: $g}) RETURN [l IN labels(n) WHERE NOT l STARTS WITH '__'][0] AS label, "
             "properties(n) AS props LIMIT 3", g=generation)

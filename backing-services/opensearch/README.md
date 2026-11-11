@@ -8,7 +8,7 @@ GraphRAG 실습(`indexer/graphrag/v0` 등)에서 BM25와 벡터 검색을 맡는
 | 항목 | 값 |
 |------|------|
 | 컨테이너 이름 | `hybrid-ai-opensearch` (Compose 프로젝트 `hybrid-ai-opensearch`) |
-| 이미지 | `opensearchproject/opensearch:2.19.1` |
+| 이미지 | `opensearchproject/opensearch:3.9.0` |
 | 포트 | 9200(REST API). 이 PC(127.0.0.1)에서만 접속됨 |
 | 볼륨 | `hybrid-ai-opensearch-data` |
 | 보안 | 보안 플러그인 꺼짐(실습 전용). 그래서 외부에 열지 않음 |
@@ -31,7 +31,7 @@ docker compose -f opensearch/compose.yml ps
 curl http://localhost:9200
 ```
 
-`curl` 결과에 `"number" : "2.19.1"`이 보이면 정상임.
+`curl` 결과에 `"number" : "3.9.0"`이 보이면 정상임.
 
 ## 설정 바꾸기
 
@@ -77,4 +77,4 @@ docker compose -f opensearch/compose.yml down -v
 
 ## 확인 기록 (2026-10-23)
 
-- `up -d` 뒤 `healthy`, `curl http://localhost:9200`에서 판 2.19.1 확인
+- `up -d` 뒤 `healthy`, `curl http://localhost:9200`에서 판 3.9.0 확인

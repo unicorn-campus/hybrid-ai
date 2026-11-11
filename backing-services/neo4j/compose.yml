@@ -7,7 +7,7 @@
 name: hybrid-ai-neo4j
 services:
   neo4j:
-    image: neo4j:2026.09.0-community
+    image: neo4j:2026.10.2-community
     container_name: hybrid-ai-neo4j
     environment:
       # .env에 NEO4J_PASSWORD가 없으면 기동을 멈춰, 기본 비밀번호로 잘못 뜨는 일을 막음

@@ -195,12 +195,14 @@ y 0.95″           ② 제목 구분선   레이아웃 소유 (#E2E8F0) — 슬
 y 1.259 ~ 1.679″  ③ 리드문(선택)  한 문장 요약 (Pretendard SemiBold 18pt #000000, 한 줄)
 y 1.90 ~ 7.95″    ④ 본문         카드, 표, 도식 (리드문이 없으면 1.45″부터 시작 가능)
 y 8.08″           ⑤ 출처 구분선   전폭 #E9ECF3 1pt (출처가 있을 때만)
-y 8.14 ~ 8.46″    ⑥ 출처 문구     Pretendard 14pt #7C8598, 반드시 한 줄
+y 8.14 ~ 8.46″    ⑥ 출처 문구     Pretendard 14pt #7C8598, 반드시 한 줄, 항목마다 원문 링크
 y 8.5″ 아래        ⑦ 푸터 영역     「무단전재 및 배포 금지」 + 쪽 번호 — 레이아웃 소유, 콘텐츠 배치 금지
 ```
 
 - 출처 문구가 한 줄을 넘으면 「무단전재 및 배포 금지」 문구와 겹침  
-  → 140자 이하로 줄이거나, 12pt + 전폭(14.9″)으로 바꿈 (12pt는 출처 문구에만 허용)
+  → 140자 이하로 줄이거나, 12pt + 전폭(14.9″)으로 바꿈 (12pt는 출처 문구에만 허용)  
+  → 12pt에서도 170자를 넘으면 두 줄이 됨(2026-11-11 실측 192자). 항목 이름을 줄여 170자 이하로 맞춤
+- 출처의 **모든 항목에 원문 링크(하이퍼링크)를 반드시 붙임** — 아래 「출처 줄」 절의 링크 규칙을 따름
 - 본문 아래 끝은 7.95″를 넘지 않음 (출처 구분선과 최소 0.1″ 간격)
 
 #### 레이아웃 패턴
@@ -308,6 +310,21 @@ y 8.5″ 아래        ⑦ 푸터 영역     「무단전재 및 배포 금지�
 | 구분선 | x 0.557″, y 8.08″, 전폭 14.9″, `#E9ECF3` 1pt |
 | 문구 | x 0.557″, y 8.14″, h 0.42″, Pretendard 14pt `#7C8598`, 여백 0, 한 줄 |
 | 용도 | 근거와 출처 표기. 제목 밑줄(언더라인 룰)은 레이아웃 구분선으로 대체되어 쓰지 않음 |
+| 링크 | 항목마다 원문 URL 하이퍼링크 + 밑줄. 글자색은 문구와 같은 `#7C8598` |
+
+**출처 링크 규칙 (필수)**:
+- 출처 줄의 항목은 하나도 빠짐없이 원문 URL(http 또는 https) 하이퍼링크를 가짐  
+  — 보는 사람이 슬라이드에서 바로 눌러 근거를 확인하게 함
+- 항목 하나 = 링크 하나. 쉼표로 구분하고, 「출처: 」 머리말과 쉼표만 링크 없이 둠
+- 보이는 글은 짧은 자료 이름으로 씀(예: `PathRAG`, `Neo4j MCP 문서`). URL을 그대로 보이게 쓰지 않음  
+  (URL은 링크와 툴팁에 들어감)
+- 로컬 파일(`research.md` 등), 「자체 조사」처럼 링크할 수 없는 출처는 쓰지 않음  
+  → 그 내용의 근거가 된 원문 URL로 바꿔 적음
+- 날짜 같은 덧붙임은 링크 항목 이름 안에 넣거나(예: `IT Brief 2026-02-19`) 리드문 또는 참고 자료 쪽에 씀
+- 같은 덱의 「참고 자료」 쪽(링크 표)은 출처 줄을 따로 두지 않아도 됨
+- PPT 스크립트(마크다운)에서도 출처를 `[이름](URL)` 형식으로 적어 빌드 코드로 그대로 옮김
+- 빌드 도우미 `sourceLine()`은 링크 없는 항목이 있으면 빌드를 멈추고(6-5),  
+  붙여넣기 점검(6-13)은 링크 없는 출처 항목을 오류로 보고함
 
 ---
 
@@ -460,15 +477,26 @@ function pageHeader(slide, { title, lead }) {
   }
 }
 
-// 출처 줄 — 한 줄을 넘으면 「무단전재」 문구와 겹치므로 140자 초과는 12pt (출처에만 허용하는 예외)
-function sourceLine(slide, text) {
+// 출처 줄 — 항목마다 원문 링크를 붙임. items = [[보이는 이름, URL], ...]
+// 링크 없는 항목이 있으면 빌드를 멈춤. 한 줄을 넘으면 「무단전재」 문구와 겹치므로 140자 초과는 12pt (출처에만 허용하는 예외)
+function sourceLine(slide, items) {
+  if (!Array.isArray(items) || !items.length || items.some(([t, u]) => !t || !/^https?:\/\//.test(u || "")))
+    throw new Error("출처 항목마다 http(s) 링크가 필요함: " + JSON.stringify(items));
+  const plain = "출처: " + items.map(([t]) => t).join(", ");
+  if (plain.length > 170) throw new Error(`출처 줄이 ${plain.length}자라 12pt에서도 두 줄이 됨(170자 이하로 이름을 줄임): ${plain}`);
+  const runs = [{ text: "출처: ", options: {} }];
+  items.forEach(([t, url], i) => {
+    if (i) runs.push({ text: ", ", options: {} });
+    runs.push({ text: t, options: { underline: { style: "sng" }, hyperlink: { url, tooltip: url } } });
+  });
   slide.addShape(pptx.shapes.LINE, { x: X0, y: 8.08, w: CW, h: 0, line: { color: C.footLine, width: 1 } });
-  slide.addText(text, { x: X0, y: 8.14, w: CW, h: 0.42, margin: 0, valign: "top", isTextBox: true,
-    fontFace: FONT, fontSize: text.length > 140 ? 12 : 14, color: C.sub });
+  slide.addText(runs, { x: X0, y: 8.14, w: CW, h: 0.42, margin: 0, valign: "top", isTextBox: true,
+    fontFace: FONT, fontSize: plain.length > 140 ? 12 : 14, color: C.sub });
 }
 ```
 
 **규칙**:
+- `sourceLine()`에는 문자열 대신 `[이름, URL]` 목록을 넘김. 문자열만 넘기면 빌드가 멈춤(링크 누락 방지)
 - 제목 개체 틀, 쪽 번호, 제목 구분선, 「무단전재」 문구는 레이아웃에만 둠. 슬라이드에서 다시 그리지 않음
 - 본문 도형은 `BODY_TOP` ~ `BODY_BOTTOM`(1.90″ ~ 7.95″) 안에만 배치 (리드문이 없으면 1.45″부터 가능)
 - placeholder 옵션에 `align: "left"`를 빼면 제목이 가운데 정렬됨 (2026-10-04 실측)
@@ -504,7 +532,7 @@ async function createSlide01(pptx) {
   const slide = pptx.addSlide({ masterName: LAYOUT });
   pageHeader(slide, { title: "컬러 시스템", lead: "팔레트는 네이비 중심, 블루는 강조에만 씀" });
   // ... 슬라이드 콘텐츠 (y 1.90″ ~ 7.95″)
-  sourceLine(slide, "출처: 디자인 시스템 v2 §2");
+  sourceLine(slide, [["디자인 시스템 v2 §2", "https://example.com/design-system/v2#colors"]]);
   return slide;
 }
 ```
@@ -580,6 +608,7 @@ main().catch((e) => { console.error("❌ PPT 생성 실패:", e); process.exit(1
 | 13 | 출력 파일 | `.pptx` 파일 존재 및 크기 | 0바이트 초과 |
 | 14 | 붙여넣기 호환 | 아래 점검 코드 실행 | `OK` 출력 |
 | 15 | 출처 줄 | 미리보기에서 출처 문구 줄 수 확인 | 한 줄 (「무단전재」 문구와 겹치지 않음) |
+| 15-1 | 출처 링크 | 6-13 점검 코드 실행 | 「링크 없는 출처」 오류 0건 (모든 항목에 http(s) 링크) |
 | 16 | 개체 틀 번호 | 6-14 실행 여부 | 제목 `<p:ph type="title"/>`, 쪽 번호 `idx="4"` |
 | 17 | 가운뎃점 | 완성된 덱의 본문과 발표자 노트에서 `·` 검색 | 0건(코드, 파일명, 고유명사 원문은 제외) — 5절 「가운뎃점(·) 대신 뜻을 씀」 |
 
@@ -601,6 +630,12 @@ for i, s in enumerate(p.slides, 1):
     for sh in s.shapes:
         if sh.has_text_frame and " / " in sh.text_frame.text and sh.top > 7_500_000 and len(sh.text_frame.text) < 10:
             err.append(f"{i}쪽 글자 쪽 표시 의심: {sh.text_frame.text}")
+        # 출처 줄(y 8.0″ 아래, 「출처」로 시작): 「출처: 」 머리말과 쉼표를 뺀 모든 글 조각에 http(s) 링크가 있어야 함
+        if sh.has_text_frame and sh.top > 7_300_000 and sh.text_frame.text.strip().startswith("출처"):
+            for r in (r for para in sh.text_frame.paragraphs for r in para.runs):
+                label = r.text.replace("출처:", "").strip(" ,:")
+                if label and not (r.hyperlink.address or "").startswith(("http://", "https://")):
+                    err.append(f"{i}쪽 링크 없는 출처: {label}")
 xml = "".join(s._element.xml for s in p.slides)
 if "schemeClr" in xml:
     err.append("테마 색(schemeClr) 사용")
@@ -609,6 +644,8 @@ print("\n".join(err) or "OK")
 
 - 「제목 개체 틀 비었음」이 나오면 6-14 개체 틀 번호 정리를 빠뜨린 것임  
   (python-pptx는 번호 0번 제목만 제목으로 인식함)
+- 「링크 없는 출처」가 나오면 그 항목의 원문 URL을 찾아 `sourceLine()`에 `[이름, URL]`로 넘김  
+  (URL을 못 찾은 출처는 슬라이드에서 뺌. 「출처 줄」 절의 링크 규칙 참고)
 
 #### 6-14. 개체 틀 번호 정리 (빌드 직후 필수)
 

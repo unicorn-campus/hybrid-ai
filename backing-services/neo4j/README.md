@@ -8,8 +8,8 @@ GraphRAG 실습(`indexer/graphrag/v0` 등)에서 쓰는 그래프 DB를 docker c
 | 항목 | 값 |
 |------|------|
 | 컨테이너 이름 | `hybrid-ai-neo4j` (Compose 프로젝트 `hybrid-ai-neo4j`) |
-| 이미지 | `neo4j:2026.09.0-community` |
-| 플러그인 | APOC(core) 2026.09.0, Graph Data Science(GDS) Community Edition 2026.09.0 |
+| 이미지 | `neo4j:2026.10.2-community` |
+| 플러그인 | APOC(core) 2026.10.2, Graph Data Science(GDS) Community Edition 2026.10.2 |
 | 포트 | 7474(Neo4j Browser), 7687(bolt 접속) |
 | 볼륨 | `hybrid-ai-neo4j-data`(데이터), `hybrid-ai-neo4j-logs`(로그), `hybrid-ai-neo4j-plugins`(플러그인) |
 | 비밀번호 | 이 폴더의 `.env`에서 읽음. compose 파일과 git에는 넣지 않음 |
@@ -56,7 +56,7 @@ docker compose -f neo4j/compose.yml ps
 docker exec -it hybrid-ai-neo4j sh -c 'cypher-shell -u neo4j -p "${NEO4J_AUTH#neo4j/}"'
 ```
 
-플러그인이 붙었는지는 아래 질의로 확인함. 두 값 모두 `2026.09.0`이 나오면 정상임.
+플러그인이 붙었는지는 아래 질의로 확인함. 두 값 모두 `2026.10.2`가 나오면 정상임.
 
 ```bash
 docker exec hybrid-ai-neo4j sh -c 'cypher-shell -u neo4j -p "${NEO4J_AUTH#neo4j/}" "RETURN apoc.version() AS apoc, gds.version() AS gds;"'
@@ -95,6 +95,13 @@ docker compose -f neo4j/compose.yml down -v
 | 상태가 계속 `starting` | `docker logs hybrid-ai-neo4j`로 오류 확인. 메모리가 모자라면 `.env`의 `NEO4J_HEAP`을 줄임 |
 | 로그인 실패 | 볼륨을 만든 뒤 `.env` 비밀번호를 바꾸면 맞지 않음. 처음 비밀번호를 쓰거나 `down -v` 후 다시 띄움 |
 | `gds.version`을 찾지 못함 | `docker logs hybrid-ai-neo4j`에서 `Installing Plugin 'graph-data-science'` 줄을 확인. 없으면 `down` 후 `up -d` |
+
+## 확인 기록 (2026-11-11, 2026.09.0에서 2026.10.2로 올림)
+
+- 올리기 전 컨테이너를 멈추고 데이터 볼륨을 `.temp/neo4j-backup/neo4j-data-2026.09.0.tgz`로 백업
+- `up -d` 뒤 `healthy`, `apoc.version()`와 `gds.version()` 모두 `2026.10.2`
+- plugins 볼륨의 `apoc.jar`, `graph-data-science.jar`가 시작할 때 새 판으로 자동 교체됨
+- 기존 노드 94개 유지 확인(볼륨 유지)
 
 ## 확인 기록 (2026-10-23)
 

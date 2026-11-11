@@ -121,7 +121,7 @@ docker compose -f backing-services/opensearch/compose.yml up -d
 ```
 
 - Neo4j: 컨테이너 `hybrid-ai-neo4j`(볼륨 `hybrid-ai-neo4j-data`, `-logs`, `-plugins`), `bolt://localhost:7687`,  
-  Neo4j 2026.09.0 Community + APOC + GDS.  
+  Neo4j 2026.10.2 Community + APOC + GDS.  
   비밀번호는 코드에 두지 않음. 환경변수 `NEO4J_PASSWORD`가 있으면 그것을, 없으면 `backing-services/neo4j/.env`의 값을 읽음
 - OpenSearch: 컨테이너 `hybrid-ai-opensearch`(볼륨 `hybrid-ai-opensearch-data`), `http://127.0.0.1:9200`(보안 플러그인 꺼짐, 2.19.1)
 - `config.py`의 기본 접속 주소는 이 두 컨테이너임. 다른 곳에 띄웠으면 환경변수 `NEO4J_URI`, `OPENSEARCH_URL`로 넘김

@@ -314,7 +314,7 @@ def build_graph_rows(chunks: list[dict], units: list[dict], schemas: dict, gener
     """Neo4j에 한 번에 쓸 노드 목록, 관계 목록, K5에서 합칠 값을 만듦.
 
     목적: 검색용 청크마다 청크 노드를 하나 만들고(검색엔진과 chunk_id가 같음), 엔티티를 자기가 나온 청크에 FROM_CHUNK로 이음.
-    방법: ① 청크 노드(라벨 Chunk)를 청크마다 만듦 ② 추출 성공 단위의 노드마다 세대와 실행 표시를 붙이고
+    방법: ① 청크 노드(라벨 Chunk)를 청크마다 만듦(원문은 넣지 않고 ID만 둠) ② 추출 성공 단위의 노드마다 세대와 실행 표시를 붙이고
           그 단위가 나온 청크마다 FROM_CHUNK 관계를 만듦(겹친 조항이면 청크 2개) ③ 스키마 고유 속성(UNIQUENESS)의
           라벨과 같은 노드면 (라벨, 속성, 값)을 모아 K5에 넘김 ④ LLM이 뽑은 관계를 그대로 더함.
     인자: chunks는 ② 결과, units는 K1 ~ K3 결과(graph가 있는 단위만 씀).
@@ -336,7 +336,7 @@ def build_graph_rows(chunks: list[dict], units: list[dict], schemas: dict, gener
             "chunk_id": chunk["chunk_id"],
             "doc_id": chunk["doc_id"],
             "doc_type": chunk["doc_type"],
-            "text": chunk["text"],
+            # 원문(text)은 넣지 않음. 검색엔진에서 chunk_id로 가져옴(교재 6쪽)
         }))
 
     for unit in units:
@@ -355,6 +355,10 @@ def build_graph_rows(chunks: list[dict], units: list[dict], schemas: dict, gener
                     type="FROM_CHUNK", start_node_id=node.id, end_node_id=chunk_node_id(chunk_id)))
 
             # K5에서 합칠 값 모으기: 제약의 라벨과 노드 라벨이 같고 값이 있을 때만(교재 44쪽 ③)
+            # 예시: 제약 (ProductGuide, product_id), 노드 ProductGuide {product_id: "D2-C021"}
+            #       → merge_keys에 ("ProductGuide", "product_id", "D2-C021") 추가
+            #       노드 라벨이 Benefit이면 라벨이 달라 건너뛰고, product_id가 없거나 ""이면 건너뜀
+            #       청크 4개에서 같은 값이 나와도 set이라 한 번만 들어감
             for constraint in constraints:
                 value = node.properties.get(constraint.property_name)
                 if constraint.node_type == node.label and value not in (None, ""):

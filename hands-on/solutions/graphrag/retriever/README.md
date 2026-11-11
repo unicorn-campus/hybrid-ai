@@ -77,7 +77,7 @@ hands-on/solutions/graphrag/
 | ②, ⑤, ⑦ 판단 | TypeSafe Jev(`jev-1.14.0` 고정). 확률만 내고 결정은 코드의 기준값이 함 |
 | G1, G2, ⑧ | Groq `openai/gpt-oss-120b`(LCEL 체인 + 구조화 출력) |
 | 임베딩, 리랭커 | Cohere `embed-v5.0-fast`(2048차원, 색인과 같음), `rerank-v4.0-fast` |
-| 저장소 | Neo4j 2026.09.0 + APOC, OpenSearch 2.19.1(`backing-services/`) |
+| 저장소 | Neo4j 2026.10.2 + APOC, OpenSearch 2.19.1(`backing-services/`) |
 | API 키 | 저장소 루트 `secrets/.env`에 3줄: `JEV_API_KEY`, `GROQ_API_KEY`, `COHERE_API_KEY` |
 | Neo4j 비밀번호 | 환경변수 `NEO4J_PASSWORD` 또는 `backing-services/neo4j/.env`(인덱싱과 같음) |
 
