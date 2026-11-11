@@ -12,8 +12,8 @@ hands-on/solutions/graphrag/
 ├─ requirements.txt     GraphRAG 실습 공통 패키지 목록(서브 폴더에는 두지 않음)
 ├─ .venv/               공용 가상환경(이 폴더에서 만듦. Git에 올리지 않음)
 ├─ schema/              그래프 스키마 설계 결과와 도구(doc: 문서 그래프, rdb: 정형 데이터 그래프). indexer가 schema/doc의 결과를 읽음
-├─ indexer/             그래프 인덱싱 실습(교재 30 ~ 62쪽). 사용법은 indexer/README.md
-└─ retriever/           그래프 검색 실습(교재 64 ~ 79쪽). 사용법은 retriever/README.md
+├─ indexer/             그래프 인덱싱 실습(교재 31 ~ 67쪽). 사용법은 indexer/README.md
+└─ retriever/           그래프 검색 실습(교재 70 ~ 99쪽). 사용법은 retriever/README.md
 ```
 
 | 폴더 | main | 교육생 작업 파일 | 만드는 것 |

@@ -56,7 +56,7 @@ def parse_until(raw: str | None) -> dict | None:
         return None
     step = raw.strip().upper()
     if step == "K7":
-        raise SystemExit("K7(청크 정리)은 증분 색인에서 쓰는 단계라 이 실습에서는 하지 않음(교재 30, 45쪽).\n"
+        raise SystemExit("K7(청크 정리)은 증분 색인에서 쓰는 단계라 이 실습에서는 하지 않음(교재 31, 50쪽).\n"
                          "  → 멈출 수 있는 곳: " + ", ".join(STOPS))
     note = ""
     if step in ALIASES:

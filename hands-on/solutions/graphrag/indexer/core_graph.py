@@ -1,6 +1,6 @@
 """GraphRAG 인덱싱 핵심 모듈: 워크플로우 단계마다 하나씩 둔 실습 함수 16개(교육생 클론 코딩 대상)와 제공 함수 몇 개임.
 
-이 파일의 함수는 main(index_graph.py)이 순서대로 부름. 단계와 함수의 대응은 아래와 같음(교재 30 ~ 62쪽).
+이 파일의 함수는 main(index_graph.py)이 순서대로 부름. 단계와 함수의 대응은 아래와 같음(교재 31 ~ 67쪽).
   ① 세대 ID 발급      issue_generation          (직접 작성)
   ② 공통 단계         prepare_chunks            (빈칸 2곳)   doc_id와 chunk_id 규칙
   K1 추출 청크 나누기  split_by_heading          (직접 작성)  조항 제목 줄로 자르기
@@ -34,7 +34,7 @@ from neo4j_graphrag.components.graph_pruning import GraphPruning
 from neo4j_graphrag.components.types import Neo4jGraph, Neo4jNode, Neo4jRelationship, TextChunk, TextChunks
 from opensearchpy import helpers
 
-SYSTEM_PROPS = {"generation", "run_id", "embedding"}  # 엔티티 설명 글을 만들 때 빼는 관리용 속성(교재 43쪽 ②)
+SYSTEM_PROPS = {"generation", "run_id", "embedding"}  # 엔티티 설명 글을 만들 때 빼는 관리용 속성(교재 47쪽 ②)
 
 
 # ---------------------------------------------------------------------------
@@ -54,7 +54,7 @@ def next_nonblank_line(lines: list[str], index: int) -> str:
 
 
 def head_line(metadata: dict, fields: list[str]) -> str:
-    """메타데이터를 「칸: 값 | 칸: 값」 한 줄로 만들어 추출 청크 앞에 붙임(교재 35쪽 ②).
+    """메타데이터를 「칸: 값 | 칸: 값」 한 줄로 만들어 추출 청크 앞에 붙임(교재 37쪽 ②).
 
     값이 없는 칸은 뺌. 상담 번호나 날짜처럼 본문에 없는 키 속성을 LLM이 채우게 하려는 것임.
     """
@@ -70,13 +70,13 @@ def head_line(metadata: dict, fields: list[str]) -> str:
 
 
 # ---------------------------------------------------------------------------
-# ① 세대 ID 발급 (교재 31쪽) — 직접 작성
+# ① 세대 ID 발급 (교재 32쪽) — 직접 작성
 # ---------------------------------------------------------------------------
 def issue_generation(run: str, active: dict | None, input_sha256: str, config_signature: str,
                      full_reindex: bool, tag: str) -> dict:
     """실행 이름으로 세대 ID를 만들고, 할 일이 있는지 사전 검사함.
 
-    목적: 같은 실행 이름이면 같은 세대 ID가 나와, 중단돼도 같은 세대로 이어서 만들 수 있게 함(교재 31쪽).
+    목적: 같은 실행 이름이면 같은 세대 ID가 나와, 중단돼도 같은 세대로 이어서 만들 수 있게 함(교재 32쪽).
     방법: 세대 ID = "gen-{tag}-{실행 이름(안전한 글자만)}-{실행 이름 해시 앞 8자리}".
           사전 검사는 활성 세대가 있고, 입력 지문과 설정 지문이 모두 같으면 "할 일 없음"(skip=True).
           full_reindex가 True면 사전 검사를 건너뜀(무조건 새로 만듦).
@@ -104,7 +104,7 @@ def issue_generation(run: str, active: dict | None, input_sha256: str, config_si
 
 
 # ---------------------------------------------------------------------------
-# ② 공통 단계: 청크 한 건 만들기 (교재 31쪽) — 빈칸 2곳
+# ② 공통 단계: 청크 한 건 만들기 (교재 32쪽) — 빈칸 2곳
 # ---------------------------------------------------------------------------
 def prepare_chunks(rows: list[dict]) -> list[dict]:
     """Chroma에서 읽은 행을 인덱싱 입력 청크로 바꿈. doc_id와 chunk_id를 여기서 정함.
@@ -112,7 +112,7 @@ def prepare_chunks(rows: list[dict]) -> list[dict]:
     목적: 두 저장소(검색엔진, 그래프)가 같은 열쇠(chunk_id)를 쓰고, 문서 단위 교체(S3)에 쓸 doc_id를 갖게 함.
     방법: doc_id = 문서 키(D1, D2, D3) + "_" + 문서 구분값. 약관과 혜택은 원천 파일 이름의 해시 16자리,
           상담은 상담 번호(record_id)라 상담 1건이 문서 1개임.
-          chunk_id = doc_id + "_" + 본문 해시 16자리 + "_" + 같은 본문 반복 번호 4자리(교재 31쪽 그림).
+          chunk_id = doc_id + "_" + 본문 해시 16자리 + "_" + 같은 본문 반복 번호 4자리(교재 32쪽 그림).
     인자: rows는 [{"chroma_id": "D1-0001", "text": 본문, "metadata": {...}}, ...]. chroma_id 순서가 문서 안 순서임.
     반환값: [{"chunk_id", "doc_id", "doc_type", "text", "text_hash", "metadata"}, ...]. 메타데이터에
             doc_key, chunk_index(문서 안 순서), chroma_id, chunk_id, product_id(혜택 안내)를 더함.
@@ -160,7 +160,7 @@ def prepare_chunks(rows: list[dict]) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# K1 추출 청크 나누기 (교재 32, 34쪽)
+# K1 추출 청크 나누기 (교재 33, 35, 36쪽)
 # ---------------------------------------------------------------------------
 def split_by_heading(text: str, rule: dict) -> list[dict]:
     """청크 본문을 조항 제목 줄 기준으로 잘라 추출 청크 조각 목록을 돌려줌. — 직접 작성
@@ -213,7 +213,7 @@ def split_by_heading(text: str, rule: dict) -> list[dict]:
 def k1_split_units(chunks: list[dict], schemas: dict) -> tuple[list[dict], list[str]]:
     """청크 목록을 추출 청크 목록으로 바꿈. 규칙이 있는 문서 유형(약관)만 나누고 나머지는 청크 하나가 단위 하나. — 빈칸 2곳
 
-    목적: LLM에 한 번에 넣을 글 조각(추출 청크)을 정함. 단위는 LLM 입력에만 쓰고 그래프 노드가 되지 않음(교재 32쪽).
+    목적: LLM에 한 번에 넣을 글 조각(추출 청크)을 정함. 단위는 LLM 입력에만 쓰고 그래프 노드가 되지 않음(교재 33쪽).
     방법: 문서 유형의 unit_rule이 없으면 청크 그대로. 있으면 split_by_heading으로 나누고,
           단위 ID = 문서 ID + "#" + 조항 번호. 같은 단위 ID가 다른 청크에서 또 나오면(겹침) 긴 글을 남기고 청크 ID를 모두 모음.
     인자: schemas는 {문서 유형: {"schema", "unit_rule", "header", "signature"}}.
@@ -269,7 +269,7 @@ def k1_split_units(chunks: list[dict], schemas: dict) -> tuple[list[dict], list[
 
 
 # ---------------------------------------------------------------------------
-# K2 추출, K3 가지치기 (교재 35, 36쪽) — 빈칸 2곳
+# K2 추출, K3 가지치기 (교재 37 ~ 39쪽) — 빈칸 2곳
 # ---------------------------------------------------------------------------
 def extract_one(unit: dict, spec: dict, llm, retries: int) -> dict:
     """추출 청크 하나를 LLM에 넣어 노드와 관계를 뽑고(K2), 스키마 밖은 바로 지움(K3).
@@ -307,7 +307,7 @@ def extract_one(unit: dict, spec: dict, llm, retries: int) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# K4 적재: 그래프 행 만들기 (교재 37, 38쪽) — 빈칸 2곳
+# K4 적재: 그래프 행 만들기 (교재 40 ~ 42쪽) — 빈칸 2곳
 # ---------------------------------------------------------------------------
 def build_graph_rows(chunks: list[dict], units: list[dict], schemas: dict, generation: str,
                      run_id: str) -> tuple[list, list, set]:
@@ -345,7 +345,7 @@ def build_graph_rows(chunks: list[dict], units: list[dict], schemas: dict, gener
         graph = Neo4jGraph.model_validate(unit["graph"])  # dict로 보관한 그래프를 라이브러리 객체로 되돌림
         constraints = schemas[unit["doc_type"]]["schema"].constraints  # 이 문서 유형의 고유 속성 제약
         for node in graph.nodes:
-            # 모든 엔티티에 세대와 실행 표시. 세대끼리 섞이지 않게 함(교재 37쪽 ②)
+            # 모든 엔티티에 세대와 실행 표시. 세대끼리 섞이지 않게 함(교재 40쪽 ②)
             node.properties = {**(node.properties or {}), "generation": generation, "run_id": run_id}
             nodes.append(node)
 
@@ -354,7 +354,7 @@ def build_graph_rows(chunks: list[dict], units: list[dict], schemas: dict, gener
                 relationships.append(Neo4jRelationship(
                     type="FROM_CHUNK", start_node_id=node.id, end_node_id=chunk_node_id(chunk_id)))
 
-            # K5에서 합칠 값 모으기: 제약의 라벨과 노드 라벨이 같고 값이 있을 때만(교재 39쪽 ③)
+            # K5에서 합칠 값 모으기: 제약의 라벨과 노드 라벨이 같고 값이 있을 때만(교재 44쪽 ③)
             for constraint in constraints:
                 value = node.properties.get(constraint.property_name)
                 if constraint.node_type == node.label and value not in (None, ""):
@@ -365,7 +365,7 @@ def build_graph_rows(chunks: list[dict], units: list[dict], schemas: dict, gener
 
 
 # ---------------------------------------------------------------------------
-# K5 병합 (교재 39 ~ 41쪽) — 빈칸 2곳
+# K5 병합 (교재 43 ~ 45쪽) — 빈칸 2곳
 # ---------------------------------------------------------------------------
 def k5_merge(driver, generation: str, merge_keys: set) -> int:
     """같은 세대에서 스키마 고유 속성 값이 같은 노드를 하나로 합침.
@@ -373,7 +373,7 @@ def k5_merge(driver, generation: str, merge_keys: set) -> int:
     목적: 여러 추출 청크에 흩어진 같은 대상(예: 상품 안내 노드 ProductGuide D2-C021이 청크 4개에서 각각 뽑힘)을 한 노드로 모음.
     방법: (라벨, 속성, 값)마다 같은 세대에서 값이 같은 노드를 모아 2개 이상이면 APOC mergeNodes로 합침.
           속성이 다르면 목록 첫 노드 값을 남기고(discard), 관계는 모두 합친 노드로 옮김(mergeRels).
-    인자: merge_keys는 K4가 모은 {(라벨, 속성 이름, 값)}. 이번에 들어온 값만 검사함(교재 40쪽 ①).
+    인자: merge_keys는 K4가 모은 {(라벨, 속성 이름, 값)}. 이번에 들어온 값만 검사함(교재 43쪽 ①).
     반환값: 합쳐진 묶음 수.
     """
     groups = 0
@@ -395,12 +395,12 @@ def k5_merge(driver, generation: str, merge_keys: set) -> int:
 
 
 # ---------------------------------------------------------------------------
-# K6 엔티티 설명 임베딩 (교재 42 ~ 44쪽)
+# K6 엔티티 설명 임베딩 (교재 46 ~ 49쪽)
 # ---------------------------------------------------------------------------
 def entity_description(label: str, props: dict) -> str:
     """엔티티 하나를 「라벨: 속성=값, 속성=값」 설명 글로 바꿈. — 직접 작성
 
-    목적: 이 글을 임베딩해 질문과 뜻이 가까운 엔티티를 바로 찾게 함(엔티티 직접 검색, 교재 42쪽).
+    목적: 이 글을 임베딩해 질문과 뜻이 가까운 엔티티를 바로 찾게 함(엔티티 직접 검색, 교재 46쪽).
     방법: 관리용 속성(generation, run_id, embedding)은 빼고, 속성 이름순으로 "이름=값"을 쉼표로 이음.
     예시: ("Proposal", {"content": "주문 내역 화면 대조", "decision": "수용", "generation": "gen-..."})
           → "Proposal: content=주문 내역 화면 대조, decision=수용"
@@ -453,7 +453,7 @@ def k6_embed_descriptions(driver, generation: str, embed_texts, dimension: int, 
 
 
 # ---------------------------------------------------------------------------
-# K8 커뮤니티 요약 (교재 46 ~ 49쪽)
+# K8 커뮤니티 요약 (교재 51 ~ 54쪽)
 # ---------------------------------------------------------------------------
 def group_assignments(assignments: dict[int, int]) -> list[list[int]]:
     """제공 함수. 「엔티티 번호 → 묶음 번호」를 묶음 목록으로 바꿈. 묶음 안은 번호순, 묶음끼리는 가장 작은 번호순.
@@ -474,7 +474,7 @@ def detect_communities(driver, graph_name: str, entity_ids: list[str], edges: li
                        seed: int) -> list[list[int]]:
     """GDS Leiden으로 엔티티를 묶음(커뮤니티)으로 나눔. — 빈칸 2곳
 
-    목적: 서로 촘촘히 이어진 엔티티를 묶어, 묶음마다 보고서를 써 두면 거시 질문에 답할 재료가 됨(교재 46쪽).
+    목적: 서로 촘촘히 이어진 엔티티를 묶어, 묶음마다 보고서를 써 두면 거시 질문에 답할 재료가 됨(교재 51쪽).
     방법: ① 엔티티와 엔티티 사이 줄만 GDS 메모리에 투영함(무방향. 청크 노드는 넣지 않음) ② Leiden을 씨앗 고정, 병렬 1로
           한 번 불러 묶음 번호를 받음 ③ finally로 투영 그래프를 반드시 지움 ④ 묶음 번호를 구성원 목록으로 바꿈.
     인자: entity_ids는 엔티티 키순으로 정렬된 elementId 목록(같은 순서로 넣어야 같은 결과). edges는 (번호, 번호) 무방향 줄.
@@ -516,7 +516,7 @@ def build_community_rows(groups: list[list[int]], group_hashes: list[str], entit
                          reports: dict, min_size: int) -> list[dict]:
     """보고서가 있는 묶음을 Neo4j에 쓸 행으로 만듦. — 빈칸 2곳
 
-    목적: 엔티티 min_size개 이상인 묶음만 Community 노드가 되고, 구성원 엔티티는 IN_COMMUNITY로 이어짐(교재 49쪽 ①, ⑤).
+    목적: 엔티티 min_size개 이상인 묶음만 Community 노드가 되고, 구성원 엔티티는 IN_COMMUNITY로 이어짐(교재 54쪽 ①, ⑤).
     방법: 묶음마다 ① 크기가 작으면 건너뜀 ② 지문(group_hashes)으로 보고서를 찾음 ③ 구성원 번호를 엔티티 elementId로 바꿈.
     인자: reports는 {묶음 지문: {"title", "summary", "findings", "embedding"}}(main이 LLM과 임베딩으로 채움).
     반환값: [{"community_id", "title", "summary", "findings", "member_hash", "size", "vec", "members"}, ...].
@@ -568,13 +568,13 @@ def k8_write_communities(driver, generation: str, run_id: str, rows: list[dict],
 
 
 # ---------------------------------------------------------------------------
-# S1 임베딩: 벡터 재사용 (교재 54, 55쪽) — 직접 작성
+# S1 임베딩: 벡터 재사용 (교재 59, 60쪽) — 직접 작성
 # ---------------------------------------------------------------------------
 def embed_with_reuse(texts: list[str], hashes: list[str], old_vectors: dict[str, list[float]],
                      embed_texts) -> tuple[list[list[float]], int]:
     """본문 해시가 활성 세대에 있으면 그 벡터를 다시 쓰고, 없는 본문만 새로 임베딩함.
 
-    목적: 모델과 설정이 같고 본문도 같으면 벡터가 같으므로 API 호출을 줄임(교재 55쪽 「같은 정제 본문이 있나요?」).
+    목적: 모델과 설정이 같고 본문도 같으면 벡터가 같으므로 API 호출을 줄임(교재 60쪽 「같은 정제 본문이 있나요?」).
     방법: ① 해시가 old_vectors에 없는 글만 골라 ② 한 번에 embed_texts로 임베딩하고 ③ 원래 순서대로 재사용 벡터와 합침.
     인자: texts와 hashes는 같은 길이(i번째 글의 해시가 hashes[i]). old_vectors는 {본문 해시: 벡터}(없으면 빈 dict).
     반환값: (청크 순서대로의 벡터 목록, 새로 임베딩한 수).
@@ -607,13 +607,13 @@ def embed_with_reuse(texts: list[str], hashes: list[str], old_vectors: dict[str,
 
 
 # ---------------------------------------------------------------------------
-# S2 키워드 분석: 엔진 문서 한 건 만들기 (교재 53, 56 ~ 58쪽) — 빈칸 2곳
+# S2 키워드 분석: 엔진 문서 한 건 만들기 (교재 58, 61, 62쪽) — 빈칸 2곳
 # ---------------------------------------------------------------------------
 def build_search_docs(chunks: list[dict], hashes: list[str], vectors: list[list[float]], lexicon,
                       meta_fields: tuple) -> list[dict]:
     """청크마다 검색엔진에 넣을 문서 한 건(벡터 + 낱말 + 메타데이터)을 만듦.
 
-    목적: 검색엔진 인덱스 하나가 벡터 검색과 키워드 검색을 모두 맡도록 한 건에 두 가지를 함께 담음(교재 53쪽).
+    목적: 검색엔진 인덱스 하나가 벡터 검색과 키워드 검색을 모두 맡도록 한 건에 두 가지를 함께 담음(교재 58쪽).
     방법: 색인용 본문을 Kiwi 토크나이저(카드명 사전과 별칭 포함)로 낱말로 잘라 공백으로 이어 text_tokens에 넣고,
           임베딩 벡터는 embedding에, 필터용 메타데이터는 문자열로 넣음.
     인자: lexicon은 kr_tokenizer.Lexicon(tokenize(글) → 낱말 목록). meta_fields는 검색엔진 필드로 남길 메타데이터 키.
@@ -642,12 +642,12 @@ def build_search_docs(chunks: list[dict], hashes: list[str], vectors: list[list[
 
 
 # ---------------------------------------------------------------------------
-# S3 적재: 검색엔진에 쓰기 (교재 58, 59쪽) — 빈칸 3곳
+# S3 적재: 검색엔진에 쓰기 (교재 63, 64쪽) — 빈칸 3곳
 # ---------------------------------------------------------------------------
 def apply_search(os_client, index: str, docs: list[dict], mapping: dict) -> dict:
     """문서(doc_id)마다 옛 청크를 지우고 새 청크를 한꺼번에 넣은 뒤 바로 검색되게 함.
 
-    목적: 고친 문서의 옛 청크가 남지 않게 청크 단위가 아니라 문서 단위로 바꿈(교재 58쪽 그림).
+    목적: 고친 문서의 옛 청크가 남지 않게 청크 단위가 아니라 문서 단위로 바꿈(교재 63쪽 그림).
     방법: ① 인덱스가 없으면 매핑으로 만듦 ② 넣을 문서의 doc_id를 모음 ③ doc_id마다 delete_by_query로 옛 청크를 지움
           ④ bulk로 한꺼번에 넣음(_id = chunk_id라 같은 입력을 두 번 넣어도 건수가 그대로) ⑤ refresh로 바로 보이게 함.
     반환값: {"deleted": 지운 수, "indexed": 넣은 수, "documents": 문서 수}.
@@ -680,7 +680,7 @@ def apply_search(os_client, index: str, docs: list[dict], mapping: dict) -> dict
 
 
 # ---------------------------------------------------------------------------
-# ④ 검증: chunk_id 목록 비교 (교재 60, 61쪽) — 직접 작성
+# ④ 검증: chunk_id 목록 비교 (교재 65, 66쪽) — 직접 작성
 # ---------------------------------------------------------------------------
 def verify_chunk_ids(all_ids: set[str], search_ids: set[str], kg_list: list[str]) -> dict:
     """입력 청크, 검색엔진, 그래프 청크 노드의 chunk_id가 모두 같은지 검사함.
@@ -721,7 +721,7 @@ def verify_chunk_ids(all_ids: set[str], search_ids: set[str], kg_list: list[str]
 
 
 # ---------------------------------------------------------------------------
-# ⑤ 게시: 활성 세대 파일 교체 (교재 30, 62쪽) — 직접 작성
+# ⑤ 게시: 활성 세대 파일 교체 (교재 31, 67쪽) — 직접 작성
 # ---------------------------------------------------------------------------
 def publish_active(record: dict, active_file: Path) -> None:
     """활성 세대 파일 하나만 새 세대 기록으로 바꿔 끼움.

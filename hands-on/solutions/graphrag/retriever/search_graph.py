@@ -1,5 +1,5 @@
 """GraphRAG 검색 예제 main: ① 요청 접수 → ② 질문 분석 → ③ 검색 에이전트 ⇄ ④ 툴 실행 → ⑤ 채점과 상한 판정 →
-⑥ 리랭킹 → ⑦ 수집 종료 판정 → ⑧ 답변 생성 ⇄ ⑨ 근거 검증 → ⑩ 종료 상태 (교재 64 ~ 79쪽).
+⑥ 리랭킹 → ⑦ 수집 종료 판정 → ⑧ 답변 생성 ⇄ ⑨ 근거 검증 → ⑩ 종료 상태 (교재 70 ~ 99쪽).
 
 ③ ~ ⑤(반복 1)는 LangChain create_agent와 미들웨어 2개가 맡고, 나머지는 run_workflow가 파이썬 순서로 부름.
 단계마다 알맹이는 core_search.py의 함수가 맡고, 이 파일은 설정값, 저장소 접속, 외부 API 호출, 서브 워크플로우(O, L, G, E, R),
@@ -101,10 +101,10 @@ RERANK_MODEL = "rerank-v4.0-fast"  # Cohere 리랭커(O4, ⑥)
 # (https://console.groq.com/docs/model/openai/gpt-oss-120b: 입력 $0.15, 캐시된 입력 $0.075, 출력 $0.60)
 AGENT_PRICE = {"input": 0.15, "cache_read": 0.075, "output": 0.60}
 
-# 반복 1의 상한(교재 75쪽)
+# 반복 1의 상한(교재 89쪽)
 MAX_ROUNDS = 6  # 툴 호출 회차(= 에이전트 모델 호출) 상한
 CALL_LIMITS = {"parallel": 5, "global": 1, "queries": 8}  # 한 회차 병렬, global_search 요청당, 서로 다른 질의 수
-MAX_REWRITES = 2  # 반복 2: ⑧ 재작성 상한(교재 78쪽)
+MAX_REWRITES = 2  # 반복 2: ⑧ 재작성 상한(교재 95쪽)
 REQUEST_TIMEOUT = 180  # 요청 하나의 하드 상한(초). 넘으면 모은 근거로 ⑥에 감
 EVAL_REQUEST_TIMEOUT = 600  # --eval 때는 정상 문항이 잘리지 않게 넉넉히 둠
 RECURSION_LIMIT = 60  # 프레임워크 쪽 안전 상한(노드 실행 수). 코드 상한(6회차)보다 넉넉함
@@ -115,7 +115,7 @@ JEV_TIMEOUT = 20
 GROQ_TIMEOUT, GROQ_RETRIES = 60, 2
 STORE_TIMEOUT = 10  # OpenSearch, Neo4j
 
-# 서브 워크플로우 크기(교재 70 ~ 73쪽)
+# 서브 워크플로우 크기(교재 79 ~ 85쪽)
 O_CANDIDATES = 25  # O1, O2 각 후보 수와 O3 뒤 남길 수
 O_KEEP = 6  # O4 뒤 청크 수(필터로 6개 이하면 O4 건너뜀)
 L_ENTITIES = 16  # L2 엔티티 축소 상한
@@ -130,11 +130,11 @@ FINAL_CHUNKS = 8  # ⑥ 원문 자리 수
 REPORT_RELEVANCE_MIN = 0.25  # 보고서 관련도(질문과 보고서 요약 임베딩의 코사인) 하한. NO_REPORTS 판정에 씀
 
 # 판단 기준값(가정값. 평가셋으로 조정 예정)
-ROUTE_THRESHOLDS = {"end_noul": 0.7, "choice_confidence": 0.5}  # ② Jev 결정(교재 65쪽)
+ROUTE_THRESHOLDS = {"end_noul": 0.7, "choice_confidence": 0.5}  # ② Jev 결정(교재 71쪽)
 PASSAGE_THRESHOLDS = {"relevant_min": 0.45, "answer_evidence_over": 0.55,  # ⑤ Jev 원문 판정(TypeSafe 쿡북 출발값)
                       "premise_conflict_over": 0.7, "injection_over": 0.7}
 EVIDENCE_RELEVANT_MIN = 0.7  # ⑦ 답 근거로 셀 때 요구하는 관련 확률(평가셋 실측으로 정함: 정답 근거는 0.9 이상, 함정은 0.6대)
-SIGNAL_THRESHOLDS = {"coverage": 0.6, "min_chunks": 2}  # ⑤ 진단 신호(교재 74쪽 가정값)
+SIGNAL_THRESHOLDS = {"coverage": 0.6, "min_chunks": 2}  # ⑤ 진단 신호(교재 87쪽 가정값)
 
 # 핵심 낱말에서 빼는 흔한 말(질문 꼴 낱말, 문서 어디에나 있는 말)
 STOPWORDS = {"카드", "회원", "상담", "고객", "경우", "때", "것", "수", "얼마", "무엇", "어디", "언제", "기준", "방법", "내용",
@@ -462,7 +462,7 @@ def jev_judge_passages(res: Resources, question: str, chunk_ids: list[str], ctx:
 
 
 # ---------------------------------------------------------------------------
-# ④ 서브 워크플로우: O 검색엔진 검색, L Local 검색, G Global 검색, E 엔티티 찾기, R 원문 붙이기 (교재 69 ~ 73쪽)
+# ④ 서브 워크플로우: O 검색엔진 검색, L Local 검색, G Global 검색, E 엔티티 찾기, R 원문 붙이기 (교재 77 ~ 86쪽)
 # ---------------------------------------------------------------------------
 LABEL_OF = "[l IN labels(n) WHERE NOT l STARTS WITH '__'][0]"  # 엔티티의 레이블(관리용 __Entity__ 등 제외)
 PROPS_OF = "apoc.map.removeKeys(properties(n), ['embedding', 'generation', 'run_id'])"  # 화면과 판정에 쓰는 속성만
@@ -480,7 +480,7 @@ def entity_text(label: str, props: dict) -> str:
 def search_engine(res: Resources, query: str, filters: dict, ctx: dict) -> dict:
     """O 검색엔진 검색: O1 벡터 검색 + O2 BM25 검색(같은 필터) → O3 RRF → O4 리랭킹(최대 6).
 
-    필터(볼 수 있는 청크 표)를 두 검색에 똑같이 걸고, 필터 뒤 후보가 6개 이하면 O4를 건너뜀(교재 70쪽).
+    필터(볼 수 있는 청크 표)를 두 검색에 똑같이 걸고, 필터 뒤 후보가 6개 이하면 O4를 건너뜀(교재 79쪽).
     한쪽 검색이 실패해도 남은 순위로 결과를 냄(RRF를 코드에서 계산하는 까닭).
     """
     index = filters["index"]
@@ -554,7 +554,7 @@ def neighbors_and_reports(res: Resources, entity_ids: list[str], vector: list[fl
 
 
 def local_search(res: Resources, query: str, topic_id: str | None, filters: dict, ctx: dict) -> dict:
-    """L Local 검색: L1 검색엔진 검색 → L2 엔티티 축소(16) → L3 이웃(각 4) → L4 보고서(3) (교재 71쪽)."""
+    """L Local 검색: L1 검색엔진 검색 → L2 엔티티 축소(16) → L3 이웃(각 4) → L4 보고서(3) (교재 81, 82쪽)."""
     found = search_engine(res, query, filters, ctx)  # L1 = O
     chunks = found["chunks"]
     vector = embed_query(res, query, ctx)
@@ -590,7 +590,7 @@ def local_search(res: Resources, query: str, topic_id: str | None, filters: dict
 
 
 def global_search(res: Resources, query: str, filters: dict, ctx: dict) -> dict:
-    """G Global 검색: G1 보고서 고르기(Groq) → G2 주제와 Follow-up 질문(Groq) → G3 주제별 Local 검색(병렬) (교재 72쪽).
+    """G Global 검색: G1 보고서 고르기(Groq) → G2 주제와 Follow-up 질문(Groq) → G3 주제별 Local 검색(병렬) (교재 83, 84쪽).
 
     이 구성은 Microsoft GraphRAG의 Global Search(map-reduce)와 다른 자체 구성임.
     """
@@ -645,7 +645,7 @@ def global_search(res: Resources, query: str, filters: dict, ctx: dict) -> dict:
 
 
 def find_entities(res: Resources, entity_key: str, filters: dict, ctx: dict) -> dict:
-    """E 엔티티 찾기: E1 정규화 → E2 레이블별 키 찾기 → E3 후보 제시(0건일 때) → E4 이웃 탐색(원문 없음) (교재 73쪽)."""
+    """E 엔티티 찾기: E1 정규화 → E2 레이블별 키 찾기 → E3 후보 제시(0건일 때) → E4 이웃 탐색(원문 없음) (교재 85쪽)."""
     raw = entity_key.strip()
     member = None
     if core.MEMBER_ID_PATTERN.search(raw) or core.PSEUDO_ID_PATTERN.search(raw) or "회원" in raw:
@@ -687,7 +687,7 @@ def find_entities(res: Resources, entity_key: str, filters: dict, ctx: dict) -> 
 
 
 def get_source_chunks(res: Resources, entity_ids: list[str], with_reports: bool, filters: dict) -> dict:
-    """R 원문 붙이기: R1 엔티티의 FROM_CHUNK 원문(보고서 선택) → R2 볼 수 있는 청크 표로 다시 거름 (교재 73쪽)."""
+    """R 원문 붙이기: R1 엔티티의 FROM_CHUNK 원문(보고서 선택) → R2 볼 수 있는 청크 표로 다시 거름 (교재 85, 86쪽)."""
     records = res.run(
         "UNWIND $ids AS eid MATCH (n)-[:FROM_CHUNK]->(c:Chunk {generation: $g}) WHERE elementId(n) = eid "
         "RETURN DISTINCT c.chunk_id AS chunk_id", ids=entity_ids, g=filters["generation"])
@@ -946,7 +946,7 @@ AGENT_TOOLS = [tool_search, tool_local, tool_global, tool_find, tool_sources, to
 
 
 # ---------------------------------------------------------------------------
-# ③ ~ ⑤ 미들웨어 2개: 막는 일은 코드가 함(교재 64쪽 카드 3)
+# ③ ~ ⑤ 미들웨어 2개: 막는 일은 코드가 함(교재 70쪽 카드 3)
 # ---------------------------------------------------------------------------
 class GuardMiddleware(AgentMiddleware):
     """⑤ 상한 판정: 모델을 부르기 전에 강제 종료를 보고(before_model), 모델이 고른 호출을 상한으로 거름(after_model).
@@ -1009,7 +1009,7 @@ class ToolWrapperMiddleware(AgentMiddleware):
         """툴 호출 하나를 감쌈: 막힌 호출은 오류 표시로 돌려주고, 실행한 결과에는 ⑤ 채점 글을 덧붙임."""
         ctx = request.runtime.context
         call = request.tool_call
-        if call["id"] in ctx["blocked"]:  # 상한 소진: 오류 표시 + 「더 부를 수 없음」(교재 75쪽)
+        if call["id"] in ctx["blocked"]:  # 상한 소진: 오류 표시 + 「더 부를 수 없음」(교재 89쪽)
             record_outcome(ctx, failed=True, no_new=True)
             return ToolMessage(content=f"더 부를 수 없음. 지금 근거로 finish할 것({ctx['blocked'][call['id']]})",
                                tool_call_id=call["id"], name=call["name"], status="error")
@@ -1061,7 +1061,7 @@ def update_streaks(ctx: dict) -> None:
 def score_result(ctx: dict, call: dict, result: dict) -> str:
     """⑤ 채점: 새 원문마다 Jev 판정 → 관련 없음과 지시 끼워 넣기는 근거에서 뺌 → 진단 신호 → 관찰에 덧붙일 글.
 
-    질의가 없는 툴(get_source_chunks)은 원 질문으로 채점하고 관련 낮은 원문도 버리지 않고 표시만 함(교재 74쪽).
+    질의가 없는 툴(get_source_chunks)은 원 질문으로 채점하고 관련 낮은 원문도 버리지 않고 표시만 함(교재 87쪽).
     """
     tool_name = result["tool"]
     lines = []
@@ -1256,7 +1256,7 @@ def step7_judge(res: Resources, ctx: dict, picked: dict) -> dict:
     else:
         recheck = core.recheck_question(ctx["terms"], chunks, chunk_entities, entity_texts, links)
     # Jev: ⑤에서 해 둔 판정을 다시 쓰고(Global 검색 원문은 그 주제의 Follow-up 질문으로 한 판정),
-    #      판정이 없는 원문만 원 질문으로 새로 물음(교재 77쪽)
+    #      판정이 없는 원문만 원 질문으로 새로 물음(교재 93쪽)
     marks = {}
     if recheck["passed"]:
         for cid in chunk_ids:
@@ -1563,7 +1563,7 @@ def run_eval(res: Resources, data: dict, args) -> None:
 
 def main_cli() -> None:
     """명령행 인자를 읽어 질문 하나 또는 평가셋을 실행함."""
-    parser = argparse.ArgumentParser(description="GraphRAG 검색 예제(교재 64 ~ 79쪽)")
+    parser = argparse.ArgumentParser(description="GraphRAG 검색 예제(교재 70 ~ 99쪽)")
     parser.add_argument("question", nargs="?", help="질문. --qid나 --eval을 주면 생략")
     parser.add_argument("--qid", help="평가셋 질문 번호(예: Q01). 역할과 회원은 평가셋 filters대로")
     parser.add_argument("--role", default=None, help="agent(공개 문서만) 또는 auditor(상담 기록까지)")

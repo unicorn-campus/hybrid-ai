@@ -42,7 +42,7 @@ from core_search import (  # noqa: F401
 
 
 # ===========================================================================
-# 1. ① 요청 접수: 준비 확인 (교재 65쪽) — 직접 작성
+# 1. ① 요청 접수: 준비 확인 (교재 71쪽) — 직접 작성
 # ===========================================================================
 def check_ready(role: str, active: dict | None, index_exists: bool, graph_chunk_count: int, report_count: int) -> dict:
     """검색을 시작해도 되는지 세 조건(권한, 같은 세대, 보고서 유무)으로 판정함.
@@ -56,7 +56,7 @@ def check_ready(role: str, active: dict | None, index_exists: bool, graph_chunk_
 
 
 # ===========================================================================
-# 2. ② 질문 분석: Jev 확률 → 코드의 결정 (교재 65, 66쪽) — 직접 작성
+# 2. ② 질문 분석: Jev 확률 → 코드의 결정 (교재 71, 72쪽) — 직접 작성
 # ===========================================================================
 def decide_question_route(answers: dict | None, thresholds: dict) -> dict:
     """Jev가 낸 확률을 기준값과 비교해 「끝낼지, 첫 툴 후보는 무엇인지」를 정함.
@@ -72,7 +72,7 @@ def decide_question_route(answers: dict | None, thresholds: dict) -> dict:
 
 
 # ===========================================================================
-# 3. ③ 검색 에이전트: create_agent로 ReAct 고리 (교재 68쪽) — 빈칸 2곳
+# 3. ③ 검색 에이전트: create_agent로 ReAct 고리 (교재 75, 76쪽) — 빈칸 2곳
 # ===========================================================================
 def build_agent(model, tools: list, system_prompt: str, middleware: list, first_message: str, context: dict,
                 recursion_limit: int) -> dict:
@@ -91,7 +91,7 @@ def build_agent(model, tools: list, system_prompt: str, middleware: list, first_
 
 
 # ===========================================================================
-# 4. ④ 툴 실행: 래퍼 (교재 69쪽) — 빈칸 2곳
+# 4. ④ 툴 실행: 래퍼 (교재 77, 78쪽) — 빈칸 2곳
 # ===========================================================================
 def run_tool(name: str, args: dict, ctx: dict, tool_functions: dict) -> dict:
     """에이전트의 툴 호출 하나를 실행하는 래퍼. 입력 검사, 질의 속 식별자 지우기, 필터 강제를 함.
@@ -112,7 +112,7 @@ def run_tool(name: str, args: dict, ctx: dict, tool_functions: dict) -> dict:
 
 
 # ===========================================================================
-# 5. ④ O 검색엔진 검색: RRF (교재 70쪽) — 직접 작성
+# 5. ④ O 검색엔진 검색: RRF (교재 79, 80쪽) — 직접 작성
 # ===========================================================================
 def rrf_merge(vector_hits: list[dict], bm25_hits: list[dict], k: int = 60, top: int = 25) -> list[dict]:
     """벡터 검색과 BM25 검색의 두 순위를 RRF로 합침.
@@ -125,7 +125,7 @@ def rrf_merge(vector_hits: list[dict], bm25_hits: list[dict], k: int = 60, top: 
 
 
 # ===========================================================================
-# 6. ④ L Local 검색: 엔티티 축소 (교재 71쪽) — 직접 작성
+# 6. ④ L Local 검색: 엔티티 축소 (교재 81, 82쪽) — 직접 작성
 # ===========================================================================
 def narrow_entities(candidates: list[dict], limit: int = 16, pinned_ids: list[str] | None = None) -> list[dict]:
     """청크에서 나온 엔티티 후보를 질문과의 유사도로 줄여 limit개만 남김.
@@ -138,7 +138,7 @@ def narrow_entities(candidates: list[dict], limit: int = 16, pinned_ids: list[st
 
 
 # ===========================================================================
-# 선택 과제. ④ E 엔티티 찾기: 키 정규화 (교재 73쪽) — 직접 작성
+# 선택 과제. ④ E 엔티티 찾기: 키 정규화 (교재 85쪽) — 직접 작성
 # ===========================================================================
 def normalize_entity_key(label: str, text: str) -> str:
     """찾을 대상의 글을 레이블별 키 속성과 같은 꼴로 맞춤(E1 정규화).
@@ -151,7 +151,7 @@ def normalize_entity_key(label: str, text: str) -> str:
 
 
 # ===========================================================================
-# 7. ⑤ 채점: 진단 신호 (교재 74쪽) — 빈칸 3곳
+# 7. ⑤ 채점: 진단 신호 (교재 87, 88쪽) — 빈칸 3곳
 # ===========================================================================
 def diagnose_signals(stats: dict, thresholds: dict) -> list[str]:
     """툴 결과 하나의 통계로 진단 신호를 매김.
@@ -182,7 +182,7 @@ def diagnose_signals(stats: dict, thresholds: dict) -> list[str]:
 
 
 # ===========================================================================
-# 8. ⑤ 상한 판정: 강제 종료 (교재 75쪽) — 직접 작성
+# 8. ⑤ 상한 판정: 강제 종료 (교재 89, 90쪽) — 직접 작성
 # ===========================================================================
 def force_stop_reason(counts: dict, max_rounds: int) -> str | None:
     """더 찾아도 소용없거나 상한을 다 쓰면 강제 종료 이유 한 줄을, 아니면 None을 돌려줌.
@@ -194,7 +194,7 @@ def force_stop_reason(counts: dict, max_rounds: int) -> str | None:
 
 
 # ===========================================================================
-# 9. ⑥ 리랭킹: 8자리 고르기 (교재 76쪽) — 직접 작성
+# 9. ⑥ 리랭킹: 8자리 고르기 (교재 91, 92쪽) — 직접 작성
 # ===========================================================================
 def select_final_chunks(scored: list[dict], limit: int = 8) -> list[dict]:
     """리랭커 점수가 붙은 원문에서 limit자리를 고름. Global 검색 주제마다 1자리를 먼저 맡김.
@@ -206,7 +206,7 @@ def select_final_chunks(scored: list[dict], limit: int = 8) -> list[dict]:
 
 
 # ===========================================================================
-# 10. ⑦ 수집 종료 판정: 코드 재확인 (교재 77쪽) — 빈칸 2곳
+# 10. ⑦ 수집 종료 판정: 코드 재확인 (교재 93, 94쪽) — 빈칸 2곳
 # ===========================================================================
 def recheck_question(terms: list[str], chunks: list[dict], chunk_entities: dict, entity_texts: dict,
                      links: set) -> dict:
@@ -231,7 +231,7 @@ def recheck_question(terms: list[str], chunks: list[dict], chunk_entities: dict,
 
 
 # ===========================================================================
-# 11. ⑧ 답변 생성: LCEL 체인 + 구조화 출력 (교재 78쪽) — 빈칸 2곳
+# 11. ⑧ 답변 생성: LCEL 체인 + 구조화 출력 (교재 95, 96쪽) — 빈칸 2곳
 # ===========================================================================
 def generate_answer(llm, prompt, question: str, evidence_text: str, feedback: str, premise_note: str) -> GroundedAnswer:
     """근거만으로 답을 만듦. 답은 문장마다 인용 id를 단 구조화 객체(GroundedAnswer)로 받음."""
@@ -245,7 +245,7 @@ def generate_answer(llm, prompt, question: str, evidence_text: str, feedback: st
 
 
 # ===========================================================================
-# 12. ⑨ 근거 검증 (교재 78쪽) — 직접 작성
+# 12. ⑨ 근거 검증 (교재 95, 97쪽) — 직접 작성
 # ===========================================================================
 def verify_answer(answer: GroundedAnswer, evidence: dict) -> list[str]:
     """답을 근거와 대조해 실패 사유 목록을 돌려줌. 빈 목록이면 통과.
@@ -260,7 +260,7 @@ def verify_answer(answer: GroundedAnswer, evidence: dict) -> list[str]:
 
 
 # ===========================================================================
-# 13. ⑩ 종료 상태 (교재 79쪽) — 빈칸 1곳
+# 13. ⑩ 종료 상태 (교재 98, 99쪽) — 빈칸 1곳
 # ===========================================================================
 def make_end_state(end_code: str, reason: str, answer_text: str, evidence: list[dict], warnings: list[str]) -> dict:
     """어디서 끝나든 종료 상태 이름과 끝난 이유를 함께 돌려줌."""

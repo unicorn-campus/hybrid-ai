@@ -1,6 +1,6 @@
 """GraphRAG 인덱싱 예제 main: ① 세대 ID 발급 → ② 공통 단계 → ③ 인덱스 구축(KG 구축 K1 ~ K6, K8과 검색엔진 S1 ~ S3) → ④ 검증 → ⑤ 게시.
 
-교재 30쪽 「인덱싱 워크플로우 구성안」의 전체 재색인(full)만 다룸(증분 색인과 K7은 다루지 않음).
+교재 31쪽 「인덱싱 워크플로우 구성안」의 전체 재색인(full)만 다룸(증분 색인과 K7은 다루지 않음).
 단계마다 알맹이는 core_graph.py의 함수가 맡고, 이 파일은 설정값, 저장소 접속, LLM과 임베딩 호출, 순서, 단계별 출력을 맡음.
 
 실행(이 폴더에서):
@@ -82,7 +82,7 @@ COLLECTION_NAME = "card_docs"  # RAG 실습과 약속한 collection 이름
 SAMPLE_CHROMA_IDS = ["D1-0005", "D1-0006", "D2-0067", "D2-0068", "D2-0069", "D2-0070",
                      "D3-0001", "D3-0002", "D3-0005", "D3-0006"]
 
-# 문서 프로필(교재 31쪽 사전 검사 항목): 원천 메타데이터에 없는 문서 수준 값을 머리줄에 보탬.
+# 문서 프로필(교재 32쪽 사전 검사 항목): 원천 메타데이터에 없는 문서 수준 값을 머리줄에 보탬.
 # 약관 PDF의 메타데이터 쪽(버전 1.2, 시행 2027-01-15, 이전 판 1.1)을 옮긴 것으로, 약관 문서 노드(TermsDocument)의
 # 고유 속성 version을 채움. 없으면 LLM이 파일 이름을 version에 넣는 일이 생김(2026-10-24 실측)
 DOC_PROFILES = {"D1": {"version": "1.2", "effective_date": "2027-01-15", "supersedes": "1.1"}}
@@ -108,7 +108,7 @@ NEO4J_CONNECT_TIMEOUT = 30  # 접속 제한 시간(초). 서버가 없을 때 �
 # 세대와 인덱스 이름
 GENERATION_TAG = "lab"  # 세대 ID 앞머리 gen-lab-. 같은 DB의 다른 세대(v0의 gen-hai-)와 구분함
 INDEX_PREFIX = "card_chunks"  # 검색엔진 인덱스 이름 card_chunks-{세대 ID}
-ENTITY_INDEX = "kg_entity_embedding"  # K6 벡터 인덱스(교재 44쪽)
+ENTITY_INDEX = "kg_entity_embedding"  # K6 벡터 인덱스(교재 49쪽)
 COMMUNITY_INDEX = "kg_community_embedding"  # K8 벡터 인덱스
 
 # LLM(K2 추출, K8 보고서): Groq. JSON 모드로 묻고 temperature 0
@@ -684,7 +684,7 @@ def read_old_vectors(os_client: OpenSearch, index: str | None) -> dict[str, list
 
 
 def index_mapping(tokenizer_meta: dict) -> dict:
-    """벡터(kNN)와 키워드(BM25)를 한 인덱스에 둠. 사전 기록은 _meta에 남겨 검색 쪽이 같은 토크나이저를 만들게 함(교재 53쪽)."""
+    """벡터(kNN)와 키워드(BM25)를 한 인덱스에 둠. 사전 기록은 _meta에 남겨 검색 쪽이 같은 토크나이저를 만들게 함(교재 58, 61쪽)."""
     keyword_fields = {name: {"type": "keyword"} for name in META_FIELDS}
     return {
         "settings": {"index": {"knn": True, "number_of_shards": 1, "number_of_replicas": 0,

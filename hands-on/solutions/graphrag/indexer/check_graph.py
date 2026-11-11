@@ -1,11 +1,11 @@
 """결과 확인 도구(읽기만): 질문 하나로 「검색엔진 → 청크 → 그래프 엔티티 → 커뮤니티 보고서 → 리랭크」를 차례로 보여 줌.
 
-인덱싱이 끝난 뒤 교육생이 "그래서 무엇이 만들어졌나"를 눈으로 확인하는 용도임(교재 29쪽 「검색 때 그래프로 건너감」).
+인덱싱이 끝난 뒤 교육생이 "그래서 무엇이 만들어졌나"를 눈으로 확인하는 용도임(교재 30쪽 「검색 때 그래프로 건너감」).
 답을 만드는 LLM 호출은 없음. 검색기(답변 생성)는 다음 실습에서 만듦.
 
 실행(이 폴더에서):
   ../.venv/Scripts/python.exe check_graph.py "할부로 산 상품의 철회는 며칠 안에 요청해야 하나요?"
-  ../.venv/Scripts/python.exe check_graph.py --qid Q02            평가셋 질문으로 실행하고 적중 여부까지 판정
+  ../.venv/Scripts/python.exe check_graph.py --qid Q02            평가셋 질문으로 실행하고 적중 여부와 이유까지 판정
   ../.venv/Scripts/python.exe check_graph.py --qid Q09 --rerank   마지막에 Cohere 리랭크로 청크 순위를 다시 매김
   ../.venv/Scripts/python.exe check_graph.py --drop gen-lab-...   실패한 세대의 노드와 인덱스만 지움(활성 세대는 거부)
 """
@@ -27,6 +27,7 @@ EVAL_SET_PATH = main.ROOT_DIR / "hands-on" / "solutions" / "eval-set.json"  # �
 RERANK_MODEL = "rerank-v4.0-fast"  # Cohere 리랭커(RAG 실습과 같음)
 RRF_K = 60  # RRF(순위 융합) 상수. 순위 차이를 완만하게 만듦
 SNIPPET = 70  # 본문 미리보기 글자 수
+WIDE_TOP = 50  # 근거 청크가 상위 N개 밖일 때 몇 위인지 알아보려고 넓게 다시 찾는 개수
 
 
 def short(text: str, width: int = SNIPPET) -> str:
@@ -79,7 +80,7 @@ def search_engine(os_client, index: str, question: str, top: int) -> tuple[list[
 # 그래프: 청크 → 엔티티, 엔티티 벡터 검색, 커뮤니티 보고서
 # ---------------------------------------------------------------------------
 def entities_of_chunks(driver, generation: str, chunk_ids: list[str], limit: int) -> dict[str, list[dict]]:
-    """검색이 찾은 chunk_id와 같은 청크 노드에서 FROM_CHUNK로 이어진 엔티티를 가져옴(교재 38쪽 조회 예시)."""
+    """검색이 찾은 chunk_id와 같은 청크 노드에서 FROM_CHUNK로 이어진 엔티티를 가져옴(교재 33쪽 「검색엔진과 KG 연결」)."""
     records, _, _ = driver.execute_query(
         "UNWIND $ids AS cid MATCH (c:Chunk {generation: $g, chunk_id: cid}) "
         "MATCH (e)-[:FROM_CHUNK]->(c) "
@@ -94,7 +95,7 @@ def entities_of_chunks(driver, generation: str, chunk_ids: list[str], limit: int
 
 
 def entity_vector_search(driver, generation: str, vector: list[float], top: int) -> list[dict]:
-    """K6 벡터 인덱스로 질문과 뜻이 가까운 엔티티를 찾음(엔티티 직접 검색, 교재 42 ~ 43쪽). 지금 세대만 남김."""
+    """K6 벡터 인덱스로 질문과 뜻이 가까운 엔티티를 찾음(엔티티 직접 검색, 교재 46, 47쪽). 지금 세대만 남김."""
     records, _, _ = driver.execute_query(
         "CALL db.index.vector.queryNodes($index, $k, $vec) YIELD node, score "
         "WHERE node.generation = $g "
@@ -118,7 +119,7 @@ def neighbors_of(driver, entity_id: str, limit: int) -> list[str]:
 
 
 def communities_of(driver, entity_ids: list[str], top: int) -> list[dict]:
-    """엔티티들이 속한 커뮤니티 보고서를 많이 걸린 순으로 돌려줌(교재 51쪽 ③ IN_COMMUNITY)."""
+    """엔티티들이 속한 커뮤니티 보고서를 많이 걸린 순으로 돌려줌(교재 56쪽 ③ IN_COMMUNITY)."""
     if not entity_ids:
         return []
     records, _, _ = driver.execute_query(
@@ -145,21 +146,109 @@ def squash(text: str) -> str:
     return re.sub(r"\s+", "", text)
 
 
+def match_clue(phrase: str, chunks: list[dict], entities: list[dict]) -> dict:
+    """정답 단서 하나가 어느 청크 본문과 엔티티 설명에 들어 있는지 위치(번호)를 돌려줌. 공백과 줄바꿈은 무시함."""
+    needle = squash(phrase)
+    return {
+        "chunks": [i for i, c in enumerate(chunks) if needle in squash(c["source"]["text"])],
+        "entities": [i for i, e in enumerate(entities)
+                     if needle in squash(main.core.entity_description(e["label"], e["props"]))],
+    }
+
+
 def hit_check(item: dict, chunks: list[dict], entities: list[dict]) -> list[str]:
     """평가셋 relevance.clues(정답 단서)가 상위 청크 본문이나 엔티티 설명에 있으면 적중으로 봄. 공백과 줄바꿈은 무시함."""
-    texts = [squash(c["source"]["text"]) for c in chunks]
-    descriptions = [squash(main.core.entity_description(e["label"], e["props"])) for e in entities]
     results = []
     for rel in item.get("relevance", []):
         for phrase in rel.get("clues", []):
-            where = []
-            needle = squash(phrase)
-            if any(needle in t for t in texts):
-                where.append("청크")
-            if any(needle in d for d in descriptions):
-                where.append("엔티티")
+            found = match_clue(phrase, chunks, entities)
+            where = (["청크"] if found["chunks"] else []) + (["엔티티"] if found["entities"] else [])
             results.append(f"{'적중' if where else '빗나감'}({', '.join(where) or '-'}): {short(phrase, 50)}")
     return results
+
+
+def clue_chunks_in_index(os_client, index: str, phrase: str) -> list[dict]:
+    """이 세대 검색엔진 인덱스 전체에서 단서가 본문에 든 청크를 찾음(근거 청크가 인덱스에 있는지 알아보려는 것)."""
+    needle = squash(phrase)
+    found = []
+    for hit in main.helpers.scan(os_client, index=index, query={"_source": ["chunk_id", "chroma_id", "doc_type", "text"]}):
+        if needle in squash(hit["_source"]["text"]):
+            found.append({**hit["_source"], "chunk_id": hit["_id"]})
+    return found
+
+
+def clue_chunks_in_source(phrase: str) -> tuple[list[str], int] | None:
+    """입력 원본(RAG 실습 Chroma) 전체에서 단서가 든 청크의 chroma_id와 전체 청크 수. Chroma가 없으면 None."""
+    try:
+        rows = main.read_chroma_rows(False)
+    except (SystemExit, Exception):
+        return None
+    needle = squash(phrase)
+    return [r["chroma_id"] for r in rows if needle in squash(r["text"])], len(rows)
+
+
+def explain_hits(item: dict, chunks: list[dict], entities: list[dict], os_client, index: str, question: str,
+                 active: dict, top: int) -> list[str]:
+    """[6] 적중 판정을 줄 목록으로 만듦. 판정 방법, 정답 근거 위치, 단서마다 결과와 맞추거나 빗나간 이유를 적음."""
+    ids = ", ".join(c["source"]["chroma_id"] for c in chunks) or "없음"
+    lines = [f"판정 방법: 정답 단서 문구가 ① 검색된 상위 {len(chunks)}개 청크 본문 ② 찾은 엔티티 {len(entities)}개의 설명 중",
+             "          하나에 들어 있으면 적중(공백과 줄바꿈은 무시). 청크 ID를 비교하는 것이 아님",
+             f"검색된 청크: {ids}"]
+    relevance = item.get("relevance", [])
+    for rel in relevance:
+        where = " ".join(x for x in (rel.get("source"), rel.get("location")) if x)
+        if where:
+            lines.append(f"평가셋의 정답 근거: {where}")
+    clues = [phrase for rel in relevance for phrase in rel.get("clues", [])]
+    if not clues:
+        return lines + ["평가셋에 정답 단서(clues)가 없어 판정하지 않음"]
+    for number, phrase in enumerate(clues, start=1):
+        found = match_clue(phrase, chunks, entities)
+        hit = bool(found["chunks"] or found["entities"])
+        lines += ["", f"단서 {number}/{len(clues)}: {short(phrase, 70)}", f"  판정: {'적중' if hit else '빗나감'}"]
+        if found["chunks"]:
+            lines.append("  ① 검색된 청크 본문: 단서 있음 → " + ", ".join(chunks[i]["source"]["chroma_id"] for i in found["chunks"]))
+        else:
+            lines.append("  ① 검색된 청크 본문: 단서 없음")
+        lines.append(f"  ② 찾은 엔티티 설명: {'단서 있음' if found['entities'] else '단서 없음'}")
+        if hit:
+            for i in found["chunks"]:
+                row = chunks[i]
+                lines.append(f"  이유: 근거 청크 {row['source']['chroma_id']}이(가) 검색 {i + 1}위(bm25 {row['ranks'].get('bm25', '-')} / "
+                             f"knn {row['ranks'].get('knn', '-')})에 있고 본문에 단서가 있음")
+            shown = []  # 같은 설명이 여러 번 나오면(병합 전 중복 등) 한 번만 보여 줌
+            for i in found["entities"]:
+                e = entities[i]
+                text = short(main.core.entity_description(e["label"], e["props"]), 70)
+                if text not in shown and len(shown) < 2:
+                    shown.append(text)
+                    lines.append(f"  이유: {e['label']} 엔티티 설명에 단서가 있음: {text}")
+            continue
+        # 빗나감: 원인을 나눠 설명함
+        in_index = clue_chunks_in_index(os_client, index, phrase)
+        if in_index:
+            wide, _ = search_engine(os_client, index, question, min(WIDE_TOP, max(top, active["chunk_count"])))
+            notes = []
+            for row in in_index:
+                position = next((n for n, c in enumerate(wide, start=1) if c["chunk_id"] == row["chunk_id"]), None)
+                notes.append(f"{row['chroma_id']}은(는) 검색 {position}위" if position
+                             else f"{row['chroma_id']}은(는) 검색 상위 {len(wide)}개 안에도 없음")
+            lines += [f"  이유: 근거 청크는 이 세대 인덱스에 있지만 검색 상위 {len(chunks)}개에 들지 못함",
+                      f"        {', '.join(notes)}",
+                      f"        → 검색 순위 문제임. --top 을 늘리면 청크 쪽이 맞음(예: --top {max(top + 1, 10)})"]
+            continue
+        source = clue_chunks_in_source(phrase)
+        lines.append("  이유: 이 세대의 검색엔진 인덱스에 단서가 든 청크가 없음")
+        if source is None:
+            lines.append("        원본(Chroma)을 읽을 수 없어 단서가 든 청크를 찾지 못함")
+        elif source[0]:
+            lines += [f"        단서가 든 청크: {', '.join(source[0])} (원본 Chroma 전체 {source[1]}개 기준)",
+                      f"        이 세대에는 청크 {active['chunk_count']}개만 들어 있고 그 청크는 빠져 있음"]
+            if active["chunk_count"] < source[1]:
+                lines.append("        → 표본(--sample)으로 만든 세대임. --sample 없이 전체 인덱싱한 세대에서 확인함")
+        else:
+            lines.append("        원본(Chroma) 전체에서도 단서 문구가 없음 → 평가셋의 단서 문구나 원문 표기를 확인함")
+    return lines
 
 
 # ---------------------------------------------------------------------------
@@ -245,10 +334,10 @@ def run(args) -> None:
 
     # 6) 적중 판정(평가셋 질문일 때)
     if item:
-        print(f"\n[6] 적중 판정(평가셋 {item['id']}, 근거 문구가 상위 청크 본문이나 엔티티 설명에 있는지)")
-        for line in hit_check(item, chunks, found_entities + direct):
-            print(f"    {line}")
-        print(f"    정답: {short(item.get('ground_truth', ''), 100)}")
+        print(f"\n[6] 적중 판정(평가셋 {item['id']})")
+        for line in explain_hits(item, chunks, found_entities + direct, os_client, index, question, active, args.top):
+            print(f"    {line}" if line else "")
+        print(f"\n    참고(평가셋 정답 문장, 판정과는 무관): {short(item.get('ground_truth', ''), 100)}")
     driver.close()
 
 

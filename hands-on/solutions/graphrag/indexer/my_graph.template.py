@@ -40,7 +40,7 @@ from neo4j_graphrag.components.graph_pruning import GraphPruning
 from neo4j_graphrag.components.types import Neo4jGraph, Neo4jNode, Neo4jRelationship, TextChunk, TextChunks
 from opensearchpy import helpers
 
-SYSTEM_PROPS = {"generation", "run_id", "embedding"}  # 엔티티 설명 글을 만들 때 빼는 관리용 속성(교재 43쪽 ②)
+SYSTEM_PROPS = {"generation", "run_id", "embedding"}  # 엔티티 설명 글을 만들 때 빼는 관리용 속성(교재 47쪽 ②)
 
 
 # ---------------------------------------------------------------------------
@@ -60,7 +60,7 @@ def next_nonblank_line(lines: list[str], index: int) -> str:
 
 
 def head_line(metadata: dict, fields: list[str]) -> str:
-    """메타데이터를 「칸: 값 | 칸: 값」 한 줄로 만들어 추출 청크 앞에 붙임(교재 35쪽 ②). 값이 없는 칸은 뺌."""
+    """메타데이터를 「칸: 값 | 칸: 값」 한 줄로 만들어 추출 청크 앞에 붙임(교재 37쪽 ②). 값이 없는 칸은 뺌."""
     parts = []
     for field in fields:
         value = metadata.get(field)
@@ -73,13 +73,13 @@ def head_line(metadata: dict, fields: list[str]) -> str:
 
 
 # ---------------------------------------------------------------------------
-# 1. ① 세대 ID 발급 (교재 31쪽) — 직접 작성
+# 1. ① 세대 ID 발급 (교재 32쪽) — 직접 작성
 # ---------------------------------------------------------------------------
 def issue_generation(run: str, active: dict | None, input_sha256: str, config_signature: str,
                      full_reindex: bool, tag: str) -> dict:
     """실행 이름으로 세대 ID를 만들고, 할 일이 있는지 사전 검사함.
 
-    목적: 같은 실행 이름이면 같은 세대 ID가 나와, 중단돼도 같은 세대로 이어서 만들 수 있게 함(교재 31쪽).
+    목적: 같은 실행 이름이면 같은 세대 ID가 나와, 중단돼도 같은 세대로 이어서 만들 수 있게 함(교재 32쪽).
     방법: 세대 ID = "gen-{tag}-{실행 이름(안전한 글자만)}-{실행 이름 해시 앞 8자리}".
           사전 검사는 활성 세대가 있고, 입력 지문과 설정 지문이 모두 같으면 "할 일 없음"(skip=True).
           full_reindex가 True면 사전 검사를 건너뜀(무조건 새로 만듦).
@@ -91,14 +91,14 @@ def issue_generation(run: str, active: dict | None, input_sha256: str, config_si
 
 
 # ---------------------------------------------------------------------------
-# 2. ② 공통 단계: 청크 한 건 만들기 (교재 31쪽) — 빈칸 2곳
+# 2. ② 공통 단계: 청크 한 건 만들기 (교재 32쪽) — 빈칸 2곳
 # ---------------------------------------------------------------------------
 def prepare_chunks(rows: list[dict]) -> list[dict]:
     """Chroma에서 읽은 행을 인덱싱 입력 청크로 바꿈. doc_id와 chunk_id를 여기서 정함.
 
     방법: doc_id = 문서 키(D1, D2, D3) + "_" + 문서 구분값. 약관과 혜택은 원천 파일 이름의 해시 16자리,
           상담은 상담 번호(record_id)라 상담 1건이 문서 1개임.
-          chunk_id = doc_id + "_" + 본문 해시 16자리 + "_" + 같은 본문 반복 번호 4자리(교재 31쪽 그림).
+          chunk_id = doc_id + "_" + 본문 해시 16자리 + "_" + 같은 본문 반복 번호 4자리(교재 32쪽 그림).
     반환값: [{"chunk_id", "doc_id", "doc_type", "text", "text_hash", "metadata"}, ...].
     """
     repeat_counter: dict[tuple[str, str], int] = {}  # (doc_id, 본문 해시) → 지금까지 나온 횟수
@@ -141,7 +141,7 @@ def prepare_chunks(rows: list[dict]) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# 3. K1 추출 청크 나누기 (교재 32, 34쪽) — 직접 작성
+# 3. K1 추출 청크 나누기 (교재 33, 35, 36쪽) — 직접 작성
 # ---------------------------------------------------------------------------
 def split_by_heading(text: str, rule: dict) -> list[dict]:
     """청크 본문을 조항 제목 줄 기준으로 잘라 추출 청크 조각 목록을 돌려줌.
@@ -213,7 +213,7 @@ def k1_split_units(chunks: list[dict], schemas: dict) -> tuple[list[dict], list[
 
 
 # ---------------------------------------------------------------------------
-# 5. K2 추출, K3 가지치기 (교재 35, 36쪽) — 빈칸 2곳
+# 5. K2 추출, K3 가지치기 (교재 37 ~ 39쪽) — 빈칸 2곳
 # ---------------------------------------------------------------------------
 def extract_one(unit: dict, spec: dict, llm, retries: int) -> dict:
     """추출 청크 하나를 LLM에 넣어 노드와 관계를 뽑고(K2), 스키마 밖은 바로 지움(K3).
@@ -247,7 +247,7 @@ def extract_one(unit: dict, spec: dict, llm, retries: int) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# 6. K4 적재: 그래프 행 만들기 (교재 37, 38쪽) — 빈칸 2곳
+# 6. K4 적재: 그래프 행 만들기 (교재 40 ~ 42쪽) — 빈칸 2곳
 # ---------------------------------------------------------------------------
 def build_graph_rows(chunks: list[dict], units: list[dict], schemas: dict, generation: str,
                      run_id: str) -> tuple[list, list, set]:
@@ -276,7 +276,7 @@ def build_graph_rows(chunks: list[dict], units: list[dict], schemas: dict, gener
         graph = Neo4jGraph.model_validate(unit["graph"])  # dict로 보관한 그래프를 라이브러리 객체로 되돌림
         constraints = schemas[unit["doc_type"]]["schema"].constraints  # 이 문서 유형의 고유 속성 제약
         for node in graph.nodes:
-            # 모든 엔티티에 세대와 실행 표시. 세대끼리 섞이지 않게 함(교재 37쪽 ②)
+            # 모든 엔티티에 세대와 실행 표시. 세대끼리 섞이지 않게 함(교재 40쪽 ②)
             node.properties = {**(node.properties or {}), "generation": generation, "run_id": run_id}
             nodes.append(node)
 
@@ -284,7 +284,7 @@ def build_graph_rows(chunks: list[dict], units: list[dict], schemas: dict, gener
             #         Neo4jRelationship(type="FROM_CHUNK", start_node_id=node.id, end_node_id=chunk_node_id(청크 ID))를 더함
             raise NotImplementedError("빈칸 2를 채우고 이 줄을 지울 것")
 
-            # K5에서 합칠 값 모으기: 제약의 라벨과 노드 라벨이 같고 값이 있을 때만(교재 39쪽 ③)
+            # K5에서 합칠 값 모으기: 제약의 라벨과 노드 라벨이 같고 값이 있을 때만(교재 44쪽 ③)
             for constraint in constraints:
                 value = node.properties.get(constraint.property_name)
                 if constraint.node_type == node.label and value not in (None, ""):
@@ -295,7 +295,7 @@ def build_graph_rows(chunks: list[dict], units: list[dict], schemas: dict, gener
 
 
 # ---------------------------------------------------------------------------
-# 7. K5 병합 (교재 39 ~ 41쪽) — 빈칸 2곳
+# 7. K5 병합 (교재 43 ~ 45쪽) — 빈칸 2곳
 # ---------------------------------------------------------------------------
 def k5_merge(driver, generation: str, merge_keys: set) -> int:
     """같은 세대에서 스키마 고유 속성 값이 같은 노드를 하나로 합침.
@@ -319,7 +319,7 @@ def k5_merge(driver, generation: str, merge_keys: set) -> int:
 
 
 # ---------------------------------------------------------------------------
-# 8. K6 엔티티 설명 글 (교재 43쪽) — 직접 작성
+# 8. K6 엔티티 설명 글 (교재 47, 48쪽) — 직접 작성
 # ---------------------------------------------------------------------------
 def entity_description(label: str, props: dict) -> str:
     """엔티티 하나를 「라벨: 속성=값, 속성=값」 설명 글로 바꿈.
@@ -332,7 +332,7 @@ def entity_description(label: str, props: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
-# 9. K6 설명 임베딩과 벡터 인덱스 (교재 44쪽) — 빈칸 2곳
+# 9. K6 설명 임베딩과 벡터 인덱스 (교재 47, 49쪽) — 빈칸 2곳
 # ---------------------------------------------------------------------------
 def k6_embed_descriptions(driver, generation: str, embed_texts, dimension: int, index_name: str) -> int:
     """임베딩이 없는 엔티티의 설명 글을 임베딩해 저장하고 벡터 인덱스를 만듦.
@@ -367,7 +367,7 @@ def k6_embed_descriptions(driver, generation: str, embed_texts, dimension: int, 
 
 
 # ---------------------------------------------------------------------------
-# 10. K8 커뮤니티 찾기 (교재 48쪽) — 빈칸 2곳
+# 10. K8 커뮤니티 찾기 (교재 52, 53쪽) — 빈칸 2곳
 # ---------------------------------------------------------------------------
 def group_assignments(assignments: dict[int, int]) -> list[list[int]]:
     """제공 함수. 「엔티티 번호 → 묶음 번호」를 묶음 목록으로 바꿈. 묶음 안은 번호순, 묶음끼리는 가장 작은 번호순."""
@@ -421,7 +421,7 @@ def detect_communities(driver, graph_name: str, entity_ids: list[str], edges: li
 
 
 # ---------------------------------------------------------------------------
-# 11. K8 커뮤니티 행 만들기 (교재 49쪽) — 빈칸 2곳
+# 11. K8 커뮤니티 행 만들기 (교재 54쪽) — 빈칸 2곳
 # ---------------------------------------------------------------------------
 def build_community_rows(groups: list[list[int]], group_hashes: list[str], entities: list[dict],
                          reports: dict, min_size: int) -> list[dict]:
@@ -470,7 +470,7 @@ def k8_write_communities(driver, generation: str, run_id: str, rows: list[dict],
 
 
 # ---------------------------------------------------------------------------
-# 12. S1 임베딩: 벡터 재사용 (교재 54, 55쪽) — 직접 작성
+# 12. S1 임베딩: 벡터 재사용 (교재 59, 60쪽) — 직접 작성
 # ---------------------------------------------------------------------------
 def embed_with_reuse(texts: list[str], hashes: list[str], old_vectors: dict[str, list[float]],
                      embed_texts) -> tuple[list[list[float]], int]:
@@ -485,7 +485,7 @@ def embed_with_reuse(texts: list[str], hashes: list[str], old_vectors: dict[str,
 
 
 # ---------------------------------------------------------------------------
-# 13. S2 키워드 분석: 엔진 문서 한 건 만들기 (교재 53, 56 ~ 58쪽) — 빈칸 2곳
+# 13. S2 키워드 분석: 엔진 문서 한 건 만들기 (교재 58, 61, 62쪽) — 빈칸 2곳
 # ---------------------------------------------------------------------------
 def build_search_docs(chunks: list[dict], hashes: list[str], vectors: list[list[float]], lexicon,
                       meta_fields: tuple) -> list[dict]:
@@ -511,7 +511,7 @@ def build_search_docs(chunks: list[dict], hashes: list[str], vectors: list[list[
 
 
 # ---------------------------------------------------------------------------
-# 14. S3 적재: 검색엔진에 쓰기 (교재 58, 59쪽) — 빈칸 3곳
+# 14. S3 적재: 검색엔진에 쓰기 (교재 63, 64쪽) — 빈칸 3곳
 # ---------------------------------------------------------------------------
 def apply_search(os_client, index: str, docs: list[dict], mapping: dict) -> dict:
     """문서(doc_id)마다 옛 청크를 지우고 새 청크를 한꺼번에 넣은 뒤 바로 검색되게 함.
@@ -544,7 +544,7 @@ def apply_search(os_client, index: str, docs: list[dict], mapping: dict) -> dict
 
 
 # ---------------------------------------------------------------------------
-# 15. ④ 검증: chunk_id 목록 비교 (교재 60, 61쪽) — 직접 작성
+# 15. ④ 검증: chunk_id 목록 비교 (교재 65, 66쪽) — 직접 작성
 # ---------------------------------------------------------------------------
 def verify_chunk_ids(all_ids: set[str], search_ids: set[str], kg_list: list[str]) -> dict:
     """입력 청크, 검색엔진, 그래프 청크 노드의 chunk_id가 모두 같은지 검사함.
@@ -559,7 +559,7 @@ def verify_chunk_ids(all_ids: set[str], search_ids: set[str], kg_list: list[str]
 
 
 # ---------------------------------------------------------------------------
-# 16. ⑤ 게시: 활성 세대 파일 교체 (교재 30, 62쪽) — 직접 작성
+# 16. ⑤ 게시: 활성 세대 파일 교체 (교재 31, 67쪽) — 직접 작성
 # ---------------------------------------------------------------------------
 def publish_active(record: dict, active_file: Path) -> None:
     """활성 세대 파일 하나만 새 세대 기록으로 바꿔 끼움.
