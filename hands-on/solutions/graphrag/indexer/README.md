@@ -1,408 +1,192 @@
-# GraphRAG 인덱싱 실습 예제
+# GraphRAG 인덱싱 실습
 
-하이브리드 AI 교육 W5 「그래프DB 인덱싱」(교재 『W05 ~ W07』 30 ~ 62쪽) 실습용 예제임.  
-RAG 실습(W3)이 만든 청크를 입력으로 받아 **지식 그래프(Neo4j)와 검색엔진 인덱스(OpenSearch)를 한 세대로 함께 만들고,  
-검증을 통과하면 활성 세대 파일을 바꿔 게시**함. 레이어드 아키텍처 없이 **main 1개 + 핵심 모듈 1개**로 짰고,  
-교육생은 핵심 모듈의 실습 함수 16개를 클론 코딩한 뒤 본인 코드로 바꿔 끼움.
+이 예제는 RAG 실습에서 만든 청크로 Neo4j 지식 그래프와 OpenSearch 인덱스를 함께 만듭니다.  
+처음 실행한다면 아래 순서대로 환경을 준비한 뒤 표본 10청크로 동작을 확인합니다.
 
-## 수업용 명령 2개
+## 1. 실행 전 확인
 
-가상환경은 상위 폴더 `hands-on/solutions/graphrag`에서 만들고 활성화함([상위 README 3절](../README.md#3-가상환경-설정과-패키지-설치)).  
-활성화한 터미널에서 이 폴더(`indexer`)로 들어와 실행함. `{별명}`은 본인 별명(영문)으로 바꿈. 예) `hong-s1`
+다음 항목이 준비되어 있어야 합니다.
 
-```bash
-python index_graph.py --run {별명}-s1 --sample
+- Python 3.13과 Docker Desktop
+- 저장소 루트 `secrets/.env`의 `GROQ_API_KEY`, `COHERE_API_KEY`
+- `backing-services/neo4j/.env`의 `NEO4J_PASSWORD`
+- RAG 실습 결과 `hands-on/solutions/rag/indexing/data/chroma`
+
+Neo4j 비밀번호 설정과 백킹 서비스의 자세한 사용법은  
+[GraphRAG 공통 안내](../README.md)와  
+[Neo4j 안내](../../../../backing-services/neo4j/README.md)를 참고합니다.
+
+## 2. 가상환경 설정
+
+가상환경과 패키지는 `indexer`가 아니라 상위 `graphrag` 폴더에 설치합니다.  
+이곳의 `.venv` 하나를 GraphRAG 실습 전체가 함께 사용합니다.
+
+### 2.1 처음 한 번
+
+Windows PowerShell에서는 저장소 루트에서 다음 명령을 실행합니다.
+
+```powershell
+cd hands-on\solutions\graphrag
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 ```
 
+Windows Git Bash에서는 다음 명령을 실행합니다.
+
 ```bash
-python check_graph.py --qid Q09
+cd hands-on/solutions/graphrag
+python -m venv .venv
+source .venv/Scripts/activate
+python -m pip install -r requirements.txt
 ```
 
-첫 명령은 표본 10청크로 ① ~ ⑤를 끝까지 돌려 활성 세대를 만듦(약 1분, LLM 약 30번).  
-둘째 명령은 질문 하나로 「검색엔진 → 청크 → 그래프 엔티티 → 커뮤니티 보고서」를 눈으로 확인함.  
-프롬프트 앞에 `(.venv)`가 없으면 먼저 활성화함(3.2). 모든 파라미터의 뜻과 지정할 수 있는 값은 8.1의 표에 있음.
+macOS와 Linux에서는 다음 명령을 실행합니다.
 
-## 1. 목표와 주요 기능
+```bash
+cd hands-on/solutions/graphrag
+python3.13 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
 
-| 목표 | 내용 |
+프롬프트 앞에 `(.venv)`가 보이면 활성화된 상태입니다.
+
+PowerShell에서 스크립트 실행이 차단되면 현재 터미널에서만 실행을 허용한 뒤 다시 활성화합니다.
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.venv\Scripts\Activate.ps1
+```
+
+### 2.2 다음 실행부터
+
+패키지를 다시 설치할 필요는 없습니다. 터미널을 열 때마다 상위 `graphrag` 폴더에서 가상환경만 활성화합니다.
+
+| 터미널 | 활성화 명령 |
 |---|---|
-| 개념을 코드로 | 교재 30쪽 워크플로우(① 세대 ID → ② 청크 고정 → ③ KG 구축 K1 ~ K6, K8과 검색엔진 S1 ~ S3 → ④ 검증 → ⑤ 게시)를 함수 하나씩으로 봄 |
-| 클론 코딩 | 단계마다 실습 함수 1개 이상, 모두 16개(직접 6개, 빈칸 10개). `my_graph.py`에 채우고 `--mine` 옵션으로 바꿔 끼움 |
-| 눈으로 확인 | 단계마다 수(추출 단위, 노드와 관계, 병합 묶음, 임베딩, 커뮤니티, 적재 건수)와 예시를 출력하고, 확인 도구로 질문을 던져 봄 |
+| Windows PowerShell | `.venv\Scripts\Activate.ps1` |
+| Windows Git Bash | `source .venv/Scripts/activate` |
+| macOS, Linux | `source .venv/bin/activate` |
 
-주요 기능
+## 3. 백킹 서비스 실행
 
-- 전체 재색인(full)만 함. 증분 색인과 K7 청크 정리는 교재(30, 45쪽)로만 다룸
-- K2 추출 결과와 K8 보고서를 **재사용**함(본문 해시, 스키마 지문, 머리줄이 같으면 LLM을 부르지 않음). 강사 배포본으로 LLM 0번 실행 가능
-- 시작 검사가 키, Neo4j(APOC, GDS), OpenSearch, 벡터 인덱스 차원을 확인하고 모자라면 할 일을 알려 줌
-- 중단 뒤 같은 `--run`으로 다시 돌리면 그 세대의 흔적을 지우고 처음부터 만듦. ④ 검증에 실패하면 게시하지 않음
-- `--until {단계}`로 그 단계까지만 수행하고 멈춰, 단계가 한 일과 실제 결과를 화면과 파일로 확인함(4.5)
+새 터미널을 열고 저장소 루트에서 Neo4j와 OpenSearch를 실행합니다.
 
-## 2. 디렉토리 구조
-
-```text
-hands-on/solutions/graphrag/
-├─ README.md                   가상환경 설정과 실행 순서(공통)
-├─ requirements.txt            GraphRAG 실습 공통 패키지 목록(이 파일로 설치. 서브 폴더에는 두지 않음)
-├─ .venv/                      GraphRAG 실습 공용 가상환경(상위 폴더에서 만듦)
-└─ indexer/
-   ├─ README.md                이 문서
-   ├─ index_graph.py           main: 설정 상수, 시작 검사, ① ~ ⑤ 순서, K2 병렬 호출, S1 임베딩(96건씩), K8 보고서 LLM 호출, 단계별 출력
-   ├─ core_graph.py            핵심(클론 코딩 대상): 실습 함수 16개 + 제공 함수 5개
-   ├─ my_graph.template.py     교육생 작업 파일의 뼈대(강사 템플릿). --mine 실행 때 my_graph.py로 복사됨. 맨 아래 USE_TEACHER_CODE 목록으로 안 채운 함수는 강사 코드가 대신 돎
-   ├─ kr_tokenizer.py          제공(읽지 않아도 됨): RAG 실습 W3에서 작성한 Kiwi 토크나이저와 카드 별칭 규칙
-   ├─ stage_view.py            제공(읽지 않아도 됨): --until 옵션의 단계별 결과 보기(화면 출력, 결과 파일, 확인 명령)
-   ├─ check_graph.py           결과 확인 도구(읽기만): 질문 → 검색엔진 → 청크 → 엔티티 → 커뮤니티 → 리랭크 → 적중 판정. --drop으로 세대 지우기
-   └─ data/                    실행 결과(Git에 올리지 않음)
-      ├─ active_generation.json              활성 세대 파일(⑤ 게시가 바꾸는 유일한 파일)
-      ├─ generations/{세대 ID}/              prepared-chunks.json, kg_prepared.json, community_reports.json, build_report.json,
-      │                                      stages/(--until 결과 일부: K1_units.json, K3_extract.json, K5_graph.json, ...)
-      └─ teacher/                            강사 배포본(선택). --reuse data/teacher 로 LLM 없이 전체 그래프를 만듦
-```
-
-읽기만 하는 입력(저장소 안)
-
-| 입력 | 경로 | 만든 곳 |
-|---|---|---|
-| 청크 260개(본문, 메타데이터) | `hands-on/solutions/rag/indexing/data/chroma` (collection `card_docs`) | RAG 실습 W3 `index_docs.py` |
-| 그래프 스키마 3종 | `hands-on/solutions/graphrag/schema/doc/{regulation,benefit_guide,consult_log}/graph_schema.json`, `approval.json`, `schema_spec.json` | 스키마 설계 실습 |
-| 승인 별칭 | `hands-on/solutions/rag/indexing/aliases_approved.json` | RAG 실습(강사 제공) |
-| 평가셋(확인 도구) | `hands-on/solutions/eval-set.json` | RAG 실습 |
-
-## 3. 준비물과 가상환경 설정
-
-| 항목 | 값 |
-|---|---|
-| Python | 3.13 |
-| LLM | Groq `openai/gpt-oss-120b` (K2 추출, K8 보고서). JSON 모드, temperature 0 |
-| 임베딩 | Cohere `embed-v5.0-fast` (API, 2048차원). S1 청크, K6 엔티티 설명, K8 보고서, 확인 도구의 질문 |
-| 리랭커 | Cohere `rerank-v4.0-fast`. 확인 도구 `--rerank`에서만 씀(인덱싱에는 없음) |
-| 그래프 DB | Neo4j 2026.09.0 Community + APOC + GDS(`backing-services/neo4j/`) |
-| 검색엔진 | OpenSearch 2.19.1(`backing-services/opensearch/`) |
-| API 키 | 저장소 루트 `secrets/.env`에 `GROQ_API_KEY=...`, `COHERE_API_KEY=...`. RAG 실습과 같은 파일 |
-| Neo4j 비밀번호 | 환경변수 `NEO4J_PASSWORD` 또는 `backing-services/neo4j/.env` |
-| 로컬 모델 | 없음(GPU, torch 불필요) |
-
-### 3.1 Neo4j와 OpenSearch 실행, 중지, 삭제
-
-저장소 루트의 `backing-services` 폴더에서 실행함. 비밀번호 설정은 `backing-services/neo4j/README.md`를 따름.  
-전체 명령 표(상태, 다시 켜기, 로그, rdb 포함)는 [상위 README 2.1](../README.md#21-백킹-서비스-실행-중지-삭제)에 있음.
-
-```bash
-docker compose -f neo4j/compose.yml up -d          # 실행
+```powershell
+cd backing-services
+docker compose -f neo4j/compose.yml up -d
 docker compose -f opensearch/compose.yml up -d
-docker compose -f neo4j/compose.yml ps             # 상태 확인(healthy가 되면 준비 끝, 30초쯤)
+docker compose -f neo4j/compose.yml ps
 docker compose -f opensearch/compose.yml ps
 ```
 
-```bash
-docker compose -f neo4j/compose.yml stop           # 중지(데이터 남음). 다시 켤 때는 start
-docker compose -f opensearch/compose.yml stop
-docker compose -f neo4j/compose.yml down           # 삭제: 컨테이너만(데이터 남음)
-docker compose -f opensearch/compose.yml down
-```
+두 서비스의 상태가 `healthy`가 되면 준비가 끝납니다. 처음 실행할 때는 플러그인 설치로 시간이 더 걸릴 수 있습니다.
+
+## 4. 표본으로 빠르게 실행
+
+가상환경을 활성화한 터미널에서 `indexer` 폴더로 이동합니다.  
+`{별명}`은 본인의 영문 별명으로 바꿉니다. 예를 들어 `hong-s1`처럼 사용합니다.
 
 ```bash
-docker compose -f neo4j/compose.yml down -v        # 삭제: 데이터까지(그래프 세대와 검색 인덱스가 모두 사라짐)
-docker compose -f opensearch/compose.yml down -v
-```
-
-`down -v` 뒤에는 그래프와 인덱스가 비어 있으므로 indexer를 다시 돌림(`--reuse data/teacher`면 LLM 없이 몇 분).
-
-### 3.2 가상환경(상위 폴더에서 만들고 활성화)
-
-가상환경과 패키지 설치는 이 폴더가 아니라 **상위 폴더 `hands-on/solutions/graphrag`**에서 함.  
-만들기, 설치, PowerShell에서 활성화가 막힐 때 할 일은 [상위 README 3절](../README.md#3-가상환경-설정과-패키지-설치)을 따름.  
-한 번 설치한 뒤에는 터미널 창마다 활성화만 하고 이 폴더로 들어옴.
-
-| 터미널 | 활성화하고 이 폴더로 들어오기 |
-|---|---|
-| Windows PowerShell | `cd hands-on\solutions\graphrag` → `.venv\Scripts\Activate.ps1` → `cd indexer` |
-| Windows Git Bash | `cd hands-on/solutions/graphrag` → `source .venv/Scripts/activate` → `cd indexer` |
-| macOS, Linux | `cd hands-on/solutions/graphrag` → `source .venv/bin/activate` → `cd indexer` |
-
-PowerShell에서 「이 시스템에서 스크립트를 실행할 수 없으므로 ...」로 막히면 `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`를  
-먼저 실행하고 다시 활성화함(지금 창에서만 허용. 상위 README 3.3).
-
-- 저장소를 통째로 clone해서 씀. `indexer/` 폴더만 복사하면 Chroma, 스키마, `secrets/`를 찾지 못함
-- RAG 실습 인덱싱 결과(`rag/indexing/data/chroma`)가 없으면 RAG 실습 `index_docs.py`를 먼저 돌리거나 강사 배포본을 복사함
-
-## 4. 실행 방법
-
-### 4.1 표본 실행(수업용)
-
-```bash
+cd indexer
 python index_graph.py --run {별명}-s1 --sample
+python check_graph.py --qid Q09
 ```
 
-표본은 청크 10개(약관 2, 혜택 안내 4 「한빛 가족돌봄」, 상담 4)임. 상담 4개에는 앞 상담을 가리키는 쌍이 들어 있어 K5 병합을 볼 수 있음.  
-`--sample`은 필수가 아님. 빼면 청크 260개 전체를 인덱싱함(4.2). 파라미터 전체는 8.1의 표에 있음.
+첫 명령은 표본 10청크를 인덱싱하고 검증을 통과한 세대를 게시합니다.  
+두 번째 명령은 질문 하나로 검색엔진, 청크, 그래프 엔티티, 커뮤니티 보고서가 연결되는지 보여 줍니다.
 
-### 4.2 전체 실행(강사, 또는 강사 배포본 재사용)
+`--run` 값은 세대를 구분하는 실행 이름입니다. 활성 세대와 같은 이름은 사용할 수 없으므로 새 이름을 지정합니다.
+
+## 5. 필요한 방식으로 실행
+
+### 5.1 전체 청크 인덱싱
+
+`--sample`을 빼면 전체 청크를 처리합니다.
 
 ```bash
 python index_graph.py --run {별명}-f1
 ```
 
+강사 배포 결과가 있다면 호환되는 LLM 결과를 재사용해 호출을 줄일 수 있습니다.
+
 ```bash
 python index_graph.py --run {별명}-f1 --reuse data/teacher
 ```
 
-전체 260청크는 K2 LLM 약 300번, K8 약 100번이 들어 10분 안팎임. 강사 배포본(`data/teacher/`)을 `--reuse`로 주면  
-추출 결과와 보고서를 재사용해 LLM을 부르지 않고 임베딩만 새로 함.
+`--reuse`는 입력 본문, 스키마, 머리줄이 일치하는 결과만 재사용합니다.  
+빠진 결과나 일치하지 않는 결과는 새로 만들기 때문에 LLM 호출이 전혀 없음을 보장하지 않습니다.
 
-### 4.3 결과 확인
-
-```bash
-python check_graph.py --qid Q09 --rerank
-```
+전체 세대는 다음 질문으로 확인합니다.
 
 ```bash
-python check_graph.py "할부로 산 상품의 철회는 며칠 안에 요청해야 하나요?"
+python check_graph.py --qid Q01 --rerank
 ```
 
-평가셋 번호(`--qid`)로 실행하면 마지막에 「적중 판정」이 붙음(정답 근거 문구가 상위 청크 본문이나 엔티티 설명에 있는지).  
-표본 세대에서는 Q09(가족돌봄 바우처)와 상담 질문만 맞고, 약관 질문(Q01, Q02)은 전체 세대에서 확인함.
+### 5.2 단계별 결과 확인
 
-### 4.4 같은 입력으로 다시 돌리면
-
-① 사전 검사가 「입력과 설정이 활성 세대와 같아 할 일 없음」으로 끝남. 그래도 새로 만들려면 `--full-reindex`를 붙이고  
-**새 실행 이름**을 줌(활성 세대와 같은 이름은 거부함).
-
-### 4.5 단계별로 멈춰 결과 보기(--until)
-
-`--until {단계}`를 주면 그 단계까지만 수행하고 멈춤. 단계가 **무슨 일을 했는지**와 **실제 결과가 무엇인지**를 보려는 옵션임.  
-멈출 때 화면에 「이 단계가 한 일」, 「실제 결과」(수와 예시), 「직접 확인하는 명령」을 보여 주고, 결과 일부를 파일로 저장함.
+`--until`을 사용하면 지정한 단계까지만 실행하고 결과와 확인 명령을 보여 줍니다.
 
 ```bash
-python index_graph.py --run {별명}-s1 --sample --until k3
+python index_graph.py --run {별명}-u1 --sample --until k3
 ```
 
-| 값 | 멈추는 곳 | 직접 확인하는 곳 |
-|---|---|---|
-| `k1` | K1 추출 청크 나누기 | 화면과 결과 파일(DB에는 아직 없음) |
-| `k3` (`k2`도 가능) | K2 추출 + K3 가지치기 | 화면과 결과 파일(DB에는 아직 없음) |
-| `k5` (`k4`도 가능) | K4 적재 + K5 병합 | Neo4j Browser(http://localhost:7474) |
-| `k6` | K6 엔티티 설명 임베딩 | Neo4j Browser |
-| `k8` | K8 커뮤니티 요약 | Neo4j Browser |
-| `s1` | S1 청크 임베딩 | 화면과 결과 파일(검색엔진에는 아직 없음) |
-| `s2` | S2 키워드 분석 | 화면과 결과 파일(검색엔진에는 아직 없음) |
-| `s3` | S3 검색엔진 적재 | 터미널(`curl.exe`) |
-
-- **트랙은 접두어로 정함.** `k*`는 KG 구축만, `s*`는 검색엔진 인덱싱만 돌림. 두 트랙은 서로 독립이라 `--until s2`가 KG 단계를 기다리지 않음  
-- K2와 K3, K4와 K5는 한 묶음이라 `k2`를 주면 K3까지, `k4`를 주면 K5까지 수행함. K7(청크 정리)은 증분 색인용이라 하지 않음  
-- 멈추면 ④ 검증과 ⑤ 게시를 하지 않음. **활성 세대 파일은 그대로**라서 `check_graph.py`와 검색은 이전과 똑같이 동작함  
-- 화면에 나오는 Cypher는 Neo4j Browser 입력창에, `curl.exe` 줄은 터미널에 한 개씩 붙여 넣음. 같은 명령이 결과 파일에도 저장됨  
-- 결과 파일은 `data/generations/{세대 ID}/stages/`에 단계마다 하나씩 생김. 화면 끝에 `json.tool`로 읽는 명령이 나옴  
-- 단계를 늘려 가며 보려면 같은 `--run`에 값만 바꿔 다시 돌림(`k1` → `k3` → `k5` → `k6` → `k8`). 다시 돌릴 때마다 그 트랙을 처음부터  
-  다시 만들고, 추출 청크마다 LLM을 다시 부름. LLM을 아끼려면 `--reuse data/teacher`(강사 배포본) 또는 `--reuse data/generations/{세대 ID}`를 붙임.  
-  단, K2와 K3 코드를 고쳐 결과를 비교하는 중이면 `--reuse`를 붙이지 않음(옛 결과가 재사용되어 고친 코드가 반영되지 않음)  
-- 같은 `--run`으로 `k*`와 `s*`를 번갈아 돌려도 앞 트랙의 결과가 지워지지 않음. 지우는 범위가 그 트랙뿐임  
-- `--until`을 주면 ① 사전 검사의 「할 일 없음」으로 끝나지 않고 항상 그 단계까지 수행함  
-- 확인을 마친 세대는 `python check_graph.py --drop {세대 ID}`로 지움(화면 끝에 명령이 나옴)
-
-## 5. 단계별 출력 읽는 법
-
-| 출력 머리 | 단계 | 봐야 할 것 | 표본 실행 값(2026-10-24, 강사 PC) |
-|---|---|---|---|
-| `시작 검사` | - | 키 2개, Neo4j와 APOC, GDS, OpenSearch 판 | APOC 2026.09.0, GDS 2026.09.0, OpenSearch 2.19.1 |
-| `② 공통 단계` | ② | 문서 유형별 청크 수, 문서 수, chunk_id 예 | 10개(약관 2, 혜택 4, 상담 4), 문서 6개 |
-| `① 세대 ID` | ① | `gen-lab-{별명}-{해시 8자리}`. 흔적 정리 줄이 있으면 중단 뒤 재실행임 | `gen-lab-hong-s1-…` |
-| `[K1]` | K1 | 청크 → 단위 수, 청크 2개 이상에 걸친 단위 수, 단위가 없는 청크 | 10 → 18(약관 10, 혜택 4, 상담 4), 겹침 0, 없는 청크 0 |
-| `[K2]` | K2 | LLM 추출 수와 재사용 수 | 처음 18번, 두 번째부터 0번(재사용 18) |
-| `[K3]` | K3 | 가지치기 전 → 후 노드 수, 실패 단위, 머리줄 채움률, 단위 하나의 노드와 관계 | 94 → 94, 실패 0, 채움률 약관 100 혜택 40 상담 80 |
-| `[K4]` | K4 | 노드 수(청크 노드 포함), 관계 수(FROM_CHUNK와 추출 관계) | 노드 약 100(청크 노드 10), 관계 약 150 |
-| `[K5]` | K5 | 검사한 값 수, 합친 묶음 수, 값 예 | 값 6개 중 4묶음(상담 3, 상품 안내 1) |
-| `[K6]` | K6 | 임베딩한 엔티티 수와 차원, 설명 글 예 3개 | 약 80개, 2048차원 |
-| `[K8]` | K8 | 묶음 수, 3개 이상 묶음 수, LLM과 재사용 수, 보고서 제목 3개 | 묶음 16개 중 13개 요약 |
-| `[S1]` | S1 | 새로 임베딩 수와 재사용 수, 벡터 앞 3개 | 처음 10개, 두 번째부터 재사용 10 |
-| `[S2]` | S2 | 카드명 사전과 별칭 수, 첫 청크의 낱말 | 카드명 1개, 별칭 18개 |
-| `[S3]` | S3 | 인덱스 이름, 문서 수, 지운 수, 넣은 수 | 문서 6개, 0건 지우고 10건 넣음 |
-| `④ 검증` | ④ | 검색엔진 n/n, 청크 노드 = 고유 n/n, 중복 0. K8 줄은 커뮤니티 수와 빠짐 0 | 10/10, 10 = 10/10, 커뮤니티 13개 |
-| `⑤ 게시` | ⑤ | 활성 세대 파일이 바뀐 세대 | 완료 약 60 ~ 70초 |
-
-- LLM 추출은 실행마다 노드 수가 조금 다름(같은 입력이라도 86 ~ 94개). 수가 「약」인 이유임
-- `[K3]` 뒤 「단위 … 의 노드 […]」 한 줄은 추출 단위 하나에서 나온 라벨과 관계 이름임. 교재 36쪽 「LLM이 돌려준 그래프」와 대조함
-
-## 6. 교육생 교체 방법
-
-1. `index_graph.py`는 고치지 않고 실행 명령에 `--mine`을 붙임. 처음 한 번 뼈대 `my_graph.template.py`가 `my_graph.py`로 복사됨  
-   (`my_graph.py`는 Git이 무시하므로 강사 저장소를 pull해도 충돌이 나지 않음. 자세한 내용은 `../README.md` 5장)
-
-   ```bash
-   python index_graph.py (기존 옵션)          # 강사 코드(core_graph.py)로 실행
-   python index_graph.py --mine (기존 옵션)   # 본인 코드(my_graph.py)로 실행
-   ```
-
-2. `my_graph.py` 맨 아래 `USE_TEACHER_CODE` 목록에서 **지금 채울 함수 이름을 지움**. 목록에 남은 함수는 강사 코드가 대신 돎
-3. 그 함수를 채우고(직접 작성은 `NotImplementedError` 자리, 빈칸은 `"빈칸 N을 채울 것"` 자리) 같은 명령으로 다시 실행해  
-   5장 출력을 강사 결과와 비교함
-4. 막히면 이름을 목록에 다시 넣고 다음 함수로 넘어감(실습이 멈추지 않음)
-
-실습 함수와 단계(채우는 순서. 교시 배치는 실습 가이드 참고)
-
-| 순서 | 함수 | 방식 | 단계 | 교재 |
-|---|---|---|---|---|
-| 1 | `issue_generation` | 직접 | ① 세대 ID 규칙과 사전 검사 | 31 |
-| 2 | `prepare_chunks` | 빈칸 2 | ② doc_id, chunk_id 규칙 | 31 |
-| 3 | `split_by_heading` | 직접 | K1 조항 제목 줄로 자르기 | 34 |
-| 4 | `k1_split_units` | 빈칸 2 | K1 단위 ID, 겹친 조항 합치기 | 34 |
-| 5 | `extract_one` | 빈칸 2 | K2 추출기 호출, K3 가지치기 | 36 |
-| 6 | `build_graph_rows` | 빈칸 2 | K4 청크 노드, FROM_CHUNK | 38 |
-| 7 | `k5_merge` | 빈칸 2 | K5 같은 값 노드 모으기, mergeNodes | 41 |
-| 8 | `entity_description` | 직접 | K6 「라벨: 속성=값」 | 43 |
-| 9 | `k6_embed_descriptions` | 빈칸 2 | K6 벡터 저장, 벡터 인덱스 | 44 |
-| 10 | `detect_communities` | 빈칸 2 | K8 GDS 투영, Leiden | 48 |
-| 11 | `build_community_rows` | 빈칸 2 | K8 3개 이상 묶음, 구성원 ID | 49 |
-| 12 | `embed_with_reuse` | 직접 | S1 본문 해시로 벡터 재사용 | 55 |
-| 13 | `build_search_docs` | 빈칸 2 | S2 토큰화, 엔진 문서 한 건 | 53, 58 |
-| 14 | `apply_search` | 빈칸 3 | S3 문서 단위 지우기, bulk, refresh | 59 |
-| 15 | `verify_chunk_ids` | 직접 | ④ 세 목록 비교 | 61 |
-| 16 | `publish_active` | 직접 | ⑤ 활성 세대 파일 교체 | 30, 62 |
-
-교재 코드와 이름이 다른 곳: 교재 61쪽 `step4_verify`는 main에 있고 집합 비교 부분만 `verify_chunk_ids`로 뺌.  
-교재 38쪽 `apply()`의 K4 부분은 `build_graph_rows`(행 만들기)와 main의 `k4_write`(쓰기)로 나눔.
-
-## 7. 실측값(강사 PC, 2026-10-24)
-
-### 7.1 전체 실행(260청크, `--run full-001`)
-
-| 항목 | 값 |
+| 트랙 | 지정 가능한 단계 |
 |---|---|
-| 걸린 시간 | 907초(약 15분). K2 추출 10분, K8 보고서 4분 20초, 나머지 1분 |
-| ② 청크 | 260개(약관 15, 혜택 안내 197, 상담 48), 문서 50개 |
-| K1 | 추출 단위 297개(약관 조항 52, 혜택 197, 상담 48). 두 청크에 걸친 단위 0개. 단위가 없는 청크 5개(약관 표지, 메타데이터, 차례, 각주 쪽) |
-| K2, K3 | LLM 279번(표본 실행 결과 18개 재사용), 토큰 973,126. 가지치기 뒤 노드 1,955개. 실패 단위 1개(혜택 안내 청크 1개, Groq JSON 모드 400이 3번 연속) |
-| K4 | 노드 2,215개(청크 노드 260개 포함), 관계 3,541개(FROM_CHUNK 1,955, 추출 관계 1,586) |
-| K5 | 검사한 값 113개 중 100묶음 합침(상담 48, 상품 안내 52), FROM_CHUNK 중복 0 |
-| K6 | 엔티티 설명 임베딩 1,669개(2048차원) |
-| K8 | 묶음 92개 중 엔티티 3개 이상 78개 요약(LLM 78번). 가장 큰 묶음은 약관 162개 엔티티 |
-| S1 ~ S3 | 임베딩 250개 새로(표본 10개 재사용), 카드명 사전 64개, 별칭 390개, 문서 50개에 260건 적재 |
-| ④, ⑤ | 통과(검색엔진 260/260, 청크 노드 260 = 고유 260/260, 커뮤니티 78개), 활성 세대 `gen-lab-full-001-807ef9e6` |
-| 엔티티 라벨 | BenefitCondition 390, BenefitLimit 310, Benefit 267, BenefitExclusion 257, Proposal 101, Handling 81, ProductGuide 64, Clause 52, Complaint 51, Consultation 48, ReconsiderCondition 19, Deadline 16, Requirement 12, TermsDocument 1 |
-| 강사 배포본 재사용 | 57초(7.3) |
+| 지식 그래프 | `k1`, `k3`, `k5`, `k6`, `k8` |
+| 검색엔진 | `s1`, `s2`, `s3` |
 
-### 7.2 결과 확인 도구(전체 세대, 상위 청크 4개, 엔티티 5개)
+`--until` 실행은 검증과 게시를 하지 않습니다. 현재 활성 세대와 검색 결과는 바뀌지 않습니다.  
+단계를 바꾸어 다시 실행할 때 LLM 호출을 줄이려면 `--reuse`에 앞선 결과 폴더를 지정합니다.  
+K2 또는 K3 코드를 수정해 비교할 때는 `--reuse`를 빼야 수정 결과가 반영됩니다.
 
-| 질문 | 검색엔진 1위 | 적중 판정 | 읽는 법 |
-|---|---|---|---|
-| Q01 연회비 면제 기준 | D1-0007(제10조) | 적중(청크, 엔티티) | BM25 1위가 바로 약관 조항. 엔티티 설명에도 같은 문장이 있음 |
-| Q02 할부 철회 기한 | D1-0008(제13조 쪽) | 적중(엔티티) | 상위 청크 4개에는 제16조의2 쪽이 없지만 엔티티 직접 검색이 「7일 이내」 기한 엔티티를 찾음(교재 42쪽 「서로 메운 예」) |
-| Q14 M-1042 회원 상담 이력 | D3-0035(최근 상담) | 근거 4개 중 2개 적중 | 첫 상담 문장은 적중, 최근 상담의 두 문장은 상위 4개 밖. 회원 필터와 FOLLOWS 추적은 다음 실습(검색기)에서 함 |
-| Q24 받아들인 제안의 공통점 | D3-0011 | 근거 5개 중 1개 적중 | 거시 질문이라 청크 몇 개로는 못 답함. [4] 커뮤니티 보고서 3개(민원 처리 지연, 반복 신청 불만, 연회비 대비 가치)가 답의 재료임 |
+### 5.3 내 코드로 실행
 
-- 적중 판정은 「정답 근거 문구가 상위 청크 본문이나 엔티티 설명에 그대로 있는가」만 봄. 답을 만드는 LLM은 부르지 않음
-- 표본 세대(10청크)에서는 Q09(가족돌봄 바우처)가 청크와 엔티티 둘 다 적중, 리랭크 1위 0.885
+처음 `--mine`을 붙이면 `my_graph.template.py`를 복사해 `my_graph.py`를 만듭니다.
 
-### 7.3 강사 배포본 재사용(`--run full-002 --reuse data/teacher --full-reindex`)
+```bash
+python index_graph.py --run {별명}-m1 --sample --mine
+```
 
-| 항목 | 값 |
+`my_graph.py` 맨 아래 `USE_TEACHER_CODE`에서 구현할 함수 이름을 뺍니다.  
+목록에 남아 있는 함수는 계속 강사 코드가 대신 실행합니다. 한 번에 한 함수씩 바꾸면 결과를 비교하기 쉽습니다.
+
+### 5.4 옵션 확인
+
+전체 옵션과 기본값은 실행 파일의 도움말이 가장 정확합니다.
+
+```bash
+python index_graph.py --help
+python check_graph.py --help
+```
+
+## 6. 처리 흐름과 파일
+
+인덱서는 청크를 고정한 뒤 지식 그래프와 검색 인덱스를 만듭니다.  
+마지막에 두 결과를 검증하고, 통과한 세대만 `active_generation.json`에 게시합니다.
+
+| 파일 | 역할 |
 |---|---|
-| 걸린 시간 | 57초(전체 실행 907초의 약 1/16) |
-| K2 | LLM 1번(full-001에서 실패한 단위 1개만 다시 물어 성공), 재사용 296개. 실패 단위 0 |
-| K8 | 보고서 LLM 1번, 재사용 77개 |
-| S1 | 임베딩 0개 새로, 260개 재사용(활성 세대 인덱스의 본문 해시가 같음). K6 엔티티 설명 1,673개는 새로 임베딩 |
-| ④, ⑤ | 통과, 활성 세대 `gen-lab-full-002-14209840` |
+| `index_graph.py` | 환경 검사와 전체 인덱싱 순서를 실행함 |
+| `core_graph.py` | 교육생이 학습할 핵심 인덱싱 함수를 제공함 |
+| `my_graph.template.py` | 교육생 코드인 `my_graph.py`의 뼈대를 제공함 |
+| `check_graph.py` | 활성 세대에 질문하고 검색 연결 결과를 보여 줌 |
+| `stage_view.py` | `--until` 실행의 단계별 결과와 확인 명령을 보여 줌 |
+| `data/generations/` | 세대별 중간 결과와 보고서를 저장함 |
+| `data/active_generation.json` | 현재 검색에서 사용할 활성 세대를 가리킴 |
 
-- `data/teacher/`는 이 `full-002` 결과(실패 단위 0)로 바꿔 둠. 교육생 PC에서는 활성 세대가 없어 S1 임베딩 260개도 새로 하므로 1 ~ 2분 더 걸림
-- 교육생 Chroma가 강사 것과 같은 코드와 문서로 만든 것이면 본문 해시가 같아 그대로 재사용됨. 다르면 그 단위만 LLM을 부름
+## 7. 자주 막히는 상황
 
-### 7.2 교재 그림과 이 실습 데이터가 다른 곳
-
-| 항목 | 교재 | 이 실습 | 이유 |
-|---|---|---|---|
-| 약관 추출 단위 | 청크 10 → 단위 51, 겹친 조항 있음(32, 34쪽) | 청크 15 → 단위 52, 겹친 조항 0 | RAG 실습 Chroma는 쪽 단위 청킹이라 조항이 두 청크에 걸치지 않음. 합치기 코드는 그대로 있지만 이 데이터에서는 돌지 않음 |
-| K5 병합 예 | TermsDocument 16 → 1(40쪽) | 상담 Consultation(record_id), 상품 안내 ProductGuide(product_id) | 약관 문서 노드가 2개뿐임. 상담은 앞 상담 참조(FOLLOWS)로 생긴 노드와 본문 노드가 합쳐짐 |
-| 임베딩 | KURE-v2 768차원(43쪽) | Cohere embed-v5.0-fast 2048차원 | 설치가 가볍고 RAG 실습과 같은 키 |
-| 별칭 수 | 189개(57쪽) | 390개(승인 별칭 포함) | RAG 실습과 같은 규칙과 승인 파일 |
-| 머리줄 칸 | 모두 채움(35쪽) | 약관은 문서 프로필 상수로 채움(100%), 혜택 40%, 상담 80% | Chroma 메타데이터에 benefit_id, section_label, topic이 없음 |
-| 게시 | 검색엔진 별칭 전환(62쪽) | 활성 세대 파일 하나 교체 | 세대마다 인덱스 하나를 두고 검색기가 활성 세대 파일로 고름(교재 30쪽 ②) |
-
-## 8. 옵션(부록)
-
-### 8.1 index_graph.py 파라미터
-
-`python index_graph.py --run {이름} [파라미터 ...]` 꼴로 씀. 필수는 `--run` 하나뿐이고 나머지는 모두 선택임.  
-「값 없음」은 붙이기만 하면 켜지는 스위치이며, 뒤에 값을 쓰지 않음.
-
-| 파라미터 | 필수 | 기본값 | 지정할 수 있는 값 | 설명 |
-|---|---|---|---|---|
-| `--run {이름}` | **필수** | 없음 | 영문, 숫자, `_`, `.`, `-`. 다른 글자는 `-`로 바뀜. 예) `hong-s1` | 실행 이름. 세대 ID `gen-lab-{이름}-{해시 8자리}`를 정함. 같은 이름이면 같은 세대 ID라 다시 돌리면 그 세대를 처음부터 다시 만듦. 활성 세대와 같은 이름은 거부함. 별명을 넣으면 여럿이 한 DB를 써도 섞이지 않음 |
-| `--sample` | 선택 | 끔(청크 260개 전체) | 값 없음 | 표본 청크 10개만 인덱싱함(약관 2, 혜택 안내 4, 상담 4). 약 1분. 수업용 |
-| `--full-reindex` | 선택 | 끔 | 값 없음 | ① 사전 검사를 건너뜀. 입력과 설정이 활성 세대와 같아도 새로 만듦. 새 `--run` 이름과 함께 씀 |
-| `--skip-communities` | 선택 | 끔 | 값 없음 | K8 커뮤니티 요약을 건너뜀. GDS가 없으면 이 파라미터 없이도 자동으로 건너뜀 |
-| `--until {단계}` | 선택 | 없음(끝까지 수행하고 ④ 검증, ⑤ 게시까지 함) | KG 구축 `k1` `k3` `k5` `k6` `k8`, 검색엔진 `s1` `s2` `s3`. `k2`는 `k3`로, `k4`는 `k5`로 처리함. 대소문자 무관. `k7`은 거부 | 그 단계까지만 수행하고 멈춰, 한 일과 실제 결과와 확인 명령을 보여 줌. `k*`는 KG 구축만, `s*`는 검색엔진 인덱싱만 돌림. ④ 검증과 ⑤ 게시를 하지 않아 활성 세대는 그대로임(4.5) |
-| `--reuse {폴더}` | 선택 | 활성 세대 폴더 | `kg_prepared.json`, `community_reports.json`이 든 폴더 경로. 예) `data/teacher`, `data/generations/{세대 ID}` | K2 추출 결과와 K8 보고서를 재사용함. 본문 해시, 스키마 지문, 머리줄이 같으면 LLM을 부르지 않음 |
-| `--chunks {파일}` | 선택 | 없음(Chroma의 `card_docs`에서 읽음) | 청크 파일 경로. 예) `data/teacher/prepared-chunks.json` | Chroma 대신 이 파일을 입력으로 씀. `--sample`과 함께 주면 표본 청크만 고름 |
-| `--mine` | 선택 | 끔(강사 코드) | 값 없음 | 강사 코드 대신 교육생 코드 `my_graph.py`로 실행함. 파일이 없으면 `my_graph.template.py`를 복사해 만들고, 안 채운 함수는 강사 코드가 대신 돎 |
-| `-h`, `--help` | 선택 | - | 값 없음 | 파라미터 도움말을 출력하고 종료함 |
-
-자주 쓰는 조합
-
-| 하고 싶은 일 | 명령 |
+| 증상 | 확인할 내용 |
 |---|---|
-| 표본으로 끝까지 빠르게(게시 포함) | `python index_graph.py --run {별명}-s1 --sample` |
-| 단계별로 멈춰 결과 보기 | `python index_graph.py --run {별명}-u1 --sample --until k5` |
-| 정식 전체 인덱싱(강사 배포본 재사용) | `python index_graph.py --run {별명}-f1 --reuse data/teacher` |
-| 같은 입력으로 새 세대 만들기 | `python index_graph.py --run {별명}-f2 --reuse data/teacher --full-reindex` |
-| K8 없이 빠르게 | `python index_graph.py --run {별명}-s2 --sample --skip-communities` |
-| 내 코드로 실행 | `python index_graph.py --run {별명}-m1 --sample --mine` |
+| API 키가 필요하다는 메시지 | 저장소 루트 `secrets/.env`에 키 두 개가 있는지 확인함 |
+| Neo4j 또는 OpenSearch 연결 실패 | `backing-services`에서 `docker compose ... ps`로 `healthy`인지 확인함 |
+| GDS가 없어 K8을 건너뜀 | Neo4j 안내의 `gds.version` 문제 해결을 확인함. K8 없이도 나머지 실습은 가능함 |
+| RAG 청크를 찾지 못함 | RAG 인덱싱을 먼저 실행하거나 강사 배포 결과를 복사함 |
+| 중단 뒤 다시 실행함 | 같은 `--run`으로 실행하면 해당 세대의 흔적을 정리하고 처음부터 다시 만듦 |
+| 같은 입력이라 할 일이 없다고 나옴 | 새 `--run` 이름과 `--full-reindex`를 함께 사용함 |
+| 내 코드의 결과가 다름 | `--mine`을 빼서 강사 결과와 비교하고 함수 하나씩 교체함 |
 
-함께 쓸 때 알아 둘 점
-
-- `--until k8`과 `--skip-communities`는 함께 쓸 수 없음(K8을 하라는 것과 하지 말라는 것이 부딪혀 안내하고 종료함)  
-- `--until`을 주면 ① 사전 검사를 항상 건너뛰므로 `--full-reindex`가 필요 없음  
-- `--until s1` ~ `s3`에서는 `--reuse`가 효과 없음(검색엔진 트랙은 K2 추출 결과와 K8 보고서를 쓰지 않음)  
-- 어떤 조합이든 `--run`이 지금 활성 세대와 같은 이름이면 거부함. 새 이름을 줌  
-
-### 8.2 check_graph.py 파라미터
-
-`python check_graph.py {질문 또는 --qid 번호} [파라미터 ...]` 꼴로 씀. 활성 세대를 읽기만 하며, `--drop`만 지움.
-
-| 파라미터 | 필수 | 기본값 | 지정할 수 있는 값 | 설명 |
-|---|---|---|---|---|
-| `{질문}` (위치 인자) | `--qid`와 `--drop`이 없으면 필요 | 없음 | 질문 문장(따옴표로 묶음) | 직접 던져 볼 질문. 질문과 `--qid`가 모두 없으면 안내하고 종료함 |
-| `--qid {번호}` | 선택 | 없음 | 평가셋 질문 번호. 예) `Q02`, `Q09` | 평가셋 질문으로 실행하고, 마지막에 「적중 판정」을 붙임 |
-| `--top {n}` | 선택 | 4 | 정수 | 검색엔진에서 가져올 상위 청크 수 |
-| `--entities {n}` | 선택 | 5 | 정수 | 청크마다 보여 줄 엔티티 수와 엔티티 직접 검색 수 |
-| `--rerank` | 선택 | 끔 | 값 없음 | 마지막에 Cohere 리랭크를 실행함 |
-| `--drop {세대 ID}` | 선택 | 없음 | `gen-lab-`으로 시작하는 세대 ID | 그 세대의 노드와 검색엔진 인덱스를 지움. 활성 세대는 거부함 |
-
-### 8.3 환경변수
-
-| 환경변수 | 기본값 | 뜻 |
-|---|---|---|
-| `NEO4J_URI` | `bolt://localhost:7687` | Neo4j 접속 주소 |
-| `NEO4J_USER` | `neo4j` | Neo4j 사용자 |
-| `NEO4J_PASSWORD` | `backing-services/neo4j/.env`의 값 | Neo4j 비밀번호(환경변수를 먼저 씀) |
-| `OPENSEARCH_URL` | `http://127.0.0.1:9200` | OpenSearch 접속 주소 |
-
-다른 PC의 저장소를 쓰면 이 값만 바꾸고, 세대 ID(별명)로 서로 구분함.
-
-## 9. 막혔을 때
-
-| 증상 | 할 일 |
-|---|---|
-| `secrets/.env에 … 줄이 필요함` | 강사에게 받은 키 두 줄을 `secrets/.env`에 넣음 |
-| `Neo4j 접속 또는 APOC 확인 실패` | `backing-services`에서 `docker compose -f neo4j/compose.yml up -d`, `ps`로 healthy 확인 |
-| `GDS가 없어 K8을 건너뜀` | `neo4j/README.md` 문제 해결의 `gds.version` 항목. 수업은 K8 없이 진행 가능 |
-| `… 인덱스가 768차원으로 이미 있음` | 다른 실습 데이터가 있는 DB임. 안내대로 `DROP INDEX` 하거나 실습용 Neo4j를 따로 띄움 |
-| 429(호출 제한)로 K2가 느림 | 기다렸다 다시 부름(최대 6번). 계속 막히면 `--reuse data/teacher` |
-| `--until k6` 화면에 「다른 이름의 인덱스가 먼저 있어 …」, 「차원이 다름」 | 다른 실습이 `__Entity__`의 `embedding`에 남긴 인덱스임. 그대로 두면 K6의 `CREATE VECTOR INDEX ... IF NOT EXISTS`가 새로 만들지 않아 엔티티 벡터 검색이 되지 않음. Neo4j Browser에서 `DROP INDEX {화면에 나온 이름}` 한 뒤 다시 돌림 |
-| `--until k8`에서 종료 | GDS가 없거나 `--skip-communities`를 함께 준 경우임. GDS는 위 「GDS가 없어 K8을 건너뜀」 항목을 따름 |
-| 중단된 뒤 다시 돌림 | 같은 `--run`으로 다시 실행하면 ① 에서 흔적을 지우고 처음부터 만듦 |
-| `④ 검증 실패` | `data/generations/{세대}/build_report.json`의 missing, extra, duplicate 목록을 봄. 활성 세대는 그대로임 |
-| 본인 코드로 바꿨더니 수가 다름 | `--mine`을 빼고 실행해 강사 결과와 비교. 함수 하나씩 USE_TEACHER_CODE에서 빼며 확인 |
-
-## 10. 한계
-
-- 약관 그래프 스키마는 채움 시험 합격 기준 미달 상태로 확정된 것임(`schema/doc/regulation/approval.json`의 `below_criteria`)
-- 증분 색인이 없으므로 문서가 바뀌면 새 실행 이름으로 전체 재색인함. 옛 세대는 `check_graph.py --drop`으로 지움
-- K5 병합은 속성이 다르면 목록 첫 노드 값을 남김(`properties: 'discard'`). 어느 값이 남을지는 정해져 있지 않음
-- K8은 문서 종류를 건너는 관계가 없어 상담과 약관을 한 묶음으로 엮지 못함
-- LLM 추출은 실행마다 조금 다름. 같은 입력의 재실행은 재사용으로 같지만, 처음부터 다시 뽑으면 노드 수가 달라짐
-- Groq JSON 모드가 가끔 「Failed to generate JSON」 400을 냄. 같은 입력으로 최대 4번 묻고(`LLM_RETRIES` 3) 그래도 실패하면  
-  그 단위만 기록하고 계속함. 실패한 청크도 청크 노드는 있어 ④는 통과하고, 그 청크의 엔티티만 없음(전체 실행에서 297개 중 1개)
-- 혜택 안내와 상담의 머리줄 칸 일부(benefit_id, section_label, topic)는 Chroma 메타데이터에 없어 비워 보냄.  
-  약관은 `DOC_PROFILES` 상수(버전 1.2, 시행일, 이전 판)로 채움
-- 실행 중 `LLMInterface is deprecated` 경고를 숨겼음(neo4j-graphrag 1.22.0). 동작에는 영향 없음
+검증을 통과하지 못한 세대는 게시되지 않습니다.  
+자세한 환경 설정과 서비스 중지 방법은 [GraphRAG 공통 안내](../README.md)를 참고합니다.
