@@ -146,7 +146,7 @@
 | 단계 | 함수 | 방식 | 채울 것(실습 개념) | 교재 |
 |---|---|---|---|---|
 | S1 | embed_with_reuse | 직접 | 해시가 옛 벡터에 없는 글만 임베딩, 원래 순서로 합침 | 55 |
-| S2 | build_search_docs | 빈칸 2 | lexicon.tokenize, 엔진 문서 한 건(text_tokens는 공백으로 이음) | 53, 58 |
+| S2 | build_search_docs | 빈칸 2 | tokenizer.tokenize, 엔진 문서 한 건(text_tokens는 공백으로 이음) | 53, 58 |
 | S3 | apply_search | 빈칸 3 | delete_by_query(doc_id), bulk(_id = chunk_id), refresh | 59 |
 | ④ | verify_chunk_ids | 직접 | 집합 비교 2개 + 목록 그대로 세어 중복 노드 찾기 | 61 |
 | ⑤ | publish_active | 직접 | 임시 파일에 다 쓴 뒤 os.replace로 바꿔 끼움 | 30, 62 |

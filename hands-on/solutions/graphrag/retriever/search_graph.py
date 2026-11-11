@@ -302,7 +302,7 @@ def load_generation_data(res: Resources) -> dict:
     """① 활성 세대의 자료를 한 번 읽어 둠: 청크 메타데이터 260건, 토크나이저 사전, 약관 버전, 보고서 78개.
 
     목적: 그래프의 Chunk 노드에는 권한 속성이 없어서 검색엔진의 메타데이터로 「볼 수 있는 청크 표」를 만듦.
-    반환값: chunk_meta, by_short(짧은 id → chunk_id), lexicon, alias_to_name, name_to_card_id, versions, reports,
+    반환값: chunk_meta, by_short(짧은 id → chunk_id), tokenizer, alias_to_name, name_to_card_id, versions, reports,
             index_exists, graph_chunk_count
     """
     active = res.active
@@ -319,9 +319,9 @@ def load_generation_data(res: Resources) -> dict:
             data["chunk_meta"][hit["_id"]] = source
             data["by_short"][source["short_id"]] = hit["_id"]
         meta = res.os.indices.get_mapping(index=index)[index]["mappings"]["_meta"]["tokenizer"]
-        data["lexicon"] = kr_tokenizer.lexicon_from_meta(meta)  # 색인 때 기록한 사전으로 같은 토크나이저를 만듦
-        data["alias_to_name"] = dict(data["lexicon"].alias_to_name)
-        for name in data["lexicon"].card_names:
+        data["tokenizer"] = kr_tokenizer.tokenizer_from_meta(meta)  # 색인 때 기록한 사전으로 같은 토크나이저를 만듦
+        data["alias_to_name"] = dict(data["tokenizer"].alias_to_name)
+        for name in data["tokenizer"].card_names:
             data["alias_to_name"].setdefault(name, name)
             data["alias_to_name"].setdefault(name.replace("한빛 ", ""), name)
     names = {}  # 카드명 → card_id. 별칭표는 띄어쓰기 없는 꼴(한빛가족돌봄)을 돌려주므로 두 꼴을 모두 키로 둠
@@ -496,7 +496,7 @@ def search_engine(res: Resources, query: str, filters: dict, ctx: dict) -> dict:
     except Exception as error:
         ctx["warnings"].append(f"O1 벡터 검색 실패: {short(error, 60)}")
     try:  # O2 BM25 검색(색인과 같은 토크나이저로 질의를 낱말로 나눔)
-        tokens = DATA["lexicon"].tokenize(query)
+        tokens = DATA["tokenizer"].tokenize(query)
         body = {"size": O_CANDIDATES, "_source": False,
                 "query": {"bool": {"must": {"match": {"text_tokens": " ".join(tokens)}}, "filter": id_filter}}}
         bm25_hits = [{"chunk_id": h["_id"]} for h in res.os.search(index=index, body=body)["hits"]["hits"]]

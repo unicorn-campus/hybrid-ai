@@ -444,9 +444,13 @@ def clean_leftovers(driver, os_client: OpenSearch, generation: str, kg: bool = T
     """
     deleted_nodes = 0
     if kg:
-        records, _, _ = driver.execute_query(
-            "MATCH (n {generation: $g}) WITH n LIMIT 100000 DETACH DELETE n RETURN count(*) AS n", g=generation)
-        deleted_nodes = records[0]["n"]
+        # 한 번에 다 지우면 메모리가 부족할 수 있어 1만 개씩 나눠 지우고, 더 지울 게 없을 때까지 반복함
+        while True:
+            records, _, _ = driver.execute_query(
+                "MATCH (n {generation: $g}) WITH n LIMIT 10000 DETACH DELETE n RETURN count(*) AS n", g=generation)
+            if records[0]["n"] == 0:
+                break
+            deleted_nodes += records[0]["n"]
     deleted_index = False
     if search and os_client.indices.exists(index=index_name(generation)):
         os_client.indices.delete(index=index_name(generation))
@@ -486,6 +490,7 @@ def k2_k3_extract(units: list[dict], schemas: dict, previous: dict | None) -> di
         llm = make_llm()
 
         def work(unit: dict) -> dict:
+            # 리턴값: {"graph": pruned.model_dump(), "raw_nodes": len(graph.nodes), "kept_nodes": len(pruned.nodes)}
             return core.extract_one(unit, schemas[unit["doc_type"]], llm, LLM_RETRIES)
 
         done = 0
@@ -549,6 +554,7 @@ def read_entity_graph(driver, generation: str) -> tuple[list[dict], list[tuple[i
         entities.append(entity)
     entities.sort(key=lambda e: e["key"])
     position = {entity["id"]: number for number, entity in enumerate(entities)}
+    
     records, _, _ = driver.execute_query(
         "MATCH (a:__Entity__ {generation: $g})-[r]->(b:__Entity__ {generation: $g}) "
         "RETURN elementId(a) AS a, elementId(b) AS b, type(r) AS t", g=generation)
@@ -580,36 +586,87 @@ def short_name(entity: dict) -> str:
 
 def summarize_community(llm: GroqLLM, entities: list[dict], members: list[int], relations: list) -> dict:
     """묶음 하나를 글로 바꿔 LLM에 보내고 보고서(title, summary, findings)를 받음. 큰 묶음은 관계가 많은 엔티티부터 상한까지."""
+    
+    # 관계에 나타나는 엔티티에 중요도 점수를 높임 
     inside = set(members)
     degree = {i: 0 for i in members}
     for a, b, _ in relations:
         if a in inside and b in inside:
             degree[a] += 1
             degree[b] += 1
-    shown = sorted(sorted(members, key=lambda i: (-degree[i], i))[:COMMUNITY_MAX_ENTITIES])
+            
+    # 묶음이 크면 LLM에 다 보낼 수 없어서, 관계가 많은(중심) 엔티티부터 상한 개수만큼 고름
+    by_importance = sorted(
+        members,
+        key=lambda i: (-degree[i], i),  # 1순위: 묶음 안 관계 수가 많은 순(-를 붙여 내림차순), 2순위: 번호가 작은 순
+    )
+    top = by_importance[:COMMUNITY_MAX_ENTITIES]  # 앞에서부터 상한 개수만 남김(작은 묶음이면 전부 남음)
+    shown = sorted(top)  # 고른 엔티티를 다시 번호순으로 둠. e1, e2, … 이름이 늘 같은 순서로 붙게 함
+    
+    # 고른 엔티티와 그 사이 관계를 LLM이 읽을 글로 바꿈. 엔티티마다 e1, e2, … 짧은 이름을 붙여
+    # LLM이 보고서 근거를 이 이름으로 답하게 함(엔티티 번호는 0, 1, 2, 3, 5처럼 빈 번호가 있어 읽기 어려움)
+    # 예시: shown = [0, 1, 2, 3, 5] (0 결제 조건, 1 제외 거래, 2 월 한도, 3 Benefit 병원·약국 할인, 5 상품안내 한빛 가족돌봄)
+
+    # 짧은 이름 → 엔티티 번호. LLM 답에 나온 "e4"를 엔티티 번호 3으로 되돌릴 때 씀(아래 findings 처리)
+    #   예: {"e1": 0, "e2": 1, "e3": 2, "e4": 3, "e5": 5}
     refs = {f"e{k}": i for k, i in enumerate(shown, 1)}
+
+    # 엔티티 번호 → 짧은 이름. refs를 거꾸로 뒤집은 표. LLM에 보낼 관계 글을 만들 때 씀
+    #   예: {0: "e1", 1: "e2", 2: "e3", 3: "e4", 5: "e5"}
     back = {i: ref for ref, i in refs.items()}
+
+    # 엔티티 한 줄씩: "e{순번}. 라벨: 속성=값, 속성=값"(속성 이름순, 300자에서 자름)
+    #   예: ["e1. BenefitCondition: description=가상 일반 병원·약국 업종의 본인 결제; ...",
+    #        "e4. Benefit: amount=대상 결제액의 4%를 할인함., benefit_id=D2-C021-B02, name=병원·약국 할인, ...",
+    #        "e5. ProductGuide: card_name=한빛 가족돌봄, product_id=D2-C021", ...]
     lines = [entity_line(k, entities[i]) for k, i in enumerate(shown, 1)]
-    rels = [f"{back[a]} -[{t}]-> {back[b]}" for a, b, t in relations if a in back and b in back]
+
+    # 관계 한 줄씩: "출발 -[관계 이름]-> 도착". 양쪽 끝이 모두 shown에 있는 관계만 넣음
+    # (묶음 밖이나 상한에 걸려 빠진 엔티티와의 관계는 버림. 묶기용 edges와 달리 방향과 이름을 살림)
+    #   예: ["e4 -[REQUIRES]-> e1", "e4 -[EXCLUDES]-> e2", "e4 -[LIMITED_BY]-> e3", "e5 -[OFFERS_BENEFIT]-> e4"]
+    rels = []
+    for a, b, relation_type in relations:  # 한 항목 = (출발 엔티티 번호, 도착 엔티티 번호, 관계 이름)
+        if a not in back or b not in back:  # 한쪽이라도 shown에 없으면 LLM이 모르는 엔티티라 뺌
+            continue
+        rels.append(f"{back[a]} -[{relation_type}]-> {back[b]}")  # 예: (3, 0, "REQUIRES") → "e4 -[REQUIRES]-> e1"
+    
     prompt = REPORT_USER.format(entities="\n".join(lines), relations="\n".join(rels) or "(없음)")
 
     def plain(text) -> str:
         return re.sub(r"\s{2,}", " ", ENTITY_REF.sub("", str(text))).strip()
 
-    for attempt in range(LLM_RETRIES + 1):  # 형식 오류는 같은 입력으로 다시 물음
+    # LLM에 보고서를 받음. 형식이 틀리면 같은 입력으로 다시 물음(처음 1번 + 재시도 LLM_RETRIES번)
+    for attempt in range(LLM_RETRIES + 1):  # attempt = 0, 1, 2, 3 (LLM_RETRIES가 3일 때)
         try:
-            data = json.loads(llm.chat_json(prompt, REPORT_SYSTEM))
-            findings = []
-            for finding in data.get("findings") or []:
-                names = [short_name(entities[refs[r]]) for r in finding.get("entities") or [] if r in refs]
-                findings.append(f"{plain(finding.get('text', ''))} [근거: {', '.join(names) or '없음'}]")
-            if not data.get("title") or not data.get("summary"):
+            answer_text = llm.chat_json(prompt, REPORT_SYSTEM)  # LLM 답(JSON 글자열)
+            data = json.loads(answer_text)  # 글자열 → dict. JSON 모양이 깨졌으면 JSONDecodeError
+            # data 예: {"title": "병원·약국 할인 혜택", "summary": "...",
+            #           "findings": [{"text": "전월 35만 원 이상 써야 할인됨(e1)", "entities": ["e4", "e1"]}, ...]}
+
+            findings = []  # 발견 사항을 「본문 [근거: 엔티티 이름, ...]」 글로 모음
+            raw_findings = data.get("findings") or []  # findings가 없거나 null이면 빈 목록으로 봄
+            for finding in raw_findings:
+                names = []  # 이 발견 사항의 근거 엔티티 이름
+                for ref in finding.get("entities") or []:  # LLM이 근거로 댄 짧은 이름. 예: ["e4", "e1"]
+                    if ref not in refs:  # LLM이 없는 이름(e9 등)을 지어냈으면 버림
+                        continue
+                    entity_no = refs[ref]  # 짧은 이름 → 엔티티 번호. 예: "e4" → 3
+                    names.append(short_name(entities[entity_no]))  # 예: "Benefit(대상 결제액의 4%를 할인함.)"
+                text = plain(finding.get("text", ""))  # 본문에 남은 "(e1)" 같은 짧은 이름을 지우고 공백 정리
+                evidence = ", ".join(names) or "없음"  # 근거가 하나도 없으면 "없음"
+                findings.append(f"{text} [근거: {evidence}]")  # 예: "전월 35만 원 이상 써야 할인됨 [근거: Benefit(...), ...]"
+
+            if not data.get("title") or not data.get("summary"):  # 제목이나 요약이 비면 쓸모없는 보고서라 다시 물음
                 raise ValueError("title 또는 summary가 비어 있음")
-            return {"title": plain(data["title"]), "summary": plain(data["summary"]), "findings": findings}
-        except (json.JSONDecodeError, ValueError, KeyError, TypeError) as error:
-            if attempt == LLM_RETRIES:
+            return {
+                "title": plain(data["title"]),  # 제목(짧은 이름 지움)
+                "summary": plain(data["summary"]),  # 요약(짧은 이름 지움)
+                "findings": findings,  # 위에서 만든 발견 사항 글 목록
+            }
+        except (json.JSONDecodeError, ValueError, KeyError, TypeError) as error:  # 형식 오류만 잡음(네트워크 오류 등은 그대로 올라감)
+            if attempt == LLM_RETRIES:  # 마지막 시도까지 실패하면 오류를 그대로 올려 실행을 멈춤
                 raise
-            log(f"[K8 재시도 {attempt + 1}] 보고서 형식 오류: {type(error).__name__}")
+            log(f"[K8 재시도 {attempt + 1}] 보고서 형식 오류: {type(error).__name__}")  # 다음 시도로 넘어감
     raise RuntimeError("도달하지 않음")
 
 
@@ -618,36 +675,74 @@ def k8_summarize(driver, generation: str, run_id: str, cache: dict) -> tuple[dic
 
     반환값: (실행 결과 요약, 이번 세대의 {묶음 지문: 보고서}). 호출한 쪽이 기록 파일로 저장함.
     """
+    # KG에서 entity와 relation 구하기  
     entities, relations = read_entity_graph(driver, generation)
-    edges = sorted({(min(a, b), max(a, b)) for a, b, _ in relations if a != b})
+    
+    # 관계 목록을 커뮤니티 묶기(Leiden)용 「방향 없는 선」 목록으로 바꿈
+    edge_set = set()  # set이라서 같은 선이 여러 번 들어와도 한 번만 남음
+    for a, b, _relation_type in relations:  # relations의 한 항목 = (출발 엔티티 ID, 도착 엔티티 ID, 관계 이름)
+        if a == b:  # 자기 자신을 가리키는 관계는 묶기에 도움이 안 되므로 뺌
+            continue
+        edge = (min(a, b), max(a, b))  # 작은 ID를 앞에 둬서 A→B와 B→A를 같은 선 (A, B)로 만듦
+        edge_set.add(edge)  # 관계 이름은 버리므로, 두 엔티티 사이에 관계가 여러 개여도 선은 1개
+    edges = sorted(edge_set)  # 순서를 고정해야 같은 입력에서 늘 같은 묶음 결과가 나옴
+    
     graph_name = "k8-" + core.sha256_text(generation + "|" + run_id)[:12]
-    groups = core.detect_communities(driver, graph_name, [e["id"] for e in entities], edges, COMMUNITY_SEED)
+    
+    # 커뮤니티 구성  
+    # groups는 커뮤니티별 엔티티 위치이며 entities객체와 동일한 순서임. 예) [[0, 1, 2, 3, 5], [4, 6]]  
+    groups = core.detect_communities(driver, graph_name, [e["id"] for e in entities], edges, COMMUNITY_SEED) 
+    
+    # 각 커뮤니티내 엔티티 해시값 생성  
     hashes = [member_hash(entities, g, relations) for g in groups]
+    # 엔티티 수가 COMMUNITY_MIN_SIZE 이상인 것만 필터링   
     targets = [(g, h) for g, h in zip(groups, hashes) if len(g) >= COMMUNITY_MIN_SIZE]
+    # 캐시에 없는 값만 처리 대상 커뮤니티로 확정 
     todo = [(g, h) for g, h in targets if h not in cache]
+    
     log(f"[K8] 엔티티 {len(entities)}개, 관계 {len(relations)}개 → 묶음 {len(groups)}개, "
         f"엔티티 {COMMUNITY_MIN_SIZE}개 이상 {len(targets)}개, 보고서 LLM {len(todo)}번, 재사용 {len(targets) - len(todo)}개")
 
+    # 커뮤니티 리포트 생성 
     reports = {}
     usage = {"calls": 0, "total_tokens": 0}
     if todo:
         llm = make_llm()
         with ThreadPoolExecutor(max_workers=LLM_CONCURRENCY) as pool:
+            # 커뮤니티 리포트 생성 
             made = list(pool.map(lambda item: summarize_community(llm, entities, item[0], relations), todo))
         for (_, h), report in zip(todo, made):
             reports[h] = report
         usage = dict(llm.usage)
+    
+    # cache에 이미 있는 커뮤니티 리포트 추가 
     for _, h in targets:
         if h in cache:
             reports[h] = dict(cache[h])
+    
+    # 보고서 임베딩: 아직 벡터가 없는 보고서만 골라 임베딩함. 벡터는 Community 노드에 저장되어 거시 질문 검색에 쓰임
+    # 이번에 LLM이 새로 쓴 보고서는 embedding이 없고, 앞 세대에서 재사용한 보고서는 community_reports.json에
+    # 벡터까지 들어 있어 대개 건너뜀(Cohere 호출과 비용을 아낌)
+    #   예: targets 지문 ["a1f…", "7c2…", "e90…"] 중 "7c2…"만 새 보고서 → need_vector = ["7c2…"]
     need_vector = [h for _, h in targets if "embedding" not in reports[h]]
+
+    # 보고서 하나를 「제목 + 요약 + 발견 사항들」 글 하나로 이어 붙임(줄바꿈으로 구분). need_vector와 같은 순서임
+    #   예: "병원·약국 할인 혜택\n한빛 가족돌봄 카드의 병원·약국 할인은 ...\n전월 35만 원 이상 써야 할인됨 [근거: ...]\n..."
     texts = [reports[h]["title"] + "\n" + reports[h]["summary"] + "\n" + "\n".join(reports[h]["findings"])
              for h in need_vector]
+
+    # 글 목록을 한꺼번에 임베딩(Cohere, 96건씩 나눠 부름)하고, 돌아온 벡터를 지문과 순서대로 짝지어 보고서에 붙임
+    #   예: reports["7c2…"]["embedding"] = [0.012, -0.034, ...]  (EMBED_DIMENSION 차원)
     for h, vector in zip(need_vector, embed_texts(texts)):
         reports[h]["embedding"] = vector
 
+    # KG에 추가할 커뮤니티 리포트 값 생성
     rows = core.build_community_rows(groups, hashes, entities, reports, COMMUNITY_MIN_SIZE)
+    
+    # KG에 저장
     core.k8_write_communities(driver, generation, run_id, rows, EMBED_DIMENSION, COMMUNITY_INDEX)
+    
+
     for row in rows[:3]:
         log(f"      보고서 예: 「{row['title']}」 (엔티티 {row['size']}개)")
     result = {"entities": len(entities), "relations": len(relations), "groups": len(groups),
@@ -732,9 +827,11 @@ def run(args) -> None:
     search_track = until is None or until["track"] == "search"
     if until and until["step"] == "K8" and args.skip_communities:
         raise SystemExit("--until k8은 K8을 수행하므로 --skip-communities와 함께 쓸 수 없음")
+    
     started = time.time()
     driver = neo4j_driver()
     os_client = opensearch_client()
+    
     # K8 전(또는 검색엔진 트랙)까지만 보는 실행은 GDS가 없어도 안내 없이 진행함
     gds_ok = check_environment(driver, os_client, want_communities=not args.skip_communities
                                and (until is None or until["step"] == "K8"))
@@ -772,6 +869,8 @@ def run(args) -> None:
             f"{until['step']}에서 멈춤(④ 검증과 ⑤ 게시는 하지 않아 활성 세대는 그대로)")
         if until["note"]:
             log(f"      {until['note']}")
+    
+    # until 파라미터를 사용하는 경우 기존 KG와 검색엔진 인덱스 삭제  
     clean_leftovers(driver, os_client, generation, kg=kg_track, search=search_track)
     run_id = f"{args.run}@{time.strftime('%Y%m%d%H%M%S')}"
 
@@ -796,6 +895,8 @@ def run(args) -> None:
     # ③ 인덱스 구축 — KG 구축(K1 ~ K6, K8). 전체 재색인은 새 세대에 쓰므로 검색엔진 쪽과 순서가 없음(여기서는 차례로 돌림)
     if kg_track:
         log("③ 인덱스 구축 시작: KG 구축(K1 ~ K6, K8)" + (" → 검색엔진 인덱싱(S1 ~ S3)" if search_track else ""))
+        
+        # --- K1 추출청크 구성
         schemas = load_schemas()
         units, empty_chunks = core.k1_split_units(chunks, schemas)
         multi = [u for u in units if len(u["chunk_ids"]) > 1]
@@ -811,6 +912,7 @@ def run(args) -> None:
             driver.close()
             return
 
+        # --- K2 추출, K3 가지치기   
         k2 = k2_k3_extract(units, schemas, previous_kg)
         failed = [u for u in units if "error" in u]
         raw_nodes = sum(u.get("raw_nodes", 0) for u in units)
@@ -825,6 +927,7 @@ def run(args) -> None:
             labels = [n["label"] for n in shown["graph"]["nodes"]][:8]
             rels = [r["type"] for r in shown["graph"]["relationships"]][:6]
             log(f"      단위 {shown['unit_id'][:40]}의 노드 {labels}, 관계 {rels}")
+        
         kg_prepared = {
             "chunks": [{"chunk_id": c["chunk_id"], "doc_id": c["doc_id"], "doc_type": c["doc_type"]} for c in chunks],
             "units": units, 
@@ -838,6 +941,7 @@ def run(args) -> None:
             driver.close()  # --until k2나 k3이면 여기서 멈춤
             return
 
+        # --- K4 적재  
         nodes, relationships, merge_keys = core.build_graph_rows(chunks, units, schemas, generation, run_id)
         k4_write(driver, nodes, relationships)
         from_chunk = sum(1 for r in relationships if r.type == "FROM_CHUNK")
@@ -845,6 +949,7 @@ def run(args) -> None:
             f"(FROM_CHUNK {from_chunk}, 추출 관계 {len(relationships) - from_chunk})")
         entities_before = stage_view.count_entities(driver, generation) if stage.active else 0  # K5 병합 전 엔티티 수(보여 주기용)
 
+        # --- K5 병합  
         merged = core.k5_merge(driver, generation, merge_keys)
         removed = dedup_from_chunk(driver, generation)
         examples = sorted(merge_keys)[:3]
@@ -854,7 +959,9 @@ def run(args) -> None:
             driver.close()  # --until k4나 k5이면 여기서 멈춤
             return
 
+        # --- K6 엔터티 설명 임베딩  
         embedded = core.k6_embed_descriptions(driver, generation, embed_texts, EMBED_DIMENSION, ENTITY_INDEX)
+        
         # 로그에 보여 줄 예시로 이번 세대 엔티티 3개를 꺼냄
         # - label: '__'로 시작하는 내부 레이블(__Entity__ 등)을 빼고 남은 첫 레이블(예: Person)
         # - props: 노드 속성 전체. 아래에서 core.entity_description()으로 임베딩에 쓴 설명 글을 다시 만들어 보여 줌
@@ -869,6 +976,7 @@ def run(args) -> None:
             driver.close()  # --until k6이면 여기서 멈춤
             return
 
+        # --- K8 커뮤니티 리포트 작성. K7 불필요 노드/엔티티 삭제는 전체색인이라 구현 안함   
         k8_result = None
         if communities:
             k8_result, reports = k8_summarize(driver, generation, run_id, previous_reports)
@@ -881,10 +989,13 @@ def run(args) -> None:
     if search_track:
         if not kg_track:  # --until s*: 검색엔진 트랙만 돌 때의 시작 안내
             log("③ 인덱스 구축 시작: 검색엔진 인덱싱(S1 ~ S3)")
+
         index = index_name(generation)
         old_vectors = read_old_vectors(os_client, active["search_index"] if active else None)
         texts = [c["text"] for c in chunks]
         hashes = [c["text_hash"] for c in chunks]
+
+        # --- S1 임베딩  
         vectors, new_count = core.embed_with_reuse(texts, hashes, old_vectors, embed_texts)
         log(f"[S1] 임베딩 {new_count}개 새로, {len(chunks) - new_count}개 재사용({EMBEDDING_MODEL}, {len(vectors[0])}차원). "
             f"벡터 앞 3개: {[round(v, 4) for v in vectors[0][:3]]}")
@@ -892,16 +1003,18 @@ def run(args) -> None:
             driver.close()  # --until s1이면 여기서 멈춤
             return
 
-        lexicon = kr_tokenizer.lexicon_from_chunks(chunks, kr_tokenizer.load_approved_aliases(ALIASES_APPROVED_PATH))
-        docs = core.build_search_docs(chunks, hashes, vectors, lexicon, META_FIELDS)
-        alias_count = sum(len(v) for v in lexicon.aliases.values())
-        log(f"[S2] 키워드 분석 {len(docs)}개 (카드명 사전 {len(lexicon.card_names)}개, 별칭 {alias_count}개). "
+        # --- S2 BM25 토큰화 
+        tokenizer = kr_tokenizer.tokenizer_from_chunks(chunks, kr_tokenizer.load_approved_aliases(ALIASES_APPROVED_PATH))
+        docs = core.build_search_docs(chunks, hashes, vectors, tokenizer, META_FIELDS)
+        alias_count = sum(len(v) for v in tokenizer.aliases.values())
+        log(f"[S2] 키워드 분석 {len(docs)}개 (카드명 사전 {len(tokenizer.card_names)}개, 별칭 {alias_count}개). "
             f"예: {docs[0]['text_tokens'][:80]}")
-        if stage.done("S2", lambda: stage_view.s2_view(docs, lexicon)):
+        if stage.done("S2", lambda: stage_view.s2_view(docs, tokenizer)):
             driver.close()  # --until s2이면 여기서 멈춤
             return
 
-        s3 = core.apply_search(os_client, index, docs, index_mapping(lexicon.meta()))
+        # --- S3 적재
+        s3 = core.apply_search(os_client, index, docs, index_mapping(tokenizer.meta()))
         log(f"[S3] 적재: 인덱스 {index}, 문서 {s3['documents']}개, 옛 청크 {s3['deleted']}건 지우고 {s3['indexed']}건 넣음")
         if stage.done("S3", lambda: stage_view.s3_view(os_client, index, s3, docs, OPENSEARCH_URL)):
             driver.close()  # --until s3이면 여기서 멈춤
@@ -910,7 +1023,7 @@ def run(args) -> None:
     if until:  # --until은 위 단계 중 하나에서 반드시 멈춤. 여기까지 왔다면 단계 이름과 코드가 어긋난 것임
         raise SystemExit(f"--until {until['step'].lower()} 에서 멈추지 못함(코드 확인 필요)")
 
-    # ④ 검증
+    # --- ④ 검증
     all_ids = {c["chunk_id"] for c in chunks}
     search_ids = search_chunk_ids(os_client, index)
     kg_list = graph_chunk_ids(driver, generation)
@@ -934,7 +1047,7 @@ def run(args) -> None:
     if not report["ok"]:
         raise SystemExit(f"④ 검증 실패: 게시하지 않음(활성 세대는 그대로). 자세한 목록: {gen_dir / 'build_report.json'}")
 
-    # ⑤ 게시
+    # --- ⑤ 게시
     core.publish_active({
         "generation": generation, "search_index": index, "neo4j_generation": generation, "chunk_count": len(chunks),
         "input_sha256": input_sha256, "config_signature": config_signature(),

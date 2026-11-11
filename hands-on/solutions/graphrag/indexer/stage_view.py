@@ -442,10 +442,10 @@ def s1_view(chunks: list[dict], vectors: list[list[float]], new_count: int, mode
     return _view("S1", numbers, examples, "S1_embedding.json", data, notes=notes)
 
 
-def s2_view(docs: list[dict], lexicon) -> dict:
+def s2_view(docs: list[dict], tokenizer) -> dict:
     """S2 결과: 청크 본문이 낱말로 어떻게 잘렸는지(text_tokens), 검색엔진 문서 한 건의 필드."""
-    alias_count = sum(len(v) for v in lexicon.aliases.values())
-    numbers = [("검색엔진 문서", f"{len(docs)}개"), ("카드명 사전", f"{len(lexicon.card_names)}개, 별칭 {alias_count}개")]
+    alias_count = sum(len(v) for v in tokenizer.aliases.values())
+    numbers = [("검색엔진 문서", f"{len(docs)}개"), ("카드명 사전", f"{len(tokenizer.card_names)}개, 별칭 {alias_count}개")]
     picked, seen = [], set()
     for doc in docs:  # 문서 유형이 다른 문서를 하나씩
         key = doc.get("doc_type", "")

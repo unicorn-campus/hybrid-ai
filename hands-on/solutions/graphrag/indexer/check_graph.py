@@ -54,8 +54,8 @@ def load_question(args) -> tuple[str, dict | None]:
 def search_engine(os_client, index: str, question: str, top: int) -> tuple[list[dict], list[str]]:
     """BM25(text_tokens)와 kNN(embedding)을 각각 돌리고 RRF로 합쳐 상위 top개 청크를 돌려줌. 질문 토큰도 함께 돌려줌."""
     meta = os_client.indices.get_mapping(index=index)[index]["mappings"]["_meta"]["tokenizer"]
-    lexicon = kr_tokenizer.lexicon_from_meta(meta)  # 색인 때 기록한 사전으로 같은 토크나이저를 만듦
-    tokens = lexicon.tokenize(question)
+    tokenizer = kr_tokenizer.tokenizer_from_meta(meta)  # 색인 때 기록한 사전으로 같은 토크나이저를 만듦
+    tokens = tokenizer.tokenize(question)
     embedder = CohereEmbeddings(model=main.EMBEDDING_MODEL, cohere_api_key=main.read_secret("COHERE_API_KEY"))
     vector = embedder.embed_query(question)  # 질문은 input_type search_query(색인은 search_document)
 

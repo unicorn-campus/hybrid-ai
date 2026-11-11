@@ -153,7 +153,7 @@ LLM 추출(K2)과 보고서(K8)는 앞 실행 결과를 재사용하므로 두 �
 | 순서 | 함수 | 방식 | 채울 것 | 확인할 출력 |
 |---|---|---|---|---|
 | 12 | `embed_with_reuse` | 직접 | 해시가 옛 벡터에 없는 글만 임베딩, 원래 순서로 합침 | `[S1]` 두 번째 실행부터 재사용 10 |
-| 13 | `build_search_docs` | 빈칸 2 | `lexicon.tokenize`, 엔진 문서 한 건(text_tokens는 공백으로 이음) | `[S2]` 첫 청크의 낱말이 같음 |
+| 13 | `build_search_docs` | 빈칸 2 | `tokenizer.tokenize`, 엔진 문서 한 건(text_tokens는 공백으로 이음) | `[S2]` 첫 청크의 낱말이 같음 |
 | 14 | `apply_search` | 빈칸 3 | `delete_by_query`(doc_id), `bulk`(_id = chunk_id), `refresh` | `[S3]` 10건 넣음 |
 | 15 | `verify_chunk_ids` | 직접 | 집합 비교 2개 + 중복 노드 검사 | `④ 검증: 통과` |
 | 16 | `publish_active` | 직접 | 임시 파일에 쓴 뒤 `os.replace` | `⑤ 게시`, `data/active_generation.json`이 새 세대 |

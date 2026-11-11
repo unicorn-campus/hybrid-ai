@@ -7,7 +7,7 @@ GraphRAG 인덱싱에서는 "이미 배운 부품"이므로 다시 쓰지 않고
 RAG 실습 파일을 import하지 않고 복사해 둔 이유: 그 파일이 맨 위에서 bm25s, chromadb, langchain을 불러
 이 가상환경에 필요 없는 패키지가 따라오기 때문임.
 
-여기서 더한 것: Lexicon(카드명 목록과 별칭 사전으로 토크나이저를 만들고, 기록(meta)만 있으면 같은 것을 다시 만드는 묶음).
+여기서 더한 것: UserDictTokenizer(카드명 목록과 별칭 사전으로 토크나이저를 만들고, 기록(meta)만 있으면 같은 것을 다시 만드는 묶음).
 검색 쪽이 질문을 색인 때와 같은 규칙으로 잘라야 BM25가 맞으므로, 사전 기록을 검색엔진 인덱스에 함께 남김(S3).
 """
 
@@ -163,7 +163,7 @@ def load_approved_aliases(path: Path) -> dict:
     return {key: value for key, value in approved.items() if not key.startswith("_")}
 
 
-class Lexicon:
+class UserDictTokenizer:
     """카드명 목록과 별칭 사전으로 만든 토크나이저 묶음.
 
     meta()가 돌려주는 기록만 있으면 색인 쪽과 질문 쪽이 같은 토크나이저를 다시 만들 수 있음(같은 규칙 보장).
@@ -189,24 +189,24 @@ class Lexicon:
         return result
 
     def meta(self) -> dict:
-        """검색엔진 인덱스에 남길 사전 기록. 검색 쪽은 이것으로 lexicon_from_meta를 불러 같은 토크나이저를 만듦."""
+        """검색엔진 인덱스에 남길 사전 기록. 검색 쪽은 이것으로 tokenizer_from_meta를 불러 같은 토크나이저를 만듦."""
         return {"card_names": self.card_names, "aliases": self.aliases, "lexical_signature": self.signature}
 
 
-def lexicon_from_chunks(chunks: list[dict], approved: dict) -> Lexicon:
-    """혜택 안내 청크의 카드명으로 별칭 사전을 만들어 Lexicon을 돌려줌(RAG 실습 단계 7과 같은 규칙)."""
+def tokenizer_from_chunks(chunks: list[dict], approved: dict) -> UserDictTokenizer:
+    """혜택 안내 청크의 카드명으로 별칭 사전을 만들어 UserDictTokenizer를 돌려줌(RAG 실습 단계 7과 같은 규칙)."""
     names = set()
     for chunk in chunks:
         metadata = chunk["metadata"]
         if metadata.get("doc_type") == "benefit_guide" and metadata.get("card_name"):
             names.add(str(metadata["card_name"]).strip())
     aliases, _review = make_alias_table(sorted(names), approved)
-    return Lexicon(sorted(names), aliases)
+    return UserDictTokenizer(sorted(names), aliases)
 
 
-def lexicon_from_meta(meta: dict) -> Lexicon:
-    """기록된 사전으로 같은 Lexicon을 다시 만듦(검색 쪽에서 씀). 서명이 기록과 다르면 ValueError."""
-    lexicon = Lexicon(meta["card_names"], meta["aliases"])
-    if lexicon.signature != meta["lexical_signature"]:
+def tokenizer_from_meta(meta: dict) -> UserDictTokenizer:
+    """기록된 사전으로 같은 UserDictTokenizer를 다시 만듦(검색 쪽에서 씀). 서명이 기록과 다르면 ValueError."""
+    tokenizer = UserDictTokenizer(meta["card_names"], meta["aliases"])
+    if tokenizer.signature != meta["lexical_signature"]:
         raise ValueError("다시 만든 토크나이저 서명이 기록과 다름")
-    return lexicon
+    return tokenizer

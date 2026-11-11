@@ -20,7 +20,7 @@
   14 apply_search            (빈칸 3곳)  S3 문서 단위 지우기, bulk, refresh
   15 verify_chunk_ids        (직접)      ④ 세 목록 비교
   16 publish_active          (직접)      ⑤ 활성 세대 파일 교체
-  제공(완성본, 읽기만): sha256_text, next_nonblank_line, head_line, group_assignments, k8_write_communities
+  제공(완성본, 읽기만): sha256_text, next_nonblank_line, head_line, k8_write_communities
 
 사용법(이 파일은 강사 뼈대(템플릿)임. 직접 고치지 않고 복사본 my_graph.py를 고침. my_graph.py는 Git이 무시해 pull 충돌이 없음)
   1) index_graph.py를 --mine을 붙여 실행함. my_graph.py가 없으면 이 파일을 복사해 만듦
@@ -370,25 +370,29 @@ def k6_embed_descriptions(driver, generation: str, embed_texts, dimension: int, 
 # ---------------------------------------------------------------------------
 # 10. K8 커뮤니티 찾기 (교재 52, 53쪽) — 빈칸 2곳
 # ---------------------------------------------------------------------------
-def group_assignments(assignments: dict[int, int]) -> list[list[int]]:
-    """제공 함수. 「엔티티 번호 → 묶음 번호」를 묶음 목록으로 바꿈. 묶음 안은 번호순, 묶음끼리는 가장 작은 번호순."""
-    by_community: dict[int, list[int]] = {}
-    for entity_no, community_no in assignments.items():
-        by_community.setdefault(community_no, []).append(entity_no)
-    groups = []
-    for members in by_community.values():
-        groups.append(sorted(members))
-    groups.sort(key=lambda members: members[0])
-    return groups
-
-
 def detect_communities(driver, graph_name: str, entity_ids: list[str], edges: list[tuple[int, int]],
                        seed: int) -> list[list[int]]:
     """GDS Leiden으로 엔티티를 묶음(커뮤니티)으로 나눔.
 
     방법: ① 엔티티와 엔티티 사이 줄만 GDS 메모리에 투영함(무방향) ② Leiden을 씨앗 고정, 병렬 1로 한 번 불러
           묶음 번호를 받음 ③ finally로 투영 그래프를 반드시 지움 ④ 묶음 번호를 구성원 목록으로 바꿈.
-    반환값: [[엔티티 번호, ...], ...] 묶음 목록.
+    반환값: [[엔티티 번호, ...], ...] 묶음 목록. 묶음 안은 번호순, 묶음끼리는 가장 작은 번호순.
+
+    예시: 엔티티 번호는 entity_ids 안의 위치(0부터)이고, edges와 반환값은 elementId 대신 이 번호를 씀.
+        (실제 세대 gen-lab-v3-e0d2747b에서 7개만 뽑은 값. elementId는 「4:DB ID:노드 내부 번호」 꼴이며 DB마다 다름)
+        entity_ids = ["4:24e33506-5f41-4d69-bb8c-3e186db2fa4e:145",  # 0 BenefitCondition (병원, 약국 본인 결제)
+                      "4:24e33506-5f41-4d69-bb8c-3e186db2fa4e:149",  # 1 BenefitExclusion (상품권, 선불 충전 제외)
+                      "4:24e33506-5f41-4d69-bb8c-3e186db2fa4e:147",  # 2 BenefitLimit (월 40,000원 한도)
+                      "4:24e33506-5f41-4d69-bb8c-3e186db2fa4e:143",  # 3 Benefit (병원·약국 할인)
+                      "4:24e33506-5f41-4d69-bb8c-3e186db2fa4e:105",  # 4 Clause (목적)
+                      "4:24e33506-5f41-4d69-bb8c-3e186db2fa4e:137",  # 5 ProductGuide (한빛 가족돌봄)
+                      "4:24e33506-5f41-4d69-bb8c-3e186db2fa4e:104"]  # 6 TermsDocument (약관 문서)
+        edges      = [(0, 3),   # REQUIRES       (Benefit 3 → 조건 0). 작은 번호가 앞, 관계 이름과 방향은 버림
+                      (1, 3),   # EXCLUDES
+                      (2, 3),   # LIMITED_BY
+                      (3, 5),   # OFFERS_BENEFIT (상품안내 5 → Benefit 3)
+                      (4, 6)]   # HAS_CLAUSE     (약관 6 → 조항 4)
+        반환값(예) = [[0, 1, 2, 3, 5], [4, 6]]   # 정확한 묶음은 Leiden이 정함. 줄이 없는 엔티티는 혼자 묶음이 됨
     """
     if not entity_ids:
         return []
@@ -415,10 +419,22 @@ def detect_communities(driver, graph_name: str, entity_ids: list[str], edges: li
     position = {}  # elementId → 엔티티 번호
     for number, entity_id in enumerate(entity_ids):
         position[entity_id] = number
-    assignments = {}
+    # 「엔티티 번호 → 묶음 번호」를 묶음 목록으로 바꿈
+    # 예시(Docstring 예시의 엔티티 7개): Leiden이 돌려준 records의 순서와 묶음 번호(c)는 뜻 없이 매겨짐
+    #   records      = [{"id": "4:...:143", "c": 17}, {"id": "4:...:105", "c": 42}, {"id": "4:...:145", "c": 17}, ...]
+    #   by_community = {17: [3, 0, 1, 2, 5],   # 묶음 17번: 엔티티 3, 0, 1, 2, 5 (records에 나온 순서 그대로)
+    #                   42: [4, 6]}            # 묶음 42번: 엔티티 4, 6
+    #   groups       = [[0, 1, 2, 3, 5], [4, 6]]   # 아래에서 묶음 안을 번호순으로, 묶음끼리를 가장 작은 번호순으로 정렬
+    by_community: dict[int, list[int]] = {}  # 묶음 번호 → 구성원 엔티티 번호 목록
     for record in records:
-        assignments[position[record["id"]]] = record["c"]
-    return group_assignments(assignments)
+        entity_no = position[record["id"]]
+        by_community.setdefault(record["c"], []).append(entity_no)
+    groups = []
+    for members in by_community.values():
+        groups.append(sorted(members))  # 묶음 안은 번호순
+    # GDS가 매기는 묶음 번호 자체는 뜻이 없어서, 구성원 중 가장 작은 번호로 묶음 순서를 정함(같은 묶음이면 같은 출력)
+    groups.sort(key=lambda members: members[0])
+    return groups
 
 
 # ---------------------------------------------------------------------------
@@ -488,16 +504,16 @@ def embed_with_reuse(texts: list[str], hashes: list[str], old_vectors: dict[str,
 # ---------------------------------------------------------------------------
 # 13. S2 키워드 분석: 엔진 문서 한 건 만들기 (교재 58, 61, 62쪽) — 빈칸 2곳
 # ---------------------------------------------------------------------------
-def build_search_docs(chunks: list[dict], hashes: list[str], vectors: list[list[float]], lexicon,
+def build_search_docs(chunks: list[dict], hashes: list[str], vectors: list[list[float]], tokenizer,
                       meta_fields: tuple) -> list[dict]:
     """청크마다 검색엔진에 넣을 문서 한 건(벡터 + 낱말 + 메타데이터)을 만듦.
 
-    인자: lexicon은 kr_tokenizer.Lexicon(tokenize(글) → 낱말 목록). meta_fields는 검색엔진 필드로 남길 메타데이터 키.
+    인자: tokenizer는 kr_tokenizer.UserDictTokenizer(tokenize(글) → 낱말 목록). meta_fields는 검색엔진 필드로 남길 메타데이터 키.
     반환값: [{"chunk_id", "doc_id", "text_hash", "text", "text_tokens", "embedding", 메타데이터...}, ...].
     """
     docs = []
     for chunk, text_hash, vector in zip(chunks, hashes, vectors):
-        # 빈칸 1: 키워드 분석. lexicon.tokenize(chunk["text"]) → tokens
+        # 빈칸 1: 키워드 분석. tokenizer.tokenize(chunk["text"]) → tokens
         raise NotImplementedError("빈칸 1을 채울 것")
 
         # 빈칸 2: 엔진 문서 한 건 doc = {"chunk_id", "doc_id", "text_hash", "text", "text_tokens", "embedding"}.
