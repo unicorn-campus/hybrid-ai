@@ -1,0 +1,1197 @@
+{
+  "prompt": "hybrid-ai-lab/prompts/design-kg-schema-doc.md",
+  "run_note": "사용자 지시로 입력값은 AI가 자동으로 찾아 채우고, [승인] 단계는 모두 자동 승인으로 처리함",
+  "input": {
+    "base_dir": "C:/Users/hiond/class/design-agentic-ai/hybrid-ai-lab/verify/doc-schema-prompt-run",
+    "chunk_source": "C:/Users/hiond/class/design-agentic-ai/hybrid-ai-lab/indexer/vector-bm25/data/active_generation.json",
+    "chunk_file": "C:/Users/hiond/class/design-agentic-ai/hybrid-ai-lab/indexer/vector-bm25/data/artifacts/birthfix-20261018b/prepared-chunks.json",
+    "text_field": "text",
+    "doc_type_field": "doc_type",
+    "doc_types": [
+      "regulation",
+      "benefit_guide",
+      "consult_log"
+    ],
+    "question_sources": [
+      "C:/Users/hiond/class/design-agentic-ai/hybrid-ai-lab/ragas/eval-set.json",
+      "C:/Users/hiond/class/design-agentic-ai/hybrid-ai-lab/indexer/vector-bm25/evaluation/group2_questions.json",
+      "C:/Users/hiond/class/design-agentic-ai/hybrid-ai-lab/specs/userstory.md"
+    ],
+    "structured_schema": "C:/Users/hiond/class/design-agentic-ai/hybrid-ai-lab/indexer/graphrag/schema/graph_schema.json",
+    "answer_tables": {
+      "consult_log": [
+        "C:/Users/hiond/class/design-agentic-ai/hybrid-ai-lab/docs/_instructor/D3/상담근거_대조표.jsonl",
+        "C:/Users/hiond/class/design-agentic-ai/hybrid-ai-lab/docs/_instructor/D3/정제검증_기대값.json"
+      ]
+    },
+    "llm_provider": "groq",
+    "llm_model": "openai/gpt-oss-120b",
+    "secret_file": "C:/Users/hiond/class/design-agentic-ai/secrets/.env",
+    "secret_key_name": "GROQ_API_KEY",
+    "cq_guide": "C:/Users/hiond/class/design-agentic-ai/references/how-to-competency-question.md",
+    "neo4j_graphrag_version": "1.22.0",
+    "neo4j_edition": "Community(이미지 neo4j:2026.09.0-community) → 제약은 UNIQUENESS만 사용",
+    "extraction_units": {
+      "regulation": {
+        "kind": "제목 꼴로 나눔",
+        "heading": "^(제\\d+조(?:의\\d+)?)\\(([^)]*)\\)\\s*$",
+        "body_start": "①",
+        "drop_lines": "^제\\d+장\\s"
+      }
+    }
+  },
+  "steps": [
+    {
+      "step": "1. 사용자 입력",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:24",
+      "content": {
+        "입력값 출처": "AI가 프로젝트에서 자동으로 찾음(사용자 지시)",
+        "chunk_file_reasons": [
+          "위치 파일에 청크 경로는 없음. generation=gen-birthfix-20261018b-efeb65bd, chunk_count=218",
+          "이름 규칙 일치: gen-{실행 ID}-{해시}의 실행 ID = 산출물 폴더 'birthfix-20261018b'",
+          "청크 수 일치: 218개"
+        ],
+        "chunk_count": 218,
+        "text_field": "text(정제 본문). index_text는 검색용 별칭을 덧붙인 칸이라 쓰지 않음",
+        "doc_types": {
+          "regulation": 10,
+          "benefit_guide": 160,
+          "consult_log": 48
+        },
+        "설계할 문서 종류": "3종 모두",
+        "key_check": "GROQ_API_KEY 값 있음(값은 보지 않음)",
+        "neo4j_graphrag": "1.22.0",
+        "pii_scan": {
+          "전화번호": 0,
+          "이메일": 0,
+          "카드나 계좌 번호": 0,
+          "주민번호": 0,
+          "생년월일": 0
+        },
+        "외부 LLM 전송": "개인정보 꼴 0건이라 전송 승인"
+      }
+    },
+    {
+      "step": "2. 역량 질문",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:24",
+      "content": {
+        "file": "competency_questions.md",
+        "count": {
+          "regulation": 5,
+          "benefit_guide": 5,
+          "consult_log": 5
+        }
+      }
+    },
+    {
+      "step": "3. 묶음 기준과 표본 계획",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:24",
+      "content": {
+        "seed": 20261018,
+        "table": [
+          {
+            "doc": "regulation",
+            "group": "약관 전체",
+            "chunks": 10,
+            "discovery_start": 5,
+            "discovery_cap": 5,
+            "test": 5
+          },
+          {
+            "doc": "benefit_guide",
+            "group": "공통 안내",
+            "chunks": 4,
+            "discovery_start": 3,
+            "discovery_cap": 3,
+            "test": 1
+          },
+          {
+            "doc": "benefit_guide",
+            "group": "참고 카드",
+            "chunks": 7,
+            "discovery_start": 5,
+            "discovery_cap": 5,
+            "test": 2
+          },
+          {
+            "doc": "benefit_guide",
+            "group": "카드 개요",
+            "chunks": 64,
+            "discovery_start": 10,
+            "discovery_cap": 30,
+            "test": 16
+          },
+          {
+            "doc": "benefit_guide",
+            "group": "혜택 상세",
+            "chunks": 85,
+            "discovery_start": 10,
+            "discovery_cap": 30,
+            "test": 21
+          },
+          {
+            "doc": "consult_log",
+            "group": "D3_S01_신규가입_상담이력_합성.txt",
+            "chunks": 8,
+            "discovery_start": 5,
+            "discovery_cap": 5,
+            "test": 3
+          },
+          {
+            "doc": "consult_log",
+            "group": "D3_S02_장기보유_상담이력_합성.txt",
+            "chunks": 8,
+            "discovery_start": 5,
+            "discovery_cap": 5,
+            "test": 3
+          },
+          {
+            "doc": "consult_log",
+            "group": "D3_S03_VIP_상담이력_합성.txt",
+            "chunks": 8,
+            "discovery_start": 5,
+            "discovery_cap": 5,
+            "test": 3
+          },
+          {
+            "doc": "consult_log",
+            "group": "D3_S04_휴면직전_상담이력_합성.txt",
+            "chunks": 8,
+            "discovery_start": 5,
+            "discovery_cap": 5,
+            "test": 3
+          },
+          {
+            "doc": "consult_log",
+            "group": "D3_S05_다중카드_상담이력_합성.txt",
+            "chunks": 8,
+            "discovery_start": 5,
+            "discovery_cap": 5,
+            "test": 3
+          },
+          {
+            "doc": "consult_log",
+            "group": "D3_S06_연회비부담_상담이력_합성.txt",
+            "chunks": 8,
+            "discovery_start": 5,
+            "discovery_cap": 5,
+            "test": 3
+          }
+        ],
+        "notes": {
+          "regulation": "청크 10건 → 시험용 5건(목표 30 ~ 50건) 모자람: 청크가 적어 시험용을 줄임",
+          "benefit_guide": "청크 160건 → 시험용 40건(목표 30 ~ 50건)",
+          "consult_log": "청크 48건 → 시험용 18건(목표 30 ~ 50건) 모자람: 청크가 적어 시험용을 줄임"
+        }
+      }
+    },
+    {
+      "step": "5. 스키마 초안 추천과 확정(regulation)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:34",
+      "content": {
+        "recommend": [
+          {
+            "kind": "병합",
+            "item": "Document, ElectronicDocument → TermsDocument(약관 문서)",
+            "cq": [
+              "R5"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "Condition, Limit → Requirement(충족 조건)",
+            "cq": [
+              "R2"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "Notification, Report → Deadline(기한과 통지 시점)",
+            "cq": [
+              "R3"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "Action, Reason, Cancellation, Request → Handling(상황별 처리)",
+            "cq": [
+              "R4"
+            ]
+          },
+          {
+            "kind": "추가",
+            "item": "TermsDocument.version, effective_date, supersedes(머리줄에서 채움, 후보에 1건뿐)",
+            "cq": [
+              "R5"
+            ]
+          },
+          {
+            "kind": "추가",
+            "item": "Clause.clause_no, title(조항 번호와 제목)",
+            "cq": [
+              "R1"
+            ]
+          },
+          {
+            "kind": "제거",
+            "item": "Card, Member, PrimaryMember, FamilyMember, Transaction, Approval, Fee(정형 스키마에 이미 있거나 개인 단위 데이터)",
+            "cq": []
+          },
+          {
+            "kind": "제거",
+            "item": "CardIssuer, Party, CardApplication(어느 역량 질문에도 안 쓰임)",
+            "cq": []
+          }
+        ],
+        "node_types": [
+          "TermsDocument",
+          "Clause",
+          "Requirement",
+          "Deadline",
+          "Handling"
+        ],
+        "relationship_types": [
+          "HAS_CLAUSE",
+          "SETS_REQUIREMENT",
+          "SETS_DEADLINE",
+          "DEFINES_HANDLING"
+        ],
+        "constraints(사람 대신 자동 승인)": [
+          {
+            "type": "UNIQUENESS",
+            "node_type": "TermsDocument",
+            "property_name": "version"
+          }
+        ],
+        "metadata_header": [
+          "source",
+          "version",
+          "effective_date",
+          "supersedes",
+          "section_label"
+        ]
+      }
+    },
+    {
+      "step": "6. 기계 검증(regulation)",
+      "rev": 1,
+      "judge": "실행 로그(승인 단계 아님)",
+      "date": "2026-10-18 23:34",
+      "content": {
+        "log": [
+          "노드 타입 라벨 중복: 없음",
+          "이름 규칙 위반: 노드 타입 없음, 관계 없음",
+          "description 없음: 없음",
+          "패턴의 이름이 목록에 없음: 없음",
+          "GraphSchema.model_validate: 통과",
+          "결과: 통과"
+        ],
+        "preview": "브라우저에서 Mermaid 그림 1개 렌더링 확인(rendered 1)"
+      }
+    },
+    {
+      "step": "5. 스키마 초안 추천과 확정(benefit_guide)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:34",
+      "content": {
+        "recommend": [
+          {
+            "kind": "병합",
+            "item": "Benefit, BenefitProgram, Offer, Bonus, BenefitTier → Benefit",
+            "cq": [
+              "B1"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "Condition, Channel, MerchantCategory, TransactionType, Target → BenefitCondition(대상 가맹점이나 채널은 조건 속성으로)",
+            "cq": [
+              "B2"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "Limit, TimeWindow, PaymentTiming → BenefitLimit",
+            "cq": [
+              "B3"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "Exclusion, Restriction → BenefitExclusion",
+            "cq": [
+              "B4"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "Card(문서 쪽 카드 상품) → ProductGuide(정형 Product와 이름이 겹치지 않게 '상품 안내'로 둠)",
+            "cq": [
+              "B5"
+            ]
+          },
+          {
+            "kind": "추가",
+            "item": "ProductGuide.product_id, Benefit.product_id(정형 Product.product_id에 잇는 키, 머리줄에서 채움)",
+            "cq": [
+              "B1",
+              "B5"
+            ]
+          },
+          {
+            "kind": "추가",
+            "item": "ProductGuide.issue_target, payment_limit(후보에 거의 없음)",
+            "cq": [
+              "B5"
+            ]
+          },
+          {
+            "kind": "제거",
+            "item": "Fee, FeeComponent, AnnualFee(정형 스키마 ProductAnnualFee에 이미 있음)",
+            "cq": []
+          },
+          {
+            "kind": "제거",
+            "item": "Issuer, Provider, Brand, Company, Document, Account, Transaction(어느 역량 질문에도 안 쓰이거나 정형에 있음)",
+            "cq": []
+          }
+        ],
+        "node_types": [
+          "ProductGuide",
+          "Benefit",
+          "BenefitCondition",
+          "BenefitLimit",
+          "BenefitExclusion"
+        ],
+        "relationship_types": [
+          "OFFERS_BENEFIT",
+          "REQUIRES",
+          "LIMITED_BY",
+          "EXCLUDES"
+        ],
+        "constraints(사람 대신 자동 승인)": [
+          {
+            "type": "UNIQUENESS",
+            "node_type": "ProductGuide",
+            "property_name": "product_id"
+          }
+        ],
+        "metadata_header": [
+          "product_id",
+          "card_name",
+          "benefit_id",
+          "section_label",
+          "effective_date"
+        ]
+      }
+    },
+    {
+      "step": "6. 기계 검증(benefit_guide)",
+      "rev": 1,
+      "judge": "실행 로그(승인 단계 아님)",
+      "date": "2026-10-18 23:34",
+      "content": {
+        "log": [
+          "노드 타입 라벨 중복: 없음",
+          "이름 규칙 위반: 노드 타입 없음, 관계 없음",
+          "description 없음: 없음",
+          "패턴의 이름이 목록에 없음: 없음",
+          "GraphSchema.model_validate: 통과",
+          "결과: 통과"
+        ],
+        "preview": "브라우저에서 Mermaid 그림 1개 렌더링 확인(rendered 1)"
+      }
+    },
+    {
+      "step": "5. 스키마 초안 추천과 확정(consult_log)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:34",
+      "content": {
+        "recommend": [
+          {
+            "kind": "병합",
+            "item": "Consultation, Conversation, Record, ConsultationRecord, Interaction, Call, Communication → Consultation",
+            "cq": [
+              "C5"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "Issue와 Request 중 불편이나 불만을 말한 것 → Complaint(cause)",
+            "cq": [
+              "C1"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "Proposal, Guidance, Procedure → Proposal(content)",
+            "cq": [
+              "C2"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "Channel, CommunicationChannel, MessageChannel → Consultation.channel 속성",
+            "cq": [
+              "C5"
+            ]
+          },
+          {
+            "kind": "추가",
+            "item": "Proposal.decision, Proposal.reason(후보에 거의 없음)",
+            "cq": [
+              "C3"
+            ]
+          },
+          {
+            "kind": "추가",
+            "item": "ReconsiderCondition(후보에 Condition 1건뿐)",
+            "cq": [
+              "C4"
+            ]
+          },
+          {
+            "kind": "추가",
+            "item": "FOLLOWS(Consultation → Consultation, 후보 3건)",
+            "cq": [
+              "C5"
+            ]
+          },
+          {
+            "kind": "추가",
+            "item": "Consultation.member_pseudo_id(정형 Member에 잇는 키 후보. 청크에는 가명 ID만 있어 Member.member_id로 바로 잇지 못함)",
+            "cq": [
+              "C5"
+            ]
+          },
+          {
+            "kind": "제거",
+            "item": "Customer의 name, email, contact(개인정보 처리 대상)",
+            "cq": []
+          },
+          {
+            "kind": "제거",
+            "item": "Transaction, TransactionSummary, TransactionBatch(정형 스키마 CardTxn에 이미 있음)",
+            "cq": []
+          },
+          {
+            "kind": "제거",
+            "item": "Card(정형 스키마에 이미 있음)",
+            "cq": []
+          },
+          {
+            "kind": "제거",
+            "item": "Agent, Counselor, Address, Device, Menu, Preference 계열(어느 역량 질문에도 안 쓰임)",
+            "cq": []
+          }
+        ],
+        "node_types": [
+          "Consultation",
+          "Complaint",
+          "Proposal",
+          "ReconsiderCondition"
+        ],
+        "relationship_types": [
+          "HAS_COMPLAINT",
+          "HAS_PROPOSAL",
+          "RECONSIDER_WHEN",
+          "FOLLOWS"
+        ],
+        "constraints(사람 대신 자동 승인)": [
+          {
+            "type": "UNIQUENESS",
+            "node_type": "Consultation",
+            "property_name": "record_id"
+          }
+        ],
+        "metadata_header": [
+          "record_id",
+          "consult_date",
+          "channel",
+          "topic",
+          "member_pseudo_id"
+        ]
+      }
+    },
+    {
+      "step": "6. 기계 검증(consult_log)",
+      "rev": 1,
+      "judge": "실행 로그(승인 단계 아님)",
+      "date": "2026-10-18 23:34",
+      "content": {
+        "log": [
+          "노드 타입 라벨 중복: 없음",
+          "이름 규칙 위반: 노드 타입 없음, 관계 없음",
+          "description 없음: 없음",
+          "패턴의 이름이 목록에 없음: 없음",
+          "GraphSchema.model_validate: 통과",
+          "결과: 통과"
+        ],
+        "preview": "브라우저에서 Mermaid 그림 1개 렌더링 확인(rendered 1)"
+      }
+    },
+    {
+      "step": "7. 기대 답과 합격 기준(consult_log)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:34",
+      "content": {
+        "expected": "기존 정답표(상담근거_대조표.jsonl, 정제검증_기대값.json)를 그대로 씀. LLM 초안 없음",
+        "criteria": {
+          "recall_min": 0.8,
+          "fp_max": 0.2,
+          "match_min": 0.6,
+          "note": "7단계 합격 기준. 사용자 지시로 AI가 정하고 자동 승인함(2026-10-18). 답이 없는 표본이 0건인 질문은 잘못 뽑음 기준을 볼 수 없음"
+        }
+      }
+    },
+    {
+      "step": "8. 채우기 시험 판정(consult_log, 라운드 1)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:34",
+      "content": {
+        "all_pass": false,
+        "미달": [
+          "C1"
+        ],
+        "결정": "설명 고치기: Complaint description의 비해당에 선호 표현, 상담사에게 하는 당부, 앞으로의 걱정을 추가(잘못 뽑은 예 2건 근거)"
+      }
+    },
+    {
+      "step": "8. 채우기 시험 판정(consult_log, 라운드 2)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:35",
+      "content": {
+        "all_pass": false,
+        "미달": [
+          "C1",
+          "C4"
+        ],
+        "결정": "설명 고치기: Complaint 비해당에 부탁과 요청 문장을 더 분명히, ReconsiderCondition 해당에 '~면 그때 ~할게요' 꼴과 보류한 제안마다 조건을 붙이라는 안내 추가"
+      }
+    },
+    {
+      "step": "7. 기대 답과 합격 기준(regulation)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:36",
+      "content": {
+        "expected": "기존 정답표 없음 → LLM 초안(머리줄 + 본문을 보고 씀)을 사람 검토 없이 자동 승인",
+        "criteria": {
+          "recall_min": 0.8,
+          "fp_max": 0.2,
+          "match_min": 0.6,
+          "note": "7단계 합격 기준. 사용자 지시로 AI가 정하고 자동 승인함(2026-10-18). 답이 없는 표본이 0건인 질문은 잘못 뽑음 기준을 볼 수 없음"
+        },
+        "주의": "초안을 쓴 모델과 시험하는 모델이 같아 채점이 후해질 수 있음. 일부 답은 원문 문장 대신 조항 제목으로 적힘"
+      }
+    },
+    {
+      "step": "8. 채우기 시험 판정(consult_log, 라운드 3)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:36",
+      "content": {
+        "all_pass": false,
+        "미달": [
+          "C1",
+          "C4"
+        ],
+        "원인": "C4: 정답표는 거절한 제안에도 재검토 조건이 있는데 라운드 3 설명이 보류에만 붙이라고 안내함. C1: 잘못 뽑은 2건은 고객의 실제 불편 진술이나 정답표에 불만 원인이 비어 있음(정답표 범위 문제로 판단)",
+        "결정": "설명 고치기: ReconsiderCondition에 거절 뒤 조건도 해당함을 명시. C1 설명은 더 고치지 않음"
+      }
+    },
+    {
+      "step": "7. 기대 답과 합격 기준(benefit_guide)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:37",
+      "content": {
+        "expected": "기존 정답표 없음 → LLM 초안(머리줄 + 본문)을 사람 검토 없이 자동 승인",
+        "criteria": {
+          "recall_min": 0.8,
+          "fp_max": 0.2,
+          "match_min": 0.6,
+          "note": "7단계 합격 기준. 사용자 지시로 AI가 정하고 자동 승인함(2026-10-18). 답이 없는 표본이 0건인 질문은 잘못 뽑음 기준을 볼 수 없음"
+        },
+        "주의": "초안을 쓴 모델과 시험하는 모델이 같아 채점이 후해질 수 있음"
+      }
+    },
+    {
+      "step": "8. 채우기 시험 판정(consult_log, 라운드 4)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:40",
+      "content": {
+        "all_pass": false,
+        "미달": [
+          "C1"
+        ],
+        "결정": "중단: C1만 미달(잘못 뽑음 2 / 6). 두 건은 고객의 실제 불편 진술인데 정답표에 불만 원인이 비어 있음. 설명을 더 좁히면 답이 있는 표본의 뽑음이 줄어들 위험이 커서 9단계로 넘어가지 않고 쟁점을 보고함"
+      }
+    },
+    {
+      "step": "8. 채우기 시험 판정(regulation, 라운드 1)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:40",
+      "content": {
+        "all_pass": false,
+        "미달": [
+          "R3",
+          "R4",
+          "R5"
+        ],
+        "결정": "설명 고치기: Clause 비해당에 차례(목차) 조항, Handling과 Deadline 경계 명시. 채점 대응표 R5에 시행일과 이전 판 추가"
+      }
+    },
+    {
+      "step": "8. 채우기 시험 판정(benefit_guide, 라운드 1)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:41",
+      "content": {
+        "all_pass": false,
+        "미달": [
+          "B1",
+          "B5"
+        ],
+        "결정": "B5는 정형 스키마가 답하는 질문으로 옮김(기대 답 16건 중 16건이 연회비나 가족카드 규칙). B1은 amount 설명을 좁혀 다시 시험"
+      }
+    },
+    {
+      "step": "8. 채우기 시험 판정(regulation, 라운드 2)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:41",
+      "content": {
+        "all_pass": false,
+        "미달": [
+          "R1",
+          "R2",
+          "R3",
+          "R4",
+          "R5"
+        ],
+        "결정": "중단: 라운드 2에서 5건 모두 Clause와 TermsDocument만 뽑힘(라운드 1은 Handling 10개가 나온 건도 있음). 청크 하나가 조항 7 ~ 30개를 묶고 있어 한 번 추출에 조항 목록만 나오는 것이 원인으로 보임. 설명 고치기보다 조항 단위로 청크를 다시 나눈 뒤 재시험해야 함. 시험용 표본도 5건뿐이라 판정 근거가 약함"
+      }
+    },
+    {
+      "step": "8. 채우기 시험 판정(benefit_guide, 라운드 2)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:42",
+      "content": {
+        "all_pass": true,
+        "미달": [],
+        "결정": "통과 → 9단계. 값 다름 11건은 뜻은 맞으나 기대 답에 카드 이름, 혜택 이름이 덧붙어 글자 겹침이 낮게 나온 경우가 많음"
+      }
+    },
+    {
+      "step": "6. 기계 검증(재실행, 3종)",
+      "rev": 1,
+      "judge": "실행 로그(승인 단계 아님)",
+      "date": "2026-10-18 23:43",
+      "content": {
+        "발견": "neo4j-graphrag 1.22.0은 required=true 속성을 EXISTENCE 제약으로 바꿈. Community 판은 지원하지 않아 benefit_guide 9단계 산출물을 지우고 다시 진행",
+        "조치": "build_schema가 Community 판에서는 required를 모두 false로 씀. 지원하지 않는 제약 검사를 6단계에 추가"
+      }
+    },
+    {
+      "step": "8. 채우기 시험 판정(benefit_guide, 라운드 3)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:44",
+      "content": {
+        "all_pass": true,
+        "결정": "통과 → 9단계(Community 판용으로 required를 뺀 초안으로 다시 시험한 결과)"
+      }
+    },
+    {
+      "step": "8. 채우기 시험 판정(consult_log, 라운드 5)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:44",
+      "content": {
+        "all_pass": true,
+        "결정": "통과 → 9단계. 라운드 4 중단 기록 뒤 required를 뺀 초안 확인용으로 다시 돌린 결과임. 설명은 라운드 4와 같음",
+        "주의": "C1 잘못 뽑음이 2 / 6(라운드 4)에서 1 / 6(라운드 5)으로 바뀐 것은 설명 변화가 아니라 LLM 실행 편차임. 기준 20%에 붙어 있어 다시 돌리면 미달이 될 수 있음"
+      }
+    },
+    {
+      "step": "3. 묶음 기준과 표본 계획(regulation)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-18 23:58",
+      "content": {
+        "seed": {
+          "regulation": "20261018:regulation"
+        },
+        "table": [
+          {
+            "doc": "regulation",
+            "group": "약관 조항 전체",
+            "chunks": 51,
+            "discovery_start": 10,
+            "discovery_cap": 21,
+            "test": 30
+          }
+        ],
+        "notes": {
+          "regulation": "단위 51건 → 시험용 30건(목표 30 ~ 50건)"
+        },
+        "units": {
+          "regulation": {
+            "kind": "제목 꼴로 나눔",
+            "heading": "^(제\\d+조(?:의\\d+)?)\\(([^)]*)\\)\\s*$",
+            "body_start": "①",
+            "drop_lines": "^제\\d+장\\s"
+          }
+        }
+      }
+    },
+    {
+      "step": "3. 추출 단위 제안(regulation)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-19 00:00",
+      "content": {
+        "제안": "청크 그대로 → 조항 단위로 나눔",
+        "근거": "청크 10건 중 8건에 조항 본문이 2 ~ 10개, 1건은 표지와 차례뿐(조항 0개). 나누면 64개, 겹침을 합치면 51개(두 청크에 걸친 조항 13개)",
+        "규칙": {
+          "kind": "제목 꼴로 나눔",
+          "heading": "^(제\\d+조(?:의\\d+)?)\\(([^)]*)\\)\\s*$",
+          "body_start": "①",
+          "drop_lines": "^제\\d+장\\s"
+        },
+        "빠지는 청크": [
+          "D1_27223010abe31291_30f9dce5fc772fd0_0000"
+        ],
+        "인덱싱": "같은 규칙으로 조항을 나눠 추출하고 parent_chunk_ids로 검색 청크에 이음"
+      }
+    },
+    {
+      "step": "5. 스키마 초안 추천과 확정(regulation, 조항 단위)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-19 00:00",
+      "content": {
+        "recommend": [
+          {
+            "kind": "병합",
+            "item": "Document, ElectronicDocument → TermsDocument(약관 문서)",
+            "cq": [
+              "R5"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "Condition, Limit → Requirement(충족 조건)",
+            "cq": [
+              "R2"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "Notification, Report → Deadline(기한과 통지 시점)",
+            "cq": [
+              "R3"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "Action, Reason, Cancellation, Request → Handling(상황별 처리)",
+            "cq": [
+              "R4"
+            ]
+          },
+          {
+            "kind": "추가",
+            "item": "TermsDocument.version, effective_date, supersedes(머리줄에서 채움, 후보에 1건뿐)",
+            "cq": [
+              "R5"
+            ]
+          },
+          {
+            "kind": "추가",
+            "item": "Clause.clause_no, title(조항 번호와 제목)",
+            "cq": [
+              "R1"
+            ]
+          },
+          {
+            "kind": "제거",
+            "item": "Card, Member, PrimaryMember, FamilyMember, Transaction, Approval, Fee(정형 스키마에 이미 있거나 개인 단위 데이터)",
+            "cq": []
+          },
+          {
+            "kind": "제거",
+            "item": "CardIssuer, Party, CardApplication(어느 역량 질문에도 안 쓰임)",
+            "cq": []
+          },
+          {
+            "kind": "병합",
+            "item": "조항 단위 후보의 ProcessingStandard, Withdrawal → Handling(상황별 처리)",
+            "cq": [
+              "R4"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "조항 단위 후보의 Change.notice_period_days → Deadline(미리 알리는 시점)",
+            "cq": [
+              "R3"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "조항 단위 후보의 Agreement, Specification의 금액 조건 → Requirement",
+            "cq": [
+              "R2"
+            ]
+          },
+          {
+            "kind": "제거",
+            "item": "Term, Footnote, Statement, ExchangeRate, Currency, Applicant, Application(어느 역량 질문에도 안 쓰이거나 개인 단위 데이터)",
+            "cq": []
+          },
+          {
+            "kind": "추가",
+            "item": "Clause 비해당에 차례(목차) 조항, Handling과 Deadline 경계 명시(청크 단위 시험 결과 반영, 유지)",
+            "cq": [
+              "R1",
+              "R3",
+              "R4"
+            ]
+          }
+        ],
+        "node_types": [
+          "TermsDocument",
+          "Clause",
+          "Requirement",
+          "Deadline",
+          "Handling"
+        ],
+        "relationship_types": [
+          "HAS_CLAUSE",
+          "SETS_REQUIREMENT",
+          "SETS_DEADLINE",
+          "DEFINES_HANDLING"
+        ],
+        "constraints(사람 대신 자동 승인)": [
+          {
+            "type": "UNIQUENESS",
+            "node_type": "TermsDocument",
+            "property_name": "version"
+          }
+        ],
+        "metadata_header": [
+          "source",
+          "version",
+          "effective_date",
+          "supersedes",
+          "section_label"
+        ],
+        "비고": "조항 단위 후보가 기존 초안 밖의 질문용 개념을 내지 않아 노드 타입과 관계는 유지"
+      }
+    },
+    {
+      "step": "3. 묶음 기준과 표본 계획(regulation)",
+      "rev": 2,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-19 00:04",
+      "content": {
+        "seed": {
+          "regulation": "20261018:regulation"
+        },
+        "table": [
+          {
+            "doc": "regulation",
+            "group": "약관 조항 전체",
+            "chunks": 10,
+            "chunks_split": 10,
+            "discovery_start": 10,
+            "discovery_cap": 17,
+            "test": 30
+          }
+        ],
+        "notes": {
+          "regulation": "청크 10건 중 10건만 나눔 → 단위 시험용 30건, 발견용 17건(목표 시험용 30 ~ 50건)"
+        },
+        "units": {
+          "regulation": {
+            "kind": "제목 꼴로 나눔",
+            "heading": "^(제\\d+조(?:의\\d+)?)\\(([^)]*)\\)\\s*$",
+            "body_start": "①",
+            "drop_lines": "^제\\d+장\\s"
+          }
+        }
+      }
+    },
+    {
+      "step": "3. 추출 단위 제안(regulation)",
+      "rev": 2,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-19 00:06",
+      "content": {
+        "제안": "청크 그대로 → 조항 단위로 나눔",
+        "근거": "표본 청크 10건(전체 10건) 중 9건에 조항 본문이 2 ~ 10개, 1건은 표지와 차례뿐(조항 0개). 나누면 64개, 겹침을 합치면 51개(두 청크에 걸친 조항 13개)",
+        "규칙": {
+          "kind": "제목 꼴로 나눔",
+          "heading": "^(제\\d+조(?:의\\d+)?)\\(([^)]*)\\)\\s*$",
+          "body_start": "①",
+          "drop_lines": "^제\\d+장\\s"
+        },
+        "빠지는 청크": [
+          "D1_27223010abe31291_30f9dce5fc772fd0_0000"
+        ],
+        "방식": "표본으로 뽑힌 청크만 나눔(3단계). 인덱싱은 추출 직전에 청크마다 같은 규칙으로 나누고 parent_chunk_ids로 검색 청크에 이음"
+      }
+    },
+    {
+      "step": "5. 스키마 초안 추천과 확정(regulation, 조항 단위)",
+      "rev": 2,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-19 00:06",
+      "content": {
+        "recommend": [
+          {
+            "kind": "병합",
+            "item": "Document, ElectronicDocument → TermsDocument(약관 문서)",
+            "cq": [
+              "R5"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "Condition, Limit → Requirement(충족 조건)",
+            "cq": [
+              "R2"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "Notification, Report → Deadline(기한과 통지 시점)",
+            "cq": [
+              "R3"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "Action, Reason, Cancellation, Request → Handling(상황별 처리)",
+            "cq": [
+              "R4"
+            ]
+          },
+          {
+            "kind": "추가",
+            "item": "TermsDocument.version, effective_date, supersedes(머리줄에서 채움, 후보에 1건뿐)",
+            "cq": [
+              "R5"
+            ]
+          },
+          {
+            "kind": "추가",
+            "item": "Clause.clause_no, title(조항 번호와 제목)",
+            "cq": [
+              "R1"
+            ]
+          },
+          {
+            "kind": "제거",
+            "item": "Card, Member, PrimaryMember, FamilyMember, Transaction, Approval, Fee(정형 스키마에 이미 있거나 개인 단위 데이터)",
+            "cq": []
+          },
+          {
+            "kind": "제거",
+            "item": "CardIssuer, Party, CardApplication(어느 역량 질문에도 안 쓰임)",
+            "cq": []
+          },
+          {
+            "kind": "병합",
+            "item": "조항 단위 후보의 ProcessingStandard, Withdrawal → Handling(상황별 처리)",
+            "cq": [
+              "R4"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "조항 단위 후보의 Change.notice_period_days → Deadline(미리 알리는 시점)",
+            "cq": [
+              "R3"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "조항 단위 후보의 Agreement, Specification의 금액 조건 → Requirement",
+            "cq": [
+              "R2"
+            ]
+          },
+          {
+            "kind": "제거",
+            "item": "Term, Footnote, Statement, ExchangeRate, Currency, Applicant, Application(어느 역량 질문에도 안 쓰이거나 개인 단위 데이터)",
+            "cq": []
+          },
+          {
+            "kind": "추가",
+            "item": "Clause 비해당에 차례(목차) 조항, Handling과 Deadline 경계 명시(청크 단위 시험 결과 반영, 유지)",
+            "cq": [
+              "R1",
+              "R3",
+              "R4"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "조항 단위 후보의 Article → Clause(같은 뜻)",
+            "cq": [
+              "R1"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "조항 단위 후보의 TransactionSituation, Procedure, IncidentResponseProcedure, Refund, Cancellation → Handling(상황별 처리)",
+            "cq": [
+              "R4"
+            ]
+          },
+          {
+            "kind": "병합",
+            "item": "조항 단위 후보의 ChangeEvent, Clause.notice_period_days → Deadline(미리 알리는 시점)",
+            "cq": [
+              "R3"
+            ]
+          },
+          {
+            "kind": "유지",
+            "item": "조항 단위 후보의 Requirement → Requirement(이름 그대로)",
+            "cq": [
+              "R2"
+            ]
+          },
+          {
+            "kind": "제거",
+            "item": "Transaction, Member, Merchant, Account, Fee(정형 스키마에 있거나 개인 단위 데이터), CardCompany, Person, Purpose, RetentionPolicy 등 1건씩 나온 이름(어느 역량 질문에도 안 쓰임)",
+            "cq": []
+          },
+          {
+            "kind": "추가",
+            "item": "Clause 비해당에 차례(목차) 조항, Handling과 Deadline 경계 명시(청크 단위 시험 결과 반영, 유지)",
+            "cq": [
+              "R1",
+              "R3",
+              "R4"
+            ]
+          }
+        ],
+        "node_types": [
+          "TermsDocument",
+          "Clause",
+          "Requirement",
+          "Deadline",
+          "Handling"
+        ],
+        "relationship_types": [
+          "HAS_CLAUSE",
+          "SETS_REQUIREMENT",
+          "SETS_DEADLINE",
+          "DEFINES_HANDLING"
+        ],
+        "constraints(사람 대신 자동 승인)": [
+          {
+            "type": "UNIQUENESS",
+            "node_type": "TermsDocument",
+            "property_name": "version"
+          }
+        ],
+        "metadata_header": [
+          "source",
+          "version",
+          "effective_date",
+          "supersedes",
+          "section_label"
+        ],
+        "비고": "조항 단위 후보가 기존 초안 밖의 질문용 개념을 내지 않아 노드 타입과 관계는 유지"
+      }
+    },
+    {
+      "step": "8. 채우기 시험 판정(regulation 조항 단위, 라운드 1)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-19 00:09",
+      "content": {
+        "all_pass": false,
+        "미달": [
+          "R1",
+          "R2",
+          "R3",
+          "R4",
+          "R5"
+        ],
+        "결정": "설명 고치기(R2 Requirement는 일반 의무를 비해당으로, R3 Deadline은 상황 조건이 있어도 시점이 있으면 해당). 기대 답의 명백한 오류 1건 수정. R4 잘못 뽑음은 기대 답 쪽 누락으로 보이는 예가 많아 설명은 그대로 둠"
+      }
+    },
+    {
+      "step": "7. 기대 답 검토 수정(regulation)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-19 00:09",
+      "content": {
+        "수정": "regulation:제2조의 R1, R5를 '없음'에서 원문 값으로 바꿈",
+        "근거": "단위 첫 줄이 '제2조(용어의 정의)'이고 머리줄에 판과 시행일이 있음. 추출 결과가 아니라 원문과 머리줄로 판단",
+        "그대로 둔 것": "R4 '없음' 21건 중 '~경우 ~안내합니다' 꼴 문장이 있는 조항이 있으나, 사람 검토가 필요한 판단이라 고치지 않음"
+      }
+    },
+    {
+      "step": "8. 채우기 시험 판정(regulation 조항 단위, 라운드 2)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-19 00:10",
+      "content": {
+        "all_pass": false,
+        "미달": [
+          "R2",
+          "R3",
+          "R4",
+          "R5"
+        ],
+        "결정": "설명 고치기: R2 잘못 뽑은 8건은 대부분 일반 의무 문장(~합니다)이라 Requirement를 숫자 기준이나 '~인 경우에만' 꼴로 좁힘. R3는 Deadline 노드가 30건 중 8개만 나와, 시점마다 하나씩 만들라고 적음"
+      }
+    },
+    {
+      "step": "8. 채우기 시험 판정(regulation 조항 단위, 라운드 3)",
+      "rev": 1,
+      "judge": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+      "date": "2026-10-19 00:11",
+      "content": {
+        "all_pass": false,
+        "미달": [
+          "R2",
+          "R3",
+          "R4",
+          "R5"
+        ],
+        "결정": "중단(9단계로 넘어가지 않음). 남은 쟁점은 설명보다 기대 답 쪽이 커서 사람 검토가 먼저 필요함",
+        "쟁점": {
+          "R2": "답 있는 표본이 6건뿐이라 설명을 좁히면 뽑음(83%→33%)이, 넓히면 잘못 뽑음(29%→8%의 반대)이 흔들림",
+          "R3": "Deadline이 라운드마다 늘었으나(뽑음 25%→56%) 기대 답 중 시점이 없는 문장(예: 재신청 가능 시점)이 섞임",
+          "R4": "잘못 뽑음 16/21 중 다수가 '~경우 ~안내합니다' 꼴의 실제 상황별 처리 문장. 기대 답 초안이 좁게 잡은 것으로 보임",
+          "R5": "30건 모두 1.2, 2027-01-15, 1.1을 정확히 뽑음. 기대 답에 version: 같은 이름표가 붙어 글자 겹침 채점에서 떨어짐(채점 한계)"
+        }
+      }
+    }
+  ]
+}

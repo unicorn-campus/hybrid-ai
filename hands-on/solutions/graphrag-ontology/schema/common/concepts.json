@@ -1,0 +1,86 @@
+{
+  "version": "1",
+  "status": "approved",
+  "approved_by": "자동 승인(실습용. 강사 검토 전, 2026-11-13)",
+  "purpose": "문서 그래프 스키마 3종과 정형 DB를 같은 업무 개념(Class)으로 잇는 공통 개념 층. 행 데이터는 DB에 두고 여기에는 뜻과 대응만 적음",
+  "concepts": [
+    {
+      "name": "회원",
+      "definition": "카드를 가진 개인 회원 한 명. 문서 그래프에는 가명 ID로만 나타남",
+      "doc": {"label": "Consultation", "key": "member_pseudo_id"},
+      "db": [],
+      "bridge": {
+        "rule": "pseudonym",
+        "note": "DB의 member_id를 m_ + SHA-256 앞 16자리로 바꾸면 문서의 member_pseudo_id가 됨. DB 쪽은 세션 값 app.member_id로만 넘김"
+      }
+    },
+    {
+      "name": "카드상품",
+      "definition": "한빛 카드 상품 하나(D2-C001 ~ D2-C064). 발급된 카드 한 장이 아니라 상품임",
+      "doc": {"label": "ProductGuide", "key": "product_id"},
+      "db": [{"view": "customer_cards", "column": "product_id"}],
+      "bridge": {"rule": "same_value", "note": "두 저장소의 product_id 값이 같으면 같은 카드상품"}
+    },
+    {
+      "name": "혜택",
+      "definition": "카드상품이 주는 할인, 적립, 캐시백, 바우처 하나. 조건, 한도, 제외 거래는 혜택이 아님",
+      "doc": {"label": "Benefit", "key": "benefit_id"},
+      "db": [],
+      "bridge": null
+    },
+    {
+      "name": "업종",
+      "definition": "가맹점을 나눈 분류. 거래와 혜택이 만나는 자리이며 값은 아래 8개뿐임",
+      "values": ["식비", "쇼핑", "교통", "주유", "여행", "해외", "생활", "교육"],
+      "doc": {"label": "Category", "key": "name", "created_by": "indexer"},
+      "db": [{"view": "merchant_usage", "column": "category"}],
+      "bridge": {"rule": "same_value", "note": "혜택 쪽 표현은 업종 매핑표(category_map_approved.json)로 8개 값에 맞춤"}
+    },
+    {
+      "name": "상담",
+      "definition": "상담 기록 한 건",
+      "doc": {"label": "Consultation", "key": "record_id"},
+      "db": [],
+      "bridge": null
+    }
+  ],
+  "views": [
+    {
+      "name": "customer_cards",
+      "meaning": "이 회원이 가진 카드 목록. 카드 한 장마다 1행",
+      "columns": [
+        {"name": "card_ref", "meaning": "카드 한 장을 가리키는 참조 번호(회원 안에서만 씀)"},
+        {"name": "product_id", "meaning": "카드상품 ID. 문서 그래프의 ProductGuide.product_id와 같은 값"},
+        {"name": "product_name", "meaning": "카드상품 이름(예: 한빛 가족돌봄)"},
+        {"name": "current_status", "meaning": "카드 상태. ACTIVE, CLOSED, SUSPENDED 중 하나"},
+        {"name": "annual_fee", "meaning": "이 카드의 연회비(원)"}
+      ]
+    },
+    {
+      "name": "merchant_usage",
+      "meaning": "이 회원의 최근 6개월 승인 사용액. 카드, 월, 가맹점마다 1행",
+      "columns": [
+        {"name": "card_ref", "meaning": "카드 참조 번호. customer_cards.card_ref와 조인함"},
+        {"name": "month", "meaning": "사용 월(YYYY-MM)"},
+        {"name": "merchant_name", "meaning": "가맹점 이름"},
+        {"name": "category", "meaning": "가맹점 업종. 값은 8개(식비, 쇼핑, 교통, 주유, 여행, 해외, 생활, 교육)"},
+        {"name": "approved_amount", "meaning": "승인 금액 합계(원). 취소 거래는 빠져 있음"},
+        {"name": "transaction_count", "meaning": "승인 건수"}
+      ]
+    }
+  ],
+  "examples": [
+    {
+      "question": "이 회원이 많이 쓰는 업종은?",
+      "sql": "SELECT category, sum(approved_amount) AS amount, sum(transaction_count) AS txn_count FROM merchant_usage GROUP BY category ORDER BY amount DESC"
+    },
+    {
+      "question": "이 회원이 가진 카드는?",
+      "sql": "SELECT product_id, product_name, current_status, annual_fee FROM customer_cards ORDER BY product_id"
+    },
+    {
+      "question": "이 회원이 카드상품별로 가장 많이 쓴 업종은?",
+      "sql": "SELECT c.product_id, c.product_name, u.category, sum(u.approved_amount) AS amount FROM merchant_usage AS u JOIN customer_cards AS c ON c.card_ref = u.card_ref GROUP BY c.product_id, c.product_name, u.category ORDER BY amount DESC"
+    }
+  ]
+}

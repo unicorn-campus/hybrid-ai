@@ -1,0 +1,85 @@
+LLMInterface is deprecated and will be removed in future versions. Please use LLMInterfaceV2 instead.
+[consult_log] 시험용 18건, 질문별 답 있음 {'C1': 12, 'C2': 18, 'C3': 18, 'C4': 10, 'C5': 14}
+[regulation] D1_27223010abe31291_b3d99960bf59fe8a_0000 초안
+[regulation] D1_27223010abe31291_30f9dce5fc772fd0_0000 초안
+[regulation] D1_27223010abe31291_e98b48c1e9405e47_0000 초안
+[regulation] D1_27223010abe31291_112f1e4abea05436_0000 초안
+[regulation] D1_27223010abe31291_81b9432a10cb3185_0000 초안
+[regulation] 시험용 5건, 질문별 답 있음 {'R1': 5, 'R2': 2, 'R3': 4, 'R4': 4, 'R5': 1}
+[benefit_guide] D2_5a3c0df949be0524_f7ac215ec37fea12_0000 초안
+[benefit_guide] D2_5a3c0df949be0524_0e78bad6ce2d232e_0000 초안
+[benefit_guide] D2_5a3c0df949be0524_120305f6cd8320d8_0000 초안
+[benefit_guide] D2_5a3c0df949be0524_9f7ca4bc3afeec89_0000 초안
+[benefit_guide] D2_5a3c0df949be0524_5c610efba0376051_0000 초안
+[benefit_guide] D2_5a3c0df949be0524_570215a5d1d7d59d_0000 초안
+[benefit_guide] D2_5a3c0df949be0524_48cfb5da01a90440_0000 초안
+[benefit_guide] D2_5a3c0df949be0524_9f23251821b1fe7d_0000 초안
+[benefit_guide] D2_5a3c0df949be0524_2e5b6399c49b9a2d_0000 초안
+[benefit_guide] D2_5a3c0df949be0524_25b673a0d336b643_0000 초안
+[benefit_guide] D2_5a3c0df949be0524_460d3a1558151e16_0000 초안
+[benefit_guide] D2_5a3c0df949be0524_a62402f1a1c1ef0e_0000 초안
+[benefit_guide] D2_5a3c0df949be0524_01b46778ad1e6d39_0000 초안
+[benefit_guide] D2_5a3c0df949be0524_25a01dc2cec94892_0000 초안
+[benefit_guide] D2_5a3c0df949be0524_7260e5315c2399b0_0000 초안
+[benefit_guide] D2_5a3c0df949be0524_37a56efede10446d_0000 초안
+[benefit_guide] D2_5a3c0df949be0524_2b3b690f3c958529_0000 초안
+Traceback (most recent call last):
+  File "C:\Users\hiond\class\design-agentic-ai\hybrid-ai-lab\verify\doc-schema-prompt-run\tools\common.py", line 108, in invoke
+    payload = self._post(raw)
+  File "C:\Users\hiond\class\design-agentic-ai\hybrid-ai-lab\verify\doc-schema-prompt-run\tools\common.py", line 94, in _post
+    with urllib.request.urlopen(req, timeout=90) as resp:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\hiond\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 189, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hiond\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 495, in open
+    response = meth(req, response)
+  File "C:\Users\hiond\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 604, in http_response
+    response = self.parent.error(
+        'http', request, response, code, msg, hdrs)
+  File "C:\Users\hiond\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 533, in error
+    return self._call_chain(*args)
+           ~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\hiond\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 466, in _call_chain
+    result = func(*args)
+  File "C:\Users\hiond\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 613, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\hiond\class\design-agentic-ai\hybrid-ai-lab\verify\doc-schema-prompt-run\tools\expected_answers.py", line 75, in <module>
+    asyncio.run(main())
+    ~~~~~~~~~~~^^^^^^^^
+  File "C:\Users\hiond\AppData\Local\Programs\Python\Python313\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "C:\Users\hiond\AppData\Local\Programs\Python\Python313\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\hiond\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\Users\hiond\class\design-agentic-ai\hybrid-ai-lab\verify\doc-schema-prompt-run\tools\expected_answers.py", line 67, in main
+    out[cid] = await draft(llm, doc, cid, chunks[cid]["text"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hiond\class\design-agentic-ai\hybrid-ai-lab\verify\doc-schema-prompt-run\tools\expected_answers.py", line 53, in draft
+    res = await llm.ainvoke(prompt)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hiond\class\design-agentic-ai\hybrid-ai-lab\verify\doc-schema-prompt-run\tools\common.py", line 121, in ainvoke
+    return await asyncio.wait_for(asyncio.to_thread(self.invoke, input, message_history, system_instruction),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                  timeout=self._deadline)
+                                  ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hiond\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\hiond\AppData\Local\Programs\Python\Python313\Lib\asyncio\threads.py", line 25, in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hiond\AppData\Local\Programs\Python\Python313\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "C:\Users\hiond\class\design-agentic-ai\hybrid-ai-lab\verify\doc-schema-prompt-run\tools\common.py", line 115, in invoke
+    raise RuntimeError(f"HTTP {e.code}: {e.read()[:200]!r}") from e
+RuntimeError: HTTP 400: b'{"error":{"message":"Failed to validate JSON. Please adjust your prompt. See \'failed_generation\' for more details.","type":"invalid_request_error","code":"json_validate_failed","failed_generation":""}'

@@ -1,0 +1,32 @@
+LLMInterface is deprecated and will be removed in future versions. Please use LLMInterfaceV2 instead.
+[consult_log/D3_S01_신규가입_상담이력_합성.txt] 1: 새 타입 0
+[consult_log/D3_S01_신규가입_상담이력_합성.txt] 2: 새 타입 3
+[consult_log/D3_S01_신규가입_상담이력_합성.txt] 3: 새 타입 1
+[consult_log/D3_S01_신규가입_상담이력_합성.txt] 4: 새 타입 0
+[consult_log/D3_S01_신규가입_상담이력_합성.txt] 5: 새 타입 2
+[consult_log/D3_S02_장기보유_상담이력_합성.txt] 1: 새 타입 0
+[consult_log/D3_S02_장기보유_상담이력_합성.txt] 2: 새 타입 0
+[consult_log/D3_S02_장기보유_상담이력_합성.txt] 3: 새 타입 5
+[consult_log/D3_S02_장기보유_상담이력_합성.txt] 4: 새 타입 0
+[consult_log/D3_S02_장기보유_상담이력_합성.txt] 5: 새 타입 2
+[consult_log/D3_S03_VIP_상담이력_합성.txt] 1: 새 타입 4
+[consult_log/D3_S03_VIP_상담이력_합성.txt] 2: 새 타입 1
+[consult_log/D3_S03_VIP_상담이력_합성.txt] 3: 새 타입 2
+[consult_log/D3_S03_VIP_상담이력_합성.txt] 4: 새 타입 2
+[consult_log/D3_S03_VIP_상담이력_합성.txt] 5: 새 타입 2
+[consult_log/D3_S04_휴면직전_상담이력_합성.txt] 1: 새 타입 1
+[consult_log/D3_S04_휴면직전_상담이력_합성.txt] 2: 새 타입 2
+[consult_log/D3_S04_휴면직전_상담이력_합성.txt] 3: 새 타입 1
+[consult_log/D3_S04_휴면직전_상담이력_합성.txt] 4: 새 타입 4
+[consult_log/D3_S04_휴면직전_상담이력_합성.txt] 5: 새 타입 4
+[consult_log/D3_S05_다중카드_상담이력_합성.txt] 1: 새 타입 2
+[consult_log/D3_S05_다중카드_상담이력_합성.txt] 2: 새 타입 2
+[consult_log/D3_S05_다중카드_상담이력_합성.txt] 3: 새 타입 0
+[consult_log/D3_S05_다중카드_상담이력_합성.txt] 4: 새 타입 1
+[consult_log/D3_S05_다중카드_상담이력_합성.txt] 5: 새 타입 0
+[consult_log/D3_S06_연회비부담_상담이력_합성.txt] 1: 새 타입 1
+[consult_log/D3_S06_연회비부담_상담이력_합성.txt] 2: 새 타입 1
+[consult_log/D3_S06_연회비부담_상담이력_합성.txt] 3: 새 타입 5
+[consult_log/D3_S06_연회비부담_상담이력_합성.txt] 4: 새 타입 5
+[consult_log/D3_S06_연회비부담_상담이력_합성.txt] 5: 새 타입 1
+[consult_log] 요약 저장, 토큰 누적 129249

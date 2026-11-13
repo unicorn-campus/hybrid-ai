@@ -78,7 +78,12 @@ export class VideoService extends EventEmitter {
       }
     }
     if (progress.connectProgress) {
-      await progress.connectProgress().catch(error => console.error('진행 상태 연결 실패:', String(error)))
+      // 엔진이 아직 꺼져 있어도 앱은 그대로 뜸. 진행 연결은 잠시 재시도하고, 영상 제출 때 다시 연결함
+      await progress.connectProgress().catch(error => console.warn(
+        '안내: MiniMax H3 엔진에 아직 연결하지 못했습니다.\n' +
+        `  원인: ${error instanceof Error ? error.message : String(error)}\n` +
+        '  엔진이 꺼져 있다면 ~/AI/H3-Local/start-h3.cmd로 켜 주세요. 켠 뒤 영상을 만들면 자동으로 다시 연결합니다.'
+      ))
     }
     await this.store.save()
     this.timer = setInterval(() => { void this.poll().catch(error => console.error('상태 확인 실패:', String(error))) }, 3000)

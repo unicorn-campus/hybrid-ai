@@ -1,0 +1,367 @@
+{
+  "node_types": [
+    {
+      "label": "Card",
+      "description": "\uce74\ub4dc",
+      "properties": [
+        {
+          "name": "card_id",
+          "type": "STRING",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "issue_date",
+          "type": "DATE",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "status",
+          "type": "STRING",
+          "description": "",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "CardTxn",
+      "description": "\uce74\ub4dc\uac70\ub798",
+      "properties": [
+        {
+          "name": "txn_id",
+          "type": "STRING",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "txn_date",
+          "type": "DATE",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "amount",
+          "type": "INTEGER",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "approval_code",
+          "type": "STRING",
+          "description": "",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Delinquency",
+      "description": "\uc5f0\uccb4",
+      "properties": [
+        {
+          "name": "member_id",
+          "type": "STRING",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "base_month",
+          "type": "STRING",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "overdue_days",
+          "type": "INTEGER",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "overdue_count_12m",
+          "type": "INTEGER",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "overdue_amount",
+          "type": "INTEGER",
+          "description": "",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Member",
+      "description": "\ud68c\uc6d0",
+      "properties": [
+        {
+          "name": "member_id",
+          "type": "STRING",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "segment_id",
+          "type": "INTEGER",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "join_date",
+          "type": "DATE",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "age_band",
+          "type": "STRING",
+          "description": "",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Merchant",
+      "description": "\uac00\ub9f9\uc810",
+      "properties": [
+        {
+          "name": "merchant_id",
+          "type": "STRING",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "merchant_name",
+          "type": "STRING",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "category",
+          "type": "STRING",
+          "description": "",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Product",
+      "description": "\uc0c1\ud488",
+      "properties": [
+        {
+          "name": "product_id",
+          "type": "STRING",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "product_name",
+          "type": "STRING",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "effective_date",
+          "type": "DATE",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "family_card_available",
+          "type": "BOOLEAN",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "family_card_rule",
+          "type": "STRING",
+          "description": "",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "ProductAnnualFee",
+      "description": "\uc0c1\ud488\uc5f0\ud68c\ube44",
+      "properties": [
+        {
+          "name": "product_id",
+          "type": "STRING",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "brand",
+          "type": "STRING",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "base_fee",
+          "type": "INTEGER",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "service_fee",
+          "type": "INTEGER",
+          "description": "",
+          "required": false
+        },
+        {
+          "name": "total_fee",
+          "type": "INTEGER",
+          "description": "",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    }
+  ],
+  "relationship_types": [
+    {
+      "label": "HAS_CARD",
+      "description": "\ubcf4\uc720\ud568",
+      "properties": [],
+      "additional_properties": true
+    },
+    {
+      "label": "APPLIES_FEE",
+      "description": "\uc5f0\ud68c\ube44\uc801\uc6a9",
+      "properties": [],
+      "additional_properties": true
+    },
+    {
+      "label": "MADE_TXN",
+      "description": "\uacb0\uc81c\ud568",
+      "properties": [],
+      "additional_properties": true
+    },
+    {
+      "label": "AT_MERCHANT",
+      "description": "\uc774\uc6a9\ud568",
+      "properties": [],
+      "additional_properties": true
+    },
+    {
+      "label": "HAS_DELINQUENCY",
+      "description": "\uc5f0\uccb4\ud568",
+      "properties": [],
+      "additional_properties": true
+    },
+    {
+      "label": "HAS_ANNUAL_FEE",
+      "description": "\uc5f0\ud68c\ube44\uc815\ud568",
+      "properties": [],
+      "additional_properties": true
+    }
+  ],
+  "patterns": [
+    {
+      "source": "Member",
+      "relationship": "HAS_CARD",
+      "target": "Card"
+    },
+    {
+      "source": "Card",
+      "relationship": "APPLIES_FEE",
+      "target": "ProductAnnualFee"
+    },
+    {
+      "source": "Card",
+      "relationship": "MADE_TXN",
+      "target": "CardTxn"
+    },
+    {
+      "source": "CardTxn",
+      "relationship": "AT_MERCHANT",
+      "target": "Merchant"
+    },
+    {
+      "source": "Member",
+      "relationship": "HAS_DELINQUENCY",
+      "target": "Delinquency"
+    },
+    {
+      "source": "Product",
+      "relationship": "HAS_ANNUAL_FEE",
+      "target": "ProductAnnualFee"
+    }
+  ],
+  "constraints": [
+    {
+      "type": "UNIQUENESS",
+      "property_name": "card_id",
+      "property_names": [
+        "card_id"
+      ],
+      "node_type": "Card",
+      "relationship_type": null
+    },
+    {
+      "type": "UNIQUENESS",
+      "property_name": "txn_id",
+      "property_names": [
+        "txn_id"
+      ],
+      "node_type": "CardTxn",
+      "relationship_type": null
+    },
+    {
+      "type": "UNIQUENESS",
+      "property_name": "member_id",
+      "property_names": [
+        "member_id",
+        "base_month"
+      ],
+      "node_type": "Delinquency",
+      "relationship_type": null
+    },
+    {
+      "type": "UNIQUENESS",
+      "property_name": "member_id",
+      "property_names": [
+        "member_id"
+      ],
+      "node_type": "Member",
+      "relationship_type": null
+    },
+    {
+      "type": "UNIQUENESS",
+      "property_name": "merchant_id",
+      "property_names": [
+        "merchant_id"
+      ],
+      "node_type": "Merchant",
+      "relationship_type": null
+    },
+    {
+      "type": "UNIQUENESS",
+      "property_name": "product_id",
+      "property_names": [
+        "product_id"
+      ],
+      "node_type": "Product",
+      "relationship_type": null
+    },
+    {
+      "type": "UNIQUENESS",
+      "property_name": "product_id",
+      "property_names": [
+        "product_id",
+        "brand"
+      ],
+      "node_type": "ProductAnnualFee",
+      "relationship_type": null
+    }
+  ],
+  "additional_node_types": false,
+  "additional_relationship_types": false,
+  "additional_patterns": false
+}

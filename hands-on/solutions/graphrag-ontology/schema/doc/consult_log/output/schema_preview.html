@@ -1,0 +1,17 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>consult_log 스키마 초안</title>
+<style>body{font-family:sans-serif;margin:16px;background:#fff}</style></head><body>
+<h3>consult_log 스키마 초안</h3><pre class="mermaid">
+flowchart LR
+    Consultation["<b>:Consultation</b><br/>(상담)<br/>record_id<br/>consult_date<br/>channel<br/>topic<br/>member_pseudo_id"]
+    Complaint["<b>:Complaint</b><br/>(불만 원인)<br/>cause"]
+    Proposal["<b>:Proposal</b><br/>(상담 제안)<br/>content<br/>decision<br/>reason"]
+    ReconsiderCondition["<b>:ReconsiderCondition</b><br/>(재검토 조건)<br/>condition"]
+    Consultation -->|HAS_COMPLAINT| Complaint
+    Consultation -->|HAS_PROPOSAL| Proposal
+    Proposal -->|RECONSIDER_WHEN| ReconsiderCondition
+    Consultation -->|FOLLOWS| Consultation
+</pre><div id="status">rendering</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:false, securityLevel:'loose'});
+mermaid.run().then(()=>{document.getElementById('status').textContent='rendered '+document.querySelectorAll('svg').length})
+.catch(e=>{document.getElementById('status').textContent='error '+e});</script></body></html>

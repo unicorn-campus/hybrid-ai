@@ -1,0 +1,17 @@
+<!doctype html><html lang='ko'><head><meta charset='utf-8'><title>그래프 스키마 미리보기</title><script src='https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js'></script><style>body{background:#fff;font-family:sans-serif;margin:16px}#status{color:#666}</style></head><body><pre class='mermaid'>flowchart LR
+    N0[&quot;&lt;b&gt;:Card&lt;/b&gt;&lt;br/&gt;(카드)&lt;br/&gt;card_id (키)&lt;br/&gt;issue_date&lt;br/&gt;status&quot;]
+    N1[&quot;&lt;b&gt;:CardTxn&lt;/b&gt;&lt;br/&gt;(카드거래)&lt;br/&gt;txn_id (키)&lt;br/&gt;txn_date&lt;br/&gt;amount&lt;br/&gt;approval_code&quot;]
+    N2[&quot;&lt;b&gt;:Delinquency&lt;/b&gt;&lt;br/&gt;(연체)&lt;br/&gt;member_id (키)&lt;br/&gt;base_month (키)&lt;br/&gt;overdue_days&lt;br/&gt;overdue_count_12m&lt;br/&gt;overdue_amount&quot;]
+    N3[&quot;&lt;b&gt;:Member&lt;/b&gt;&lt;br/&gt;(회원)&lt;br/&gt;member_id (키)&lt;br/&gt;segment_id&lt;br/&gt;join_date&lt;br/&gt;age_band&quot;]
+    N4[&quot;&lt;b&gt;:Merchant&lt;/b&gt;&lt;br/&gt;(가맹점)&lt;br/&gt;merchant_id (키)&lt;br/&gt;merchant_name&lt;br/&gt;category&quot;]
+    N5[&quot;&lt;b&gt;:Product&lt;/b&gt;&lt;br/&gt;(상품)&lt;br/&gt;product_id (키)&lt;br/&gt;product_name&lt;br/&gt;effective_date&lt;br/&gt;family_card_available&lt;br/&gt;family_card_rule&quot;]
+    N6[&quot;&lt;b&gt;:ProductAnnualFee&lt;/b&gt;&lt;br/&gt;(상품연회비)&lt;br/&gt;product_id (키)&lt;br/&gt;brand (키)&lt;br/&gt;base_fee&lt;br/&gt;service_fee&lt;br/&gt;total_fee&quot;]
+    N3 --&gt;|&quot;HAS_CARD&lt;br/&gt;(보유함)&quot;| N0
+    N0 --&gt;|&quot;APPLIES_FEE&lt;br/&gt;(연회비적용)&quot;| N6
+    N0 --&gt;|&quot;MADE_TXN&lt;br/&gt;(결제함)&quot;| N1
+    N1 --&gt;|&quot;AT_MERCHANT&lt;br/&gt;(이용함)&quot;| N4
+    N3 --&gt;|&quot;HAS_DELINQUENCY&lt;br/&gt;(연체함)&quot;| N2
+    N5 --&gt;|&quot;HAS_ANNUAL_FEE&lt;br/&gt;(연회비정함)&quot;| N6
+    classDef nt fill:#EEF3FA,stroke:#1E2A5C,stroke-width:2px,color:#2B3242
+    class N0,N1,N2,N3,N4,N5,N6 nt
+</pre><div id='status'>RENDERING</div><script>mermaid.initialize({startOnLoad:false, securityLevel:'loose', flowchart:{htmlLabels:true}});mermaid.run().then(()=>{document.getElementById('status').textContent='RENDER_OK'}).catch(e=>{document.getElementById('status').textContent='RENDER_FAIL '+e});</script></body></html>

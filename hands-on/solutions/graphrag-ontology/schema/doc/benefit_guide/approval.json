@@ -1,0 +1,74 @@
+{
+  "doc": "benefit_guide",
+  "approver": "자동 승인(사용자 지시: 승인은 자동 승인 처리, 2026-10-18)",
+  "approved_at": "2026-10-18 23:44",
+  "input_sha256": {
+    "competency_questions.md": "17323925bba326521f06a97154a34eadb34a328a05de30a2bdb4fb2693eaea68",
+    "sample_plan.json": "5e47d27dad09586123a3652aa77c62d32a793d526c82cfa8bfe299acf30e9096",
+    "decisions.json": "4c62fa65c86cd1864483e4a0c116b4407a39b1bd5fcbed040984195efa6e7517",
+    "benefit_guide/expected_answers.json": "385eb93d085151f66ec40866c356e5edee9bff921cdc98610941b766c9ed1c26"
+  },
+  "last_metrics": {
+    "round": 3,
+    "metrics": {
+      "B1": {
+        "pos": 35,
+        "hit": 35,
+        "neg": 5,
+        "fp": 0,
+        "same": 28,
+        "recall": 1.0,
+        "fp_rate": 0.0,
+        "match": 0.8,
+        "pass": true
+      },
+      "B2": {
+        "pos": 36,
+        "hit": 36,
+        "neg": 4,
+        "fp": 0,
+        "same": 35,
+        "recall": 1.0,
+        "fp_rate": 0.0,
+        "match": 0.9722222222222222,
+        "pass": true
+      },
+      "B3": {
+        "pos": 36,
+        "hit": 36,
+        "neg": 4,
+        "fp": 0,
+        "same": 35,
+        "recall": 1.0,
+        "fp_rate": 0.0,
+        "match": 0.9722222222222222,
+        "pass": true
+      },
+      "B4": {
+        "pos": 36,
+        "hit": 36,
+        "neg": 4,
+        "fp": 0,
+        "same": 36,
+        "recall": 1.0,
+        "fp_rate": 0.0,
+        "match": 1.0,
+        "pass": true
+      }
+    },
+    "all_pass": true
+  },
+  "draft_counts": {
+    "node_types": 5,
+    "relationship_types": 4,
+    "patterns": 4,
+    "constraints": 1
+  },
+  "reread_counts": {
+    "node_types": 5,
+    "relationship_types": 4,
+    "patterns": 4,
+    "constraints": 1
+  },
+  "reread_same": true
+}

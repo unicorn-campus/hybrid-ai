@@ -1,0 +1,78 @@
+{
+  "version": "1",
+  "approved_by": "자동 승인(실습용. 강사 검토 전, 2026-11-13)",
+  "categories": [
+    "식비",
+    "쇼핑",
+    "교통",
+    "주유",
+    "여행",
+    "해외",
+    "생활",
+    "교육"
+  ],
+  "benefits": {
+    "D2-C021-B01": {
+      "name": "가상 돌봄 바우처",
+      "target": "가상 돌봄몰 함께자람의 등록 돌봄용품·서비스에 사용함.",
+      "category": null,
+      "status": "needs_review",
+      "closest": [
+        "생활"
+      ],
+      "reason": "돌봄용품·서비스는 정의된 8개 업종에 명확히 해당되지 않음"
+    },
+    "D2-C021-B02": {
+      "name": "병원·약국 할인",
+      "target": "가상 일반 병원·약국 업종의 본인 결제",
+      "category": null,
+      "status": "needs_review",
+      "closest": [
+        "생활"
+      ],
+      "reason": "병원·약국은 정의된 업종에 명확히 포함되지 않음"
+    },
+    "D2-C021-B03": {
+      "name": "온라인몰 할인",
+      "target": "가상 쇼핑몰 달빛상점의 직접 결제",
+      "category": "쇼핑",
+      "status": "approved",
+      "closest": [],
+      "reason": "온라인몰은 쇼핑 업종에 명확히 해당"
+    },
+    "D2-C021-B04": {
+      "name": "교육 할인",
+      "target": "가상 학원 배움뜰·온라인 강의 지식마루의 수강료",
+      "category": "교육",
+      "status": "approved",
+      "closest": [],
+      "reason": "학원·온라인 강의는 교육 업종에 해당"
+    },
+    "D2-C021-B05": {
+      "name": "식사배달 할인",
+      "target": "가상 배달앱 한끼마당에서 앱 내 직접 결제한 식사 주문",
+      "category": "식비",
+      "status": "approved",
+      "closest": [],
+      "reason": "식사배달은 식비 업종에 해당"
+    },
+    "D2-C021-B06": {
+      "name": "영상구독 할인",
+      "target": "가상 영상 서비스 화면극장의 직접 구독 결제",
+      "category": null,
+      "status": "needs_review",
+      "closest": [
+        "생활"
+      ],
+      "reason": "영상구독은 정의된 업종에 명확히 포함되지 않음"
+    },
+    "D2-C021-B07": {
+      "name": "쇼핑 멤버십 할인",
+      "target": "가상 멤버십 모음회원의 월 이용료",
+      "category": "쇼핑",
+      "status": "approved",
+      "closest": [],
+      "reason": "쇼핑 멤버십은 쇼핑 업종에 해당"
+    }
+  }
+}

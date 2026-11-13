@@ -1,0 +1,50 @@
+{
+  "round": 3,
+  "metrics": {
+    "B1": {
+      "pos": 35,
+      "hit": 35,
+      "neg": 5,
+      "fp": 0,
+      "same": 28,
+      "recall": 1.0,
+      "fp_rate": 0.0,
+      "match": 0.8,
+      "pass": true
+    },
+    "B2": {
+      "pos": 36,
+      "hit": 36,
+      "neg": 4,
+      "fp": 0,
+      "same": 35,
+      "recall": 1.0,
+      "fp_rate": 0.0,
+      "match": 0.9722222222222222,
+      "pass": true
+    },
+    "B3": {
+      "pos": 36,
+      "hit": 36,
+      "neg": 4,
+      "fp": 0,
+      "same": 35,
+      "recall": 1.0,
+      "fp_rate": 0.0,
+      "match": 0.9722222222222222,
+      "pass": true
+    },
+    "B4": {
+      "pos": 36,
+      "hit": 36,
+      "neg": 4,
+      "fp": 0,
+      "same": 36,
+      "recall": 1.0,
+      "fp_rate": 0.0,
+      "match": 1.0,
+      "pass": true
+    }
+  },
+  "all_pass": true
+}

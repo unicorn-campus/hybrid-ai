@@ -1,0 +1,151 @@
+{
+  "node_types": [
+    {
+      "label": "ProductGuide",
+      "description": "(상품 안내) 해당: 한빛 카드 상품 하나(머리줄 product_id 하나). 혜택을 이 상품에 잇는 자리로 씀. 비해당: 타사 참고 카드, 개별 혜택 내용, 연회비와 가족카드 규칙(정형 데이터에 있음), 모든 카드 공통 안내",
+      "properties": [
+        {
+          "name": "product_id",
+          "type": "STRING",
+          "description": "상품ID. 머리줄 product_id 값(예: D2-C001)",
+          "required": false
+        },
+        {
+          "name": "card_name",
+          "type": "STRING",
+          "description": "카드 이름. 머리줄 card_name 값",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Benefit",
+      "description": "(혜택) 해당: 카드가 주는 혜택 하나(할인, 적립, 캐시백, 바우처, 라운지 등)와 그 크기. 비해당: 혜택을 받는 조건, 한도, 제외 거래, 연회비",
+      "properties": [
+        {
+          "name": "benefit_id",
+          "type": "STRING",
+          "description": "혜택ID. 머리줄 benefit_id 값(예: D2-C055-B07). 없으면 비움",
+          "required": false
+        },
+        {
+          "name": "product_id",
+          "type": "STRING",
+          "description": "상품ID. 머리줄 product_id 값",
+          "required": false
+        },
+        {
+          "name": "name",
+          "type": "STRING",
+          "description": "혜택 이름",
+          "required": false
+        },
+        {
+          "name": "amount",
+          "type": "STRING",
+          "description": "혜택의 크기 문장(원문 그대로): 적립률, 할인율, 금액, 횟수. 여러 혜택을 합산한 제공 상한만 적혀 있으면(예: 월 ~원 상당까지 제공) 그 문장을 씀. 혜택 노드를 만들면 amount를 반드시 채움",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "BenefitCondition",
+      "description": "(혜택 조건) 해당: 혜택을 받으려면 충족해야 하는 것(전월 이용 실적, 신청, 대상 가맹점이나 업종, 채널). 비해당: 혜택 크기, 한도, 받을 수 없는 거래",
+      "properties": [
+        {
+          "name": "description",
+          "type": "STRING",
+          "description": "조건 문장(원문 그대로)",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "BenefitLimit",
+      "description": "(혜택 한도와 기한) 해당: 혜택의 월이나 연 한도, 사용 기한, 신청 기한, 지급 시점. 비해당: 결제 한도(상품 안내에 씀), 혜택을 받는 조건",
+      "properties": [
+        {
+          "name": "description",
+          "type": "STRING",
+          "description": "한도나 기한 문장(원문 그대로)",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "BenefitExclusion",
+      "description": "(혜택 제외와 중복 제한) 해당: 혜택에서 빠지는 거래, 다른 혜택과 함께 받을 수 없다는 제한. 비해당: 혜택을 받는 조건, 한도",
+      "properties": [
+        {
+          "name": "description",
+          "type": "STRING",
+          "description": "제외나 제한 문장(원문 그대로)",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    }
+  ],
+  "relationship_types": [
+    {
+      "label": "OFFERS_BENEFIT",
+      "description": "(혜택을 줌) 상품 안내가 설명하는 카드가 주는 혜택",
+      "properties": [],
+      "additional_properties": false
+    },
+    {
+      "label": "REQUIRES",
+      "description": "(조건이 필요함) 혜택을 받기 위한 조건",
+      "properties": [],
+      "additional_properties": false
+    },
+    {
+      "label": "LIMITED_BY",
+      "description": "(한도와 기한이 있음) 혜택의 한도나 기한",
+      "properties": [],
+      "additional_properties": false
+    },
+    {
+      "label": "EXCLUDES",
+      "description": "(제외함) 혜택에서 빠지는 거래나 중복 제한",
+      "properties": [],
+      "additional_properties": false
+    }
+  ],
+  "patterns": [
+    [
+      "ProductGuide",
+      "OFFERS_BENEFIT",
+      "Benefit"
+    ],
+    [
+      "Benefit",
+      "REQUIRES",
+      "BenefitCondition"
+    ],
+    [
+      "Benefit",
+      "LIMITED_BY",
+      "BenefitLimit"
+    ],
+    [
+      "Benefit",
+      "EXCLUDES",
+      "BenefitExclusion"
+    ]
+  ],
+  "constraints": [
+    {
+      "type": "UNIQUENESS",
+      "node_type": "ProductGuide",
+      "property_name": "product_id"
+    }
+  ],
+  "additional_node_types": false,
+  "additional_relationship_types": false,
+  "additional_patterns": false
+}

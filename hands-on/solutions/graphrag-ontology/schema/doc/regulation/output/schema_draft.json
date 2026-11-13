@@ -1,0 +1,151 @@
+{
+  "node_types": [
+    {
+      "label": "TermsDocument",
+      "description": "(약관 문서) 해당: 약관 파일 한 판(머리줄의 source와 version). 비해당: 조항 하나, 상품안내서",
+      "properties": [
+        {
+          "name": "version",
+          "type": "STRING",
+          "description": "약관 판. 머리줄 version 값(예: 1.2)",
+          "required": false
+        },
+        {
+          "name": "effective_date",
+          "type": "STRING",
+          "description": "시행일. 머리줄 effective_date 값",
+          "required": false
+        },
+        {
+          "name": "supersedes",
+          "type": "STRING",
+          "description": "바뀌기 전 판. 머리줄 supersedes 값",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Clause",
+      "description": "(조항) 해당: 본문에 조문 내용(①, ② 같은 항)이 함께 적힌 '제N조(제목)' 하나. 비해당: 차례(목차)에 제목만 나열된 조항, 조항 안의 항이나 호, 약관 문서 전체",
+      "properties": [
+        {
+          "name": "clause_no",
+          "type": "STRING",
+          "description": "조항 번호(예: 제16조의2)",
+          "required": false
+        },
+        {
+          "name": "title",
+          "type": "STRING",
+          "description": "조항 제목(괄호 안 글자)",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Requirement",
+      "description": "(충족 조건) 해당: 무엇을 받거나 할 수 있는지가 갈리는 기준. 보통 숫자(금액, 일수, 횟수, 비율)나 '~이상', '~인 경우에만', '~하면 받을 수 있음' 꼴임(예: 직전 12개월 이용금액이 300만 원 이상이면 면제). 비해당: 누가 무엇을 한다는 의무나 절차 문장(예: 회원은 ~를 수정합니다, ~를 제출합니다, ~를 표시합니다), 할 수 있다는 권리 안내만 있는 문장, 기한이나 통지 시점",
+      "properties": [
+        {
+          "name": "description",
+          "type": "STRING",
+          "description": "조건 문장(원문 그대로)",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Deadline",
+      "description": "(기한과 통지 시점) 해당: 무엇을 해야 하는 기한이나 시점(예: ~일 이내, 즉시, 다음 영업일, ~까지), 미리 알리는 시점(예: 사전에 안내, ~전에 알림). 상황 조건이 붙은 문장이어도 시점이 있으면 해당하며 같은 문장을 Handling에도 둘 수 있음. 비해당: 시점이 없는 처리 방법, 금액 조건. 조항에 기한이나 시점이 여러 개 있으면 시점마다 Deadline 노드를 하나씩 만들고 SETS_DEADLINE으로 조항에 이음",
+      "properties": [
+        {
+          "name": "description",
+          "type": "STRING",
+          "description": "기한이나 통지 시점 문장(원문 그대로)",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Handling",
+      "description": "(상황별 처리) 해당: '~이면, ~하면, ~경우'처럼 상황을 먼저 말하고 그때의 처리를 정한 문장(예: 결제일이 휴일이면 다음 영업일에 출금, 오래 쓰지 않은 카드는 이용을 정지). 처리 시점이 함께 적혀 있어도 상황이 앞에 있으면 여기에 씀. 비해당: 상황 없이 기한만 정한 문장, 처리를 받기 위한 금액 조건",
+      "properties": [
+        {
+          "name": "situation",
+          "type": "STRING",
+          "description": "상황(원문 그대로)",
+          "required": false
+        },
+        {
+          "name": "action",
+          "type": "STRING",
+          "description": "그때의 처리(원문 그대로)",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    }
+  ],
+  "relationship_types": [
+    {
+      "label": "HAS_CLAUSE",
+      "description": "(조항을 가짐) 약관 문서에 들어 있는 조항",
+      "properties": [],
+      "additional_properties": false
+    },
+    {
+      "label": "SETS_REQUIREMENT",
+      "description": "(조건을 정함) 조항이 정한 충족 조건",
+      "properties": [],
+      "additional_properties": false
+    },
+    {
+      "label": "SETS_DEADLINE",
+      "description": "(기한을 정함) 조항이 정한 기한이나 통지 시점",
+      "properties": [],
+      "additional_properties": false
+    },
+    {
+      "label": "DEFINES_HANDLING",
+      "description": "(처리를 정함) 조항이 정한 상황별 처리",
+      "properties": [],
+      "additional_properties": false
+    }
+  ],
+  "patterns": [
+    [
+      "TermsDocument",
+      "HAS_CLAUSE",
+      "Clause"
+    ],
+    [
+      "Clause",
+      "SETS_REQUIREMENT",
+      "Requirement"
+    ],
+    [
+      "Clause",
+      "SETS_DEADLINE",
+      "Deadline"
+    ],
+    [
+      "Clause",
+      "DEFINES_HANDLING",
+      "Handling"
+    ]
+  ],
+  "constraints": [
+    {
+      "type": "UNIQUENESS",
+      "node_type": "TermsDocument",
+      "property_name": "version"
+    }
+  ],
+  "additional_node_types": false,
+  "additional_relationship_types": false,
+  "additional_patterns": false
+}

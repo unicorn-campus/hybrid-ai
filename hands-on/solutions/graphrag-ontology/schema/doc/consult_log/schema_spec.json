@@ -1,0 +1,62 @@
+{
+  "doc": "consult_log",
+  "metadata_header": ["record_id", "consult_date", "channel", "topic", "member_pseudo_id"],
+  "recommend": [
+    {"kind": "병합", "item": "Consultation, Conversation, Record, ConsultationRecord, Interaction, Call, Communication → Consultation", "cq": ["C5"]},
+    {"kind": "병합", "item": "Issue와 Request 중 불편이나 불만을 말한 것 → Complaint(cause)", "cq": ["C1"]},
+    {"kind": "병합", "item": "Proposal, Guidance, Procedure → Proposal(content)", "cq": ["C2"]},
+    {"kind": "병합", "item": "Channel, CommunicationChannel, MessageChannel → Consultation.channel 속성", "cq": ["C5"]},
+    {"kind": "추가", "item": "Proposal.decision, Proposal.reason(후보에 거의 없음)", "cq": ["C3"]},
+    {"kind": "추가", "item": "ReconsiderCondition(후보에 Condition 1건뿐)", "cq": ["C4"]},
+    {"kind": "추가", "item": "FOLLOWS(Consultation → Consultation, 후보 3건)", "cq": ["C5"]},
+    {"kind": "추가", "item": "Consultation.member_pseudo_id(정형 Member에 잇는 키 후보. 청크에는 가명 ID만 있어 Member.member_id로 바로 잇지 못함)", "cq": ["C5"]},
+    {"kind": "제거", "item": "Customer의 name, email, contact(개인정보 처리 대상)", "cq": []},
+    {"kind": "제거", "item": "Transaction, TransactionSummary, TransactionBatch(정형 스키마 CardTxn에 이미 있음)", "cq": []},
+    {"kind": "제거", "item": "Card(정형 스키마에 이미 있음)", "cq": []},
+    {"kind": "제거", "item": "Agent, Counselor, Address, Device, Menu, Preference 계열(어느 역량 질문에도 안 쓰임)", "cq": []}
+  ],
+  "node_types": [
+    {"label": "Consultation", "ko": "상담", "description": "해당: 상담 기록 한 건(머리줄의 record_id 하나). 비해당: 상담 안의 발언 한 줄, 고객 개인, 거래 내역",
+     "properties": [
+       {"name": "record_id", "description": "상담ID. 머리줄 record_id 값을 그대로 씀(예: C-20260314-001)", "required": true},
+       {"name": "consult_date", "description": "상담일. 머리줄 consult_date 값"},
+       {"name": "channel", "description": "상담 채널. 머리줄 channel 값(콜센터, 영업점, 앱 채팅)"},
+       {"name": "topic", "description": "상담 주제. 머리줄 topic 값"},
+       {"name": "member_pseudo_id", "description": "가명 회원ID. 머리줄 member_pseudo_id 값. 실명, 연락처는 넣지 않음"}
+     ]},
+    {"label": "Complaint", "ko": "불만 원인", "description": "해당: 고객이 이미 겪은 일에 대해 불편하다, 불만이다, 답답하다, 부담이다라고 직접 말한 원인. 비해당: 단순 질문, 무엇을 해 달라거나 하지 말아 달라는 부탁과 요청 문장 전체(예: ~해 주세요, ~하지 말아 주세요, ~가정하지 말아 주세요), 더 나은 방식을 고르는 선호 표현(예: ~가 나을 것 같아요), 앞으로의 걱정, 상담사의 추측, 고객이 만족한다고 한 점",
+     "properties": [
+       {"name": "cause", "description": "고객이 말한 불만 원인 문장(원문 그대로)", "required": true}
+     ]},
+    {"label": "Proposal", "ko": "상담 제안", "description": "해당: 상담사가 고객에게 해 보라고 권한 구체적인 방법이나 대안(예: ~해 보시는 건 어떠세요?). 비해당: 사실 확인 질문, 인사, 기록하겠다는 말",
+     "properties": [
+       {"name": "content", "description": "상담사가 제안한 문장(원문 그대로)", "required": true},
+       {"name": "decision", "description": "고객의 반응. 수용, 거절, 보류 중 하나만 씀"},
+       {"name": "reason", "description": "고객이 수용, 거절, 보류하며 말한 이유 문장(원문 그대로)"}
+     ]},
+    {"label": "ReconsiderCondition", "ko": "재검토 조건", "description": "해당: 고객이 결정을 미루며 말한 다시 생각할 조건(예: ~하면 다시 생각할게요, ~면 그때 ~할게요, ~나오면 다시 볼게요, 그래도 ~하면 다음에 문의할게요). 보류한 제안뿐 아니라 거절한 제안 뒤에 고객이 '나중에 ~하면 하겠다'고 덧붙인 조건도 해당하며, 그 제안에 RECONSIDER_WHEN으로 붙임. 비해당: 수용하거나 거절한 이유 자체(reason에 씀), 상담사의 안내",
+     "properties": [
+       {"name": "condition", "description": "고객이 말한 다시 생각할 조건 문장(원문 그대로)", "required": true}
+     ]}
+  ],
+  "relationship_types": [
+    {"label": "HAS_COMPLAINT", "ko": "불만을 말함", "description": "상담에서 고객이 말한 불만 원인"},
+    {"label": "HAS_PROPOSAL", "ko": "제안함", "description": "상담에서 상담사가 한 제안"},
+    {"label": "RECONSIDER_WHEN", "ko": "다시 생각할 조건", "description": "보류된 제안을 다시 생각할 조건"},
+    {"label": "FOLLOWS", "ko": "이전 상담에 이어짐", "description": "이번 상담이 본문에 적힌 같은 회원의 바로 앞 상담(record_id)에 이어짐. 끝 노드는 그 앞 상담의 Consultation이며 record_id를 채움"}
+  ],
+  "patterns": [
+    ["Consultation", "HAS_COMPLAINT", "Complaint"],
+    ["Consultation", "HAS_PROPOSAL", "Proposal"],
+    ["Proposal", "RECONSIDER_WHEN", "ReconsiderCondition"],
+    ["Consultation", "FOLLOWS", "Consultation"]
+  ],
+  "constraints": [{"type": "UNIQUENESS", "node_type": "Consultation", "property_name": "record_id"}],
+  "cq_map": {
+    "C1": [{"label": "Complaint", "property": "cause"}],
+    "C2": [{"label": "Proposal", "property": "content"}],
+    "C3": [{"label": "Proposal", "property": "decision"}, {"label": "Proposal", "property": "reason"}],
+    "C4": [{"label": "ReconsiderCondition", "property": "condition"}],
+    "C5": [{"rel": "FOLLOWS"}]
+  }
+}

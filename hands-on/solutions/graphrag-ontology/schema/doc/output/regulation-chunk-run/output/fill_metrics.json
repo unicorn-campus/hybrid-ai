@@ -1,0 +1,61 @@
+{
+  "round": 2,
+  "metrics": {
+    "R1": {
+      "pos": 5,
+      "hit": 5,
+      "neg": 0,
+      "fp": 0,
+      "same": 2,
+      "recall": 1.0,
+      "fp_rate": null,
+      "match": 0.4,
+      "pass": false
+    },
+    "R2": {
+      "pos": 2,
+      "hit": 0,
+      "neg": 3,
+      "fp": 0,
+      "same": 0,
+      "recall": 0.0,
+      "fp_rate": 0.0,
+      "match": null,
+      "pass": false
+    },
+    "R3": {
+      "pos": 2,
+      "hit": 0,
+      "neg": 3,
+      "fp": 0,
+      "same": 0,
+      "recall": 0.0,
+      "fp_rate": 0.0,
+      "match": null,
+      "pass": false
+    },
+    "R4": {
+      "pos": 5,
+      "hit": 0,
+      "neg": 0,
+      "fp": 0,
+      "same": 0,
+      "recall": 0.0,
+      "fp_rate": null,
+      "match": null,
+      "pass": false
+    },
+    "R5": {
+      "pos": 5,
+      "hit": 5,
+      "neg": 0,
+      "fp": 0,
+      "same": 2,
+      "recall": 1.0,
+      "fp_rate": null,
+      "match": 0.4,
+      "pass": false
+    }
+  },
+  "all_pass": false
+}
