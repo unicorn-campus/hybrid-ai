@@ -34,6 +34,8 @@ MEMBER_ID_PATTERN = re.compile(r"M-\d{4}")  # 회원번호 꼴. 예: M-1042
 PSEUDO_ID_PATTERN = re.compile(r"m_[0-9a-f]{16}")  # 가명 id 꼴. 예: m_59853c3d8e1e3c25
 VERSION_PATTERN = re.compile(r"(\d+\.\d+)\s*\)?\s*(?:판|버전)|(?:판|버전)\s*\(?\s*(\d+\.\d+)")  # 「버전(1.1)」, 「1.1 버전」
 NUMBER_PATTERN = re.compile(r"\d[\d,]*(?:\.\d+)?\s*(?:%|원|일|개월|년|회|P|매|건|영업일)?")  # 답 속 숫자(단위 포함)
+# 툴로 따라가는 건너가는 지점(공통 개념 층 concepts.json의 paths). P4 ~ P6은 키로 찾으므로 find_entities가 맡음
+CROSSING_POINTS = {"P1": "불만 → 주제 → 약관 조항", "P2": "불만 → 주제 → 카드 혜택", "P3": "상담 → 카드상품 키 → 혜택과 이용 기준"}
 CLAUSE_PATTERN = re.compile(r"제\s*\d+\s*조(?:\s*의\s*\d+)?")  # 조항 번호. 예: 제16조의2
 SENTENCE_SPLIT = re.compile(r"(?<=[.!?。])\s+|\n+")  # 문장 나누기(마침표 뒤 공백, 줄바꿈)
 
@@ -143,7 +145,8 @@ def check_tool_input(name: str, args: dict, known_topics: set, allow_global: boo
         "global_search": {"query"},
         "find_entities": {"entity_key"},
         "get_source_chunks": {"entity_ids", "with_reports"},
-        "query_customer_data": {"question"},  # 온톨로지 결합 개선 6: 정형 조회 툴
+        "query_customer_data": {"question"},  # 정형 조회 툴
+        "follow_crossing": {"point", "entity_ids"},  # 건너가는 지점(P1 ~ P3) 따라가기
     }
     if name not in allowed_keys:
         return f"모르는 툴: {name}"
@@ -164,6 +167,14 @@ def check_tool_input(name: str, args: dict, known_topics: set, allow_global: boo
         ids = args.get("entity_ids") or []
         if not ids or len(ids) > 16:
             return "entity_ids는 1 ~ 16개"
+    if name == "follow_crossing":
+        if args.get("point") not in CROSSING_POINTS:
+            return f"point는 {', '.join(CROSSING_POINTS)} 중 하나"
+        ids = args.get("entity_ids") or []
+        if len(ids) > 16:
+            return "entity_ids는 0 ~ 16개"
+        if args["point"] == "P3" and not ids:
+            return "P3은 출발할 상담 엔티티 id가 필요함"
     return None
 
 
@@ -535,18 +546,19 @@ def narrow_entities(candidates: list[dict], limit: int = 16, pinned_ids: list[st
 def normalize_entity_key(label: str, text: str) -> str:
     """찾을 대상의 글을 레이블별 키 속성과 같은 꼴로 맞춤(E1 정규화).
 
-    규칙: ProductGuide(카드)는 「카드」 접미어와 「한빛 」 앞머리를 떼고 공백을 지움.
-          Clause(조항)는 「제10조①」, 「10조 1항」을 「제10조」 꼴로(항 번호는 뗌, 「의2」는 남김).
+    규칙: CardProduct(카드상품. 노드가 없고 Benefit, UsageRule, Consultation의 card_name 키로 찾음)는
+          「카드」 접미어와 「한빛 」 앞머리를 떼고 공백을 지움.
+          Article(조항)은 「제10조①」, 「10조 1항」을 「제10조」 꼴로(항 번호는 뗌, 「의2」는 남김).
           Benefit(혜택)은 공백과 괄호를 지움. 그 밖은 앞뒤 공백만 지움.
-    예시: ("Clause", "16조의2 1항") → "제16조의2" / ("ProductGuide", "한빛 모아생활 카드") → "모아생활"
+    예시: ("Article", "16조의2 1항") → "제16조의2" / ("CardProduct", "한빛 모아생활 카드") → "모아생활"
     """
     text = text.strip()
-    if label == "ProductGuide":
+    if label == "CardProduct":
         text = text.replace("한빛", "")
         if text.endswith("카드"):
             text = text[: -len("카드")]
         return text.replace(" ", "")
-    if label == "Clause":
+    if label == "Article":
         match = re.search(r"(\d+)\s*조(?:\s*의\s*(\d+))?", text)
         if not match:
             return text.replace(" ", "")

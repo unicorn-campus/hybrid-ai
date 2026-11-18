@@ -1,0 +1,35 @@
+{
+  "regulation": {
+    "passed": true,
+    "units": 30,
+    "empty": 0,
+    "not_in_text": 0,
+    "bad_category": 0,
+    "rule_changed": 0,
+    "answered": 81,
+    "none": 69,
+    "problems": []
+  },
+  "benefit_guide": {
+    "passed": true,
+    "units": 45,
+    "empty": 0,
+    "not_in_text": 0,
+    "bad_category": 0,
+    "rule_changed": 0,
+    "answered": 239,
+    "none": 121,
+    "problems": []
+  },
+  "consult_log": {
+    "passed": true,
+    "units": 24,
+    "empty": 0,
+    "not_in_text": 0,
+    "bad_category": 0,
+    "rule_changed": 0,
+    "answered": 186,
+    "none": 54,
+    "problems": []
+  }
+}

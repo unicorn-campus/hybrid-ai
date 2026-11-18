@@ -54,9 +54,8 @@ def next_nonblank_line(lines: list[str], index: int) -> str:
 
 
 def head_line(metadata: dict, fields: list[str]) -> str:
-    """메타데이터를 「칸: 값 | 칸: 값」 한 줄로 만들어 추출 청크 앞에 붙임(교재 37쪽 ②).
-
-    값이 없는 칸은 뺌. 상담 번호나 날짜처럼 본문에 없는 키 속성을 LLM이 채우게 하려는 것임.
+    """메타데이터를 「키: 값 | 키: 값」 한 줄로 만들어 리턴. 
+    값이 없는 칸은 뺌. 
     """
     parts = []
     for field in fields:
@@ -76,9 +75,9 @@ def issue_generation(run: str, active: dict | None, input_sha256: str, config_si
                      full_reindex: bool, tag: str) -> dict:
     """실행 이름으로 세대 ID를 만들고, 할 일이 있는지 사전 검사함.
 
-    목적: 같은 실행 이름이면 같은 세대 ID가 나와, 중단돼도 같은 세대로 이어서 만들 수 있게 함(교재 32쪽).
+    목적: 같은 실행 이름이면 같은 세대 ID가 만들어지므로, 중단돼도 같은 세대로 이어서 만들 수 있게 함.
     방법: 세대 ID = "gen-{tag}-{실행 이름(안전한 글자만)}-{실행 이름 해시 앞 8자리}".
-          사전 검사는 활성 세대가 있고, 입력 지문과 설정 지문이 모두 같으면 "할 일 없음"(skip=True).
+          사전 검사: 활성 세대가 있고, 입력 지문과 설정 지문이 모두 같으면 "할 일 없음"(skip=True).
           full_reindex가 True면 사전 검사를 건너뜀(무조건 새로 만듦).
     인자: active는 활성 세대 파일 내용(없으면 None). input_sha256은 청크 전체의 지문, config_signature는 설정 지문.
     반환값: {"generation": 세대 ID, "skip": 할 일 없음 여부}.
@@ -109,10 +108,10 @@ def issue_generation(run: str, active: dict | None, input_sha256: str, config_si
 def prepare_chunks(rows: list[dict]) -> list[dict]:
     """Chroma에서 읽은 행을 인덱싱 입력 청크로 바꿈. doc_id와 chunk_id를 여기서 정함.
 
-    목적: 두 저장소(검색엔진, 그래프)가 같은 열쇠(chunk_id)를 쓰고, 문서 단위 교체(S3)에 쓸 doc_id를 갖게 함.
+    목적: 두 저장소(검색엔진, 그래프)가 같은 chunk_id를 쓰고, 문서 단위 교체(S3)에 쓸 doc_id를 갖게 함.
     방법: doc_id = 문서 키(D1, D2, D3) + "_" + 문서 구분값. 약관과 혜택은 원천 파일 이름의 해시 16자리,
           상담은 상담 번호(record_id)라 상담 1건이 문서 1개임.
-          chunk_id = doc_id + "_" + 본문 해시 16자리 + "_" + 같은 본문 반복 번호 4자리(교재 32쪽 그림).
+          chunk_id = doc_id + "_" + 본문 해시 16자리 + "_" + 같은 본문 반복 번호 4자리(한 청크에 동일 내용 존재 시 구분).
     인자: rows는 [{"chroma_id": "D1-0001", "text": 본문, "metadata": {...}}, ...]. chroma_id 순서가 문서 안 순서임.
     반환값: [{"chunk_id", "doc_id", "doc_type", "text", "text_hash", "metadata"}, ...]. 메타데이터에
             doc_key, chunk_index(문서 안 순서), chroma_id, chunk_id, product_id(혜택 안내)를 더함.
@@ -168,7 +167,7 @@ def split_by_heading(text: str, rule: dict) -> list[dict]:
     목적: 약관 청크 하나에 조항이 여러 개 섞여 있으면 LLM이 조항 안의 조건과 기한을 놓치므로, 조항마다 따로 넣으려는 것임.
     방법: ① 제목 줄(예: 「제16조(할부 거래)」)이면서 ② 다음 줄이 본문 시작 표시(①)로 시작하는 줄만 시작점으로 잡음
           (차례에 있는 제목 줄은 다음 줄이 또 제목이라 제외됨). ③ 다음 시작점 전까지가 한 조각. ④ 장 제목 줄은 버림.
-    인자: rule은 스키마 승인 기록의 추출 청크 규칙 {"heading": 제목 줄 정규식(그룹 1이 조항 번호), "body_start": "①",
+    인자: rule은 unit_text_rules.json의 추출 청크 규칙 {"heading": 제목 줄 정규식(그룹 1이 조항 번호), "body_start": "①",
           "drop_lines": 버릴 줄 정규식(없을 수 있음)}.
     반환값: [{"key": "제16조의2", "section_label": "제16조의2(할부 거래의 철회 요청)", "text": 조각 본문}, ...].
             제목 줄이 하나도 없으면 빈 목록.
@@ -284,6 +283,8 @@ def extract_one(unit: dict, spec: dict, llm, retries: int) -> dict:
     """
     extractor = LLMEntityRelationExtractor(llm=llm, create_lexical_graph=False, on_error=OnError.RAISE)
     pruner = GraphPruning()
+    
+    # 추출청크 앞에 머릿말을 붙임
     text = head_line(unit["metadata"], spec["header"]) + unit["text"]  # 머리줄(메타데이터) + 단위 본문
 
     graph = None
@@ -426,6 +427,12 @@ def k6_embed_descriptions(driver, generation: str, embed_texts, dimension: int, 
     인자: embed_texts는 글 목록을 받아 벡터 목록을 돌려주는 함수(main 제공). dimension은 임베딩 차원.
     반환값: 임베딩한 엔티티 수.
     """
+    # 임베딩할 엔티티 읽기
+    # - MATCH (n:__Entity__ {generation: $g}): 이 세대의 엔티티만 고름(청크, 커뮤니티 노드는 __Entity__가 없어 빠짐)
+    # - WHERE n.embedding IS NULL: 그중 아직 임베딩이 없는 노드만 남김
+    # - [l IN labels(n) WHERE NOT l STARTS WITH '__'][0]: 라벨 목록에서 관리용(__로 시작)을 빼고 업무 라벨 하나를 꺼냄
+    #   예: ["__Entity__", "Proposal"] → "Proposal". 설명 글 맨 앞에 붙여 엔티티 종류도 벡터에 담기게 함
+    # - properties(n): 노드의 속성 전체를 사전으로 받음(관리용 속성은 entity_description에서 뺌)
     records, _, _ = driver.execute_query(
         "MATCH (n:__Entity__ {generation: $g}) WHERE n.embedding IS NULL "
         "RETURN elementId(n) AS id, [l IN labels(n) WHERE NOT l STARTS WITH '__'][0] AS label, "

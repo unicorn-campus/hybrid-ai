@@ -1,0 +1,175 @@
+{
+  "read_check": {
+    "collections": {
+      "card_docs": 260
+    },
+    "collection": "card_docs",
+    "count": 260,
+    "read": 260,
+    "duplicate_ids": 0,
+    "empty_text": 0,
+    "empty_metadata": 0,
+    "passed": true
+  },
+  "snapshot": {
+    "path": "hands-on/solutions/graphrag-ontology/schema/doc-ontology/chunks_snapshot.json",
+    "sha256": "eed7e2e75121bac1138f75c6879ac52eba0169686c915b94d4435d94e90e00bb"
+  },
+  "doc_types": {
+    "regulation": {
+      "chunks": 15,
+      "text_length": {
+        "min": 197,
+        "median": 690,
+        "max": 1314
+      },
+      "metadata": {
+        "access_level": {
+          "filled": 15,
+          "distinct": 1
+        },
+        "doc_type": {
+          "filled": 15,
+          "distinct": 1
+        },
+        "page": {
+          "filled": 15,
+          "distinct": 15
+        },
+        "source": {
+          "filled": 15,
+          "distinct": 1
+        }
+      }
+    },
+    "benefit_guide": {
+      "chunks": 197,
+      "text_length": {
+        "min": 321,
+        "median": 661,
+        "max": 1513
+      },
+      "metadata": {
+        "access_level": {
+          "filled": 197,
+          "distinct": 1
+        },
+        "card_id": {
+          "filled": 195,
+          "distinct": 64
+        },
+        "card_name": {
+          "filled": 195,
+          "distinct": 64
+        },
+        "doc_type": {
+          "filled": 197,
+          "distinct": 1
+        },
+        "page": {
+          "filled": 197,
+          "distinct": 196
+        },
+        "source": {
+          "filled": 197,
+          "distinct": 1
+        }
+      }
+    },
+    "consult_log": {
+      "chunks": 48,
+      "text_length": {
+        "min": 729,
+        "median": 824,
+        "max": 925
+      },
+      "metadata": {
+        "access_level": {
+          "filled": 48,
+          "distinct": 1
+        },
+        "channel": {
+          "filled": 48,
+          "distinct": 3
+        },
+        "consult_date": {
+          "filled": 48,
+          "distinct": 34
+        },
+        "doc_type": {
+          "filled": 48,
+          "distinct": 1
+        },
+        "member_pseudo_id": {
+          "filled": 48,
+          "distinct": 12
+        },
+        "record_id": {
+          "filled": 48,
+          "distinct": 48
+        },
+        "source": {
+          "filled": 48,
+          "distinct": 6
+        }
+      }
+    }
+  },
+  "pii": {
+    "전화번호": {
+      "hits": 0,
+      "real": 0,
+      "locations": []
+    },
+    "이메일": {
+      "hits": 0,
+      "real": 0,
+      "locations": []
+    },
+    "카드 번호(16자리)": {
+      "hits": 0,
+      "real": 0,
+      "locations": []
+    },
+    "계좌 번호 꼴": {
+      "hits": 151,
+      "real": 0,
+      "locations": []
+    },
+    "주민번호": {
+      "hits": 0,
+      "real": 0,
+      "locations": []
+    },
+    "생년월일(숫자 표기)": {
+      "hits": 151,
+      "real": 0,
+      "locations": []
+    },
+    "생년월일(한글 표기)": {
+      "hits": 6,
+      "real": 2,
+      "locations": [
+        {
+          "chunk_id": "D3-0028",
+          "doc_type": "consult_log",
+          "where": "생일 낱말 곁의 날짜"
+        },
+        {
+          "chunk_id": "D3-0048",
+          "doc_type": "consult_log",
+          "where": "생일 낱말 곁의 날짜"
+        }
+      ]
+    },
+    "회원 원래 번호": {
+      "hits": 0,
+      "real": 0,
+      "locations": []
+    }
+  },
+  "tool_versions": {
+    "chromadb": "1.5.9",
+    "neo4j-graphrag": "1.22.0"
+  }
+}

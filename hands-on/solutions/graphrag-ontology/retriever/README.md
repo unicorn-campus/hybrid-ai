@@ -34,9 +34,23 @@ python search_graph.py --qid Q19
 
 - ③ ~ ⑤(반복 1)는 LangChain `create_agent` + 미들웨어 2개로 돎. `GuardMiddleware`(모델 호출 전 강제 종료, 모델이 고른 호출의 상한)와  
   `ToolWrapperMiddleware`(막힌 호출은 오류 표시, 실행한 결과에는 Jev 판정과 진단 신호)가 「막는 일은 코드」를 맡음  
-- 툴 6개(`search_vector-bm25`, `local_search`, `global_search`, `find_entities`, `get_source_chunks`, `finish`)는  
-  입력에 필터 칸이 없음.  
+- 툴 8개(`search_vector-bm25`, `local_search`, `global_search`, `find_entities`, `get_source_chunks`,  
+  `query_customer_data`, `follow_crossing`, `finish`)는 입력에 필터 칸이 없음.  
   세대, 역할, 회원, 카드 필터는 래퍼가 강제로 붙임  
+- 온톨로지 결합판의 그래프(`../schema/doc-ontology`)를 읽음. 건너가는 지점(공통 개념 층 `paths`)을 이렇게 씀  
+
+  | 지점 | 경로 | 검색기에서 |
+  |---|---|---|
+  | P1 | 불만 -ABOUT-> 주제 <-ABOUT- 약관 조항 | `follow_crossing(point="P1")`. 출발 id를 비우면 볼 수 있는 모든 불만에서 출발 |
+  | P2 | 불만 -ABOUT-> 주제 <-ABOUT- 카드 혜택 | `follow_crossing(point="P2")` |
+  | P3 | 상담 product_id = 혜택(이용 기준) product_id | `follow_crossing(point="P3", entity_ids=[상담 id])` |
+  | P4 | 정형 DB 업종 → (IN_CATEGORY 반대) 혜택 | `query_customer_data`의 건너갈 키 「업종:식비」 → `find_entities` |
+  | P5 | 회원번호 → 바꾸는 규칙(가명 키) → 상담 | ② 식별자 바꾸기와 회원 필터, `find_entities("회원")` |
+  | P6 | 정형 DB 상품 ID = 혜택 product_id | 건너갈 키 「카드상품:D2-C021」 → `find_entities` |
+
+- 정형 조회 툴(`query_customer_data`)이 쓰는 뷰와 컬럼의 뜻, 예시 SQL, 건너가는 키 컬럼은 인덱서가 실음.  
+  원본은 `../schema/rdb/app_views.json`이고, 인덱서가 DB 카탈로그(app 스키마의 컬럼)와 대조한 뒤  
+  `DbView`, `DbColumn`, `SqlExample`, `OntoConcept -KEY_IN-> DbColumn`으로 실음(`core_ontology.load_view_layer`)  
 - 글을 만드는 LLM 호출(G1, G2, ⑧)은 모두 LCEL 체인(`프롬프트 | 모델`)과 구조화 출력(`with_structured_output`, Pydantic 스키마)으로 짬
 - 결과 끝에 ③ 에이전트의 실제 비용(응답의 토큰 사용량 × Groq 단가)을 찍음. Groq가 앞부분이 같은 입력을 자동으로 캐시해  
   회차가 늘어도 입력 비용이 작음
@@ -156,8 +170,8 @@ python search_graph.py --eval --only Q18,Q19,Q20,Q21,Q22 --repeat 3
 | `④ 툴 이름 … → 원문 N개` | ④ | 새 원문 수, 근거에서 뺀 수(관련 없음, 지시 끼워 넣기) |
 | `⑤ Jev` / `⑤ 신호` | ⑤ | 원문마다 관련, 답 근거, 전제 충돌 확률. 진단 신호와 포함률, 공존 문장 수 |
 | `⑤ 강제 종료` | ⑤ | 강제 종료 이유(모델을 다시 부르지 않음) |
-| `── ⑥ 리랭킹` | ⑥ | 8자리와 점수, 주제 id |
-| `── ⑦ 코드 재확인` / `⑦ 판정` | ⑦ | 조건 ①(한 문장 공존), ②(관계 하나로 이어짐) 결과와 통과, 불통과 |
+| `── ⑥ 리랭킹` | ⑥ | 8자리와 점수, 주제 id. `⑥ 건너가는 경로 … 쌍을 남김`은 follow_crossing 경로 양 끝 원문을 함께 남긴 것 |
+| `── ⑦ 코드 재확인` / `⑦ 판정` | ⑦ | 조건 ①(한 문장 공존), ②(관계 하나로 이어짐), ②(건너가기: 건너가는 쌍의 양 끝이 낱말을 가짐. 낱말은 속성 글 또는 개념 이름과 정의에서 찾음) 결과와 통과, 불통과 |
 | `── ⑧ 답변` / `── ⑨ 근거 검증` | ⑧ ⑨ | 문장마다 인용 id, 검증 실패 사유, 재작성 횟수 |
 | `── ⑩ 종료 상태` | ⑩ | 종료 상태 이름과 뜻, 에이전트(Groq) 비용(호출, 입력, 캐시, 출력 토큰), 호출 수, 툴 경로, 시간 |
 
@@ -223,7 +237,7 @@ python search_graph.py --eval --only Q18,Q19,Q20,Q21,Q22 --repeat 3
 |---|---|---|
 | 약관 사실 | Q01 ~ Q06 | `search_vector-bm25` 1 ~ 3회 → finish |
 | 카드 혜택 | Q07 ~ Q13 | `local_search` → 엔티티 id로 `get_source_chunks` |
-| 회원 상담 | Q14 ~ Q17 | `find_entities("회원")` → `get_source_chunks` |
+| 회원 상담 | Q14 ~ Q17 | `find_entities("회원")` → `get_source_chunks`(상담의 카드 혜택은 `follow_crossing` P3) |
 | 함정 | Q18 ~ Q22 | 2 ~ 5회 찾아본 뒤 ⑦ 불통과 |
 | 경향, 혼합 | Q23 ~ Q25 | `global_search` → (Q25) 미확인 주제만 `local_search` |
 

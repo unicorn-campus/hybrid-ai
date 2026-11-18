@@ -1,0 +1,349 @@
+{
+  "decided_by": "hiondal(사용자)",
+  "date": "2026-11-18",
+  "rows": [
+    {
+      "benefit_id": "D2-C018-B01",
+      "name": "쇼핑 할인",
+      "target": "가상 쇼핑몰 달빛상점·마트 살림곳의 직접 결제",
+      "category": "쇼핑",
+      "reason": "문장에 쇼핑몰과 마트가 언급돼 쇼핑 업종에 해당한다",
+      "near": [],
+      "undecided": false,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C050-B02",
+      "name": "생활 업종 할인",
+      "target": "가상 편의점 하루상점·마트 살림곳·커피점 나무잔의 직접 결제",
+      "category": "생활",
+      "reason": "가상 편의점·마트·커피점 등 일상 생활에 쓰이는 가맹점",
+      "near": [],
+      "undecided": false,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C050-B03",
+      "name": "기본 할인",
+      "target": "국내외 일반 가맹점의 일시불 결제",
+      "category": null,
+      "reason": "문장에 특정 업종이 명시되지 않아 판단이 어렵다.",
+      "near": [
+        "쇼핑",
+        "생활"
+      ],
+      "undecided": true,
+      "status": "not_linked"
+    },
+    {
+      "benefit_id": "D2-C054-B04",
+      "name": "놀이공원 할인",
+      "target": "가상 놀이공원 꿈나래동산의 공식 예매",
+      "category": null,
+      "reason": "놀이공원은 여행 활동에 해당",
+      "near": [],
+      "undecided": false,
+      "status": "not_linked"
+    },
+    {
+      "benefit_id": "D2-C007-B04",
+      "name": "영화 할인",
+      "target": "가상 영화관 별빛극장의 공식 앱 예매",
+      "category": null,
+      "reason": "영화 예매는 일상 생활에 해당한다",
+      "near": [
+        "쇼핑"
+      ],
+      "undecided": false,
+      "status": "not_linked"
+    },
+    {
+      "benefit_id": "D2-C005-B02",
+      "name": "생활 업종 할인",
+      "target": "가상 편의점 하루상점·마트 살림곳·커피점 나무잔의 직접 결제",
+      "category": "생활",
+      "reason": "가상 편의점·마트·커피점 등 일상 생활에 쓰이는 가맹점",
+      "near": [],
+      "undecided": false,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C005-B03",
+      "name": "지정일 할인",
+      "target": "매월 8일·18일·28일 가상 마트 살림곳의 매장 직접 결제",
+      "category": "쇼핑",
+      "reason": "가상 마트에서 직접 결제하는 구매이므로 쇼핑에 해당",
+      "near": [
+        "생활"
+      ],
+      "undecided": false,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C010-B02",
+      "name": "대중교통 할인",
+      "target": "후불로 청구되는 가상 시내버스·도시철도 이용료",
+      "category": "교통",
+      "reason": "후불로 청구되는 가상 시내버스·도시철도 이용료는 대중교통 이용료이므로 교통에 해당한다",
+      "near": [],
+      "undecided": false,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C002-B02",
+      "name": "포인트 재충전",
+      "target": "",
+      "category": "쇼핑",
+      "reason": "대상 문장이 추출되지 않음",
+      "near": [],
+      "undecided": true,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C002-B03",
+      "name": "첫 이용 보너스",
+      "target": "",
+      "category": null,
+      "reason": "대상 문장이 추출되지 않음",
+      "near": [],
+      "undecided": true,
+      "status": "not_linked"
+    },
+    {
+      "benefit_id": "D2-C027-B01",
+      "name": "단말기 장기할부",
+      "target": "가상 단말기몰 별빛기기",
+      "category": "쇼핑",
+      "reason": "가상 단말기몰 별빛기기는 전자기기 등을 판매하는 온라인 몰로 쇼핑에 해당한다",
+      "near": [],
+      "undecided": false,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C024-B01",
+      "name": "해외 수수료 지원",
+      "target": "해외 현지통화 구매 거래",
+      "category": "해외",
+      "reason": "해외 현지통화 구매 거래는 해외에서 현지 통화로 결제하는 경우이므로 해외 카테고리에 해당한다.",
+      "near": [],
+      "undecided": false,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C059-B03",
+      "name": "월간 단골 보너스",
+      "target": "선정 가맹점",
+      "category": "생활",
+      "reason": "문장에 구체적인 업종이 언급되지 않음",
+      "near": [
+        "쇼핑",
+        "식비"
+      ],
+      "undecided": true,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C042-B03",
+      "name": "선택 가맹점 보너스",
+      "target": "가상 편의점 하루상점·커피점 나무잔 중 앱에서 지정한 1곳",
+      "category": "생활",
+      "reason": "가상 편의점·커피점 등 식음료 업종",
+      "near": [],
+      "undecided": false,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C014-B02",
+      "name": "친환경 실천 보너스",
+      "target": "",
+      "category": null,
+      "reason": "대상 문장이 추출되지 않음",
+      "near": [],
+      "undecided": true,
+      "status": "not_linked"
+    },
+    {
+      "benefit_id": "D2-C055-B01",
+      "name": "가상 편의점 멤버십",
+      "target": "가상 편의점",
+      "category": "생활",
+      "reason": "가상 편의점은 편의점으로 생활 관련 업종에 해당한다",
+      "near": [],
+      "undecided": false,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C045-B01",
+      "name": "렌탈 적립",
+      "target": "가상 렌탈사 맑은집의 정수기·공기청정기 월 이용료",
+      "category": "생활",
+      "reason": "정수기·공기청정기 월 이용료는 생활에 해당",
+      "near": [],
+      "undecided": false,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C038-B01",
+      "name": "국내 기본 적립",
+      "target": "국내외 일반 가맹점의 일시불 결제",
+      "category": null,
+      "reason": "문장에 특정 업종이 명시되지 않아 판단할 수 없음",
+      "near": [
+        "쇼핑",
+        "생활"
+      ],
+      "undecided": true,
+      "status": "not_linked"
+    },
+    {
+      "benefit_id": "D2-C036-B02",
+      "name": "주말 외식 적립",
+      "target": "일반 음식점 업종의 매장 직접 결제. 토요일·일요일 승인 거래만 포함하며 평일 공휴일은 제외함.",
+      "category": "식비",
+      "reason": "주말에 일반 음식점에서 결제하는 경우이므로 식비에 해당한다",
+      "near": [],
+      "undecided": false,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C036-B03",
+      "name": "정기납부 적립",
+      "target": "가상 서비스 화면극장·생활고지·맑은집의 등록 정기결제. 카드 자동납부 등록이 확인된 거래만 적용",
+      "category": "생활",
+      "reason": "가상 서비스 화면극장·생활고지·맑은집의 정기결제에 대한 혜택으로 생활 관련 지출에 해당",
+      "near": [],
+      "undecided": false,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C044-B02",
+      "name": "생활요금 적립",
+      "target": "가상 수납망 생활고지의 전기·가스·통신 월 이용료",
+      "category": "생활",
+      "reason": "전기·가스·통신 등 생활비 청구서를 대상으로 하는 혜택이므로 생활 업종에 해당한다.",
+      "near": [],
+      "undecided": false,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C044-B03",
+      "name": "디지털구독 적립",
+      "target": "가상 서비스 화면극장·소리서재·생각도우미의 직접 구독 결제",
+      "category": "생활",
+      "reason": "가상 서비스 구독은 일상 생활에 해당",
+      "near": [
+        "교육"
+      ],
+      "undecided": false,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C041-B01",
+      "name": "무실적 기본 적립",
+      "target": "국내외 일반 가맹점의 일시불 결제",
+      "category": null,
+      "reason": "문장에 특정 업종이 명시되지 않아 일반 가맹점으로만 언급됨",
+      "near": [
+        "쇼핑",
+        "생활"
+      ],
+      "undecided": true,
+      "status": "not_linked"
+    },
+    {
+      "benefit_id": "D2-C013-B02",
+      "name": "일상 업종 적립",
+      "target": "가상 편의점 하루상점·마트 살림곳·커피점 나무잔의 직접 결제",
+      "category": "생활",
+      "reason": "편의점·마트·커피점 등 식음료와 생활용품을 모두 포함하고 있어 단일 업종으로 판단하기 어렵다.",
+      "near": [
+        "식비",
+        "쇼핑"
+      ],
+      "undecided": true,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C008-B01",
+      "name": "전기차 충전 캐시백",
+      "target": "가상 충전앱 초록전기 등록 충전기",
+      "category": "주유",
+      "reason": "전기차 충전은 교통 수단 이용과 관련된 서비스이므로",
+      "near": [],
+      "undecided": false,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C011-B04",
+      "name": "연간 캐시백",
+      "target": "",
+      "category": null,
+      "reason": "대상 문장이 추출되지 않음",
+      "near": [],
+      "undecided": true,
+      "status": "not_linked"
+    },
+    {
+      "benefit_id": "D2-C011-B05",
+      "name": "첫 이용 캐시백",
+      "target": "",
+      "category": null,
+      "reason": "대상 문장이 추출되지 않음",
+      "near": [],
+      "undecided": true,
+      "status": "not_linked"
+    },
+    {
+      "benefit_id": "D2-C063-B02",
+      "name": "교통 캐시백",
+      "target": "후불로 청구되는 가상 시내버스·도시철도 이용료",
+      "category": "교통",
+      "reason": "시내버스·도시철도 이용료는 교통에 해당",
+      "near": [],
+      "undecided": false,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C063-B03",
+      "name": "디지털구독 캐시백",
+      "target": "가상 서비스 화면극장·소리서재·생각도우미의 직접 구독 결제",
+      "category": "생활",
+      "reason": "가상 서비스 화면극장·소리서재·생각도우미의 직접 구독 결제는 일상 생활에서 이용하는 디지털 구독 서비스이므로 생활 카테고리에 해당한다",
+      "near": [],
+      "undecided": false,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C046-B01",
+      "name": "차량 구매 일시불 캐시백",
+      "target": "가상 차량몰 새길자동차에서 지정 방식으로 결제",
+      "category": null,
+      "reason": "대상 문장은 차량 구매와 결제에 관한 내용으로 교통 관련 지출에 해당한다",
+      "near": [],
+      "undecided": false,
+      "status": "not_linked"
+    },
+    {
+      "benefit_id": "D2-C048-B04",
+      "name": "전기·통신·해외 캐시백",
+      "target": "가상 통신사 별빛모바일의 본인 명의 이동통신 월 이용료",
+      "category": "생활",
+      "reason": "이 문장은 이동통신 월 이용료에 관한 내용으로, 주어진 8개 업종에 명확히 해당되지 않아 미정으로 분류한다.",
+      "near": [
+        "생활"
+      ],
+      "undecided": true,
+      "status": "approved"
+    },
+    {
+      "benefit_id": "D2-C056-B01",
+      "name": "교육 캐시백",
+      "target": "가상 학원 배움뜰·온라인 강의 지식마루의 수강료",
+      "category": "교육",
+      "reason": "수강료는 교육 서비스에 해당한다",
+      "near": [],
+      "undecided": false,
+      "status": "approved"
+    }
+  ]
+}

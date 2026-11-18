@@ -1,0 +1,244 @@
+{
+  "node_types": [
+    {
+      "label": "Consultation",
+      "description": "\uc0c1\ub2f4 \uae30\ub85d \ud55c \uac74. \ud574\ub2f9: \uba38\ub9ac\uc904\uc758 record_id \ud558\ub098\uc5d0 \uc0c1\ub2f4 \ub178\ub4dc \ud558\ub098. \ubcf8\ubb38\uc774 \uc774\uc5b4\uc9c4\ub2e4\uace0 \ub9d0\ud55c \uc55e\uc120 \uc0c1\ub2f4(\uc608: \u300cC-20260310-018\uacfc \uc774\uc5b4\uc9c0\ub294 \uae30\ub85d\u300d)\ub3c4 record_id\ub9cc \ucc44\uc6b4 \uc0c1\ub2f4 \ub178\ub4dc\ub85c \ub9cc\ub4e6. \ube44\ud574\ub2f9: \uc0c1\ub2f4\uc0ac, \ucc44\ub110, \uce74\ub4dc, \uace0\uac1d\uc744 \ub530\ub85c \ub9cc\ub4e0 \ub178\ub4dc.",
+      "properties": [
+        {
+          "name": "record_id",
+          "type": "STRING",
+          "description": "\uba38\ub9ac\uc904\uc758 record_id \uac12. \uc608: C-20260314-001",
+          "required": false
+        },
+        {
+          "name": "consult_date",
+          "type": "STRING",
+          "description": "\uba38\ub9ac\uc904\uc758 consult_date \uac12(YYYY-MM-DD)",
+          "required": false
+        },
+        {
+          "name": "channel",
+          "type": "STRING",
+          "description": "\uba38\ub9ac\uc904\uc758 channel \uac12. \uc608: \uc571 \ucc44\ud305",
+          "required": false
+        },
+        {
+          "name": "member_pseudo_id",
+          "type": "STRING",
+          "description": "\uba38\ub9ac\uc904\uc758 member_pseudo_id \uac12(\ud68c\uc6d0 \uac00\uba85 \ud0a4). \ubcf8\ubb38\uc758 \uc774\ub984\uc774\ub098 \ubc88\ud638\ub85c \ubc14\uafb8\uc9c0 \uc54a\uc74c",
+          "required": false
+        },
+        {
+          "name": "product_id",
+          "type": "STRING",
+          "description": "\uba38\ub9ac\uc904\uc758 product_id \uac12(\uce74\ub4dc\uc0c1\ud488 \ud0a4). \u300c\uc5c6\uc74c\u300d\uc774\uba74 \ube44\uc6c0",
+          "required": false
+        },
+        {
+          "name": "card_name",
+          "type": "STRING",
+          "description": "\uba38\ub9ac\uc904\uc758 card_name \uac12",
+          "required": false
+        },
+        {
+          "name": "subject",
+          "type": "STRING",
+          "description": "\ubcf8\ubb38 [\uc0c1\ub2f4\uc8fc\uc81c] \uc904\uc758 \uac12. \uc608: \uc571 \uc778\uc99d \ubd88\ud3b8 \uc644\ud654",
+          "required": false
+        },
+        {
+          "name": "progress",
+          "type": "STRING",
+          "description": "\uace0\uac1d\uc758 \uc77c(\ud574\uc9c0, \uc804\ud658, \uc2e0\uace0, \uc2e0\uccad, \ucde8\uc18c, \ubcc0\uacbd)\uc774 \uc774 \uc0c1\ub2f4 \ub05d\uc5d0 \uc5b4\ub514\uae4c\uc9c0 \uc654\ub294\uc9c0 \uc6d0\ubb38 \ubb38\uc7a5 \uadf8\ub300\ub85c \uc62e\uae40. \ud574\uc9c0, \uc804\ud658, \uc2e0\uace0, \uc2e0\uccad, \ucde8\uc18c, \ubcc0\uacbd, \uc870\ud68c\ucc98\ub7fc \uace0\uac1d\uc774 \ud558\ub824\ub294 \uc77c\uc5d0 \uad00\ud55c \uc904\ub9cc \ubd04. \uace0\uac1d\uc774\ub098 \uc0c1\ub2f4\uc0ac\uac00 \uadf8 \uc77c\uc758 \uc9c4\ud589 \ub2e8\uacc4\ub97c \ub9d0\ud55c \uc904(\uc608: \u300c\uc544\uc9c1 \ubc14\uafe8\ub2e4\uace0 \uae30\ub85d\ud558\uc9c0\ub294 \ub9c8\uc138\uc694\u300d, \u300c\uc544\uc9c1 \uc811\uc218\ud558\uc9c0\ub294 \uc54a\uc558\uc5b4\uc694\u300d)\uacfc \uc0c1\ub2f4\uc0ac\uac00 \uadf8 \uc77c\uc758 \ub2e4\uc74c \ub2e8\uacc4\ub97c \ubc1d\ud78c \uc904(\uc608: \u300c\ud655\uc778\ud55c \ub4a4 \uacb0\uacfc\ub97c \uc548\ub0b4\ub4dc\ub9ac\uaca0\uc2b5\ub2c8\ub2e4\u300d, \u300c~ \ud654\uba74\uc73c\ub85c \uc548\ub0b4\ub4dc\ub9ac\uaca0\uc2b5\ub2c8\ub2e4\u300d)\uc744 \uc500. \uadf8\ub7f0 \uc904 \uac00\uc6b4\ub370 \uac00\uc7a5 \ub9c8\uc9c0\ub9c9 \uac83\uc744 \uc500. \ube44\ud574\ub2f9: \uc0c1\ub2f4 \ub0b4\uc6a9\uc744 \uae30\ub85d\uc5d0 \ub0a8\uae30\ub294 \uc904(\u300c~ \uc0c1\ub2f4 \uae30\ub85d\uc5d0 \uc815\ub9ac\ud558\uaca0\uc2b5\ub2c8\ub2e4\u300d, \u300c\uc55e\uc120 \uae30\ub85d\uacfc \uc5f0\uacb0\ud558\uace0\u300d, \u300c\ud6c4\uc18d \uc548\ub0b4\ub294 ~ \ub0a8\uacbc\uc2b5\ub2c8\ub2e4\u300d, \u300c~ \ub530\ub85c \uae30\ub85d\ud574 \uc8fc\uc138\uc694\u300d). \uace0\uac1d\uc758 \uc77c\uc5d0 \uad00\ud55c \uc904\uc774 \uc5c6\uc73c\uba74 \ube44\uc6c0",
+          "required": false
+        },
+        {
+          "name": "follow_up_method",
+          "type": "STRING",
+          "description": "\ubc18\ub4dc\uc2dc \ucc44\uc6c0. \ubcf8\ubb38 \ub05d\uc758 \u300c\ud6c4\uc18d \uc548\ub0b4\ub294 \uc694\uccad\ud558\uc2e0 \ubc29\uc2dd(\u2026)\uc744 \uae30\uc900\uc73c\ub85c \ub0a8\uacbc\uc2b5\ub2c8\ub2e4\u300d \uc904\uc758 \uad04\ud638 \uc548 \uac12\uc744 \uadf8\ub300\ub85c \uc500. \uc608: \uc624\uc804 \uc804\ud654, \uc601\uc5c5\uc810 \uc548\ub0b4, \uc774\uba54\uc77c \uc694\uc57d",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "CustomerSegment",
+      "description": "\ud68c\uc6d0\uc744 \uc131\ud5a5\uc5d0 \ub530\ub77c \ub098\ub208 \ubb34\ub9ac \ud558\ub098. \uac12\uc740 \uac12 \ubaa9\ub85d\uc758 6\uac1c\ubfd0\uc784. \ud574\ub2f9: \uba38\ub9ac\uc904\uc758 \uace0\uac1d\uad70 \uac12 \ud558\ub098\uc5d0 \ub178\ub4dc \ud558\ub098. \uac12\uc740 \uc2e0\uaddc \uac00\uc785, \uc7a5\uae30 \ubcf4\uc720, VIP, \ud734\uba74 \uc9c1\uc804, \ub2e4\uc911 \uce74\ub4dc, \uc5f0\ud68c\ube44 \ubd80\ub2f4 \uc911 \ud558\ub098. \ube44\ud574\ub2f9: \ubcf8\ubb38\uc5d0\uc11c \uc9d0\uc791\ud55c \uace0\uac1d \uc131\ud5a5.",
+      "properties": [
+        {
+          "name": "name",
+          "type": "STRING",
+          "description": "\uba38\ub9ac\uc904\uc758 \uace0\uac1d\uad70 \uac12\uc744 \uadf8\ub300\ub85c \uc500. \uc608: \uc2e0\uaddc \uac00\uc785",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Complaint",
+      "description": "\uace0\uac1d\uc774 \uc0c1\ub2f4\uc5d0\uc11c \ubd84\uba85\ud788 \ub9d0\ud55c \ubd88\ub9cc\uc774\ub098 \ubd88\ud3b8 \ud558\ub098. \ud574\ub2f9: \u300c\ubd88\ud3b8\ud574\uc694\u300d, \u300c\uc9c0\ucce4\uc5b4\uc694\u300d, \u300c\ud61c\ud0dd\uc774 \uc5c6\uc5b4\uc694\u300d\ucc98\ub7fc \uace0\uac1d\uc774 \ubd88\ub9cc\uc774\ub098 \ubd88\ud3b8\uc744 \ubd84\uba85\ud788 \ub9d0\ud55c \uac83. \uc0c1\ub2f4 \ud558\ub098\uc5d0 0 ~ 2\uac1c. \ubd88\ub9cc\ub9c8\ub2e4 \uadf8 \ubd88\ub9cc\uc774 \ub2e4\ub8e8\ub294 \uc8fc\uc81c\ub97c \ud558\ub098 \uc774\uc0c1 ABOUT\ub85c \uc787\ub294\ub2e4. \ube44\ud574\ub2f9: \ub2e8\uc21c\ud55c \uc9c8\ubb38\uc774\ub098 \uc694\uccad, \uc0c1\ub2f4\uc0ac\uc758 \ub9d0, \uace0\uac1d\uc774 \uac71\uc815\ub9cc \ud55c \uac83.",
+      "properties": [
+        {
+          "name": "content",
+          "type": "STRING",
+          "description": "\uace0\uac1d\uc774 \ub9d0\ud55c \ubd88\ub9cc\uc744 \ud55c \ubb38\uc7a5\uc73c\ub85c, \uc6d0\ubb38 \ud45c\ud604\uc744 \uc0b4\ub824 \uc500. \uc608: \ubcf8\uc778 \ud655\uc778\uc744 \ub05d\ub0b4\ub824 \ud574\ub3c4 \uac19\uc740 \uc694\uccad \ud654\uba74\uc73c\ub85c \uacc4\uc18d \ub418\ub3cc\uc544\uac10",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Request",
+      "description": "\uc694\uccad. \uace0\uac1d\uc774 \uc0c1\ub2f4\uc5d0\uc11c \ud574 \ub2ec\ub77c\uace0 \ud55c \uac83 \ud558\ub098(\ube44\uad50 \uae30\uc900, \uc6d0\ud558\ub294 \uc870\uac74, \uae30\ub85d \uc694\uccad). \ud574\ub2f9: \u300c\ube44\uad50\ud574 \uc8fc\uc138\uc694\u300d, \u300c~\uc774\uba74 \uc62e\uae30\uaca0\uc5b4\uc694\u300d. \ube44\ud574\ub2f9: \ubd88\ub9cc(Complaint\ub85c \uc500), \uc0c1\ub2f4\uc0ac\uc758 \uc81c\uc548.",
+      "properties": [
+        {
+          "name": "content",
+          "type": "STRING",
+          "description": "\uc694\uccad \ub0b4\uc6a9\uc744 \ud55c \ubb38\uc7a5\uc73c\ub85c, \uc6d0\ubb38 \ud45c\ud604\uc744 \uc0b4\ub824 \uc500",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Proposal",
+      "description": "\uc81c\uc548. \uc0c1\ub2f4\uc0ac\uac00 \uace0\uac1d\uc5d0\uac8c \uad8c\ud55c \ubc29\ubc95\uc774\ub098 \ub300\uc548 \ud558\ub098\uc640 \uace0\uac1d\uc758 \ubc18\uc751. \ud574\ub2f9: \u300c~\ud558\uc2dc\ub294 \uac74 \uc5b4\ub5a0\uc138\uc694?\u300d, \u300c~\ub97c \uc548\ub0b4\ub4dc\ub9b4\uac8c\uc694\u300d. \ube44\ud574\ub2f9: \uace0\uac1d\uc758 \uc694\uccad, \uc0c1\ub2f4\uc0ac\uac00 \uc0ac\uc2e4\ub9cc \uc54c\ub824 \uc900 \uac83.",
+      "properties": [
+        {
+          "name": "content",
+          "type": "STRING",
+          "description": "\uc0c1\ub2f4\uc0ac\uac00 \uad8c\ud55c \ub9d0\uc744 \uc6d0\ubb38 \ubb38\uc7a5 \uadf8\ub300\ub85c \uc62e\uae40",
+          "required": false
+        },
+        {
+          "name": "accepted",
+          "type": "BOOLEAN",
+          "description": "\ubc18\ub4dc\uc2dc \ucc44\uc6c0. \uc81c\uc548 \ubc14\ub85c \ub4a4 \uace0\uac1d\uc758 \ub9d0\ub85c \ud310\ub2e8\ud568. \ubc1b\uc544\ub4e4\uc774\uba74 true(\uc608: \u300c\uadf8\ub807\uac8c \ud574 \uc8fc\uc138\uc694\u300d, \u300c\ubc1b\uc544 \ubcfc\uac8c\uc694\u300d, \u300c\uadf8\ub807\uac8c \ud560\uac8c\uc694\u300d), \uac70\uc808\ud558\uba74 false(\uc608: \u300c\uad1c\ucc2e\uc544\uc694\u300d, \u300c\uc548 \ud560\ub798\uc694\u300d, \u300c\uc6d0\ud558\uc9c0 \uc54a\uc544\uc694\u300d). \u300c\ub098\uc911\uc5d0 \uc815\ud560\uac8c\uc694\u300d\ucc98\ub7fc \ubbf8\ub8ec \ub54c\ub9cc \ube44\uc6c0",
+          "required": false
+        },
+        {
+          "name": "reason",
+          "type": "STRING",
+          "description": "\uace0\uac1d\uc774 \ubc1b\uc544\ub4e4\uc774\uac70\ub098 \uac70\uc808\ud55c \uae4c\ub2ed\uc744 \uc6d0\ubb38 \ud45c\ud604\uc73c\ub85c. \uc608: \uc5f0\ud68c\ube44 \ud558\ub098 \ub54c\ubb38\uc5d0 \uc0dd\ud65c\ube44 \uad00\ub9ac \ubc29\uc2dd\uc744 \ubc14\uafb8\uace0 \uc2f6\uc9c0 \uc54a\uc74c",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Topic",
+      "description": "\ub2e8\uc704\uac00 \ub2e4\ub8e8\ub294 \uc5c5\ubb34 \ub300\uc0c1 \ud558\ub098\ub97c \uc9e7\uc740 \uba85\uc0ac\ub85c \uc4f4 \uac83(\uc608: \uc5f0\ud68c\ube44, \ubcf8\uc778 \ud655\uc778, \uad11\uace0 \uc218\uc2e0). \ud574\ub2f9: \uadf8 \ub2e8\uc704\uac00 \ub2e4\ub8e8\ub294 \uc5c5\ubb34 \ub300\uc0c1\uc744 2 ~ 8\uae00\uc790\uc758 \uba85\uc0ac\ub85c \uc500(\uc608: \uc5f0\ud68c\ube44, \ubcf8\uc778 \ud655\uc778, \uad11\uace0 \uc218\uc2e0, \ud61c\ud0dd \uc2e0\uccad, \uc774\uc758\uc2e0\uccad, \uacb0\uc81c\uc77c, \ud574\uc678 \uacb0\uc81c, \uce74\ub4dc \ud574\uc9c0). \ud61c\ud0dd \ud56d\ubaa9\uc774\uba74 \uadf8 \ud61c\ud0dd\uc774 \uc4f0\uc774\ub294 \uacf3\uc774\ub098 \ub300\uc0c1\uc744 \uc500(\uc608: \uc678\uc2dd, \ub300\uc911\uad50\ud1b5, \ub514\uc9c0\ud138 \uad6c\ub3c5, \ud574\uc678 \uacb0\uc81c, \uc804\uae30\ucc28 \ucda9\uc804, \ud1b5\ud569 \ud55c\ub3c4). \ub2e8\uc704 \ud558\ub098\uc5d0 \uac00\uc7a5 \uc911\uc2ec \ub300\uc0c1\ubd80\ud130 1 ~ 3\uac1c, \ub9ce\uc544\uc57c 3\uac1c. \ube44\ud574\ub2f9: \ubd88\ud3b8, \ubd88\ub9cc, \ubb38\uc758, \uc548\ub0b4, \uacc4\uc0b0 \uac19\uc740 \ub9d0, \ud61c\ud0dd, \ud560\uc778, \uc801\ub9bd, \uce90\uc2dc\ubc31, \ubcf4\ub108\uc2a4\ucc98\ub7fc \ub108\ubb34 \ub113\uc740 \ub9d0, \uce74\ub4dc \uc774\ub984, \uac00\ub9f9\uc810 \uc774\ub984, \uae08\uc561, \ub0a0\uc9dc, \uc0ac\ub78c.",
+      "properties": [
+        {
+          "name": "name",
+          "type": "STRING",
+          "description": "\uc8fc\uc81c\uc758 \ub300\ud45c \uc774\ub984. \ub744\uc5b4\uc4f0\uae30\ub294 \ub0b1\ub9d0 \uc0ac\uc774\uc5d0 \ud55c \uce78. \uc608: \uc5f0\ud68c\ube44, \ubcf8\uc778 \ud655\uc778",
+          "required": false
+        }
+      ],
+      "additional_properties": false
+    }
+  ],
+  "relationship_types": [
+    {
+      "label": "FOLLOWS",
+      "description": "\uc774 \uc0c1\ub2f4\uc774 \uc774\uc5b4\ubc1b\uc740 \uc55e\uc120 \uc0c1\ub2f4. \ud574\ub2f9: \ubcf8\ubb38\uc774 \uc55e\uc120 \uc0c1\ub2f4 ID\ub97c \ub9d0\ud558\uba70 \uc774\uc5b4\uc9c4\ub2e4\uace0 \ud55c \uac83. \ube44\ud574\ub2f9: \uac19\uc740 \ud68c\uc6d0\uc758 \ub2e4\ub978 \uc0c1\ub2f4\uc774\ub77c\ub294 \uac83\ub9cc\uc73c\ub85c \uc787\uc9c0 \uc54a\uc74c.",
+      "properties": [],
+      "additional_properties": true
+    },
+    {
+      "label": "IN_SEGMENT",
+      "description": "\uc0c1\ub2f4\ud55c \ud68c\uc6d0\uc758 \uace0\uac1d\uad70. \uc0c1\ub2f4 \ud558\ub098\uc5d0 \uc815\ud655\ud788 \ud558\ub098.",
+      "properties": [],
+      "additional_properties": true
+    },
+    {
+      "label": "HAS_COMPLAINT",
+      "description": "\uc0c1\ub2f4\uc5d0\uc11c \uace0\uac1d\uc774 \ub9d0\ud55c \ubd88\ub9cc.",
+      "properties": [],
+      "additional_properties": true
+    },
+    {
+      "label": "HAS_REQUEST",
+      "description": "\uc0c1\ub2f4\uc5d0\uc11c \uace0\uac1d\uc774 \ud55c \uc694\uccad.",
+      "properties": [],
+      "additional_properties": true
+    },
+    {
+      "label": "HAS_PROPOSAL",
+      "description": "\uc0c1\ub2f4\uc5d0\uc11c \uc0c1\ub2f4\uc0ac\uac00 \ud55c \uc81c\uc548.",
+      "properties": [],
+      "additional_properties": true
+    },
+    {
+      "label": "ABOUT",
+      "description": "\ub2e8\uc704\uac00 \ub2e4\ub8e8\ub294 \uc8fc\uc81c. \uc870\ud56d, \ud61c\ud0dd, \ubd88\ub9cc\ub9c8\ub2e4 \uc8fc\uc81c\ub97c 1 ~ 3\uac1c \ubc18\ub4dc\uc2dc \uc787\ub294\ub2e4(\uc8fc\uc81c \uc5c6\ub294 \uc870\ud56d, \ud61c\ud0dd, \ubd88\ub9cc\uc744 \ub9cc\ub4e4\uc9c0 \uc54a\uc74c). \ud574\ub2f9: \uadf8 \ub2e8\uc704\uc758 \uc911\uc2ec \ub300\uc0c1. \ube44\ud574\ub2f9: \uc9c0\ub098\uac00\ub4ef \ud55c \ubc88 \ub098\uc628 \ub0b1\ub9d0.",
+      "properties": [],
+      "additional_properties": true
+    }
+  ],
+  "patterns": [
+    {
+      "source": "Consultation",
+      "relationship": "FOLLOWS",
+      "target": "Consultation"
+    },
+    {
+      "source": "Consultation",
+      "relationship": "IN_SEGMENT",
+      "target": "CustomerSegment"
+    },
+    {
+      "source": "Consultation",
+      "relationship": "HAS_COMPLAINT",
+      "target": "Complaint"
+    },
+    {
+      "source": "Consultation",
+      "relationship": "HAS_REQUEST",
+      "target": "Request"
+    },
+    {
+      "source": "Consultation",
+      "relationship": "HAS_PROPOSAL",
+      "target": "Proposal"
+    },
+    {
+      "source": "Complaint",
+      "relationship": "ABOUT",
+      "target": "Topic"
+    }
+  ],
+  "constraints": [
+    {
+      "type": "UNIQUENESS",
+      "property_name": "record_id",
+      "property_names": [
+        "record_id"
+      ],
+      "node_type": "Consultation",
+      "relationship_type": null
+    },
+    {
+      "type": "UNIQUENESS",
+      "property_name": "name",
+      "property_names": [
+        "name"
+      ],
+      "node_type": "CustomerSegment",
+      "relationship_type": null
+    },
+    {
+      "type": "UNIQUENESS",
+      "property_name": "name",
+      "property_names": [
+        "name"
+      ],
+      "node_type": "Topic",
+      "relationship_type": null
+    }
+  ],
+  "additional_node_types": false,
+  "additional_relationship_types": false,
+  "additional_patterns": false
+}

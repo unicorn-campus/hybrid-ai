@@ -1,0 +1,42 @@
+{
+  "decided_by": "클로니 수정안(사용자 확정 전)",
+  "date": "2026-11-18",
+  "status": "proposal",
+  "rows": [
+    {
+      "name": "가계부",
+      "representative": "가계부",
+      "status": "approved"
+    },
+    {
+      "name": "명세서",
+      "representative": "전자 명세서",
+      "status": "approved"
+    },
+    {
+      "name": "이용 기간",
+      "representative": "이용",
+      "status": "needs_review"
+    },
+    {
+      "name": "이용내역",
+      "representative": "이용",
+      "status": "needs_review"
+    },
+    {
+      "name": "조회",
+      "representative": "조회 화면",
+      "status": "approved"
+    },
+    {
+      "name": "인증",
+      "representative": "본인 확인",
+      "status": "approved"
+    },
+    {
+      "name": "안내",
+      "representative": null,
+      "status": "needs_review"
+    }
+  ]
+}

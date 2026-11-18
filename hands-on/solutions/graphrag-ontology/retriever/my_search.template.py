@@ -143,9 +143,9 @@ def narrow_entities(candidates: list[dict], limit: int = 16, pinned_ids: list[st
 def normalize_entity_key(label: str, text: str) -> str:
     """찾을 대상의 글을 레이블별 키 속성과 같은 꼴로 맞춤(E1 정규화).
 
-    규칙: ProductGuide는 「한빛」과 끝의 「카드」를 떼고 공백을 지움. Clause는 「제N조」(「의M」은 남기고 항 번호는 뗌).
-          Benefit은 공백과 괄호를 지움. 그 밖은 앞뒤 공백만 지움.
-    예시: ("Clause", "16조의2 1항") → "제16조의2" / ("ProductGuide", "한빛 모아생활 카드") → "모아생활"
+    규칙: CardProduct(카드상품, card_name 키로 찾음)는 「한빛」과 끝의 「카드」를 떼고 공백을 지움.
+          Article(조항)은 「제N조」(「의M」은 남기고 항 번호는 뗌). Benefit은 공백과 괄호를 지움. 그 밖은 앞뒤 공백만 지움.
+    예시: ("Article", "16조의2 1항") → "제16조의2" / ("CardProduct", "한빛 모아생활 카드") → "모아생활"
     """
     raise NotImplementedError("여기에 본인 코드를 작성함")
 

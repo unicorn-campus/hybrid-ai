@@ -356,8 +356,13 @@
      (문서 종류끼리 번갈아 고치는 되풀이를 막기 위함)  
    - 승인 기록 작성: 승인자, 승인 일시, 청크 출처(collection 이름과 건수), 입력 파일(chunks_snapshot.json,  
      competency_questions.md, crossing_points.json, sample_plan.json, decisions.json, expected_answers.json)의 SHA-256 값,  
-     저장한 공통 개념 층의 판 번호, 마지막 시험 지표, 추출 단위 규칙(인덱싱이 같은 단위로 추출하도록)  
-   - 출력파일: graph_schema.json, approval.json, concepts.json  
+     저장한 공통 개념 층의 판 번호, 마지막 시험 지표, 추출 절차(추출 틀, LLM 설정, 다시 묻는 규칙).  
+     사람이 확인하는 기록이며 인덱싱은 읽지 않음  
+   - 추출 단위 글 규칙 작성: 3단계에서 승인한 나누는 규칙(청크를 그대로 쓰는 문서 종류는 제목 꼴이 null)과  
+     8단계 시험에서 단위 앞에 붙인 머리줄 칸 목록을 적음. 인덱싱이 시험과 같은 글로 추출하도록 따로 남김.  
+     나누기와 머리줄을 스크립트 함수로 만들었으면 그 함수 이름도 적고, 인덱싱이 같은 함수를 부르게 함  
+   - 인덱싱은 문서 종류마다 graph_schema.json과 unit_text_rules.json을 읽고 approval.json은 읽지 않음  
+   - 출력파일: graph_schema.json, unit_text_rules.json, approval.json, concepts.json  
 - 이미 승인된 graph_schema.json이 있는 문서 종류에 나중에 적용할 때  
   - 3, 4단계는 다시 하지 않음. 1단계는 원천 목록 표와 값 목록 파일, 기존 공통 개념 층, 도구 판 확인만 함  
   - 2단계에서는 여러 원천을 거치는 질문과 건너가는 지점만 보태 승인받고 5단계부터 진행함  
@@ -380,7 +385,8 @@
     `{base_dir}/{doc}/output/schema_preview.html`  
   - 기대 답: `{base_dir}/{doc}/expected_answers.json`  
   - 시험: `{base_dir}/{doc}/output/fill_calls.jsonl`, `{base_dir}/{doc}/output/fill_report.md`  
-  - 최종 그래프 스키마와 승인 기록: `{base_dir}/{doc}/graph_schema.json`, `{base_dir}/{doc}/approval.json`  
+  - 최종 그래프 스키마, 추출 단위 글 규칙, 승인 기록: `{base_dir}/{doc}/graph_schema.json`,  
+    `{base_dir}/{doc}/unit_text_rules.json`, `{base_dir}/{doc}/approval.json`  
 - 톤앤매너: 사용자에게 묻고 보고할 때는 그래프DB를 처음 접하는 사람도 알 수 있는 쉬운 한국어로 씀.  
   용어(역량 질문, 묶음, 노드 타입, 관계, 속성, 제약, 가지치기, 원천, Class, 공통 개념 층, 동일, 분류, 개념, 역관,  
   허용 값, 허용 수, 참조 무결성, 건너가는 지점, 맞추기 표)는 처음 나올 때 한 줄로 풀이함  
@@ -439,7 +445,8 @@
     같은 라벨, description, 키 속성임을 실행 로그로 확인함  
   - `GraphSchema.from_file()`로 다시 읽은 노드 타입, 관계, 패턴, 제약 수가 검증된 초안과 같음  
   - 저장된 제약이 모두 쓰는 Neo4j 판이 지원하는 제약임  
-  - approval.json에 승인자, 승인 일시, 입력 파일 SHA-256 값, 마지막 시험 지표, 추출 단위 규칙이 있음  
+  - unit_text_rules.json에 추출 단위를 나누는 규칙과 머리줄 칸 목록이 있고, 그 값이 8단계 시험에서 쓴 것과 같음  
+  - approval.json에 승인자, 승인 일시, 입력 파일 SHA-256 값, 마지막 시험 지표, 추출 절차가 있음  
   - concepts.json에 승인 기록이 있고(맞추기 표가 있으면 그 승인 기록도 있음), check_concepts.json의 판정이 통과임을  
     실행 로그로 확인함  
   - Class에 대응하는 노드 타입의 description 첫머리가 concepts.json의 뜻과 같음을 실행 로그로 확인함  

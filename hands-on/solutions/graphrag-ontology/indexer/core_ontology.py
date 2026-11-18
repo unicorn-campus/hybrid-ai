@@ -1,23 +1,153 @@
-"""온톨로지 결합 인덱싱 함수 모음(개선 3 ~ 5). index_graph.py가 K5 병합 뒤에 순서대로 부름.
+"""온톨로지 결합 인덱싱 함수 모음. 스키마 설계(`schema/doc-ontology`)가 확정한 결과를 그대로 따름.
 
-  개선 3  load_schema_graph   정형 스키마 설명과 공통 개념 층을 Neo4j에 실음(행 데이터는 싣지 않음)
-  개선 4  link_categories     승인된 업종 매핑표로 혜택 노드를 업종 노드에 이음
-  개선 5  check_bridge        문서 그래프와 정형 DB가 키로 이어지는지 검사함
+스키마 설계 프롬프트(`prompts/design-kg-schema-doc-ontology.md`) 9단계가 남긴 추출 단위 글 규칙(unit_text_rules.json)대로
+인덱싱에서도 같은 글로 추출하려고, 추출 단위와 머리줄과 머리줄 값 보정은 스키마 설계 도구(`schema/doc-ontology/tools`)의
+함수를 불러 씀. 파일에 적힌 규칙과 그 함수의 규칙이 같은지는 check_unit_text_rules가 시작할 때 확인함.
 
-전제: 정형 데이터(회원, 카드, 거래)는 PostgreSQL에 그대로 둠. 그래프에는 뷰와 컬럼의 뜻, 업무 개념, 예시 쿼리만 들어감.
-검색기는 이 설명을 읽어 SQL을 만들고(개선 6), 조회 결과의 키 값으로 문서 그래프에 건너감(개선 7).
+  K1      split_units          추출 단위(약관은 조항, 혜택 안내는 혜택 항목, 상담 기록은 청크 그대로)와 머리줄(version 2)
+  K2 뒤   postprocess_graph    머리줄 값 보정(header_fill_rule)과 주제 맞추기 표(대표 이름으로 바꿈)
+  K5 뒤   load_concept_layer   공통 개념 층(Class, 관계, 검사 규칙)을 그래프에 실음. 정형 DB의 행은 싣지 않음
+          load_view_layer      정형 조회용 뷰 설명(schema/rdb/app_views.json)을 DB 카탈로그와 대조한 뒤 DbView, DbColumn,
+                               SqlExample로 실음. 키 컬럼은 OntoConcept -[:KEY_IN]-> DbColumn(검색기의 정형 조회 툴이 읽음)
+          link_categories      업종 맞추기 표의 approved 행만 Benefit -[:IN_CATEGORY]-> Category로 이음
+          check_rules          검사 규칙 K01 ~ K09의 위반 수와 건너가는 지점(P1 ~ P6)의 이어짐을 셈
+
+정형 데이터(회원, 카드, 거래)는 PostgreSQL에 그대로 둠. 문서 노드에는 키 속성(product_id, member_pseudo_id)만 있음.
 """
 
+import json
 import re
+import sys
+from pathlib import Path
 
-import psycopg
+SCHEMA_DIR = Path(__file__).resolve().parents[1] / "schema" / "doc-ontology"  # 스키마 설계 결과 폴더. 읽기만 함
+sys.path.insert(0, str(SCHEMA_DIR / "tools"))  # 스키마 설계 도구(units.py, fill_test.py)를 불러 쓰기 위함
 
-VIEW_REFERENCE = re.compile(r"\b(?:from|join)\s+([A-Za-z_][\w.]*)", re.IGNORECASE)  # 예시 쿼리가 쓰는 뷰 이름
-SCHEMA_LABELS = ("OntoConcept", "DbView", "DbColumn", "SqlExample")  # 스키마 설명 노드. 세대와 상관없이 한 벌만 둠
+import units as schema_units  # noqa: E402  추출 단위, 머리줄, 머리줄 값
+from fill_test import apply_header, tagged_template, tidy_graph_json  # noqa: E402  시험과 같은 보정, 추출 틀, 응답 다듬기
+
+CONCEPT_LABELS = ("OntoConcept",)  # 공통 개념 층 노드. 세대와 상관없이 한 벌만 둠
 
 
+def load_json(path: Path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def squash(text) -> str:
+    return re.sub(r"\s+", "", str(text or ""))
+
+
+# ---------------------------------------------------------------------------
+# K1 추출 단위
+# ---------------------------------------------------------------------------
+def check_unit_text_rules(doc_type: str, rules: dict) -> None:
+    """unit_text_rules.json에 적힌 규칙이 지금 실행할 코드(units.py)의 규칙과 같은지 확인함. 다르면 멈춤.
+
+    목적: 스키마 설계가 시험해 통과시킨 추출 단위와 머리줄을 인덱싱이 그대로 쓰는지 보장함.
+          설계 뒤에 units.py만 고치면 시험과 다른 글로 추출하게 되므로, 그때는 9단계를 다시 실행해야 함.
+    """
+    problems = []
+    if rules.get("extraction_unit_rule") != schema_units.RULES[doc_type]:
+        problems.append("나누는 규칙(extraction_unit_rule)")
+    if rules.get("metadata_header") != schema_units.HEADER_FIELDS[doc_type]:
+        problems.append("머리줄 칸(metadata_header)")
+    if problems:
+        raise SystemExit(f"{doc_type}: unit_text_rules.json의 {', '.join(problems)}이 schema/doc-ontology/tools/units.py와 다름\n"
+                         "스키마 설계 9단계(tools/finalize.py)를 다시 실행해 두 곳을 맞출 것")
+
+
+def split_units(chunks: list[dict], skip_chroma_ids: set[str]) -> tuple[list[dict], list[str], list[str]]:
+    """청크를 추출 단위로 나눔. 스키마 설계 3단계에서 승인한 규칙(units.split_chunk)을 그대로 씀.
+
+    인자: chunks는 index_graph의 청크(chunk_id, doc_id, doc_type, text, metadata). skip_chroma_ids는 LLM에 보내지 않을 청크
+          (1단계 개인정보 점검에서 남은 것).
+    반환값: (단위 목록, 단위가 하나도 안 나온 청크 ID, 개인정보 때문에 건너뛴 청크 ID).
+            단위는 unit_id, doc_type, doc_id, metadata, text, chunk_ids, text_hash, bundle, keys,
+            header_text(머리줄 version 2), header_values(머리줄 값. None이면 답이 없어야 하는 단위라 LLM에 보내지 않음).
+    """
+    import hashlib
+    units: dict[str, dict] = {}
+    empty, skipped = [], []
+    for chunk in chunks:
+        if chunk["metadata"].get("chroma_id") in skip_chroma_ids:
+            skipped.append(chunk["chunk_id"])
+            continue
+        doc_type = chunk["doc_type"]
+        # units.split_chunk는 1단계 사본의 청크 꼴(id, text, metadata)을 받음. id는 인덱서의 chunk_id를 넘겨 FROM_CHUNK에 씀
+        pieces, _why = schema_units.split_chunk(doc_type, {"id": chunk["chunk_id"], "text": chunk["text"],
+                                                           "metadata": chunk["metadata"]})
+        if not pieces:
+            empty.append(chunk["chunk_id"])
+        for piece in pieces:
+            unit_id = piece["unit_id"]
+            if doc_type != "consult_log" and unit_id == chunk["chunk_id"]:
+                unit_id = f"{chunk['doc_id']}#{chunk['metadata'].get('chroma_id')}"  # 조항, 항목이 아닌 청크(표지 등)
+            unit = units.get(unit_id)
+            if unit is None:
+                header_values = schema_units.header_values(doc_type, piece)
+                units[unit_id] = {
+                    "unit_id": unit_id, "doc_type": doc_type, "doc_id": chunk["doc_id"],
+                    "metadata": dict(chunk["metadata"]), "text": piece["text"], "chunk_ids": [chunk["chunk_id"]],
+                    "bundle": piece["bundle"], "keys": piece["keys"],
+                    "header_text": schema_units.header_of(doc_type, piece) + "\n",
+                    "header_values": header_values,
+                }
+            elif chunk["chunk_id"] not in unit["chunk_ids"]:  # 두 청크에 걸친 단위: 긴 글을 남기고 청크 ID를 모두 모음
+                if len(piece["text"]) > len(unit["text"]):
+                    unit["text"] = piece["text"]
+                unit["chunk_ids"].append(chunk["chunk_id"])
+    for unit in units.values():
+        unit["text_hash"] = hashlib.sha256(unit["text"].encode("utf-8")).hexdigest()
+    return list(units.values()), empty, skipped
+
+
+# ---------------------------------------------------------------------------
+# K2 뒤: 머리줄 값 보정과 주제 맞추기 표
+# ---------------------------------------------------------------------------
+def load_topic_map(path: Path) -> dict[str, str]:
+    """주제 맞추기 표의 approved 행: 띄어쓰기를 없앤 이름 → 대표 이름."""
+    table = {}
+    for row in load_json(path)["rows"]:
+        if row["status"] == "approved" and row.get("representative"):
+            table[squash(row["name"]).lower()] = row["representative"]
+    return table
+
+
+def postprocess_graph(unit: dict, topic_map: dict[str, str]) -> dict:
+    """추출 결과(가지치기 뒤 model_dump 꼴)에 머리줄 값을 넣고, 주제 이름을 대표 이름으로 바꿈.
+
+    머리줄 값 보정은 스키마 설계의 apply_header를 그대로 씀(관계 꼴만 start, end로 바꿔 넘기고 되돌림).
+    반환값: {"fixes": 머리줄 보정 내용, "topics_mapped": 대표 이름으로 바꾼 주제 수}
+    """
+    graph = unit["graph"]
+    simple = {"nodes": [{"id": n["id"], "label": n["label"], "properties": dict(n.get("properties") or {})}
+                        for n in graph["nodes"]],
+              "relationships": [{"type": r["type"], "start": r["start_node_id"], "end": r["end_node_id"]}
+                                for r in graph["relationships"]]}
+    simple = apply_header(simple, unit["header_values"], unit["unit_id"])
+    mapped = 0
+    for node in simple["nodes"]:
+        if node["label"] == "Topic" and node["properties"].get("name"):
+            name = " ".join(str(node["properties"]["name"]).split())  # 맞추기 표에 없으면 띄어쓰기만 맞춤
+            rep = topic_map.get(squash(name).lower())
+            if rep and rep != name:
+                mapped += 1
+            node["properties"]["name"] = rep or name
+    unit["graph"] = {
+        "nodes": [{"id": n["id"], "label": n["label"], "properties": n["properties"], "embedding_properties": {}}
+                  for n in simple["nodes"]],
+        "relationships": [{"type": r["type"], "start_node_id": r["start"], "end_node_id": r["end"], "properties": {},
+                           "embedding_properties": {}} for r in simple["relationships"]],
+    }
+    return {"fixes": simple.get("header_fix", []), "topics_mapped": mapped}
+
+
+# ---------------------------------------------------------------------------
+# K5 뒤: 공통 개념 층 싣기, 업종 잇기, 검사 규칙
+# ---------------------------------------------------------------------------
 def read_view_catalog(dsn: str, password: str, schema: str = "app") -> dict:
     """DB 카탈로그에서 논리 뷰의 컬럼과 자료형을 읽음. 반환값: {뷰 이름: {컬럼 이름: 자료형}}"""
+    import psycopg
     catalog = {}
     with psycopg.connect(dsn, password=password, connect_timeout=10) as conn:
         rows = conn.execute("SELECT table_name, column_name, data_type FROM information_schema.columns "
@@ -27,106 +157,190 @@ def read_view_catalog(dsn: str, password: str, schema: str = "app") -> dict:
     return catalog
 
 
-def load_schema_graph(driver, concepts: dict, catalog: dict) -> dict:
-    """개선 3: 공통 개념 층(concepts.json)과 DB 카탈로그로 스키마 설명 노드를 다시 만듦.
+def load_concept_layer(driver, concepts: dict) -> dict:
+    """공통 개념 층(concepts.json)의 Class를 OntoConcept 노드로 실음. 옛 설명 노드는 지우고 다시 만듦(수십 노드라 통째로).
 
-    노드: OntoConcept(업무 개념), DbView(논리 뷰), DbColumn(컬럼), SqlExample(예시 쿼리)
-    관계: (DbView)-[:HAS_COLUMN]->(DbColumn), (OntoConcept)-[:KEY_IN]->(DbColumn), (SqlExample)-[:USES]->(DbView)
-    KEY_IN은 「이 컬럼의 값이 이 업무 개념의 키」라는 뜻임. 검색기가 조회 결과에서 건너갈 키를 고를 때 씀.
-    설명에 적은 뷰나 컬럼이 DB에 없으면 싣지 않고 ValueError를 냄(설명과 실제가 어긋난 채로 두지 않음).
+    노드 속성: name, definition, kind(개체, 분류), values(허용 값), doc_labels(문서 쪽 라벨과 키), source_labels(정형 DB 라벨과 키),
+              identity(동일 규칙), relations(이 Class가 출발인 관계와 반대 이름). 검색기가 질문의 낱말을 Class와 키로 바꿀 때 씀.
     """
-    views = []
-    for view in concepts["views"]:
-        columns = catalog.get(view["name"])
-        if columns is None:
-            raise ValueError(f"DB에 없는 뷰: {view['name']}")
-        rows = []
-        for position, column in enumerate(view["columns"]):
-            if column["name"] not in columns:
-                raise ValueError(f"DB에 없는 컬럼: {view['name']}.{column['name']}")
-            rows.append({"name": column["name"], "meaning": column["meaning"], "position": position,
-                         "data_type": columns[column["name"]]})  # 자료형은 손으로 적지 않고 DB에서 읽음
-        views.append({"name": view["name"], "meaning": view["meaning"], "columns": rows})
-    concept_rows = [{"name": c["name"], "definition": c["definition"], "values": c.get("values") or [],
-                     "doc_label": c["doc"]["label"], "doc_key": c["doc"]["key"], "position": position,
-                     "bridge_rule": (c.get("bridge") or {}).get("rule"), "db": c["db"]}
-                    for position, c in enumerate(concepts["concepts"])]
-    examples = [{"question": e["question"], "sql": e["sql"], "position": position,
-                 "views": sorted({name.removeprefix("app.") for name in VIEW_REFERENCE.findall(e["sql"])})}
-                for position, e in enumerate(concepts.get("examples", []))]
-
-    # 옛 설명을 지우고 다시 만듦. 스키마 설명은 작아서(수십 노드) 통째로 바꾸는 편이 안전함
+    rows = []
+    for position, cls in enumerate(concepts["classes"]):
+        out = [r for r in concepts["relations"]
+               if cls["name"] in (r["source_class"] if isinstance(r["source_class"], list) else [r["source_class"]])]
+        rows.append({
+            "name": cls["name"], "class_id": cls["id"], "definition": cls["definition"], "kind": cls["kind"],
+            "position": position, "values": (cls.get("allowed_values") or {}).get("values") or [],
+            "doc_labels": json.dumps(cls.get("doc_labels", []), ensure_ascii=False),
+            "source_labels": json.dumps(cls.get("source_labels", []), ensure_ascii=False),
+            "identity": json.dumps(cls.get("identity", []), ensure_ascii=False),
+            "relations": json.dumps([{"label": r["label"], "target_class": r["target_class"], "inverse": r.get("inverse")}
+                                     for r in out], ensure_ascii=False),
+        })
     driver.execute_query("MATCH (n) WHERE any(label IN labels(n) WHERE label IN $labels) DETACH DELETE n",
-                         labels=list(SCHEMA_LABELS))
+                         labels=list(CONCEPT_LABELS) + ["DbView", "DbColumn", "SqlExample"])  # 옛 설명 노드도 지움
     driver.execute_query(
-        "UNWIND $views AS v MERGE (dv:DbView {name: v.name}) SET dv.meaning = v.meaning "
-        "WITH dv, v UNWIND v.columns AS c "
-        "MERGE (dc:DbColumn {id: v.name + '.' + c.name}) "
-        "SET dc.name = c.name, dc.data_type = c.data_type, dc.meaning = c.meaning, dc.position = c.position "
-        "MERGE (dv)-[:HAS_COLUMN]->(dc)", views=views)
+        "UNWIND $rows AS k MERGE (oc:OntoConcept {name: k.name}) "
+        "SET oc += k", rows=rows)
+    driver.execute_query(  # Class 사이 관계(개념 규칙): 출발 Class → 도착 Class, 이름과 반대 이름을 속성으로
+        "UNWIND $rels AS r UNWIND r.sources AS s "
+        "MATCH (a:OntoConcept {name: s}), (b:OntoConcept {name: r.target}) "
+        "MERGE (a)-[x:CONCEPT_REL {label: r.label}]->(b) SET x.inverse = r.inverse",
+        rels=[{"label": r["label"], "target": r["target_class"], "inverse": r.get("inverse"),
+               "sources": r["source_class"] if isinstance(r["source_class"], list) else [r["source_class"]]}
+              for r in concepts["relations"]])
+    records, _, _ = driver.execute_query("MATCH (:OntoConcept)-[r:CONCEPT_REL]->(:OntoConcept) RETURN count(r) AS n")
+    return {"concepts": len(rows), "concept_relations": records[0]["n"], "version": concepts.get("version")}
+
+
+def check_view_catalog(views: dict, catalog: dict) -> list[str]:
+    """뷰 설명 파일(schema/rdb/app_views.json)을 DB 카탈로그와 대조함. 어긋난 곳을 글 목록으로 돌려줌(없으면 빈 목록).
+
+    예시: 파일에 merchant_usage.category가 있는데 DB 뷰에 그 컬럼이 없으면 「merchant_usage.category: DB에 없음」
+    """
+    problems = []
+    for view in views["views"]:
+        db_columns = catalog.get(view["name"])
+        if db_columns is None:
+            problems.append(f"{view['name']}: DB의 {views.get('schema', 'app')} 스키마에 없거나 읽을 권한 없음")
+            continue
+        described = {c["name"] for c in view["columns"]}
+        problems += [f"{view['name']}.{c}: DB에 없음" for c in sorted(described - set(db_columns))]
+        problems += [f"{view['name']}.{c}: 설명 없음" for c in db_columns if c not in described]
+    return problems
+
+
+def load_view_layer(driver, views: dict, catalog: dict) -> dict:
+    """정형 조회용 뷰 설명을 실음: DbView -HAS_COLUMN-> DbColumn, 키 컬럼은 OntoConcept -KEY_IN-> DbColumn, 예시는 SqlExample.
+
+    행 데이터는 싣지 않고 뜻만 실음(공통 개념 층과 같이 세대와 상관없이 한 벌). 자료형은 DB 카탈로그 값을 씀.
+    load_concept_layer가 옛 설명 노드를 지운 뒤에 불러야 함(KEY_IN이 OntoConcept에 이어짐).
+    """
+    rows, keys = [], []
+    for view in views["views"]:
+        for position, col in enumerate(view["columns"]):
+            rows.append({"view": view["name"], "view_meaning": view["meaning"], "name": col["name"],
+                         "meaning": col["meaning"], "position": position,
+                         "data_type": catalog.get(view["name"], {}).get(col["name"])})
+            if col.get("concept"):
+                keys.append({"view": view["name"], "name": col["name"], "concept": col["concept"]})
     driver.execute_query(
-        "UNWIND $concepts AS k MERGE (oc:OntoConcept {name: k.name}) "
-        "SET oc.definition = k.definition, oc.values = k.values, oc.doc_label = k.doc_label, oc.doc_key = k.doc_key, "
-        "    oc.bridge_rule = k.bridge_rule, oc.position = k.position "
-        "WITH oc, k UNWIND k.db AS d "
-        "MATCH (dc:DbColumn {id: d.view + '.' + d.column}) MERGE (oc)-[:KEY_IN]->(dc)", concepts=concept_rows)
+        "UNWIND $rows AS r MERGE (v:DbView {name: r.view}) SET v.meaning = r.view_meaning "
+        "MERGE (v)-[:HAS_COLUMN]->(c:DbColumn {view: r.view, name: r.name}) "
+        "SET c.meaning = r.meaning, c.position = r.position, c.data_type = r.data_type", rows=rows)
+    records, _, _ = driver.execute_query(
+        "UNWIND $keys AS k MATCH (oc:OntoConcept {name: k.concept}) MATCH (c:DbColumn {view: k.view, name: k.name}) "
+        "MERGE (oc)-[:KEY_IN]->(c) RETURN count(*) AS n", keys=keys)
     driver.execute_query(
-        "UNWIND $examples AS e CREATE (ex:SqlExample {question: e.question, sql: e.sql, position: e.position}) "
-        "WITH ex, e UNWIND e.views AS name MATCH (dv:DbView {name: name}) MERGE (ex)-[:USES]->(dv)", examples=examples)
-    records, _, _ = driver.execute_query("MATCH (:OntoConcept)-[r:KEY_IN]->(:DbColumn) RETURN count(r) AS n")
-    return {"concepts": len(concept_rows), "views": len(views), "columns": sum(len(v["columns"]) for v in views),
-            "examples": len(examples), "key_links": records[0]["n"]}
+        "UNWIND $rows AS e CREATE (:SqlExample {question: e.question, sql: e.sql, position: e.position})",
+        rows=[{**e, "position": i} for i, e in enumerate(views["examples"])])
+    return {"views": len(views["views"]), "columns": len(rows), "key_columns": records[0]["n"],
+            "key_expected": len(keys), "examples": len(views["examples"])}
 
 
 def link_categories(driver, generation: str, category_map: dict, categories: list[str]) -> dict:
-    """개선 4: 업종 노드 8개를 만들고, 승인된 매핑표대로 혜택을 업종에 이음.
+    """업종 노드를 만들고, 업종 맞추기 표의 approved 행만 Benefit -[:IN_CATEGORY]-> Category로 이음.
 
-    업종 노드(Category)는 DB에서 복사한 데이터가 아님. 혜택 문서 쪽 매핑에서 생기며, 두 저장소가 만나는 자리임.
-    매핑표에서 status가 approved이고 category가 8개 값 안에 있는 혜택만 이음(확정하지 않은 혜택은 잇지 않음).
-    Category에는 __Entity__ 라벨을 붙이지 않음: 엔티티 임베딩(K6)과 커뮤니티(K8)에 섞이지 않게 함.
+    공통 개념 층의 「인덱싱이 더하는 라벨과 관계」(indexer_adds)에 적힌 것만 만듦. Category에는 __Entity__를 붙이지 않음
+    (엔티티 임베딩 K6과 커뮤니티 K8에 섞이지 않게 함).
     """
-    rows = [{"benefit_id": benefit_id, "category": item["category"]}
-            for benefit_id, item in category_map["benefits"].items()
-            if item.get("status") == "approved" and item.get("category") in categories]
+    rows = [{"benefit_id": r["benefit_id"], "category": r["category"]} for r in category_map["rows"]
+            if r["status"] == "approved" and r.get("category") in categories]
     driver.execute_query("UNWIND $names AS name MERGE (:Category {generation: $g, name: name})",
                          names=categories, g=generation)
     records, _, _ = driver.execute_query(
         "UNWIND $rows AS row "
         "MATCH (b:Benefit {generation: $g, benefit_id: row.benefit_id}) "
         "MATCH (c:Category {generation: $g, name: row.category}) "
-        "MERGE (b)-[:FOR_CATEGORY]->(c) RETURN count(*) AS linked", rows=rows, g=generation)
+        "MERGE (b)-[:IN_CATEGORY]->(c) RETURN count(*) AS linked", rows=rows, g=generation)
     return {"categories": len(categories), "approved_rows": len(rows), "linked": records[0]["linked"]}
 
 
-def read_db_reference(dsn: str, password: str) -> dict:
-    """DB 원본에서 대조할 기준값을 읽음(상품 ID 전체, 가맹점 업종 값). 원본 테이블을 읽으므로 관리 계정으로만 됨."""
-    with psycopg.connect(dsn, password=password, connect_timeout=10) as conn:
-        products = {row[0] for row in conn.execute("SELECT product_id FROM public.product").fetchall()}
-        categories = {row[0] for row in conn.execute("SELECT DISTINCT category FROM public.merchant").fetchall()}
-    return {"product_ids": products, "categories": categories}
+def new_map_items(driver, generation: str, category_map: dict, topic_map_path: Path) -> dict:
+    """맞추기 표에 아직 없는 항목을 모음. 사람이 확정할 새 항목이며, 인덱서는 확정하지 않음.
 
-
-def check_bridge(driver, generation: str, categories: list[str], db_reference: dict | None) -> dict:
-    """개선 5: 문서 그래프와 정형 DB가 키로 이어지는지 검사함. 데이터를 고치지 않고 어긋난 것만 보고함.
-
-    검사 ①: 문서의 상품 ID(ProductGuide.product_id)가 DB 상품에 있는가 → 없으면 orphan_products(오류)
-    검사 ②: 공통 개념 층의 업종 8개가 DB의 가맹점 업종 값과 같은가 → 다르면 category_mismatch(오류)
-    검사 ③: 업종에 이어지지 않은 혜택 → unmapped_benefits(경고. 담당자가 매핑표를 확정할 목록)
-    db_reference가 None이면(관리 계정 정보 없음) ①, ②를 건너뛰고 skipped에 적음.
+    benefits: 업종 맞추기 표에 행이 없는 혜택(benefit_id, name, target). draft_category_map.py draft --from 의 입력
+    topics: 주제 맞추기 표에 행이 없는 주제 이름과 문서 종류별 건수. draft_topic_map.py draft --from 의 입력
     """
+    known_benefits = {r["benefit_id"] for r in category_map["rows"]}
     records, _, _ = driver.execute_query(
-        "MATCH (p:ProductGuide {generation: $g}) RETURN collect(DISTINCT p.product_id) AS ids", g=generation)
-    graph_products = {pid for pid in records[0]["ids"] if pid}
+        "MATCH (b:Benefit {generation: $g}) RETURN b.benefit_id AS benefit_id, b.name AS name, b.target AS target "
+        "ORDER BY benefit_id", g=generation)
+    benefits = [dict(r) for r in records if r["benefit_id"] not in known_benefits]
+    known_topics = {squash(r["name"]).lower() for r in load_json(topic_map_path)["rows"]}
     records, _, _ = driver.execute_query(
-        "MATCH (b:Benefit {generation: $g}) WHERE NOT (b)-[:FOR_CATEGORY]->(:Category) "
-        "RETURN b.benefit_id AS benefit_id, b.name AS name ORDER BY benefit_id", g=generation)
-    unmapped = [dict(record) for record in records]
-    report = {"graph_products": len(graph_products), "unmapped_benefits": unmapped, "skipped": []}
-    if db_reference is None:
-        report["skipped"] = ["orphan_products", "category_mismatch"]
-        report["ok"] = True
-        return report
-    report["orphan_products"] = sorted(graph_products - db_reference["product_ids"])
-    report["category_mismatch"] = sorted(set(categories) ^ db_reference["categories"])
-    report["ok"] = not report["orphan_products"] and not report["category_mismatch"]
-    return report
+        "MATCH (t:Topic {generation: $g}) "
+        "RETURN t.name AS name, [(t)<-[:ABOUT]-(a:Article) | 'regulation'] + [(t)<-[:ABOUT]-(b:Benefit) | 'benefit_guide'] "
+        "+ [(t)<-[:ABOUT]-(c:Complaint) | 'consult_log'] AS docs ORDER BY name", g=generation)
+    topics = []
+    for r in records:
+        if squash(r["name"]).lower() in known_topics or not r["docs"]:
+            continue
+        counts = {}
+        for doc in r["docs"]:
+            counts[doc] = counts.get(doc, 0) + 1
+        topics.append({"name": r["name"], "docs": counts})
+    return {"generation": generation, "benefits": benefits, "topics": topics}
+
+
+def check_rules(driver, generation: str, concepts: dict, product_ids: set[str], record_ids: set[str],
+                article_nos: set[str]) -> dict:
+    """공통 개념 층의 검사 규칙(K01 ~ K09) 위반 수와 건너가는 지점의 이어짐을 셈. 데이터는 고치지 않음.
+
+    참조 무결성은 받은 자료 안에서만 대조함: 상품 키는 inputs/key_values.json(정형 DB의 상품 ID 64개),
+    상담 ID와 조 번호는 스키마 설계 1단계 사본의 전체 목록(일부 청크만 인덱싱해도 그 밖을 가리킬 수 있어 전체로 대조).
+    판정(ok): 허용 값, 참조 무결성, 머리줄로 채우는 허용 수(K03 ~ K05)는 0건이어야 하고, K06은 대상의 10% 이하.
+    """
+    def q(cypher: str, **params):
+        records, _, _ = driver.execute_query(cypher, g=generation, **params)
+        return [dict(r) for r in records]
+
+    values = {c["name"]: (c.get("allowed_values") or {}).get("values", []) for c in concepts["classes"]}
+    v = {}
+    v["K01"] = q("MATCH (s:CustomerSegment {generation: $g}) WHERE NOT s.name IN $vals RETURN s.name AS bad",
+                 vals=values.get("고객군", []))
+    v["K02"] = q("MATCH (c:Category {generation: $g}) WHERE NOT c.name IN $vals RETURN c.name AS bad", vals=values.get("업종", []))
+    v["K03"] = q("MATCH (c:Consultation {generation: $g}) WHERE c.channel IS NOT NULL "
+                 "WITH c, COUNT { (c)-[:IN_SEGMENT]->(:CustomerSegment) } AS n WHERE n <> 1 RETURN c.record_id AS bad, n")
+    v["K04"] = q("MATCH (c:Consultation {generation: $g}) WHERE c.channel IS NOT NULL "
+                 "AND (c.member_pseudo_id IS NULL OR c.product_id IS NULL) RETURN c.record_id AS bad")
+    v["K05"] = q("MATCH (b {generation: $g}) WHERE (b:Benefit OR b:UsageRule) AND b.product_id IS NULL "
+                 "RETURN coalesce(b.benefit_id, b.item_id) AS bad")
+    k6_base = q("MATCH (n {generation: $g}) WHERE n:Complaint OR (n:Article AND n.title IS NOT NULL) OR n:Benefit "
+                "RETURN count(n) AS n")[0]["n"]
+    v["K06"] = q("MATCH (n {generation: $g}) WHERE n:Complaint OR (n:Article AND n.title IS NOT NULL) OR n:Benefit "
+                 "WITH n, COUNT { (n)-[:ABOUT]->(:Topic) } AS k WHERE k < 1 OR k > 3 "
+                 "RETURN labels(n)[0] AS label, coalesce(n.article_no, n.benefit_id, n.content) AS bad, k")
+    v["K07"] = q("MATCH (n {generation: $g}) WHERE (n:Benefit OR n:UsageRule OR n:Consultation) AND n.product_id IS NOT NULL "
+                 "AND NOT n.product_id IN $ids RETURN n.product_id AS bad", ids=sorted(product_ids))
+    v["K08"] = q("MATCH (:Consultation {generation: $g})-[:FOLLOWS]->(t:Consultation) WHERE NOT t.record_id IN $ids "
+                 "RETURN t.record_id AS bad", ids=sorted(record_ids))
+    v["K09"] = q("MATCH (:Article {generation: $g})-[:REFERS_TO]->(t:Article) WHERE NOT t.article_no IN $ids "
+                 "RETURN t.article_no AS bad", ids=sorted(article_nos))
+    rules = {c["id"]: {"kind": c["kind"], "rule": c["rule"], "violations": len(v.get(c["id"], [])),
+                       "examples": v.get(c["id"], [])[:5]} for c in concepts["checks"] if c["id"] in v}
+
+    # 건너가는 지점의 이어짐(경로 검사)
+    paths = {}
+    paths["P1"] = q("MATCH (c:Consultation {generation: $g})-[:HAS_COMPLAINT]->(:Complaint)-[:ABOUT]->(t:Topic) "
+                    "OPTIONAL MATCH (t)<-[:ABOUT]-(a:Article) "
+                    "RETURN count(DISTINCT c) AS complaint_consults, count(DISTINCT CASE WHEN a IS NOT NULL THEN c END) AS linked")[0]
+    paths["P2"] = q("MATCH (c:Consultation {generation: $g})-[:HAS_COMPLAINT]->(:Complaint)-[:ABOUT]->(t:Topic) "
+                    "OPTIONAL MATCH (t)<-[:ABOUT]-(b:Benefit) "
+                    "RETURN count(DISTINCT c) AS complaint_consults, count(DISTINCT CASE WHEN b IS NOT NULL THEN c END) AS linked")[0]
+    paths["P3_P5"] = q("MATCH (c:Consultation {generation: $g}) WHERE c.channel IS NOT NULL "
+                       "RETURN count(c) AS consults, count(c.product_id) AS product_id, count(c.member_pseudo_id) AS member_pseudo_id")[0]
+    paths["P3_shared_products"] = q("MATCH (c:Consultation {generation: $g}), (b:Benefit {generation: $g}) "
+                                    "WHERE c.product_id = b.product_id RETURN count(DISTINCT c.product_id) AS n")[0]["n"]
+    paths["P4"] = q("MATCH (b:Benefit {generation: $g}) OPTIONAL MATCH (b)-[:IN_CATEGORY]->(k:Category) "
+                    "RETURN count(DISTINCT b) AS benefits, count(DISTINCT CASE WHEN k IS NOT NULL THEN b END) AS with_category")[0]
+    paths["P6"] = q("MATCH (b {generation: $g}) WHERE b:Benefit OR b:UsageRule "
+                    "RETURN count(b) AS items, count(b.product_id) AS product_id")[0]
+    paths["shared_topics"] = q("MATCH (t:Topic {generation: $g}) "
+                               "WITH t, [x IN [(t)<-[:ABOUT]-(a:Article) | 'regulation'] + [(t)<-[:ABOUT]-(b:Benefit) | 'benefit_guide'] "
+                               "+ [(t)<-[:ABOUT]-(c:Complaint) | 'consult_log'] | x] AS docs "
+                               "WITH t, apoc.coll.toSet(docs) AS kinds WHERE size(kinds) > 1 "
+                               "RETURN t.name AS topic, kinds ORDER BY topic")
+    strict = ["K01", "K02", "K03", "K04", "K05", "K07", "K08", "K09"]
+    k6_rate = rules["K06"]["violations"] / k6_base if k6_base else 0.0
+    ok = all(rules[k]["violations"] == 0 for k in strict if k in rules) and k6_rate <= 0.1
+    return {"ok": ok, "rules": rules, "k06_base": k6_base, "k06_rate": round(k6_rate, 3), "paths": paths}

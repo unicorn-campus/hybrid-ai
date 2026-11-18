@@ -1,0 +1,24 @@
+LLMInterface is deprecated and will be removed in future versions. Please use LLMInterfaceV2 instead.
+[consult_log] S01 신규가입 1/4 D3-0002: 노드 5, 관계 6, 새 타입 0
+[consult_log] S01 신규가입 2/4 D3-0003: 노드 4, 관계 4, 새 타입 5
+[consult_log] S01 신규가입 3/4 D3-0006: 노드 4, 관계 5, 새 타입 2
+[consult_log] S01 신규가입 4/4 D3-0007: 노드 5, 관계 5, 새 타입 1
+[consult_log] S03 VIP 1/4 D3-0018: 노드 5, 관계 6, 새 타입 2
+[consult_log] S03 VIP 2/4 D3-0022: 노드 7, 관계 7, 새 타입 6
+[consult_log] S03 VIP 3/4 D3-0020: 노드 3, 관계 3, 새 타입 0
+[consult_log] S03 VIP 4/4 D3-0019: 노드 6, 관계 6, 새 타입 0
+[consult_log] S06 연회비부담 1/3 D3-0043: 노드 4, 관계 5, 새 타입 1
+[consult_log] S06 연회비부담 2/3 D3-0042: 노드 5, 관계 6, 새 타입 1
+[consult_log] S06 연회비부담 3/3 D3-0041: 노드 7, 관계 6, 새 타입 1
+[consult_log] S02 장기보유 1/4 D3-0011: 노드 6, 관계 6, 새 타입 1
+[consult_log] S02 장기보유 2/4 D3-0012: 노드 0, 관계 0, 새 타입 0, 실패 SchemaValidationError: EXISTENCE and KEY constraints cannot apply to the same no
+[consult_log] S02 장기보유 3/4 D3-0009: 노드 5, 관계 4, 새 타입 3
+[consult_log] S02 장기보유 4/4 D3-0014: 노드 6, 관계 6, 새 타입 0
+[consult_log] S05 다중카드 1/4 D3-0038: 노드 3, 관계 3, 새 타입 0
+[consult_log] S05 다중카드 2/4 D3-0037: 노드 7, 관계 7, 새 타입 2
+[consult_log] S05 다중카드 3/4 D3-0035: 노드 5, 관계 6, 새 타입 1
+[consult_log] S05 다중카드 4/4 D3-0039: 노드 5, 관계 6, 새 타입 1
+[consult_log] S04 휴면직전 1/3 D3-0027: 노드 4, 관계 5, 새 타입 1
+[consult_log] S04 휴면직전 2/3 D3-0025: 노드 5, 관계 4, 새 타입 1
+[consult_log] S04 휴면직전 3/3 D3-0030: 노드 5, 관계 5, 새 타입 1
+[consult_log] 끝: 호출 22, 실패 1, 노드 이름 23, 관계 이름 50, 멈춤 {'S01 신규가입': '4건 모두 봄(상한)', 'S03 VIP': '4건 모두 봄(상한)', 'S06 연회비부담': '3건 모두 봄(상한)', 'S02 장기보유': '4건 모두 봄(상한)', 'S05 다중카드': '4건 모두 봄(상한)', 'S04 휴면직전': '3건 모두 봄(상한)'}

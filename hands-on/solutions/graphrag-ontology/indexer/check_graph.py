@@ -245,7 +245,7 @@ def explain_hits(item: dict, chunks: list[dict], entities: list[dict], os_client
             lines += [f"        단서가 든 청크: {', '.join(source[0])} (원본 Chroma 전체 {source[1]}개 기준)",
                       f"        이 세대에는 청크 {active['chunk_count']}개만 들어 있고 그 청크는 빠져 있음"]
             if active["chunk_count"] < source[1]:
-                lines.append("        → 표본(--sample)으로 만든 세대임. --sample 없이 전체 인덱싱한 세대에서 확인함")
+                lines.append("        → 일부 청크만 넣어 만든 세대임. 전체 청크로 인덱싱한 세대에서 확인함")
         else:
             lines.append("        원본(Chroma) 전체에서도 단서 문구가 없음 → 평가셋의 단서 문구나 원문 표기를 확인함")
     return lines

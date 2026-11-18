@@ -1,0 +1,152 @@
+{
+  "decided_by": "클로니 수정안(사용자 확정 전)",
+  "date": "2026-11-18",
+  "status": "proposal",
+  "rows": [
+    {
+      "name": "가상 편의점",
+      "representative": "가상 편의점",
+      "status": "needs_review"
+    },
+    {
+      "name": "청소년",
+      "representative": "가상 편의점",
+      "status": "needs_review"
+    },
+    {
+      "name": "단골 보너스",
+      "representative": "단골 보너스",
+      "status": "approved"
+    },
+    {
+      "name": "단말기",
+      "representative": "단말기",
+      "status": "approved"
+    },
+    {
+      "name": "리필",
+      "representative": "리필",
+      "status": "approved"
+    },
+    {
+      "name": "부정사용",
+      "representative": "부정사용 조사",
+      "status": "approved"
+    },
+    {
+      "name": "분실·도난 신고",
+      "representative": "분실 신고",
+      "status": "approved"
+    },
+    {
+      "name": "비밀번호",
+      "representative": "비밀번호 거래",
+      "status": "approved"
+    },
+    {
+      "name": "안전 사유",
+      "representative": "안전한 이용",
+      "status": "approved"
+    },
+    {
+      "name": "업종 제한",
+      "representative": "제한",
+      "status": "approved"
+    },
+    {
+      "name": "위법 계약",
+      "representative": "계약 해지",
+      "status": "approved"
+    },
+    {
+      "name": "음식점",
+      "representative": "가맹점",
+      "status": "needs_review"
+    },
+    {
+      "name": "일반 가맹점",
+      "representative": "가맹점",
+      "status": "needs_review"
+    },
+    {
+      "name": "일시불 결제",
+      "representative": "결제",
+      "status": "needs_review"
+    },
+    {
+      "name": "자동납부",
+      "representative": "자동납부",
+      "status": "approved"
+    },
+    {
+      "name": "정기납부",
+      "representative": "자동납부",
+      "status": "approved"
+    },
+    {
+      "name": "전기·통신·해외",
+      "representative": "해외 이용",
+      "status": "approved"
+    },
+    {
+      "name": "해외 수수료",
+      "representative": "해외 이용",
+      "status": "approved"
+    },
+    {
+      "name": "해외 현지통화 구매",
+      "representative": "해외 이용",
+      "status": "approved"
+    },
+    {
+      "name": "접수",
+      "representative": "접수",
+      "status": "approved"
+    },
+    {
+      "name": "주말 외식",
+      "representative": "주말 외식",
+      "status": "approved"
+    },
+    {
+      "name": "지정일 할인",
+      "representative": "지정일",
+      "status": "approved"
+    },
+    {
+      "name": "첫 이용",
+      "representative": "첫 이용",
+      "status": "approved"
+    },
+    {
+      "name": "카드 이용",
+      "representative": "이용",
+      "status": "needs_review"
+    },
+    {
+      "name": "쇼핑",
+      "representative": null,
+      "status": "needs_review"
+    },
+    {
+      "name": "안내문",
+      "representative": null,
+      "status": "needs_review"
+    },
+    {
+      "name": "영화",
+      "representative": null,
+      "status": "needs_review"
+    },
+    {
+      "name": "전기·가스·통신",
+      "representative": null,
+      "status": "needs_review"
+    },
+    {
+      "name": "회원 구분",
+      "representative": null,
+      "status": "needs_review"
+    }
+  ]
+}

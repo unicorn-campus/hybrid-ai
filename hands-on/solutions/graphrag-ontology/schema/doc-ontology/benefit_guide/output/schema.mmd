@@ -1,0 +1,11 @@
+flowchart LR
+  subgraph benefit_guide["카드 혜택 안내"]
+    Benefit[":Benefit<br/>(혜택)<br/>---<br/>benefit_id<br/>name<br/>product_id<br/>card_name<br/>kind<br/>amount<br/>target<br/>condition<br/>limit<br/>validity<br/>payout<br/>exclusion"]
+    UsageRule[":UsageRule<br/>(이용 기준)<br/>---<br/>item_id<br/>title<br/>product_id<br/>card_name<br/>limit<br/>restriction"]
+  end
+  Topic{{":Topic<br/>(주제, 공통)<br/>---<br/>name"}}
+  Category[/":Category<br/>(업종, 인덱싱이 더함)<br/>---<br/>name"/]
+  Benefit -->|ABOUT| Topic
+  Benefit -.->|IN_CATEGORY| Category
+  classDef shared fill:#fff3d6,stroke:#c98a00
+  class Topic shared

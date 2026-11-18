@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>스키마 초안: 약관</title>
+<style>body{font-family:Pretendard,system-ui,sans-serif;margin:24px;background:#fff;color:#222} h2{margin-top:32px}
+#status{padding:8px;background:#eef;}</style></head>
+<body><h1>스키마 초안: 약관</h1><div id="status">그리는 중</div>
+<h2>약관</h2>
+<pre class="mermaid">
+flowchart LR
+  subgraph regulation[&quot;약관&quot;]
+    Article[&quot;:Article&lt;br/&gt;(조항)&lt;br/&gt;---&lt;br/&gt;article_no&lt;br/&gt;title&lt;br/&gt;condition&lt;br/&gt;action&lt;br/&gt;deadline&lt;br/&gt;amount&quot;]
+  end
+  Topic{{&quot;:Topic&lt;br/&gt;(주제, 공통)&lt;br/&gt;---&lt;br/&gt;name&quot;}}
+  Article --&gt;|ABOUT| Topic
+  Article --&gt;|REFERS_TO| Article
+  classDef shared fill:#fff3d6,stroke:#c98a00
+  class Topic shared
+</pre>
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.esm.min.mjs";
+mermaid.initialize({startOnLoad:false, flowchart:{htmlLabels:true}});
+try { await mermaid.run({querySelector:".mermaid"}); document.getElementById("status").textContent="그림 " + document.querySelectorAll(".mermaid svg").length + "장 그림, 오류 없음"; }
+catch (e) { document.getElementById("status").textContent="오류: " + e.message; }
+</script></body></html>

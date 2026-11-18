@@ -7,43 +7,44 @@ RAG 실습(W3)이 만든 청크를 입력으로 지식 그래프(Neo4j)와 검�
 
 ## 0. 이 폴더는 무엇인가(온톨로지 결합판)
 
-`hands-on/solutions/graphrag`를 그대로 복사한 뒤, 온톨로지와 결합하는 개선 8가지를 더한 폴더임.  
-전제: 정형 데이터(회원, 카드, 거래)의 행은 PostgreSQL에 그대로 두고, Neo4j에는 뷰와 컬럼의 뜻, 업무 개념,  
-예시 쿼리만 실음. 검색기는 이 설명으로 SQL을 만들고, 조회 결과의 키 값(업종, 상품 ID)으로 문서 그래프에 건너감.
+`hands-on/solutions/graphrag`를 복사한 뒤 온톨로지와 결합한 폴더임.  
+스키마는 `prompts/design-kg-schema-doc-ontology.md`(KG 스키마 설계의 단계마다 온톨로지 규칙을 적용하는 프롬프트)로  
+2026-11-18에 다시 설계했고, 인덱서는 그 결과(`schema/doc-ontology/`)를 읽도록 고쳤음.  
+전제: 정형 데이터(회원, 카드, 거래)의 행은 PostgreSQL에 그대로 두고, 문서 노드에는 키 속성(상품 ID, 회원 가명 ID)만 둠.  
 
-| 번호 | 구분 | 추가 또는 수정 | 파일 |
-|------|------|----------------|------|
-| 개선 1 | 스키마 설계 | 공통 개념 층(업무 개념, 뷰와 컬럼의 뜻, 건너가기 규칙, 예시 쿼리)과 검사 도구 추가 | `schema/common/concepts.json`, `schema/common/tools/check_concepts.py` |
-| 개선 2 | 스키마 설계 | 업종 매핑표(LLM 후보, 사람 확정) 추가 | `schema/common/tools/draft_category_map.py`, `schema/common/category_map_approved.json` |
-| 개선 3 | 인덱서 | 스키마 설명을 그래프에 싣는 단계 추가 | `indexer/core_ontology.py`의 `load_schema_graph` |
-| 개선 4 | 인덱서 | 혜택을 업종 노드에 잇는 단계 추가 | `indexer/core_ontology.py`의 `link_categories` |
-| 개선 5 | 인덱서 | 두 저장소가 키로 이어지는지 검사하는 단계 추가 | `indexer/core_ontology.py`의 `check_bridge` |
-| 개선 6 | 검색기 | 정형 조회 툴(`query_customer_data`) 추가 | `retriever/core_sql.py`, `retriever/search_graph.py`의 `customer_data` |
-| 개선 7 | 검색기 | 엔티티 찾기에 업종 키 추가(수정) | `retriever/search_graph.py`의 `find_entities` |
-| 개선 8 | 검색기 | 정형 조회 결과를 근거로 인용하고 채점 질문에 반영(수정) | `retriever/search_graph.py`의 `evidence_block`, `judge_question` |
+| 구분 | 무엇 | 파일 |
+|------|------|------|
+| 스키마 설계 결과 | 문서 3종의 그래프 스키마, 공통 개념 층(Class 9개, 관계와 반대 이름, 검사 규칙 K01 ~ K09), 업종과 주제 맞추기 표, 추출 단위 글 규칙, 승인 기록 | `schema/doc-ontology/{regulation,benefit_guide,consult_log}/graph_schema.json`, 같은 폴더의 `unit_text_rules.json`과 `approval.json`, `schema/doc-ontology/common/concepts.json`, `common/*_map_approved.json` |
+| 스키마 설계 과정 | 단계별 검토 파일, 결정 기록, 교재용 수행 기록 | `schema/doc-ontology/review/`, `decisions.json`, `RUN_LOG.md` |
+| 인덱서 K1 | 추출 단위와 머리줄을 스키마 설계 도구로 만듦(약관은 조항, 혜택 안내는 혜택 항목, 상담 기록은 청크 그대로) | `indexer/core_ontology.py`의 `split_units`(`schema/doc-ontology/tools/units.py`를 부름) |
+| 인덱서 K2 | 시험 때와 같은 추출 절차: 입력 글을 태그로 감싼 틀, JSON 모드 끔, 출력 한도 16,000, 빈 그래프 다시 묻기, 머리줄 값 보정, 주제 맞추기 표 | `indexer/index_graph.py`의 `k2_k3_extract`, `core_graph.py`의 `extract_one`, `core_ontology.py`의 `postprocess_graph` |
+| 인덱서 K5 뒤 | 공통 개념 층 싣기(OntoConcept), 정형 조회용 뷰 설명 싣기(DB 카탈로그와 대조한 뒤 DbView, DbColumn, SqlExample), 업종 잇기(IN_CATEGORY, approved 행만), 검사 규칙과 경로 세기, 맞추기 표에 없는 새 항목 남기기 | `indexer/core_ontology.py`의 `load_concept_layer`, `load_view_layer`, `link_categories`, `check_rules`, `new_map_items`. 뷰 설명 원본은 `schema/rdb/app_views.json` |
+| 검색기 | 새 라벨(Article, Benefit, UsageRule, Consultation, Topic, Category)로 찾고, 건너가는 지점 P1 ~ P6을 검색 경로로 씀(P1 ~ P3은 `follow_crossing` 툴, P4와 P6은 정형 조회의 건너갈 키, P5는 회원 필터) | `retriever/search_graph.py`의 `find_entities`, `follow_crossing`, `customer_data`. 자세한 것은 `retriever/README.md` |
+| 게시 조건 | ④ 검증과 함께 검사 규칙(허용 값, 참조 무결성, 머리줄 허용 수는 0건, K06은 10% 이하)을 통과해야 게시함 | `indexer/index_graph.py`의 `run` |
 
-실행 순서(가상환경은 `graphrag` 폴더와 같은 패키지를 씀. 이 폴더에 `.venv`를 새로 만들거나 `graphrag/.venv`를 씀)
+실행 순서(가상환경은 `graphrag/.venv`를 씀)  
 
 ```powershell  
-# 1) 스키마 설계: 공통 개념 층 검사, 업종 매핑표 초안(LLM 1회)  
-cd schema/common  
-python tools/check_concepts.py  
-python tools/draft_category_map.py --auto-approve  
-# 2) 인덱싱: K5 뒤에 개선 3 ~ 5가 돌아감. 개선 5의 DB 대조는 관리 계정 정보가 있을 때만 함  
-cd ../../indexer  
-python index_graph.py --run {별명}-o1 --sample  
-# 3) 검색: 회원을 지정한 감사자 역할에서만 정형 조회 툴이 열림  
-cd ../retriever  
-python search_graph.py "M-5001 회원이 많이 쓰는 업종에 혜택을 주는 카드는?" --role auditor  
+# 1) 인덱싱(전체 260청크). 스키마 설계 결과를 읽기만 함  
+cd indexer  
+..\..\graphrag\.venv\Scripts\python.exe index_graph.py --run {별명}-f1  
+# 2) 맞추기 표에 없는 새 항목(혜택, 주제 이름)의 초안 만들기. 확정은 사람이 함(approve)  
+cd ..\schema\doc-ontology  
+..\..\..\graphrag\.venv\Scripts\python.exe common\tools\draft_category_map.py draft --from ..\..\indexer\data\generations\{세대}\new_map_items.json  
+..\..\..\graphrag\.venv\Scripts\python.exe common\tools\draft_topic_map.py draft --from ..\..\indexer\data\generations\{세대}\new_map_items.json  
 ```
 
-- 2026-11-13 표본 10청크로 실행해 확인함: 개선 3은 업무 개념 5개, 뷰 2개, 컬럼 11개, 예시 쿼리 3개를 실음.  
-  개선 4는 혜택 7개 중 4개를 업종에 이음(나머지 3개는 매핑표에서 미정). 개선 5는 통과.  
-  검색은 정형 조회 → 업종 키로 혜택 찾기 → 원문 붙이기 순서로 답하고 근거 검증을 통과함  
-- 아직 하지 않은 것: 전체 260청크 인덱싱에서의 확인, 평가셋 25문항 다시 돌리기  
-- 정형 DB 접속 정보는 정형 검색기 실습과 같은 이름으로 `secrets/.env`에 둠  
-  (`SQL_RETRIEVER_DB_DSN`, `SQL_RETRIEVER_DB_PASSWORD`). 개선 5의 DB 대조는 환경변수 `RDB_ADMIN_DSN`, `RDB_PASSWORD`를 씀  
-- 아래 1절부터는 원래 `graphrag` 폴더의 안내임. 경로의 `graphrag`는 이 폴더(`graphrag-ontology`)로 읽음
+- 2026-11-18 표본 10청크로 먼저 실행해 확인함(세대 `gen-lab-doconto-s2`, 재사용 없음. 지금은 지웠음. 이때 쓴 `--sample` 옵션은 2026-11-19에 없앰): 추출 단위 21개 실패 0, 머리줄 채움 100%,  
+  검사 규칙 K01 ~ K09 위반 0, 상담 키 4/4, 혜택 키 7/7, ④ 검증 통과(검색엔진 10/10, 커뮤니티 9개), 게시함  
+- 알려진 점: 표본 혜택(한빛 가족돌봄 7개)은 업종 맞추기 표에 없어 업종 연결 0/7. 새 항목 초안까지 만들었고 확정은 하지 않음.  
+  불만과 약관 주제의 이어짐은 실행마다 0 ~ 2건으로 흔들림(표본 조항이 10개뿐이고 LLM이 주제 이름을 실행마다 다르게 지음)  
+- 2026-11-18 전체 260청크를 재사용 없이 인덱싱함(세대 `gen-lab-doconto-f1`, 796초, 실패 0, 검사 규칙 통과,  
+  P1 14/25, P2 1/25, P4 22/217, P3과 P5 46/46, P6 274/274). 옛 표본 세대는 지움  
+- 검색기(`retriever/`)는 새 그래프에 맞춤. 전체 세대에서 Q01, Q07은 답변 완료, Q14, Q25는 근거를 모으고도 ⑦에서 멈춤.  
+  기록은 `retriever/RUN_LOG-doconto.md`  
+- 아직 맞추지 않은 것: 교육생 뼈대 `indexer/my_graph.template.py`(`--mine`)는 옛 추출 단위 규칙을 씀  
+- 옛 방식 결과(`schema/doc`, `schema/common`, 개선 1 ~ 8의 설명)는 지웠고 Git 커밋 787fedd에 남아 있음  
+- 아래 1절부터는 원래 `graphrag` 폴더의 안내임. 경로의 `graphrag`는 이 폴더(`graphrag-ontology`)로, `schema/doc`은 `schema/doc-ontology`로 읽음
 
 ## 1. 폴더 구성
 
@@ -52,7 +53,7 @@ hands-on/solutions/graphrag/
 ├─ README.md            이 문서(가상환경 설정과 실행 순서)
 ├─ requirements.txt     GraphRAG 실습 공통 패키지 목록(서브 폴더에는 두지 않음)
 ├─ .venv/               공용 가상환경(이 폴더에서 만듦. Git에 올리지 않음)
-├─ schema/              그래프 스키마 설계 결과와 도구(doc: 문서 그래프, rdb: 정형 데이터 그래프). indexer가 schema/doc의 결과를 읽음
+├─ schema/              그래프 스키마 설계 결과와 도구(doc-ontology: 문서 그래프와 공통 개념 층, rdb: 정형 데이터 그래프). indexer가 schema/doc-ontology를 읽음
 ├─ indexer/             그래프 인덱싱 실습(교재 31 ~ 67쪽). 사용법은 indexer/README.md
 └─ retriever/           그래프 검색 실습(교재 70 ~ 99쪽). 사용법은 retriever/README.md
 ```
@@ -61,7 +62,7 @@ hands-on/solutions/graphrag/
 |---|---|---|---|
 | `indexer/` | `index_graph.py`, 확인 도구 `check_graph.py` | `my_graph.py`(`--mine`이 템플릿에서 만듦) | Neo4j 그래프 세대, OpenSearch 인덱스, 활성 세대 파일 |
 | `retriever/` | `search_graph.py` | `my_search.py`(`--mine`이 템플릿에서 만듦) | 단계별 검색 화면, 실행 기록 |
-| `schema/doc`, `schema/rdb` | `tools/*.py`(강사용 스키마 설계 도구) | - | `graph_schema.json`, `approval.json` 등 |
+| `schema/doc-ontology`, `schema/rdb` | `tools/*.py`, `common/tools/*.py`(강사용 스키마 설계 도구) | - | `graph_schema.json`, `unit_text_rules.json`, `approval.json`, `common/concepts.json` 등 |
 
 ## 2. 준비물
 
@@ -214,7 +215,7 @@ VS Code에 경로를 알려 주면 경고가 사라지고, 함수 이름 자동 
 ## 4. 실행 순서
 
 가상환경을 활성화한 터미널에서 실행함. 아래는 Git Bash, macOS, Linux 기준이며 PowerShell은 `cd` 경로의 `/`를 `\`로 씀.  
-`{별명}`은 본인 별명(영문)으로 바꿈. 예) `hong-s1`
+`{별명}`은 본인 별명(영문)으로 바꿈. 예) `hong-f1`
 
 ```bash
 # 0) 가상환경 활성화(hands-on/solutions/graphrag 폴더에서). macOS, Linux는 source .venv/bin/activate,
@@ -226,13 +227,10 @@ cd indexer
 
 # 1-1) 단계별로 멈춰 결과 보기 — 그 단계까지만 수행하고, 한 일과 실제 결과와 직접 확인할 명령을 보여 줌(게시하지 않음)
 #      KG 구축은 k1, k3, k5, k6, k8, 검색엔진 인덱싱은 s1, s2, s3. 값만 바꿔 차례로 돌림
-python index_graph.py --run {별명}-u1 --sample --until k3
+#      K4 이후(k5, k6, k8)는 화면의 「이어서 보기」 명령처럼 --reuse를 붙여 기존 KG 추출 결과를 다시 씀
+python index_graph.py --run {별명}-u1 --until k3
 
-# 1-2) 표본 10청크로 ① ~ ⑤ 끝까지(약 1분). 게시까지 해서 활성 세대가 됨. 결과를 질문 하나로 확인
-python index_graph.py --run {별명}-s1 --sample
-python check_graph.py --qid Q09
-
-# 1-3) 정식 전체 인덱싱(청크 260개) — 강사 배포본을 재사용해 LLM 호출을 줄임(몇 분)
+# 1-2) 전체 인덱싱(청크 260개)으로 ① ~ ⑤ 끝까지. 게시까지 해서 활성 세대가 됨 — 강사 배포본을 재사용해 LLM 호출을 줄임(몇 분)
 python index_graph.py --run {별명}-f1 --reuse data/teacher
 python check_graph.py --qid Q01
 
@@ -241,19 +239,18 @@ cd ../retriever
 python search_graph.py --qid Q01
 ```
 
-인덱싱은 1-1, 1-2, 1-3 중 필요한 것을 고름(1-2와 1-3은 마지막에 게시한 쪽이 활성 세대가 되고, 검색은 활성 세대를 읽음).  
+인덱싱은 1-1, 1-2 중 필요한 것을 고름(1-2로 게시한 세대가 활성 세대가 되고, 검색은 활성 세대를 읽음).  
 
 | 단계 | 언제 | 비고 |
 |---|---|---|
 | 1-1 단계별 확인 | 각 단계가 무엇을 하고 결과가 어떤지 보고 싶을 때 | 게시하지 않아 활성 세대는 그대로. 실행 이름은 1-2와 다르게 줌 |
-| 1-2 표본 실행 | 처음 해 보거나 수업 중 빠르게 돌릴 때 | 표본 세대에서는 Q09와 상담 질문만 맞고, 약관 질문(Q01, Q02)은 전체 세대에서 확인함 |
-| 1-3 정식 전체 인덱싱 | 260청크 전체로 검색 결과를 볼 때 | 강사 배포본(`data/teacher`)이 없으면 `--reuse`를 빼고 돌림(LLM 약 300번, 10분 안팎) |
+| 1-2 전체 인덱싱 | 260청크 전체로 검색 결과를 볼 때 | 강사 배포본(`data/teacher`)이 없으면 `--reuse`를 빼고 돌림(LLM 약 300번, 10분 안팎) |
 
-- 1-3은 2026-11-11 실측으로 186초가 걸렸고, 강사 배포본에 없는 부분만 LLM을 불렀음(추출 48번, 커뮤니티 요약 12번)  
+- 1-2는 2026-11-11 실측으로 186초가 걸렸고, 강사 배포본에 없는 부분만 LLM을 불렀음(추출 48번, 커뮤니티 요약 12번)  
 - 같은 입력과 설정으로 다시 돌리면 「할 일 없음」으로 끝남. 그래도 새로 만들려면 `--full-reindex`와 **새 실행 이름**을 줌  
 - `--until`로 단계를 보는 중에는 활성 세대가 바뀌지 않으므로 검색과 `check_graph.py`는 이전과 똑같이 동작함  
 
-각 단계의 옵션과 출력 읽는 법은 [indexer/README.md](indexer/README.md)(전체 실행은 4.2, 단계별 확인은 4.5),  
+각 단계의 옵션과 출력 읽는 법은 [indexer/README.md](indexer/README.md)(전체 실행은 4절, 단계별 확인은 5.1절),  
 [retriever/README.md](retriever/README.md)에 있음.  
 `schema/` 도구는 강사용이며, 같은 가상환경을 활성화한 채 `schema/doc` 또는 `schema/rdb` 폴더에서 `python tools/{도구}.py`로 실행함  
 (실행 예는 각 도구 파일 맨 위 설명에 있음).

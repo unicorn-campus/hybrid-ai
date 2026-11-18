@@ -4,10 +4,8 @@
 단계마다 알맹이는 core_graph.py의 함수가 맡고, 이 파일은 설정값, 저장소 접속, LLM과 임베딩 호출, 순서, 단계별 출력을 맡음.
 
 실행(이 폴더에서):
-  ../.venv/Scripts/python.exe index_graph.py --run {별명}-s1 --sample      표본 10청크(수업용)
   ../.venv/Scripts/python.exe index_graph.py --run {별명}-f1               전체 260청크
 옵션: --full-reindex(사전 검사 무시), --skip-communities(K8 생략), --reuse {폴더}(강사 배포 추출 결과 재사용),
-      --chunks {파일}(Chroma 대신 청크 파일 입력),
       --until {단계}(그 단계까지만 수행하고 멈춰 결과를 보여 줌. k1, k3, k5, k6, k8은 KG 구축만, s1, s2, s3은 검색엔진 인덱싱만.
                     멈추면 ④ 검증과 ⑤ 게시는 하지 않아 활성 세대는 그대로. 결과 보기는 stage_view.py)
 """
@@ -78,16 +76,13 @@ ACTIVE_FILE = DATA_DIR / "active_generation.json"  # 활성 세대 파일. ⑤ �
 # ② 입력: RAG 실습(W3)이 만든 Chroma. 읽기만 함
 CHROMA_DIR = ROOT_DIR / "hands-on" / "solutions" / "rag" / "indexing" / "data" / "chroma"
 COLLECTION_NAME = "card_docs"  # RAG 실습과 약속한 collection 이름
-# 표본 모드(--sample)의 청크 10개: 약관 2(조항이 많은 쪽), 혜택 안내 4(한빛 가족돌봄), 상담 4(앞 상담을 가리키는 쌍 포함)
-SAMPLE_CHROMA_IDS = ["D1-0005", "D1-0006", "D2-0067", "D2-0068", "D2-0069", "D2-0070",
-                     "D3-0001", "D3-0002", "D3-0005", "D3-0006"]
 
 # 문서 프로필(교재 32쪽 사전 검사 항목): 원천 메타데이터에 없는 문서 수준 값을 머리줄에 보탬.
 # 약관 PDF의 메타데이터 쪽(버전 1.2, 시행 2027-01-15, 이전 판 1.1)을 옮긴 것으로, 약관 문서 노드(TermsDocument)의
 # 고유 속성 version을 채움. 없으면 LLM이 파일 이름을 version에 넣는 일이 생김(2026-10-24 실측)
 DOC_PROFILES = {"D1": {"version": "1.2", "effective_date": "2027-01-15", "supersedes": "1.1"}}
 
-# 문서 유형별 그래프 스키마(스키마 설계 실습 결과). 읽기만 함
+# 문서 유형별 스키마 설계 결과(graph_schema.json, unit_text_rules.json). 읽기만 함
 SCHEMA_DIR = ROOT_DIR / "hands-on" / "solutions" / "graphrag" / "schema" / "doc"
 DOC_TYPES = ("regulation", "benefit_guide", "consult_log")  # 약관, 혜택 안내, 상담 기록
 
@@ -333,14 +328,22 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
 # 스키마와 설정 지문
 # ---------------------------------------------------------------------------
 def load_schemas() -> dict:
-    """문서 유형마다 graph_schema.json과 추출 청크 글 규칙(unit_text_rules.json: 추출 청크 규칙, 머리줄 칸)을 읽음."""
+    """문서 유형마다 스키마 설계가 남긴 두 파일을 읽음(교재 27쪽). 승인 기록(approval.json)은 읽지 않음.
+
+    graph_schema.json: 스키마 본체(추출 허용 목록과 가지치기 기준).
+    unit_text_rules.json: 추출 청크 글 규칙(청크를 추출 청크로 나누는 규칙, 앞에 붙일 머리줄 칸).
+    """
     schemas = {}
     for doc_type in DOC_TYPES:
         folder = SCHEMA_DIR / doc_type
         path = folder / "graph_schema.json"
         if not path.exists():
             continue
-        rules = load_json(folder / "unit_text_rules.json")
+        rules_path = folder / "unit_text_rules.json"
+        if not rules_path.exists():  # 스키마만 있고 글 규칙이 없으면 설계 때와 다른 글로 추출하게 되므로 멈춤
+            raise SystemExit(f"추출 청크 글 규칙 파일이 없음: {rules_path}\n"
+                             f"스키마 설계 9단계(schema/doc/tools/finalize.py {doc_type})를 다시 실행해 만들 것")
+        rules = load_json(rules_path)
         schemas[doc_type] = {
             "schema": GraphSchema.from_file(str(path)),
             "unit_rule": rules.get("extraction_unit_rule"),  # 없으면 청크를 그대로 추출 청크로 씀
@@ -351,12 +354,14 @@ def load_schemas() -> dict:
 
 
 def config_signature() -> str:
-    """처리 설정 지문: 스키마 파일, LLM, 임베딩, BM25 값, 토큰화 규칙과 승인 별칭이 하나라도 바뀌면 사전 검사가 생략하지 않음."""
+    """처리 설정 지문: 스키마 파일, 추출 청크 글 규칙, LLM, 임베딩, BM25 값, 토큰화 규칙과 승인 별칭이
+    하나라도 바뀌면 사전 검사가 생략하지 않음."""
     parts = []
     for doc_type in DOC_TYPES:
-        path = SCHEMA_DIR / doc_type / "graph_schema.json"
-        if path.exists():
-            parts.append(sha256_file(path))
+        for name in ("graph_schema.json", "unit_text_rules.json"):  # 인덱서가 읽는 스키마 설계 결과 두 파일
+            path = SCHEMA_DIR / doc_type / name
+            if path.exists():
+                parts.append(sha256_file(path))
     parts += [LLM_MODEL, EMBEDDING_MODEL, str(EMBED_DIMENSION), str(BM25_K1), str(BM25_B), LEXICAL_RULES]
     parts.append(json.dumps(DOC_PROFILES, ensure_ascii=False, sort_keys=True))  # 문서 프로필이 바뀌어도 새로 만듦
     if ALIASES_APPROVED_PATH.exists():
@@ -405,7 +410,7 @@ def check_environment(driver, os_client: OpenSearch, want_communities: bool) -> 
 # ---------------------------------------------------------------------------
 # ② 공통 단계: 입력 읽기와 청크 파일 고정
 # ---------------------------------------------------------------------------
-def read_chroma_rows(sample: bool) -> list[dict]:
+def read_chroma_rows() -> list[dict]:
     """RAG 실습 Chroma에서 본문과 메타데이터를 읽어 chroma_id 순서로 돌려줌. 벡터는 읽지 않음(S1이 다시 임베딩함)."""
     if not (CHROMA_DIR / "chroma.sqlite3").exists():
         raise SystemExit(f"RAG 실습 Chroma가 없음: {CHROMA_DIR}\n"
@@ -415,20 +420,10 @@ def read_chroma_rows(sample: bool) -> list[dict]:
     result = collection.get(include=["documents", "metadatas"])
     rows = []
     for chroma_id, text, metadata in zip(result["ids"], result["documents"], result["metadatas"]):
-        if sample and chroma_id not in SAMPLE_CHROMA_IDS:
-            continue
         profile = DOC_PROFILES.get(chroma_id[:2], {})  # 문서 프로필 값을 먼저 깔고 Chroma 메타데이터가 덮어씀
         rows.append({"chroma_id": chroma_id, "text": text, "metadata": {**profile, **metadata}})
     rows.sort(key=lambda row: row["chroma_id"])  # D1-0001, D1-0002, … 순서가 문서 안 순서임
     return rows
-
-
-def read_chunk_file(path: Path, sample: bool) -> list[dict]:
-    """강사가 배포한 prepared-chunks.json을 입력으로 씀(--chunks). 표본이면 같은 chroma_id만 고름."""
-    chunks = load_json(path)
-    if sample:
-        chunks = [c for c in chunks if c["metadata"].get("chroma_id") in SAMPLE_CHROMA_IDS]
-    return chunks
 
 
 def read_active() -> dict | None:
@@ -464,19 +459,26 @@ def clean_leftovers(driver, os_client: OpenSearch, generation: str, kg: bool = T
 # ---------------------------------------------------------------------------
 def k2_k3_extract(units: list[dict], schemas: dict, previous: dict | None) -> dict:
     """단위마다 LLM 추출(K2)과 가지치기(K3)를 하되, 앞 세대 결과와 본문 해시와 스키마 지문이 같은 단위는 재사용함.
-
-    부수효과: units의 각 항목에 graph(또는 error), reused, schema_signature를 채움.
-    반환값: {"llm_units": LLM을 부른 단위 수, "reused": 재사용 수, "usage": 토큰 사용량}.
+    - previous: 과거 추출/가지치기 수행 결과. 'data/generations/{세대ID}' 하위의 값을 읽어 객체로 변환한 값    
+    - 부수효과: units의 각 항목에 graph(또는 error), reused, schema_signature를 채움.
+    - 반환값: {"llm_units": LLM을 부른 단위 수, "reused": 재사용 수, "usage": 토큰 사용량}.
     """
     # 재사용 열쇠: 문서 유형, 본문 해시, 스키마 지문, 머리줄(메타데이터). 하나라도 다르면 LLM에 다시 물음
     cache = {}
+    
+    # --- 과거 추출/가지치기 결과를 cache객체에 담음 
     for unit in (previous or {}).get("units", []):
         if "graph" in unit:
             cache[(unit["doc_type"], unit["text_hash"], unit["schema_signature"], unit.get("header_text", ""))] = unit["graph"]
     todo = []
+    
+    # --- cache객체에 있으면 재사용하고 없으면 todo 리스트에 담음   
     for unit in units:
+        # 스키마 설계 서명  
         unit["schema_signature"] = schemas[unit["doc_type"]]["signature"]
+        # 메타데이터 문자열
         unit["header_text"] = core.head_line(unit["metadata"], schemas[unit["doc_type"]]["header"])
+        # 캐시 탐색  
         hit = cache.get((unit["doc_type"], unit["text_hash"], unit["schema_signature"], unit["header_text"]))
         if hit is not None:
             unit["graph"] = hit
@@ -485,6 +487,7 @@ def k2_k3_extract(units: list[dict], schemas: dict, previous: dict | None) -> di
             todo.append(unit)
     log(f"[K2] LLM 추출 {len(todo)}개, 앞 결과 재사용 {len(units) - len(todo)}개 (동시 {LLM_CONCURRENCY}건)")
 
+    # --- LLM을 이용한 추출 및 가지치기 수행   
     usage = {"calls": 0, "total_tokens": 0}
     if todo:
         llm = make_llm()
@@ -496,6 +499,8 @@ def k2_k3_extract(units: list[dict], schemas: dict, previous: dict | None) -> di
         done = 0
         with ThreadPoolExecutor(max_workers=LLM_CONCURRENCY) as pool:
             for unit, result in zip(todo, pool.map(work, todo)):
+                # 참고: unit구조
+                # {"graph": {KG객체값}, "raw_nodes": {가지치기전의 노드수}, "kept_nodes": {노드수}}
                 unit.update(result)
                 done += 1
                 if done % 20 == 0:
@@ -536,8 +541,35 @@ def dedup_from_chunk(driver, generation: str) -> int:
 
 
 def entity_key(label: str, props: dict) -> str:
-    """세대와 실행이 바뀌어도 같은 엔티티면 같은 키. Neo4j 내부 ID는 실행마다 바뀌어 묶음 지문에 쓸 수 없음."""
+    """세대와 실행이 바뀌어도 같은 엔티티면 같은 키. Neo4j 내부 ID는 실행마다 바뀌어 묶음 지문에 쓸 수 없음.
+
+    키 형식은 "라벨|속성 JSON". 속성은 값이 아니라 속성 이름(딕셔너리 키)을 기준으로
+    문자 코드 순서(대문자 → 소문자 → 한글)로 정렬함. Neo4j가 돌려주는 속성 순서는
+    실행마다 다를 수 있어, 정렬하지 않으면 같은 엔티티가 다른 키가 됨.
+
+    예시:
+        >>> entity_key("Benefit", {"name": "입원비", "amount": 30000, "generation": "g2"})
+        'Benefit|{"amount": 30000, "name": "입원비"}'
+        >>> entity_key("Benefit", {"amount": 30000, "generation": "g3", "name": "입원비"})
+        'Benefit|{"amount": 30000, "name": "입원비"}'
+
+        두 호출은 속성 순서와 세대가 달라도 같은 키가 됨. 단계별 결과는 아래와 같음.
+
+        | 단계                  | 첫 번째 호출                                       | 두 번째 호출                                       |
+        |-----------------------|----------------------------------------------------|----------------------------------------------------|
+        | 입력 props            | {"name": "입원비", "amount": 30000, "generation": "g2"} | {"amount": 30000, "generation": "g3", "name": "입원비"} |
+        | ① 시스템 속성 제거    | {"name": "입원비", "amount": 30000}                | {"amount": 30000, "name": "입원비"}                |
+        | ② 이름순 정렬 + JSON  | '{"amount": 30000, "name": "입원비"}'              | '{"amount": 30000, "name": "입원비"}'              |
+        | ③ 라벨 붙임(결과)     | 'Benefit|{"amount": 30000, "name": "입원비"}'      | 'Benefit|{"amount": 30000, "name": "입원비"}'      |
+
+        ①에서 generation(g2, g3)이 빠져 세대 차이가 사라지고,
+        ②에서 이름순(amount → name)으로 정렬돼 입력 순서 차이가 사라짐.
+    """
+    # 시스템 속성("generation", "run_id", "embedding") 제거
+    # 결과 예: {"name": "입원비", "amount": 30000, "generation": "g2"} → {"name": "입원비", "amount": 30000}
     clean = {k: v for k, v in props.items() if k not in core.SYSTEM_PROPS}
+    # 속성 이름순으로 정렬해 JSON 문자열로 만듦(날짜처럼 JSON이 모르는 값은 str()로 바꿈)
+    # 결과 예: 'Benefit|{"amount": 30000, "name": "입원비"}'
     return label + "|" + json.dumps(clean, ensure_ascii=False, sort_keys=True, default=str)
 
 
@@ -550,9 +582,15 @@ def read_entity_graph(driver, generation: str) -> tuple[list[dict], list[tuple[i
     entities = []
     for record in records:
         entity = {"id": record["id"], "label": record["label"], "props": dict(record["props"])}
+        # "라벨|속성 JSON" 형태로 들어감(JSON 안의 속성은 이름순으로 정렬됨)
+        # 예: 'Benefit|{"amount": 30000, "name": "입원비"}'
         entity["key"] = entity_key(entity["label"], entity["props"])
         entities.append(entity)
+
+    # key 문자열 전체를 앞 글자부터 비교해 정렬: 라벨 → 속성 이름과 값(JSON 문자열) 순.
+    # 속성 값도 문자열에 들어 있으므로 라벨이 같으면 값에 따라 순서가 갈림
     entities.sort(key=lambda e: e["key"])
+    # 각 엔티티의 id에 순서를 넣음   
     position = {entity["id"]: number for number, entity in enumerate(entities)}
     
     records, _, _ = driver.execute_query(
@@ -562,6 +600,9 @@ def read_entity_graph(driver, generation: str) -> tuple[list[dict], list[tuple[i
     for record in records:
         if record["a"] in position and record["b"] in position:
             relations.add((position[record["a"]], position[record["b"]], record["t"]))
+    # 튜플을 앞 칸부터 비교해 정렬: 시작 엔티티 번호 → 끝 엔티티 번호 → 관계 이름(문자 코드 순)
+    # 예: {(2, 0, "COVERS"), (0, 3, "HAS"), (0, 1, "REQUIRES"), (0, 1, "HAS")}
+    #   → [(0, 1, "HAS"), (0, 1, "REQUIRES"), (0, 3, "HAS"), (2, 0, "COVERS")]
     return entities, sorted(relations)
 
 
@@ -676,6 +717,10 @@ def k8_summarize(driver, generation: str, run_id: str, cache: dict) -> tuple[dic
     반환값: (실행 결과 요약, 이번 세대의 {묶음 지문: 보고서}). 호출한 쪽이 기록 파일로 저장함.
     """
     # KG에서 entity와 relation 구하기  
+    # entities는 Label->속성키->속성값 순으로 정렬됨
+    # relations는 정렬된 entitiy의 순서대로 정렬됨   
+    
+    # --- 1. 엔티티, 관계, 선(edge) 생성  
     entities, relations = read_entity_graph(driver, generation)
     
     # 관계 목록을 커뮤니티 묶기(Leiden)용 「방향 없는 선」 목록으로 바꿈
@@ -687,6 +732,7 @@ def k8_summarize(driver, generation: str, run_id: str, cache: dict) -> tuple[dic
         edge_set.add(edge)  # 관계 이름은 버리므로, 두 엔티티 사이에 관계가 여러 개여도 선은 1개
     edges = sorted(edge_set)  # 순서를 고정해야 같은 입력에서 늘 같은 묶음 결과가 나옴
     
+    # --- 2. 커뮤니티 구성   
     graph_name = "k8-" + core.sha256_text(generation + "|" + run_id)[:12]
     
     # 커뮤니티 구성  
@@ -697,13 +743,15 @@ def k8_summarize(driver, generation: str, run_id: str, cache: dict) -> tuple[dic
     hashes = [member_hash(entities, g, relations) for g in groups]
     # 엔티티 수가 COMMUNITY_MIN_SIZE 이상인 것만 필터링   
     targets = [(g, h) for g, h in zip(groups, hashes) if len(g) >= COMMUNITY_MIN_SIZE]
+    
+    # --- 3. 리포트 생성 대상 커뮤니티 선별  
     # 캐시에 없는 값만 처리 대상 커뮤니티로 확정 
     todo = [(g, h) for g, h in targets if h not in cache]
     
     log(f"[K8] 엔티티 {len(entities)}개, 관계 {len(relations)}개 → 묶음 {len(groups)}개, "
         f"엔티티 {COMMUNITY_MIN_SIZE}개 이상 {len(targets)}개, 보고서 LLM {len(todo)}번, 재사용 {len(targets) - len(todo)}개")
 
-    # 커뮤니티 리포트 생성 
+    # --- 4. 커뮤니티 리포트 생성 
     reports = {}
     usage = {"calls": 0, "total_tokens": 0}
     if todo:
@@ -720,6 +768,7 @@ def k8_summarize(driver, generation: str, run_id: str, cache: dict) -> tuple[dic
         if h in cache:
             reports[h] = dict(cache[h])
     
+    # --- 5. 커뮤니티 리포트 임베딩   
     # 보고서 임베딩: 아직 벡터가 없는 보고서만 골라 임베딩함. 벡터는 Community 노드에 저장되어 거시 질문 검색에 쓰임
     # 이번에 LLM이 새로 쓴 보고서는 embedding이 없고, 앞 세대에서 재사용한 보고서는 community_reports.json에
     # 벡터까지 들어 있어 대개 건너뜀(Cohere 호출과 비용을 아낌)
@@ -736,6 +785,7 @@ def k8_summarize(driver, generation: str, run_id: str, cache: dict) -> tuple[dic
     for h, vector in zip(need_vector, embed_texts(texts)):
         reports[h]["embedding"] = vector
 
+    # --- 6. 커뮤니티를 KG 적재
     # KG에 추가할 커뮤니티 리포트 값 생성
     rows = core.build_community_rows(groups, hashes, entities, reports, COMMUNITY_MIN_SIZE)
     
@@ -776,6 +826,20 @@ def read_old_vectors(os_client: OpenSearch, index: str | None) -> dict[str, list
     for hit in helpers.scan(os_client, index=index, query={"_source": ["text_hash", "embedding"]}):
         old.setdefault(hit["_source"]["text_hash"], hit["_source"]["embedding"])
     return old
+
+
+def can_reuse_vectors(active: dict | None) -> bool:
+    """활성 세대의 벡터를 다시 써도 되는지 봄: 같은 임베딩 모델, 같은 차원으로 만든 벡터일 때만 True(교재 「S1. 임베딩」).
+
+    모델이나 차원이 다르면 본문이 같아도 벡터가 달라서, 옛 벡터를 섞어 쓰면 질문 벡터와 비교가 맞지 않음.
+    활성 세대 파일에 임베딩 설정이 적혀 있으면 그것과 비교함. 적히기 전에 만든 파일이면 설정 지문 전체가
+    같을 때만 같다고 보고, 다르면 안전하게 다시 쓰지 않음(전부 새로 임베딩).
+    """
+    if not active:  # 활성 세대가 없음(첫 실행)
+        return False
+    if "embedding_model" in active:  # ⑤ 게시가 적어 둔 임베딩 설정과 지금 설정을 비교
+        return active["embedding_model"] == EMBEDDING_MODEL and active.get("embed_dimension") == EMBED_DIMENSION
+    return active.get("config_signature") == config_signature()  # 옛 파일: 설정이 통째로 같을 때만
 
 
 def index_mapping(tokenizer_meta: dict) -> dict:
@@ -840,13 +904,9 @@ def run(args) -> None:
         raise SystemExit("--until k8은 Neo4j GDS가 필요함(neo4j/README.md 「gds.version을 찾지 못함」 참고)")
 
     # ② 공통 단계(앞부분): 입력을 읽어 청크 한 건으로 만듦. 세대 ID의 사전 검사에 청크 지문이 필요해 ①보다 먼저 읽음
-    if args.chunks:
-        chunks = read_chunk_file(Path(args.chunks), args.sample)
-        log(f"② 공통 단계: 청크 파일 {args.chunks}에서 {len(chunks)}개 읽음")
-    else:
-        rows = read_chroma_rows(args.sample)
-        chunks = core.prepare_chunks(rows)
-        log(f"② 공통 단계: Chroma {COLLECTION_NAME}에서 {len(rows)}개 읽어 청크로 만듦")
+    rows = read_chroma_rows()
+    chunks = core.prepare_chunks(rows)
+    log(f"② 공통 단계: Chroma {COLLECTION_NAME}에서 {len(rows)}개 읽어 청크로 만듦")
     by_type = {}
     for chunk in chunks:
         by_type[chunk["doc_type"]] = by_type.get(chunk["doc_type"], 0) + 1
@@ -904,7 +964,8 @@ def run(args) -> None:
         for unit in units:
             by_type_units[unit["doc_type"]] = by_type_units.get(unit["doc_type"], 0) + 1
         log(f"[K1] 청크 {len(chunks)}개 → 추출 단위 {len(units)}개 {by_type_units}, 청크 2개 이상에 걸친 단위 {len(multi)}개, "
-            f"단위가 없는 청크 {len(empty_chunks)}개 {[c[:22] for c in empty_chunks][:5]}")
+            f"추출청크가 없는 청크(예: 목차, 각주 등) {len(empty_chunks)}개 {[c[:22] for c in empty_chunks][:5]}")
+        
         sample_unit = next((u for u in units if u["doc_type"] == "regulation"), units[0] if units else None)
         if sample_unit:
             log(f"      단위 예: {sample_unit['unit_id']} ← 청크 {sample_unit['chunk_ids']}, 본문 {len(sample_unit['text'])}자")
@@ -991,7 +1052,11 @@ def run(args) -> None:
             log("③ 인덱스 구축 시작: 검색엔진 인덱싱(S1 ~ S3)")
 
         index = index_name(generation)
-        old_vectors = read_old_vectors(os_client, active["search_index"] if active else None)
+        # 옛 벡터는 같은 임베딩 모델과 차원으로 만든 것일 때만 다시 씀. 아니면 빈 dict라 S1이 전부 새로 임베딩함
+        reuse_ok = can_reuse_vectors(active)
+        old_vectors = read_old_vectors(os_client, active["search_index"]) if reuse_ok else {}
+        if active and not reuse_ok:
+            log("[S1] 활성 세대와 임베딩 모델 또는 차원이 달라(또는 알 수 없어) 옛 벡터를 다시 쓰지 않음")
         texts = [c["text"] for c in chunks]
         hashes = [c["text_hash"] for c in chunks]
 
@@ -1051,6 +1116,7 @@ def run(args) -> None:
     core.publish_active({
         "generation": generation, "search_index": index, "neo4j_generation": generation, "chunk_count": len(chunks),
         "input_sha256": input_sha256, "config_signature": config_signature(),
+        "embedding_model": EMBEDDING_MODEL, "embed_dimension": EMBED_DIMENSION,  # 다음 실행의 S1이 벡터 재사용 여부를 정함
         "published_at": time.strftime("%Y-%m-%d %H:%M:%S"), "runs": [run_id]}, ACTIVE_FILE)
     log(f"⑤ 게시: 활성 세대 파일 → {generation}")
 
@@ -1062,8 +1128,7 @@ def run(args) -> None:
 def main() -> None:
     """명령줄 인자를 읽어 run을 부름."""
     parser = argparse.ArgumentParser(description="GraphRAG 인덱싱 예제(전체 재색인)")
-    parser.add_argument("--run", required=True, help="실행 이름. 교육생 별명을 넣음(예: hong-s1). 같은 이름이면 같은 세대 ID")
-    parser.add_argument("--sample", action="store_true", help="표본 10청크만(수업용)")
+    parser.add_argument("--run", required=True, help="실행 이름. 교육생 별명을 넣음(예: hong-f1). 같은 이름이면 같은 세대 ID")
     parser.add_argument("--full-reindex", action="store_true", help="사전 검사를 건너뛰고 새 세대를 만듦")
     parser.add_argument("--skip-communities", action="store_true", help="K8 커뮤니티 요약을 건너뜀")
     parser.add_argument("--until", default=None, metavar="단계",
@@ -1071,7 +1136,6 @@ def main() -> None:
                              "검색엔진 인덱싱: s1, s2, s3. 트랙은 접두어로 정해 k*는 KG만, s*는 검색엔진만 돌림. "
                              "멈추면 ④ 검증과 ⑤ 게시를 하지 않아 활성 세대는 그대로")
     parser.add_argument("--reuse", default=None, help="앞 결과 폴더(kg_prepared.json, community_reports.json). 강사 배포본 등")
-    parser.add_argument("--chunks", default=None, help="Chroma 대신 쓸 청크 파일(prepared-chunks.json)")
     parser.add_argument("--mine", action="store_true", help="강사 코드 대신 교육생 코드(my_graph.py)로 실행함")
     run(parser.parse_args())
 

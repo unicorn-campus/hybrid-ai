@@ -5,6 +5,13 @@
 단계마다 알맹이는 core_search.py의 함수가 맡고, 이 파일은 설정값, 저장소 접속, 외부 API 호출, 서브 워크플로우(O, L, G, E, R),
 미들웨어, 순서, 화면 출력을 맡음. 인덱싱 실습(../indexer)이 만든 활성 세대를 읽기만 함.
 
+온톨로지 결합판: 그래프는 스키마 설계 결과(../schema/doc-ontology)를 따름. 문서 노드는 Article, Benefit, UsageRule,
+Consultation, CustomerSegment, Complaint, Request, Proposal, 공통 노드 Topic이고, 카드상품과 회원은 노드 없이 키 속성
+(product_id, member_pseudo_id)만 있음. 건너가는 지점(concepts.json의 paths)은 이렇게 씀
+  P1 불만 → 주제 ← 조항, P2 불만 → 주제 ← 혜택, P3 상담 → 카드상품 키 → 혜택   follow_crossing 툴
+  P4 정형 DB 업종 → (IN_CATEGORY 반대) 혜택, P6 정형 DB 상품 ID → 혜택              query_customer_data의 건너갈 키 → find_entities
+  P5 회원번호 → 바꾸는 규칙(가명 키) → 상담                                         ② 식별자 바꾸기 + 회원 필터
+
 실행(이 폴더에서):
   ../.venv/Scripts/python.exe search_graph.py --qid Q01                       평가셋 질문(역할은 평가셋 filters대로)
   ../.venv/Scripts/python.exe search_graph.py "할부 철회는 며칠 안에 하나요?" --role agent
@@ -14,6 +21,7 @@
 
 import argparse
 import json
+import logging
 import math
 import os
 import shutil
@@ -67,18 +75,20 @@ else:
 BASE_DIR = Path(__file__).resolve().parent  # 이 파일이 있는 retriever 폴더
 sys.path.insert(0, str(BASE_DIR.parent / "indexer"))  # 인덱싱 실습의 토크나이저를 그대로 씀(색인과 같은 규칙이어야 BM25가 맞음)
 import kr_tokenizer  # noqa: E402
-import core_sql  # noqa: E402  정형 조회 함수(개선 6): 스키마 설명 읽기, SQL 검사, 읽기 전용 실행
+import core_sql  # noqa: E402  정형 조회 함수: 그래프의 뷰 설명 읽기, SQL 검사, 읽기 전용 실행
 
 sys.stdout.reconfigure(encoding="utf-8")  # Windows 콘솔에서 한글이 깨지지 않게 함
 # create_agent가 context(작업 기록)를 기록용으로 직렬화할 때 내는 형식 경고를 숨김(동작에는 영향 없음)
 warnings.filterwarnings("ignore", message="Pydantic serializer warnings")
+logging.getLogger("neo4j.notifications").setLevel(logging.ERROR)  # 세대에 없는 라벨(UsageRule 등) 알림을 숨김(동작에는 영향 없음)
 
 # ---------------------------------------------------------------------------
 # 설정값(상수). 교육생이 값을 바꿔 보며 결과 차이를 볼 수 있도록 한곳에 모음
 # ---------------------------------------------------------------------------
 ROOT_DIR = BASE_DIR.parents[3]  # retriever → graphrag → solutions → hands-on → 저장소 루트
 ACTIVE_FILE = BASE_DIR.parent / "indexer" / "data" / "active_generation.json"  # 인덱싱이 게시한 활성 세대(읽기만)
-EVAL_SET_PATH = ROOT_DIR / "hands-on" / "solutions" / "eval-set.json"  # 평가셋 25문항
+EVAL_SET_PATH = ROOT_DIR / "hands-on" / "solutions" / "eval-set.json"  # 평가셋(--eval 일괄 대상)
+EVAL_SET_FULL_PATH = ROOT_DIR / "hands-on" / "solutions" / "eval-set-full.json"  # 전체 25문항(--qid가 평가셋에 없으면 여기서 찾음)
 LOG_DIR = BASE_DIR / "data" / "logs"  # 실행 기록(Git 제외)
 
 # 비밀값. 키 값은 코드, 주석, 화면에 절대 적지 않음. 환경변수에 올리지 않고 클라이언트마다 인자로 넘김
@@ -90,13 +100,17 @@ NEO4J_URI = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.environ.get("NEO4J_USER", "neo4j")
 OPENSEARCH_URL = os.environ.get("OPENSEARCH_URL", "http://127.0.0.1:9200")
 ENTITY_INDEX = "kg_entity_embedding"  # K6 엔티티 설명 벡터 인덱스(E3 후보 찾기)
-# 정형 조회(개선 6): 검색기 계정으로 app 논리 뷰만 읽음. 접속 정보는 정형 검색기 실습과 같은 이름으로 secrets/.env에 둠
+# 정형 조회: 검색기 계정으로 app 논리 뷰만 읽음. 접속 정보는 정형 검색기 실습과 같은 이름으로 secrets/.env에 둠
 RDB_DSN_DEFAULT = "host=localhost port=5432 dbname=cardlab user=sql_retriever_user"
 SQL_ROW_LIMIT = 50  # 조회 결과 행 수 상한
 SQL_TIMEOUT_MS = 5000  # 조회 제한 시간(밀리초)
 SQL_MAX_CALLS = 2  # 요청당 정형 조회 횟수 상한
 E_KEY_LIMIT, E_CATEGORY_LIMIT = 12, 30  # E2 키 찾기 결과 수. 업종 키는 혜택이 여럿이라 넉넉히 둠
 NO_CHUNK_TOOLS = ("find_entities", "query_customer_data")  # 원문을 돌려주지 않는 툴(채점에서 원문 신호를 매기지 않음)
+NO_QUERY_TOOLS = ("get_source_chunks", "follow_crossing")  # 질의 없이 관계로 원문을 붙이는 툴(관련 낮아도 근거에서 빼지 않음)
+CROSS_ROWS = 30  # follow_crossing이 돌려줄 경로 수 상한(모든 불만에서 출발할 때 고객군 6개를 덮는 크기)
+CROSS_TARGETS = 4  # 경로 하나에 붙일 도착 노드(조항, 혜택) 수 상한
+CROSS_CHUNKS = 16  # follow_crossing이 붙일 원문 수 상한
 
 # 모델
 AGENT_MODEL = "openai/gpt-oss-120b"  # ③ 검색 에이전트(툴 고르기). Groq. G1, G2, ⑧과 같은 모델(강사 결정 2026-10-25)
@@ -159,10 +173,17 @@ AGENT_SYSTEM = """너는 카드사 상담 지원 시스템의 「근거 수집�
 
 툴 고르는 법(권장일 뿐 따르지 않아도 됨)
 - 특정 카드, 혜택, 약관 사실: local_search 또는 search_vector-bm25
+- 키로 바로 찾기: find_entities. 키 예: 「모아생활 카드」, 「제16조의2」, 「D2-C021-B02」, 「C-20260314-001」,
+  「주제:본인 확인」, 「고객군:신규 가입」. 찾은 엔티티 id로 get_source_chunks를 불러 원문을 붙임
 - 특정 회원의 상담: find_entities(entity_key에 「회원」) → 나온 상담 엔티티 id로 get_source_chunks
+  (회원번호는 시스템이 가명 키로 바꿔 필터로 걸어 둠)
 - 특정 회원의 보유 카드, 업종별 사용액 같은 정형 자료: query_customer_data(회원이 지정된 요청에서만 됨)
-  결과 끝의 「건너갈 키」를 find_entities에 넣으면(예: 「업종:식비」) 그 업종에 혜택을 주는 엔티티와 카드가 나옴
-  → 그 엔티티 id로 get_source_chunks를 불러 원문을 붙임
+  결과 끝의 「건너갈 키」를 find_entities에 그대로 넣음. 「업종:식비」는 그 업종에 혜택을 주는 혜택 엔티티,
+  「카드상품:D2-C021」은 그 카드의 혜택과 이용 기준 엔티티가 나옴 → get_source_chunks로 원문을 붙임
+- 문서를 건너가는 관계: follow_crossing(point, entity_ids). 경로 양 끝의 원문까지 붙여 줌
+  P1 불만 → 주제 → 약관 조항, P2 불만 → 주제 → 카드 혜택(entity_ids에 상담이나 불만 id. 비우면 볼 수 있는 모든 불만),
+  P3 상담 → 그 상담의 카드 → 혜택과 이용 기준(entity_ids에 상담 id)
+  불만과 관련된 조항이나 혜택, 고객군별 불만을 묻는 질문은 follow_crossing P1, P2를 먼저 씀
 - 여러 상담의 경향, 공통점, 주제 나누기: global_search(요청당 1회). 원문이 없는 주제만 local_search(topic_id)로 보충
 - 질문에 사실이 둘이면 한 회차에 툴을 여러 개 불러도 됨(최대 5개)
 
@@ -216,7 +237,7 @@ SQL_PROMPT = ChatPromptTemplate.from_messages([
 
 
 class SqlPlan(BaseModel):
-    """D1 SQL 생성 결과(개선 6)."""
+    """D1 SQL 생성 결과."""
 
     sql: str = Field(description="PostgreSQL SELECT 한 문장. 세미콜론과 주석 없이")
     reason: str = Field(description="이 뷰와 컬럼을 고른 까닭 한 줄")
@@ -317,7 +338,7 @@ class Resources:
                              request_timeout=GROQ_TIMEOUT, reasoning_effort="medium")
         self.agent = ChatGroq(model=AGENT_MODEL, api_key=keys["GROQ_API_KEY"], temperature=0,
                               max_retries=AGENT_RETRIES, request_timeout=AGENT_TIMEOUT, reasoning_effort=AGENT_REASONING)
-        values = dotenv_values(SECRETS_PATH) if SECRETS_PATH.exists() else {}  # 개선 6: 정형 DB 검색기 계정
+        values = dotenv_values(SECRETS_PATH) if SECRETS_PATH.exists() else {}  # 정형 DB 검색기 계정
         self.rdb_dsn = os.environ.get("SQL_RETRIEVER_DB_DSN") or values.get("SQL_RETRIEVER_DB_DSN") or RDB_DSN_DEFAULT
         self.rdb_password = os.environ.get("SQL_RETRIEVER_DB_PASSWORD") or values.get("SQL_RETRIEVER_DB_PASSWORD") or ""
         self.kiwi_plain = Kiwi()  # 핵심 낱말 고르기용 형태소 분석기(품사가 필요해 따로 둠)
@@ -363,8 +384,9 @@ def load_generation_data(res: Resources) -> dict:
     data["name_to_card_id"] = names
 
     data["graph_chunk_count"] = res.run("MATCH (c:Chunk {generation: $g}) RETURN count(c) AS n", g=generation)[0]["n"]
-    data["versions"] = [r["v"] for r in res.run("MATCH (t:TermsDocument {generation: $g}) RETURN t.version AS v",
-                                                g=generation) if r["v"]]
+    # 약관 버전: 새 스키마에는 약관 문서 노드가 없어 청크 메타데이터(약관 청크의 version)에서 읽음
+    data["versions"] = sorted({m["version"] for m in data["chunk_meta"].values()
+                               if m.get("doc_type") == "regulation" and m.get("version")})
     for record in res.run(
             "MATCH (c:Community {generation: $g}) "
             "OPTIONAL MATCH (c)<-[:IN_COMMUNITY]-(e)-[:FROM_CHUNK]->(s:Chunk) "
@@ -373,11 +395,23 @@ def load_generation_data(res: Resources) -> dict:
         data["reports"][record["id"]] = {"id": record["id"], "title": record["title"], "summary": record["summary"],
                                          "findings": list(record["findings"] or []), "embedding": record["embedding"],
                                          "sources": set(record["sources"])}
-    # 개선 6: 그래프의 스키마 설명(인덱서 개선 3이 실어 둠)과 DB의 데이터 기준일을 읽어 둠. 없으면 정형 조회 툴만 못 씀
+    # 공통 개념 층(OntoConcept)과 뷰 설명(DbView, DbColumn, SqlExample)을 읽어 둠. 둘 다 인덱서가 실음
+    # (core_ontology.load_concept_layer, load_view_layer). 뷰 설명이 없으면 정형 조회 툴만 못 씀
     data["schema"] = core_sql.read_schema_graph(res.run)
     data["schema_text"] = core_sql.schema_text(data["schema"])
     data["concept_names"] = {c["name"] for c in data["schema"]["concepts"]}
-    data["categories"] = next((c["values"] for c in data["schema"]["concepts"] if c["name"] == "업종"), [])
+    data["categories"] = next((c["values"] or [] for c in data["schema"]["concepts"] if c["name"] == "업종"), [])
+    data["segments"] = next((c["values"] or [] for c in data["schema"]["concepts"] if c["name"] == "고객군"), [])
+    if not data["concept_names"]:
+        say("그래프에 공통 개념 층(OntoConcept)이 없음: 인덱서(../indexer/index_graph.py)를 먼저 돌림")
+    # 문서 라벨 → 그 라벨이 노드로 나타내는 개념의 이름과 정의(예: Article → 「조항 개인회원 이용약관의 조 하나」).
+    # ⑦이 건너가는 쌍을 셀 때 질문 낱말(불만, 약관)이 원문에 없어도 개념으로 맞춰 봄
+    data["label_words"] = {}
+    for record in res.run("MATCH (k:OntoConcept) RETURN k.name AS name, k.definition AS definition, "
+                          "k.doc_labels AS doc_labels"):
+        for item in json.loads(record["doc_labels"] or "[]"):
+            if item.get("role") == "노드":
+                data["label_words"][item["label"]] = f"{record['name']} {record['definition'] or ''}"
     try:
         data["sql_scope"] = core_sql.read_scope(res.rdb_dsn, res.rdb_password)
     except Exception as error:
@@ -427,6 +461,8 @@ def jev_route(res: Resources, question: str, ctx: dict) -> dict | None:
         "global_search": "a trend, common pattern, or grouping across many consultations or documents",
         "find_entities": "a specific member's consultation history or a specific id",
         "search_vector-bm25": "find exact wording in documents",
+        "follow_crossing": "terms clauses or card benefits related to customer complaints in consultations, "
+                           "or benefits of the card discussed in a consultation",
     }
     swapped = dict(reversed(list(criteria.items())))  # 첫 보기 쏠림(공식 문서의 약점) 대비로 순서를 뒤집음
     state = {"question": question}
@@ -687,37 +723,49 @@ def global_search(res: Resources, query: str, filters: dict, ctx: dict) -> dict:
 
 
 def find_entities(res: Resources, entity_key: str, filters: dict, ctx: dict) -> dict:
-    """E 엔티티 찾기: E1 정규화 → E2 레이블별 키 찾기 → E3 후보 제시(0건일 때) → E4 이웃 탐색(원문 없음) (교재 85쪽)."""
+    """E 엔티티 찾기: E1 정규화 → E2 레이블별 키 찾기 → E3 후보 제시(0건일 때) → E4 이웃 탐색(원문 없음) (교재 85쪽).
+
+    키는 스키마의 키 속성으로 찾음. 카드상품과 회원은 노드가 없으므로 문서 노드의 키 속성으로 찾음.
+    건너갈 키(「업종:식비」, 「카드상품:D2-C021」)는 정형 조회 결과에서 옴(P4, P6).
+    """
     raw = entity_key.strip()
     concept, _, value = raw.partition(":")
-    if value and concept in DATA["concept_names"]:  # 개선 7: 「업종:식비」, 「카드상품:D2-C021」 같은 건너갈 키면 값만 남김
+    concept = concept.strip()
+    named = None if value and concept in DATA["concept_names"] else concept  # 개념이 붙지 않은 키
+    if value and concept in DATA["concept_names"]:  # 「업종:식비」, 「카드상품:D2-C021」, 「주제:본인 확인」이면 값만 남김
         raw = value.strip()
-    category = raw if raw in DATA["categories"] else None  # 업종 8개 값 중 하나면 업종 키로 찾음
+    name_key = raw if named is not None or concept in ("주제", "고객군") else None  # 「업종:교육」은 주제 「교육」으로 찾지 않음
+    category = raw if raw in DATA["categories"] else None  # P4: 업종 8개 값 중 하나면 업종 키로 찾음
     member = None
     if core.MEMBER_ID_PATTERN.search(raw) or core.PSEUDO_ID_PATTERN.search(raw) or "회원" in raw:
-        member = filters.get("member_pseudo_id")  # 회원은 ②가 바꾼 가명 id만 씀(질의 속 번호는 쓰지 않음)
+        member = filters.get("member_pseudo_id")  # P5: 회원은 ②가 바꾼 가명 키만 씀(질의 속 번호는 쓰지 않음)
     keys = {  # E1: 레이블마다 키를 같은 꼴로(선택 과제 normalize_entity_key)
-        "card": core.normalize_entity_key("ProductGuide", raw),
-        "clause": core.normalize_entity_key("Clause", raw),
+        "card": core.normalize_entity_key("CardProduct", raw),
+        "article": core.normalize_entity_key("Article", raw),
         "benefit": core.normalize_entity_key("Benefit", raw),
         "raw": raw,
     }
     records = res.run(  # E2: 레이블별 키 속성으로 찾음(세대와 권한 조건)
         "MATCH (n:__Entity__ {generation: $g}) WHERE ("
-        " (n:ProductGuide AND (replace(replace(n.card_name, '한빛', ''), ' ', '') = $card OR n.product_id = $raw))"
-        " OR (n:Clause AND n.clause_no = $clause)"
+        # 카드상품 키(P6): 혜택과 이용 기준의 card_name 또는 product_id. 상담은 product_id가 같을 때만(P3과 같은 키)
+        " ((n:Benefit OR n:UsageRule) AND $card <> '' AND (replace(replace(n.card_name, '한빛', ''), ' ', '') = $card"
+        "    OR n.product_id = $raw))"
+        " OR (n:Consultation AND n.product_id = $raw)"
+        " OR (n:Article AND n.article_no = $article)"
         " OR (n:Consultation AND ((n.member_pseudo_id = $member AND $member IS NOT NULL) OR n.record_id = $raw))"
         " OR (n:Benefit AND (replace(replace(replace(n.name, ' ', ''), '(', ''), ')', '') = $benefit"
         "    OR n.benefit_id = $raw))"
-        " OR (n:TermsDocument AND n.version = $raw)"
-        # 개선 7: 업종 키. 그 업종에 이어진 혜택을 찾음(인덱서 개선 4가 만든 FOR_CATEGORY 관계를 따라감)
+        " OR (n:UsageRule AND n.item_id = $raw)"
+        " OR ((n:Topic OR n:CustomerSegment) AND n.name = $name_key)"
+        # P4: 업종 키. 업종에서 혜택으로 IN_CATEGORY를 반대로 따라감(역관 CATEGORY_OF)
         " OR (n:Benefit AND $category IS NOT NULL AND EXISTS {"
-        "    (n)-[:FOR_CATEGORY]->(:Category {generation: $g, name: $category}) })"
+        "    (n)-[:IN_CATEGORY]->(:Category {generation: $g, name: $category}) })"
         ") AND " + entity_allowed_clause("n") + " "
         "RETURN elementId(n) AS id, " + LABEL_OF + " AS label, " + PROPS_OF + " AS props, "
-        "[(n)-[:FROM_CHUNK]->(s:Chunk) | s.chunk_id] AS chunk_ids LIMIT $limit",
+        "[(n)-[:FROM_CHUNK]->(s:Chunk) | s.chunk_id] AS chunk_ids "
+        "ORDER BY coalesce(n.consult_date, ''), coalesce(n.benefit_id, n.item_id, n.article_no, '') LIMIT $limit",
         g=filters["generation"], allowed=sorted(filters["allowed_ids"]), member=member, category=category,
-        limit=E_CATEGORY_LIMIT if category else E_KEY_LIMIT, **keys)
+        name_key=name_key, limit=E_CATEGORY_LIMIT if category else E_KEY_LIMIT, **keys)
     entities = [dict(r) for r in records]
     candidates = []
     if not entities:  # E3: 0건이면 노드 설명 임베딩(K6)으로 가까운 엔티티 3개를 후보로(오류가 아님)
@@ -733,7 +781,63 @@ def find_entities(res: Resources, entity_key: str, filters: dict, ctx: dict) -> 
             candidates = [dict(r) for r in records]
     shown = entities or candidates
     graph = neighbors_and_reports(res, [e["id"] for e in shown], filters.get("question_vector"), filters)  # E4
-    return {"entities": entities, "candidates": candidates, "neighbors": graph["neighbors"]}
+    path = "P4 업종 → 혜택" if category else "P5 회원 → 상담" if member else None
+    return {"entities": entities, "candidates": candidates, "neighbors": graph["neighbors"], "path": path}
+
+
+def entity_row(node) -> dict:
+    """Cypher가 돌려준 노드 묶음 {id, label, props, chunk_ids}를 작업 기록에 넣을 꼴로 바꿈."""
+    return {"id": node["id"], "label": node["label"], "props": dict(node["props"]), "chunk_ids": list(node["chunk_ids"])}
+
+
+NODE_OF = ("{{id: elementId({v}), label: [l IN labels({v}) WHERE NOT l STARTS WITH '__'][0], "
+           "props: apoc.map.removeKeys(properties({v}), ['embedding', 'generation', 'run_id']), "
+           "chunk_ids: [({v})-[:FROM_CHUNK]->(s:Chunk) | s.chunk_id]}}")  # 노드 하나를 묶음으로(Cypher 안 map)
+
+
+def follow_crossing(res: Resources, point: str, entity_ids: list[str], filters: dict,
+                    chunk_ids: list[str] | None = None) -> dict:
+    """X 건너가기: 공통 개념 층의 건너가는 지점(concepts.json paths)을 그래프 경로로 따라감.
+
+    P1 Consultation -HAS_COMPLAINT-> Complaint -ABOUT-> Topic <-ABOUT- Article
+    P2 Complaint -ABOUT-> Topic <-ABOUT- Benefit
+    P3 Consultation.product_id = Benefit.product_id(UsageRule 포함. 카드상품은 노드가 없어 키 값으로 이음)
+    출발과 도착 노드는 권한 조건(볼 수 있는 청크 표)을 지켜야 하고, 지나가는 주제 노드는 볼 수 있는 원문에 한 번이라도 나온 것만 씀.
+    출발은 엔티티 id(entity_ids) 또는 원문 청크 id(chunk_ids. 그 원문에서 나온 상담이나 불만)로 줌. 둘 다 비면 모든 불만.
+    반환값: rows([{start, segment, complaint, topic, targets}]), linked(도착 노드가 있는 경로 수)
+    """
+    allowed = sorted(filters["allowed_ids"])
+    params = {"g": filters["generation"], "allowed": allowed, "ids": entity_ids, "chunks": chunk_ids or [],
+              "rows": CROSS_ROWS, "targets": CROSS_TARGETS}
+    from_chunk = "ANY(src IN [({v})-[:FROM_CHUNK]->(s:Chunk) | s.chunk_id] WHERE src IN $chunks)"
+    if point in ("P1", "P2"):
+        target = "Article" if point == "P1" else "Benefit"
+        records = res.run(
+            "MATCH (c:Consultation {generation: $g})-[:HAS_COMPLAINT]->(p:Complaint)-[:ABOUT]->(t:Topic) "
+            "WHERE (size($ids) + size($chunks) = 0 OR elementId(c) IN $ids OR elementId(p) IN $ids OR "
+            + from_chunk.format(v="c") + ") "
+            "AND " + entity_allowed_clause("c") + " AND " + entity_allowed_clause("p") + " "
+            "AND ANY(src IN [(t)-[:FROM_CHUNK]->(s:Chunk) | s.chunk_id] WHERE src IN $allowed) "
+            "OPTIONAL MATCH (c)-[:IN_SEGMENT]->(seg:CustomerSegment) "
+            "CALL (t) { OPTIONAL MATCH (t)<-[:ABOUT]-(x:" + target + " {generation: $g}) "
+            "  WHERE x IS NULL OR (" + entity_allowed_clause("x") + ") "
+            "  RETURN [y IN collect(x) WHERE y IS NOT NULL][..$targets] AS xs } "
+            "RETURN " + NODE_OF.format(v="c") + " AS start, seg.name AS segment, " + NODE_OF.format(v="p")
+            + " AS complaint, " + NODE_OF.format(v="t") + " AS topic, "
+            "[x IN xs | " + NODE_OF.format(v="x") + "] AS targets "
+            "ORDER BY segment, size(xs) = 0, c.consult_date LIMIT $rows", **params)
+    else:  # P3: 상담의 카드상품 키(product_id)와 같은 값을 가진 혜택과 이용 기준
+        records = res.run(
+            "MATCH (c:Consultation {generation: $g}) WHERE (elementId(c) IN $ids OR " + from_chunk.format(v="c") + ") "
+            "AND c.product_id IS NOT NULL "
+            "AND " + entity_allowed_clause("c") + " "
+            "CALL (c) { OPTIONAL MATCH (x {generation: $g}) WHERE (x:Benefit OR x:UsageRule) "
+            "  AND x.product_id = c.product_id AND " + entity_allowed_clause("x") + " "
+            "  RETURN [y IN collect(x) WHERE y IS NOT NULL][..$targets] AS xs } "
+            "RETURN " + NODE_OF.format(v="c") + " AS start, null AS segment, null AS complaint, null AS topic, "
+            "[x IN xs | " + NODE_OF.format(v="x") + "] AS targets ORDER BY c.consult_date LIMIT $rows", **params)
+    rows = [dict(r) for r in records]
+    return {"rows": rows, "linked": sum(1 for r in rows if r["targets"])}
 
 
 def get_source_chunks(res: Resources, entity_ids: list[str], with_reports: bool, filters: dict) -> dict:
@@ -756,16 +860,16 @@ def get_source_chunks(res: Resources, entity_ids: list[str], with_reports: bool,
 # 툴 결과 → 작업 기록(근거)과 관찰 글
 # ---------------------------------------------------------------------------
 def customer_data(res: Resources, question: str, filters: dict, ctx: dict) -> dict:
-    """D 정형 조회(개선 6): D1 SQL 생성(Groq) → D2 검사 → D3 읽기 전용 실행 → D4 건너갈 키 고르기.
+    """D 정형 조회: D1 SQL 생성(Groq) → D2 검사 → D3 읽기 전용 실행 → D4 건너갈 키 고르기.
 
-    SQL은 그래프에서 읽은 스키마 설명으로 만듦. 행 데이터는 PostgreSQL에 그대로 있고 그래프에는 뜻만 있음.
+    SQL은 그래프에서 읽은 뷰 설명(인덱서가 schema/rdb/app_views.json과 DB 카탈로그를 대조해 실음)으로 만듦. 행 데이터는 PostgreSQL에 그대로 있고 그래프에는 뜻만 있음.
     회원번호는 프롬프트에 넣지 않음. 뷰가 세션 값의 회원 행만 돌려주므로 SQL에 회원 조건이 필요 없음.
     """
     schema = DATA["schema"]
     if not filters.get("member_id"):
         return {"error": "회원이 지정되지 않았거나 이 역할은 회원 자료를 볼 수 없음"}
     if not schema["views"] or not DATA.get("sql_scope"):
-        return {"error": "정형 조회 준비 안 됨(그래프에 스키마 설명이 없거나 DB에 접속하지 못함)"}
+        return {"error": "정형 조회 준비 안 됨(그래프에 뷰 설명이 없거나 DB에 접속하지 못함)"}
     ctx["calls"]["groq"] += 1
     chain = SQL_PROMPT | res.groq.with_structured_output(SqlPlan, method="json_schema", strict=True)
     plan = chain.invoke({"question": core.strip_identifiers(question), "schema": DATA["schema_text"]})  # D1
@@ -779,7 +883,7 @@ def customer_data(res: Resources, question: str, filters: dict, ctx: dict) -> di
 
 
 def judge_question(ctx: dict) -> str:
-    """채점(⑤, ⑦)과 리랭킹(⑥)에 쓰는 질문. 정형 조회로 확인한 키 값이 있으면 질문 뒤에 붙임(개선 8).
+    """채점(⑤, ⑦)과 리랭킹(⑥)에 쓰는 질문. 정형 조회로 확인한 키 값이 있으면 질문 뒤에 붙임.
 
     「많이 쓰는 업종」 같은 말은 원문에 없음. 조회로 확인한 값(식비)을 알려 줘야 그 원문이 답 근거인지 가릴 수 있음.
     """
@@ -911,7 +1015,8 @@ def make_tool_functions(res: Resources) -> dict:
         found = find_entities(res, args["entity_key"], filters, ctx)
         lines = []
         if found["entities"]:
-            lines.append(f"엔티티 {len(found['entities'])}개(원문은 get_source_chunks로 붙임)")
+            via = f", 건너가는 지점 {found['path']}" if found["path"] else ""
+            lines.append(f"엔티티 {len(found['entities'])}개{via}(원문은 get_source_chunks로 붙임)")
             rows = found["entities"]
         else:
             lines.append(f"「{args['entity_key']}」와 키가 같은 엔티티 없음. 가까운 후보 {len(found['candidates'])}개")
@@ -937,6 +1042,49 @@ def make_tool_functions(res: Resources) -> dict:
         return {"observation": "\n".join(lines), "chunk_ids": ids, "new": new, "tool": "get_source_chunks",
                 "judge_q": None}
 
+    def run_cross(args, filters, ctx):
+        point = args["point"]
+        given = args.get("entity_ids") or []
+        long_ids = [ctx["entity_long"][sid] for sid in given if sid in ctx["entity_long"]]
+        start_chunks = [DATA["by_short"][sid] for sid in given  # 원문 id(D3-0005)를 주면 그 원문의 상담, 불만에서 출발
+                        if sid not in ctx["entity_long"] and DATA["by_short"].get(sid) in filters["allowed_ids"]]
+        unknown = [sid for sid in given if sid not in ctx["entity_long"] and sid not in DATA["by_short"]]
+        if given and not long_ids and not start_chunks:  # 모르는 id만 줬으면 「모든 불만에서 출발」로 바꾸지 않고 알려 줌
+            return {"observation": f"모르는 id {unknown}: entity_ids에는 엔티티 id(e1 같은)나 원문 id(D3-0005 같은)를 씀",
+                    "chunk_ids": [], "new": [], "tool": "follow_crossing", "judge_q": None, "point": point,
+                    "n_paths": 0, "n_linked": 0}
+        found = follow_crossing(res, point, long_ids, filters, start_chunks)
+        lines = [f"{point} {core.CROSSING_POINTS[point]}: 경로 {len(found['rows'])}개, 도착 노드가 있는 경로 {found['linked']}개"
+                 + (f", 모르는 id {unknown}" if unknown else "")]
+        chunk_ids = []
+
+        def take(node, with_chunks: bool = True):  # 노드를 작업 기록에 넣고 짧은 id와 볼 수 있는 원문을 모음
+            add_entities(ctx, [entity_row(node)])
+            for cid in node["chunk_ids"] if with_chunks else []:  # 공통 노드(주제)는 원문이 많아 근거로 붙이지 않음
+                if cid in filters["allowed_ids"] and cid not in chunk_ids:
+                    chunk_ids.append(cid)
+            return f"{short_entity_id(ctx, node['id'])} {short(entity_text(node['label'], node['props']), 70)}"
+
+        def seen(node):  # 그 노드가 나온 원문 중 볼 수 있는 것
+            return [cid for cid in node["chunk_ids"] if cid in filters["allowed_ids"]]
+
+        for row in found["rows"]:
+            start_node = row["complaint"] or row["start"]  # ⑥이 함께 남길 경로 양 끝 원문 쌍을 적어 둠
+            ctx.setdefault("crossing_pairs", []).extend(
+                {"point": point, "start": seen(start_node), "end": seen(t)} for t in row["targets"])
+            head = take(row["start"]) + (f" [고객군 {row['segment']}]" if row["segment"] else "")
+            if row["complaint"]:
+                head += f" -HAS_COMPLAINT-> {take(row['complaint'])} -ABOUT-> {take(row['topic'], with_chunks=False)}"
+            arrow = "<-ABOUT-" if point in ("P1", "P2") else "=product_id="
+            tails = [take(t) for t in row["targets"]]
+            lines.append(f"  {head}")
+            lines += [f"      {arrow} {tail}" for tail in tails] or ["      (이어진 도착 노드 없음)"]
+        ids = chunk_ids[:CROSS_CHUNKS]
+        new = add_chunks(ctx, ids, "follow_crossing", None)
+        lines.append(chunk_lines(ctx, ids))
+        return {"observation": "\n".join(lines), "chunk_ids": ids, "new": new, "tool": "follow_crossing",
+                "judge_q": None, "point": point, "n_paths": len(found["rows"]), "n_linked": found["linked"]}
+
     def run_data(args, filters, ctx):
         base = {"chunk_ids": [], "new": [], "tool": "query_customer_data", "judge_q": None, "n_rows": 0}
         if ctx["sql_calls"] >= SQL_MAX_CALLS:
@@ -945,18 +1093,20 @@ def make_tool_functions(res: Resources) -> dict:
         found = customer_data(res, args["question"], filters, ctx)
         if found.get("error"):
             return {**base, "observation": found["error"]}
-        fact_id = f"d{len(ctx['data_facts']) + 1}"  # 개선 8: 조회 결과를 근거로 남김(답에서 d1처럼 인용)
+        fact_id = f"d{len(ctx['data_facts']) + 1}"  # 조회 결과를 근거로 남김(답에서 d1처럼 인용)
         text = core_sql.rows_text(found["rows"])
         ctx["data_facts"].append({"id": fact_id, "sql": found["sql"], "text": text, "rows": len(found["rows"])})
         lines = [f"정형 조회 결과 {len(found['rows'])}행(근거 id {fact_id})", f"<data>\n{text}\n</data>"]
         ctx["bridge_note"] = "; ".join(f"{concept}: {', '.join(values)}" for concept, values in found["keys"].items())
         for concept, values in found["keys"].items():
             keys = ", ".join(f"「{concept}:{value}」" for value in values)
-            lines.append(f"건너갈 키({concept}): {keys} → find_entities의 entity_key에 그대로 넣음")
+            point = {"업종": "P4", "카드상품": "P6"}.get(concept, "")
+            lines.append(f"건너갈 키({concept}{', ' + point if point else ''}): {keys} → find_entities의 entity_key에 그대로 넣음")
         return {**base, "observation": "\n".join(lines), "n_rows": len(found["rows"]), "sql": found["sql"]}
 
     return {"search_vector-bm25": run_search, "local_search": run_local, "global_search": run_global,
-            "find_entities": run_find, "get_source_chunks": run_sources, "query_customer_data": run_data}
+            "find_entities": run_find, "get_source_chunks": run_sources, "query_customer_data": run_data,
+            "follow_crossing": run_cross}
 
 
 # ---------------------------------------------------------------------------
@@ -1010,10 +1160,12 @@ def tool_global(query: str, runtime: ToolRuntime) -> str:
 
 @tool("find_entities")
 def tool_find(entity_key: str, runtime: ToolRuntime) -> str:
-    """엔티티 직접 검색: 레이블별 키(카드명, 조항 번호, 회원)로 엔티티와 1-hop 이웃을 찾음. 원문은 붙이지 않음.
+    """엔티티 직접 검색: 레이블별 키(카드명, 조항 번호, 혜택 ID, 상담 ID, 주제, 고객군, 회원, 건너갈 키)로 엔티티와
+    1-hop 이웃을 찾음. 원문은 붙이지 않음.
 
     Args:
-        entity_key: 찾을 대상의 이름이나 번호. 예: 「모아생활 카드」, 「제16조의2」, 회원 상담이면 「회원」.
+        entity_key: 찾을 대상의 이름이나 번호. 예: 「모아생활 카드」, 「제16조의2」, 「D2-C021-B02」, 「주제:본인 확인」,
+            「고객군:신규 가입」, 회원 상담이면 「회원」, 정형 조회의 건너갈 키면 「업종:식비」, 「카드상품:D2-C021」.
     """
     return call_wrapper("find_entities", {"entity_key": entity_key}, runtime)
 
@@ -1039,6 +1191,18 @@ def tool_data(question: str, runtime: ToolRuntime) -> str:
     return call_wrapper("query_customer_data", {"question": question}, runtime)
 
 
+@tool("follow_crossing")
+def tool_cross(point: Literal["P1", "P2", "P3"], entity_ids: list[str], runtime: ToolRuntime) -> str:
+    """건너가기: 문서 종류를 넘는 관계 경로를 따라가고, 경로 양 끝의 원문까지 붙임.
+
+    Args:
+        point: P1(불만 → 주제 → 약관 조항), P2(불만 → 주제 → 카드 혜택), P3(상담 → 그 상담의 카드상품 → 혜택과 이용 기준).
+        entity_ids: 출발 엔티티 id(e1 같은 짧은 id) 또는 상담 원문 id(D3-0005 같은), 최대 16개. P1, P2는 상담이나 불만이고
+            비우면 볼 수 있는 모든 불만에서 출발함(고객군별 불만을 물을 때). P3은 상담이 필요함.
+    """
+    return call_wrapper("follow_crossing", {"point": point, "entity_ids": entity_ids}, runtime)
+
+
 @tool("finish")
 def tool_finish(status: Literal["sufficient", "unverifiable", "need_clarification"], reason: str,
                 runtime: ToolRuntime) -> str:
@@ -1052,7 +1216,7 @@ def tool_finish(status: Literal["sufficient", "unverifiable", "need_clarificatio
     return "수집 종료"
 
 
-AGENT_TOOLS = [tool_search, tool_local, tool_global, tool_find, tool_sources, tool_data, tool_finish]
+AGENT_TOOLS = [tool_search, tool_local, tool_global, tool_find, tool_sources, tool_data, tool_cross, tool_finish]
 
 
 # ---------------------------------------------------------------------------
@@ -1171,7 +1335,7 @@ def update_streaks(ctx: dict) -> None:
 def score_result(ctx: dict, call: dict, result: dict) -> str:
     """⑤ 채점: 새 원문마다 Jev 판정 → 관련 없음과 지시 끼워 넣기는 근거에서 뺌 → 진단 신호 → 관찰에 덧붙일 글.
 
-    질의가 없는 툴(get_source_chunks)은 원 질문으로 채점하고 관련 낮은 원문도 버리지 않고 표시만 함(교재 87쪽).
+    질의가 없는 툴(get_source_chunks, follow_crossing)은 원 질문으로 채점하고 관련 낮은 원문도 버리지 않고 표시만 함(교재 87쪽).
     """
     tool_name = result["tool"]
     lines = []
@@ -1191,7 +1355,7 @@ def score_result(ctx: dict, call: dict, result: dict) -> str:
                 continue
             # 관련성으로 빼지 않는 원문: 질의가 없는 툴의 결과(관계로 이어진 근거일 수 있음),
             # 회원 필터로 고른 그 회원의 상담 원문(필터가 이미 그 회원 것만 남김. Jev는 「이 회원」 질문에 낮게 매기는 편)
-            keep_anyway = tool_name == "get_source_chunks" or (
+            keep_anyway = tool_name in NO_QUERY_TOOLS or (
                 member and DATA["chunk_meta"][chunk_id].get("member_pseudo_id") == member)
             drop = mark["injection"] or (not mark["relevant"] and not keep_anyway)
             if drop:
@@ -1239,6 +1403,9 @@ def score_result(ctx: dict, call: dict, result: dict) -> str:
         say(f"      ⑤ 신호 {signals or ['-']} (조회 {result.get('n_rows', 0)}행) SQL: {short(result.get('sql', '-'), 150)}")
     elif tool_name == "find_entities":
         say(f"      ⑤ 신호 {signals or ['-']} (엔티티 {result.get('n_entities', 0)}개, 원문은 get_source_chunks로)")
+    elif tool_name == "follow_crossing":
+        say(f"      ⑤ 신호 {signals or ['-']} ({result['point']} 경로 {result['n_paths']}개, 도착 노드가 있는 경로 "
+            f"{result['n_linked']}개, 근거로 남은 새 원문 {stats['n_new_relevant']})")
     else:
         say(f"      ⑤ 신호 {signals or ['-']} (포함률 {stats['coverage']:.2f}, 공존 {cooc}문장, "
             f"문서 종류 {stats['n_doc_types']}, 근거로 남은 새 원문 {stats['n_new_relevant']})")
@@ -1276,7 +1443,7 @@ def new_context(res: Resources, data: dict, question: str, role: str, member_id:
         "round_outcomes": [], "streak_checked": 0, "no_new_streak": 0, "same_call_streak": 1, "failed_rounds": 0,
         "finish": None, "forced_stop": None, "fatal": None, "jev_cache": {}, "signal_log": [], "warnings": [],
         "calls": {"agent": 0, "jev": 0, "groq": 0, "cohere": 0}, "allow_global": False,
-        "data_facts": [], "sql_calls": 0, "bridge_note": "",  # 개선 6, 8: 정형 조회 결과(근거 d1, d2)와 호출 수
+        "data_facts": [], "sql_calls": 0, "bridge_note": "",  # 정형 조회 결과(근거 d1, d2)와 호출 수
     }
 
 
@@ -1292,7 +1459,7 @@ def step2_analyze(res: Resources, data: dict, ctx: dict) -> dict:
     if ctx["member_id"]:  # --member-id로 회원을 준 경우(질문에 회원번호가 없을 때)
         ids["member_pseudo_id"] = ids["member_pseudo_id"] or core.member_pseudonym(ctx["member_id"])
     raw_members = core.MEMBER_ID_PATTERN.findall(ctx["question"])
-    member_id = ctx["member_id"] or (raw_members[0] if raw_members else None)  # 개선 6: 정형 조회의 회원 범위(DB의 회원 ID)
+    member_id = ctx["member_id"] or (raw_members[0] if raw_members else None)  # 정형 조회의 회원 범위(DB의 회원 ID)
     ctx["identifiers"] = ids
     ctx["clean_question"] = ids["clean_question"]
     ctx["terms"] = question_terms(res, data, ids["clean_question"], ids["card_names"])
@@ -1310,6 +1477,40 @@ def step2_analyze(res: Resources, data: dict, ctx: dict) -> dict:
     return route
 
 
+def keep_crossing_pair(final: list[dict], rows: list[dict], ctx: dict) -> list[dict]:
+    """⑥ 보탬: follow_crossing 경로 양 끝 원문(불만과 조항, 상담과 혜택)이 한 쌍도 함께 남지 않았으면 한 쌍을 넣음.
+
+    점수 순으로만 고르면 문서를 건너가는 질문에서 한쪽 끝만 남아 ⑦이 「이어짐」을 볼 수 없음.
+    방법: 두 원문 점수 합이 가장 큰 쌍을 고르고, 빈자리는 주제 몫(topic_ids)이 아닌 가장 낮은 점수 원문을 빼서 만듦.
+    """
+    pairs = ctx.get("crossing_pairs") or []
+    score = {row["chunk_id"]: row["score"] for row in rows}
+    kept = {row["chunk_id"] for row in final}
+    if not pairs or any(set(p["start"]) & kept and set(p["end"]) & kept for p in pairs):
+        return final
+    best = None
+    for pair in pairs:
+        a = max((c for c in pair["start"] if c in score), key=score.get, default=None)
+        b = max((c for c in pair["end"] if c in score), key=score.get, default=None)
+        if a and b and a != b and (best is None or score[a] + score[b] > best[0]):
+            best = (score[a] + score[b], a, b, pair["point"])
+    if best is None:
+        return final
+    need = [cid for cid in best[1:3] if cid not in kept]
+    removable = sorted((row for row in final if not row["topic_ids"] and row["chunk_id"] not in best[1:3]),
+                       key=lambda row: row["score"])
+    n_out = max(0, len(need) - (FINAL_CHUNKS - len(final)))  # 빈자리가 모자라면 뺄 원문 수
+    if len(removable) < n_out:
+        return final
+    out = removable[:n_out]
+    final = [row for row in final if row not in out]
+    final += [row for row in rows if row["chunk_id"] in need]
+    say(f"   ⑥ 건너가는 경로({best[3]}) 양 끝 원문 쌍 "
+        f"{DATA['chunk_meta'][best[1]]['short_id']}, {DATA['chunk_meta'][best[2]]['short_id']}을 남김"
+        + (f"(뺀 원문 {[DATA['chunk_meta'][r['chunk_id']]['short_id'] for r in out]})" if out else ""))
+    return sorted(final, key=lambda row: row["score"], reverse=True)
+
+
 def step6_rerank(res: Resources, ctx: dict) -> dict:
     """⑥ 리랭킹: 원문 청크만 원 질문 기준으로 다시 채점해 8자리(실습 함수 select_final_chunks).
 
@@ -1324,11 +1525,37 @@ def step6_rerank(res: Resources, ctx: dict) -> dict:
                 chunk["score"] = score
     rows = [{"chunk_id": c["chunk_id"], "score": c["score"], "topic_ids": c["topic_ids"]} for c in usable]
     final = core.select_final_chunks(rows, limit=FINAL_CHUNKS)
+    final = keep_crossing_pair(final, rows, ctx)
     kept_ids = {row["chunk_id"] for row in final}
     entities = core.keep_linked_entities(ctx["entities"], kept_ids)
     reports = sorted(ctx["evidence_reports"].values(), key=lambda r: (r["hits"], r["relevance"]), reverse=True)
     reports = reports[:L_REPORTS]
     return {"chunks": final, "entities": entities, "reports": reports, "skipped": skipped, "n_before": len(usable)}
+
+
+def recheck_crossing(terms: list[str], pairs: list[frozenset], entity_texts: dict) -> dict | None:
+    """⑦ 조건 ②(건너가기): 건너가는 쌍(P1 ~ P3)의 한쪽이 낱말 a, 다른 쪽이 낱말 b를 가지면 통과.
+
+    낱말은 엔티티 속성 글 또는 그 라벨의 개념 이름과 정의(공통 개념 층)에서 찾음.
+    예: 「불만」은 Complaint의 개념 이름, 「약관」은 Article 개념의 정의(개인회원 이용약관의 조 하나)에 있음.
+    쌍은 문서를 건너가는 규칙(같은 주제, 같은 카드상품 키)으로 이어진 것뿐이라 아무 두 엔티티나 통과시키지 않음.
+    반환값: 통과하면 recheck_question과 같은 꼴, 아니면 None
+    """
+    a, b = terms[0].replace(" ", ""), terms[1].replace(" ", "")
+
+    def has(word, eid):
+        text = entity_texts.get(eid, "")
+        label = text.split(":", 1)[0]
+        return word in (text + DATA["label_words"].get(label, "")).replace(" ", "")
+
+    for pair in pairs:
+        x, y = tuple(pair)
+        for one, other in ((x, y), (y, x)):
+            if has(a, one) and has(b, other):
+                labels = [entity_texts[e].split(":", 1)[0] for e in (one, other)]
+                return {"passed": True, "rule": "조건 ②(건너가기)",
+                        "detail": f"「{terms[0]}」({labels[0]})와 「{terms[1]}」({labels[1]})가 건너가는 지점으로 이어짐"}
+    return None
 
 
 def step7_judge(res: Resources, ctx: dict, picked: dict) -> dict:
@@ -1355,13 +1582,34 @@ def step7_judge(res: Resources, ctx: dict, picked: dict) -> dict:
                           "RETURN elementId(a) AS a, elementId(b) AS b",
                           ids=all_eids)
         links = {frozenset((r["a"], r["b"])) for r in records}
+        # 건너가는 지점의 쌍도 「이어짐」으로 셈: 관계선이 아니라 공통 개념 층의 동일 규칙과 공통 주제로 이어짐
+        #   P3 상담과 혜택(이용 기준)의 product_id가 같음(카드상품 동일 규칙)
+        #   P1, P2 불만과 조항(혜택)이 같은 주제를 가리킴(ABOUT - Topic - ABOUT)
+        records = res.run("MATCH (a), (b) WHERE elementId(a) IN $ids AND elementId(b) IN $ids AND elementId(a) < elementId(b) "
+                          "AND ((a:Consultation AND (b:Benefit OR b:UsageRule) OR b:Consultation AND (a:Benefit OR a:UsageRule)) "
+                          "     AND a.product_id = b.product_id "
+                          "  OR (a:Complaint OR b:Complaint) AND EXISTS { (a)-[:ABOUT]->(:Topic)<-[:ABOUT]-(b) }) "
+                          "RETURN elementId(a) AS a, elementId(b) AS b", ids=all_eids)
+        crossing = {frozenset((r["a"], r["b"])) for r in records}
+        links |= crossing
+        if crossing:
+            say(f"   ⑦ 건너가는 지점으로 이어진 엔티티 쌍 {len(crossing)}개(P1 ~ P3)를 관계로 셈")
+    else:
+        crossing = set()
+
+    def run_recheck(terms, some_chunks):  # 낱말 재확인이 실패하면 건너가는 쌍을 개념 이름과 정의로 한 번 더 봄
+        result = core.recheck_question(terms, some_chunks, chunk_entities, entity_texts, links)
+        if result["passed"] or len(terms) < 2 or not crossing:
+            return result
+        kept = {eid for c in some_chunks for eid in chunk_entities.get(c["chunk_id"], [])}
+        return recheck_crossing(terms, [p for p in crossing if p <= kept], entity_texts) or result
     topic_ids = sorted({t for row in picked["chunks"] for t in row["topic_ids"]})
     if topic_ids:
         checks = {}
         for topic_id in topic_ids:
             topic_chunks = [c for c, row in zip(chunks, picked["chunks"]) if topic_id in row["topic_ids"]]
             terms = topic_terms(ctx, topic_id)
-            checks[topic_id] = core.recheck_question(terms, topic_chunks, chunk_entities, entity_texts, links)
+            checks[topic_id] = run_recheck(terms, topic_chunks)
         for topic_id, check in checks.items():
             say(f"   ⑦ [{topic_id}] {ctx['topics'][topic_id]['title']}: {'통과' if check['passed'] else '불통과'} "
                 f"[{check['rule']}] {check['detail']}")
@@ -1370,7 +1618,7 @@ def step7_judge(res: Resources, ctx: dict, picked: dict) -> dict:
                    "detail": f"주제 {len(passed)}/{len(checks)}개 통과(미확인: {[t for t in checks if t not in passed]})"}
         ctx["unconfirmed_topics"] = [t for t in checks if t not in passed]
     else:
-        recheck = core.recheck_question(ctx["terms"], chunks, chunk_entities, entity_texts, links)
+        recheck = run_recheck(ctx["terms"], chunks)
     # Jev: ⑤에서 해 둔 판정을 다시 쓰고(Global 검색 원문은 그 주제의 Follow-up 질문으로 한 판정),
     #      판정이 없는 원문만 원 질문으로 새로 물음(교재 93쪽)
     marks = {}
@@ -1405,7 +1653,7 @@ def evidence_block(ctx: dict, picked: dict) -> tuple[str, dict]:
         text = (data["summary"] or "") + " " + " ".join(data["findings"])
         table[rid] = {"kind": "report", "text": text, "short_id": data["title"]}
         lines.append(f'<근거 id="{rid}" 종류="커뮤니티 보고서(경향)">{data["title"]}: {" ".join(text.split())}</근거>')
-    for fact in ctx["data_facts"]:  # 개선 8: 정형 조회 결과도 근거에 넣음. ⑨ 검증이 답의 숫자를 이 글과 대조함
+    for fact in ctx["data_facts"]:  # 정형 조회 결과도 근거에 넣음. ⑨ 검증이 답의 숫자를 이 글과 대조함
         table[fact["id"]] = {"kind": "data", "text": fact["text"], "short_id": "정형 조회"}
         lines.append(f'<근거 id="{fact["id"]}" 종류="정형 조회 결과(이 회원의 카드와 사용액)">{fact["text"]}</근거>')
     return "\n".join(lines), table
@@ -1441,10 +1689,14 @@ def first_message(ctx: dict, route: dict) -> str:
         lines.append(f"첫 툴 후보(권고일 뿐): {route['first_tool']}")
     if ids["member_pseudo_id"] and ctx["role"] == "auditor":
         lines.append("회원 필터가 이미 걸려 있음(이 회원의 상담만 보임). 회원을 찾을 때는 find_entities(entity_key=\"회원\").")
-    if ctx["filters"].get("member_id") and DATA.get("sql_scope"):
+    if ctx["filters"].get("member_id") and DATA.get("sql_scope") and DATA["schema"]["views"]:
         lines.append("이 회원의 카드와 업종별 사용액은 query_customer_data로 조회할 수 있음.")
     if ids["card_names"]:
         lines.append(f"카드 필터가 걸려 있음: {', '.join(ids['card_names'])}")
+    question = ctx["clean_question"]
+    if "불만" in question and any(word in question for word in ("조항", "약관", "혜택")):  # 건너가는 지점 P1, P2를 묻는 꼴
+        lines.append("불만과 이어진 약관 조항은 follow_crossing(point=\"P1\"), 카드 혜택은 follow_crossing(point=\"P2\")로 "
+                     "찾음(entity_ids를 비우면 볼 수 있는 모든 불만에서 고객군별로 출발).")
     if not ctx["allow_global"]:
         lines.append("이 세대에는 커뮤니티 보고서가 없어 global_search를 쓸 수 없음.")
     return "\n".join(lines)
@@ -1518,7 +1770,7 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
     for row in picked["chunks"]:
         meta = DATA["chunk_meta"][row["chunk_id"]]
         evidence_list.append({"id": meta["short_id"], "text": meta["text"]})
-    for fact in ctx["data_facts"]:  # 개선 8: 정형 조회 결과도 돌려줄 근거 목록에 넣음
+    for fact in ctx["data_facts"]:  # 정형 조회 결과도 돌려줄 근거 목록에 넣음
         evidence_list.append({"id": fact["id"], "text": fact["text"]})
 
     # ⑦ 수집 종료 판정
@@ -1711,7 +1963,8 @@ def main_cli() -> None:
         return
     question, role, member = args.question, args.role or "agent", args.member_id
     if args.qid:
-        item = next((i for i in load_json(EVAL_SET_PATH)["questions"] if i["id"] == args.qid), None)
+        item = next((i for path in (EVAL_SET_PATH, EVAL_SET_FULL_PATH) if path.exists()
+                     for i in load_json(path)["questions"] if i["id"] == args.qid), None)
         if not item:
             raise SystemExit(f"평가셋에 {args.qid}가 없음")
         question = item["question"]

@@ -168,7 +168,7 @@ def split_by_heading(text: str, rule: dict) -> list[dict]:
     목적: 약관 청크 하나에 조항이 여러 개 섞여 있으면 LLM이 조항 안의 조건과 기한을 놓치므로, 조항마다 따로 넣으려는 것임.
     방법: ① 제목 줄(예: 「제16조(할부 거래)」)이면서 ② 다음 줄이 본문 시작 표시(①)로 시작하는 줄만 시작점으로 잡음
           (차례에 있는 제목 줄은 다음 줄이 또 제목이라 제외됨). ③ 다음 시작점 전까지가 한 조각. ④ 장 제목 줄은 버림.
-    인자: rule은 스키마 승인 기록의 추출 청크 규칙 {"heading": 제목 줄 정규식(그룹 1이 조항 번호), "body_start": "①",
+    인자: rule은 unit_text_rules.json의 추출 청크 규칙 {"heading": 제목 줄 정규식(그룹 1이 조항 번호), "body_start": "①",
           "drop_lines": 버릴 줄 정규식(없을 수 있음)}.
     반환값: [{"key": "제16조의2", "section_label": "제16조의2(할부 거래의 철회 요청)", "text": 조각 본문}, ...].
             제목 줄이 하나도 없으면 빈 목록.
@@ -282,17 +282,26 @@ def extract_one(unit: dict, spec: dict, llm, retries: int) -> dict:
     반환값: 성공이면 {"graph": 가지치기 뒤 그래프(dict), "raw_nodes": 가지치기 전 노드 수, "kept_nodes": 뒤 노드 수},
             실패면 {"error": 오류 한 줄}.
     """
-    extractor = LLMEntityRelationExtractor(llm=llm, create_lexical_graph=False, on_error=OnError.RAISE)
+    # 추출 틀: 스키마 설계가 승인한 틀이 spec에 있으면 그것(입력 글을 <input_text> 태그로 감쌈), 없으면 라이브러리 기본 틀
+    template = {"prompt_template": spec["prompt_template"]} if spec.get("prompt_template") else {}
+    extractor = LLMEntityRelationExtractor(llm=llm, create_lexical_graph=False, on_error=OnError.RAISE, **template)
     pruner = GraphPruning()
-    text = head_line(unit["metadata"], spec["header"]) + unit["text"]  # 머리줄(메타데이터) + 단위 본문
+    # 머리줄: 단위에 미리 만든 머리줄(스키마 설계의 header_of version 2)이 있으면 그것, 없으면 메타데이터 칸으로 만듦
+    header = unit.get("header_text") or head_line(unit["metadata"], spec.get("header", []))
+    text = header + unit["text"]  # 머리줄(메타데이터) + 단위 본문
 
     graph = None
     last_error = ""
+    empty_retries = 0
     for attempt in range(retries + 1):
         try:
             # 빈칸 1: 추출기 호출. uid에 단위 ID를 주면 라이브러리가 노드 ID 앞에 붙여 단위끼리 ID가 겹치지 않음
             text_chunk = TextChunk(text=text, index=0, uid=unit["unit_id"])
             graph = asyncio.run(extractor.run(chunks=TextChunks(chunks=[text_chunk]), schema=spec["schema"]))
+            # 내용이 있는 단위에서 빈 그래프가 오면 형식 오류처럼 다시 물음(스키마 설계 8단계 F5)
+            if spec.get("retry_empty") and not graph.nodes and attempt < retries:
+                empty_retries += 1
+                continue
             break
         except Exception as error:  # LLM 형식 오류, 호출 실패 등. 같은 입력으로 다시 물음
             last_error = f"{type(error).__name__}: {str(error)[:200]}"
@@ -303,7 +312,8 @@ def extract_one(unit: dict, spec: dict, llm, retries: int) -> dict:
     # 빈칸 2: 가지치기(K3). 추출 직후 바로 스키마 밖 노드, 관계, 속성을 지움
     pruned = asyncio.run(pruner.run(graph, spec["schema"])).graph
 
-    return {"graph": pruned.model_dump(), "raw_nodes": len(graph.nodes), "kept_nodes": len(pruned.nodes)}
+    return {"graph": pruned.model_dump(), "raw_nodes": len(graph.nodes), "kept_nodes": len(pruned.nodes),
+            "empty_retries": empty_retries}
 
 
 # ---------------------------------------------------------------------------

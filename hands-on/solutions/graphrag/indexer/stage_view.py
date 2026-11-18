@@ -191,7 +191,7 @@ def k1_view(chunks: list[dict], units: list[dict], empty_chunk_ids: list[str]) -
                                    + ", ".join(c[:24] for c in unit["chunk_ids"])]})
     numbers = [("청크", f"{len(chunks)}개"), ("추출 청크", f"{len(units)}개 {by_type}"),
                ("청크 2개 이상에 걸친 추출 청크", f"{len(multi)}개"),
-               ("추출 청크가 안 나온 청크", f"{len(empty_chunk_ids)}개")]
+               ("추출청크가 없는 청크(예: 목차, 각주 등)", f"{len(empty_chunk_ids)}개")]
     data = {"단계": "K1 추출 청크 나누기", "요약": dict(numbers), "예시": file_examples}
     return _view("K1", numbers, examples, "K1_units.json", data,
                  notes=["이 단계의 결과는 아직 DB에 없고 메모리에만 있었음. 위 파일이 일부를 저장한 것임"])
@@ -571,12 +571,8 @@ class StageReporter:
         """다음 단계로 이어서 돌리는 명령(지금 옵션을 그대로 이어받음)."""
         args = self.args
         parts = ["../.venv/Scripts/python.exe", "index_graph.py", "--run", args.run]
-        if args.sample:
-            parts.append("--sample")
         if getattr(args, "mine", False):
             parts.append("--mine")
-        if args.chunks:
-            parts += ["--chunks", args.chunks]
         reuse = args.reuse or (self._rel(self.gen_dir) if with_reuse else None)
         if reuse:
             parts += ["--reuse", reuse]
@@ -621,10 +617,12 @@ class StageReporter:
         nxt = self._next_step(step)
         out += ["", "■ 이어서 보기"]
         if nxt:
-            out += [f"  다음 단계 {STOPS[nxt]['title']}", f"  {self._command(nxt, with_reuse=False)}"]
-            if info["track"] == "kg" and step in ("K3", "K5", "K6") and not self.args.reuse:
-                out += ["  같은 --run으로 다시 돌리면 이 트랙을 처음부터 다시 만들고 LLM도 다시 부름. LLM을 건너뛰려면 끝에 아래를 붙임",
-                        f"  --reuse {self._rel(self.gen_dir)}   (K2, K3 코드를 고쳐 다시 보는 중이면 붙이지 않음)"]
+            # K4 이후 단계(다음이 K5, K6, K8)는 이미 뽑아 둔 KG 추출 결과를 다시 쓰도록 --reuse를 붙여 안내함
+            reuse_kg = info["track"] == "kg" and step in ("K3", "K5", "K6")
+            out += [f"  다음 단계 {STOPS[nxt]['title']}", f"  {self._command(nxt, with_reuse=reuse_kg)}"]
+            if reuse_kg:
+                out += ["  --reuse 폴더에 있는 기존 KG 추출 결과(kg_prepared.json)를 그대로 써서 LLM 추출(K2)을 다시 하지 않음",
+                        "  K2, K3 코드를 고쳐 다시 보는 중이면 --reuse와 그 뒤 폴더를 빼고 실행함"]
         else:
             other = "search" if info["track"] == "kg" else "kg"
             first = "S1" if other == "search" else "K1"

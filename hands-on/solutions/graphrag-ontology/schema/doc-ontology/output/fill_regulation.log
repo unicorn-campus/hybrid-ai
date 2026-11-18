@@ -1,0 +1,35 @@
+LLMInterface is deprecated and will be removed in future versions. Please use LLMInterfaceV2 instead.
+[regulation] D1:제38조: 노드 2 → 가지치기 뒤 2, 시도 1
+[regulation] D1:제37조: 노드 3 → 가지치기 뒤 3, 시도 1
+[regulation] D1:제36조: 노드 4 → 가지치기 뒤 4, 시도 1
+[regulation] D1:제39조: 노드 3 → 가지치기 뒤 3, 시도 1
+[regulation] D1:제38조의2: 노드 3 → 가지치기 뒤 3, 시도 1
+[regulation] D1:제40조: 노드 2 → 가지치기 뒤 2, 시도 1
+[regulation] D1:제18조: 노드 2 → 가지치기 뒤 2, 시도 1
+[regulation] D1:제19조: 노드 2 → 가지치기 뒤 2, 시도 1
+[regulation] D1:제17조: 노드 4 → 가지치기 뒤 4, 시도 1
+[regulation] D1:제19조의2: 노드 3 → 가지치기 뒤 3, 시도 1
+[regulation] D1:제27조: 노드 2 → 가지치기 뒤 2, 시도 1
+[regulation] D1:제26조: 노드 3 → 가지치기 뒤 3, 시도 1
+[regulation] D1:제28조: 노드 2 → 가지치기 뒤 2, 시도 1
+[regulation] D1:제29조: 노드 2 → 가지치기 뒤 2, 시도 1
+[regulation] D1:제30조: 노드 3 → 가지치기 뒤 3, 시도 1
+[regulation] D1:제1조: 노드 4 → 가지치기 뒤 4, 시도 1
+[regulation] D1:제3조: 노드 4 → 가지치기 뒤 4, 시도 1
+[regulation] D1:제4조: 노드 4 → 가지치기 뒤 4, 시도 1
+[regulation] D1:제2조: 노드 4 → 가지치기 뒤 4, 시도 1
+[regulation] D1:제5조: 노드 3 → 가지치기 뒤 3, 시도 1
+[regulation] D1:제10조: 노드 5 → 가지치기 뒤 5, 시도 1
+[regulation] D1:제11조: 노드 4 → 가지치기 뒤 4, 시도 1
+[regulation] D1:제12조의2: 노드 3 → 가지치기 뒤 3, 시도 1
+[regulation] D1:제12조: 노드 4 → 가지치기 뒤 4, 시도 1
+[regulation] D1:제12조의3: 노드 4 → 가지치기 뒤 4, 시도 1
+PRUNING: all nodes were pruned, resulting graph will be empty. Check logs for details.
+[regulation] D1-0001: 노드 0 → 가지치기 뒤 0, 시도 1
+[regulation] D1:제13조: 노드 2 → 가지치기 뒤 2, 시도 1
+PRUNING: all nodes were pruned, resulting graph will be empty. Check logs for details.
+[regulation] D1-0015: 노드 0 → 가지치기 뒤 0, 시도 1
+PRUNING: all nodes were pruned, resulting graph will be empty. Check logs for details.
+[regulation] D1-0002: 노드 0 → 가지치기 뒤 0, 시도 1
+[regulation] D1:제14조: 노드 3 → 가지치기 뒤 3, 시도 1
+[regulation] 끝: 단위 30, 실패 0, 토큰 83,317, 33초

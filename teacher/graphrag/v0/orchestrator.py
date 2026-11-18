@@ -64,10 +64,12 @@ def read_active() -> dict | None:
 
 
 def config_signature() -> str:
-    """처리 설정 지문: 스키마 파일, LLM, 임베딩, BM25 값, 토큰화 규칙과 승인 별칭이 하나라도 바뀌면 사전 검사가 생략하지 않음."""
+    """처리 설정 지문: 스키마 파일, 추출 청크 글 규칙, LLM, 임베딩, BM25 값, 토큰화 규칙과 승인 별칭이
+    하나라도 바뀌면 사전 검사가 생략하지 않음."""
 
-    parts = [sha256_file(config.SCHEMA_DIR / d / "graph_schema.json") for d in config.DOC_TYPES
-             if (config.SCHEMA_DIR / d / "graph_schema.json").exists()]
+    parts = [sha256_file(config.SCHEMA_DIR / d / name) for d in config.DOC_TYPES
+             for name in ("graph_schema.json", "unit_text_rules.json")  # 인덱서가 읽는 스키마 설계 결과 두 파일
+             if (config.SCHEMA_DIR / d / name).exists()]
     parts += [config.LLM_MODEL, config.EMBED_MODEL, config.EMBED_REVISION, str(config.BM25_K1), str(config.BM25_B)]
     parts += [config.LEXICAL_RULES] + ([sha256_file(config.ALIASES_APPROVED)] if config.ALIASES_APPROVED.exists() else [])
     return sha256_text("|".join(parts))

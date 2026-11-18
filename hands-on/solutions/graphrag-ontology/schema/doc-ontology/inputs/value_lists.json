@@ -1,0 +1,53 @@
+{
+  "note": "분류 Class의 허용 값. 아래 원본 파일에서 스크립트로 옮겨 적음",
+  "lists": {
+    "업종": {
+      "values": [
+        "식비",
+        "쇼핑",
+        "교통",
+        "주유",
+        "여행",
+        "해외",
+        "생활",
+        "교육"
+      ],
+      "source": "backing-services/rdb/init/02_seed.sql의 merchant 초기 데이터(category 열)",
+      "source_label": "Merchant",
+      "source_property": "category",
+      "hierarchy": "원본에 상하위 정보 없음"
+    },
+    "고객군": {
+      "values": [
+        {
+          "code": 1,
+          "name": "신규 가입"
+        },
+        {
+          "code": 2,
+          "name": "장기 보유"
+        },
+        {
+          "code": 3,
+          "name": "VIP"
+        },
+        {
+          "code": 4,
+          "name": "휴면 직전"
+        },
+        {
+          "code": 5,
+          "name": "다중 카드"
+        },
+        {
+          "code": 6,
+          "name": "연회비 부담"
+        }
+      ],
+      "source": "backing-services/rdb/init/01_schema.sql의 member.segment_id 컬럼 설명",
+      "source_label": "Member",
+      "source_property": "segment_id",
+      "hierarchy": "원본에 상하위 정보 없음"
+    }
+  }
+}

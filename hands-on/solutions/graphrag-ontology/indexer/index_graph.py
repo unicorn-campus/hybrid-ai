@@ -4,10 +4,8 @@
 단계마다 알맹이는 core_graph.py의 함수가 맡고, 이 파일은 설정값, 저장소 접속, LLM과 임베딩 호출, 순서, 단계별 출력을 맡음.
 
 실행(이 폴더에서):
-  ../.venv/Scripts/python.exe index_graph.py --run {별명}-s1 --sample      표본 10청크(수업용)
   ../.venv/Scripts/python.exe index_graph.py --run {별명}-f1               전체 260청크
 옵션: --full-reindex(사전 검사 무시), --skip-communities(K8 생략), --reuse {폴더}(강사 배포 추출 결과 재사용),
-      --chunks {파일}(Chroma 대신 청크 파일 입력),
       --until {단계}(그 단계까지만 수행하고 멈춰 결과를 보여 줌. k1, k3, k5, k6, k8은 KG 구축만, s1, s2, s3은 검색엔진 인덱싱만.
                     멈추면 ④ 검증과 ⑤ 게시는 하지 않아 활성 세대는 그대로. 결과 보기는 stage_view.py)
 """
@@ -59,7 +57,7 @@ if use_student_code("my_graph"):
     import my_graph as core  # 교육생 코드(--mine)
 else:
     import core_graph as core  # 강사 코드(기본)
-import core_ontology as onto  # 온톨로지 결합(개선 3 ~ 5): 스키마 설명 싣기, 업종 잇기, 건너가기 검사
+import core_ontology as onto  # 온톨로지 결합: 추출 단위와 머리줄, 머리줄 값 보정, 공통 개념 층 싣기, 업종 잇기, 검사 규칙
 import kr_tokenizer
 import stage_view  # --until 옵션의 단계별 결과 보기(제공)
 
@@ -79,21 +77,22 @@ ACTIVE_FILE = DATA_DIR / "active_generation.json"  # 활성 세대 파일. ⑤ �
 # ② 입력: RAG 실습(W3)이 만든 Chroma. 읽기만 함
 CHROMA_DIR = ROOT_DIR / "hands-on" / "solutions" / "rag" / "indexing" / "data" / "chroma"
 COLLECTION_NAME = "card_docs"  # RAG 실습과 약속한 collection 이름
-# 표본 모드(--sample)의 청크 10개: 약관 2(조항이 많은 쪽), 혜택 안내 4(한빛 가족돌봄), 상담 4(앞 상담을 가리키는 쌍 포함)
-SAMPLE_CHROMA_IDS = ["D1-0005", "D1-0006", "D2-0067", "D2-0068", "D2-0069", "D2-0070",
-                     "D3-0001", "D3-0002", "D3-0005", "D3-0006"]
 
 # 문서 프로필(교재 32쪽 사전 검사 항목): 원천 메타데이터에 없는 문서 수준 값을 머리줄에 보탬.
 # 약관 PDF의 메타데이터 쪽(버전 1.2, 시행 2027-01-15, 이전 판 1.1)을 옮긴 것으로, 약관 문서 노드(TermsDocument)의
 # 고유 속성 version을 채움. 없으면 LLM이 파일 이름을 version에 넣는 일이 생김(2026-10-24 실측)
 DOC_PROFILES = {"D1": {"version": "1.2", "effective_date": "2027-01-15", "supersedes": "1.1"}}
 
-# 문서 유형별 그래프 스키마(스키마 설계 실습 결과). 읽기만 함
-SCHEMA_DIR = BASE_DIR.parent / "schema" / "doc"
-
-# 온톨로지 결합(개선 1 ~ 5): 스키마 설계가 만든 공통 개념 층과 업종 매핑표. 읽기만 함
-CONCEPTS_PATH = BASE_DIR.parent / "schema" / "common" / "concepts.json"  # 개선 1: 업무 개념, 뷰와 컬럼의 뜻, 예시 쿼리
-CATEGORY_MAP_PATH = BASE_DIR.parent / "schema" / "common" / "category_map_approved.json"  # 개선 2: 혜택 → 업종(승인본)
+# 문서 유형별 그래프 스키마와 공통 개념 층: 스키마 설계(prompts/design-kg-schema-doc-ontology.md)가 확정한 결과. 읽기만 함
+SCHEMA_DIR = BASE_DIR.parent / "schema" / "doc-ontology"
+CONCEPTS_PATH = SCHEMA_DIR / "common" / "concepts.json"  # 공통 개념 층: Class, 관계(개념, 역관), 검사 규칙, 인덱싱이 더하는 것
+CATEGORY_MAP_PATH = SCHEMA_DIR / "common" / "category_map_approved.json"  # 업종 맞추기 표(혜택 → 업종). approved 행만 씀
+TOPIC_MAP_PATH = SCHEMA_DIR / "common" / "topic_map_approved.json"  # 주제 맞추기 표(주제 이름 → 대표 이름). approved 행만 씀
+KEY_VALUES_PATH = SCHEMA_DIR / "inputs" / "key_values.json"  # 정형 DB의 상품 ID 목록(참조 무결성 K07 대조용)
+SNAPSHOT_PATH = SCHEMA_DIR / "chunks_snapshot.json"  # 스키마 설계 1단계 사본: 상담 ID 전체(K08 대조용)
+DECISIONS_PATH = SCHEMA_DIR / "decisions.json"  # 1단계 개인정보 점검 결과(외부 LLM에 보내지 않을 청크)
+VIEWS_PATH = BASE_DIR.parent / "schema" / "rdb" / "app_views.json"  # 정형 조회용 뷰 설명(뜻, 예시 SQL, 건너가는 키 컬럼)
+RDB_DSN_DEFAULT = "host=localhost port=5432 dbname=cardlab user=sql_retriever_user"  # 검색기 계정(카탈로그 읽기만)
 DOC_TYPES = ("regulation", "benefit_guide", "consult_log")  # 약관, 혜택 안내, 상담 기록
 
 # S2 키워드 분석: 사람 검수를 통과한 카드 별칭(RAG 실습 강사 제공 파일). 읽기만 함
@@ -109,9 +108,6 @@ NEO4J_URI = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.environ.get("NEO4J_USER", "neo4j")
 OPENSEARCH_URL = os.environ.get("OPENSEARCH_URL", "http://127.0.0.1:9200")
 NEO4J_CONNECT_TIMEOUT = 30  # 접속 제한 시간(초). 서버가 없을 때 오래 기다리지 않게 함
-# 정형 DB(PostgreSQL). 검색기 계정은 app 논리 뷰의 구조만 읽음. 관리 계정은 개선 5 검사에서 원본 상품 ID를 대조할 때만 씀
-RDB_DSN_DEFAULT = "host=localhost port=5432 dbname=cardlab user=sql_retriever_user"
-RDB_ADMIN_DSN = os.environ.get("RDB_ADMIN_DSN", "")  # 예: host=localhost port=5432 dbname=cardlab user=cardlab. 없으면 대조 생략
 
 # 세대와 인덱스 이름
 GENERATION_TAG = "lab"  # 세대 ID 앞머리 gen-lab-. 같은 DB의 다른 세대(v0의 gen-hai-)와 구분함
@@ -122,7 +118,8 @@ COMMUNITY_INDEX = "kg_community_embedding"  # K8 벡터 인덱스
 # LLM(K2 추출, K8 보고서): Groq. JSON 모드로 묻고 temperature 0
 LLM_MODEL = "openai/gpt-oss-120b"
 LLM_CONCURRENCY = 2  # 동시 호출 수. 조별 키 하나를 여럿이 쓰므로 낮게 둠
-LLM_RETRIES = 3  # 형식 오류가 나면 같은 입력으로 다시 묻는 횟수(Groq JSON 모드가 가끔 400을 내어 넉넉히 둠)
+LLM_RETRIES = 2  # 형식 오류나 내용이 있는 단위의 빈 그래프가 오면 같은 입력으로 다시 묻는 횟수(스키마 설계 8단계와 같음)
+LLM_MAX_TOKENS = 16000  # 출력 한도. gpt-oss 기본 3,072토큰에서는 JSON 모드를 끈 추출 응답이 잘려 관계 목록이 사라짐(2026-11-18 실측)
 LLM_TIMEOUT = 90  # 호출 한 번의 제한 시간(초)
 
 # 임베딩(S1 청크, K6 엔티티 설명, K8 보고서): Cohere. RAG 실습과 같은 모델과 키
@@ -201,47 +198,66 @@ def read_secret(name: str) -> str:
     return value
 
 
-def rdb_account() -> tuple[str, str]:
-    """검색기 계정의 접속 문자열과 비밀번호를 secrets/.env에서 읽음(정형 검색기 실습과 같은 이름. 값은 출력하지 않음)."""
+def ontology_steps(driver, generation: str) -> dict:
+    """온톨로지 결합 단계를 차례로 돌리고 결과를 돌려줌. K5 병합 뒤, K6 임베딩 앞에서 부름.
+
+    ① 공통 개념 층 싣기(OntoConcept) ② 업종 맞추기 표로 혜택을 업종에 잇기(IN_CATEGORY)
+    ③ 검사 규칙 K01 ~ K09와 건너가는 지점의 이어짐 세기(공통 개념 층 checks, paths)
+    """
+    concepts = load_json(CONCEPTS_PATH)
+    categories = next(c["allowed_values"]["values"] for c in concepts["classes"] if c["name"] == "업종")
+
+    layer = onto.load_concept_layer(driver, concepts)
+    log(f"[온톨로지 ①] 공통 개념 층 판 {layer['version']} 싣기: Class {layer['concepts']}개, Class 사이 관계 {layer['concept_relations']}개")
+
+    views = view_layer(driver)
+    if views:
+        log(f"[온톨로지 ①-2] 정형 조회용 뷰 설명 싣기: 뷰 {views['views']}개, 컬럼 {views['columns']}개, "
+            f"건너가는 키 컬럼 {views['key_columns']}/{views['key_expected']}개, 예시 SQL {views['examples']}개")
+
+    linked = onto.link_categories(driver, generation, load_json(CATEGORY_MAP_PATH), categories)
+    log(f"[온톨로지 ②] 업종 잇기(IN_CATEGORY): 업종 노드 {linked['categories']}개, 맞추기 표 approved {linked['approved_rows']}행 중 "
+        f"이 세대 혜택 {linked['linked']}개를 이음")
+
+    product_ids = set(load_json(KEY_VALUES_PATH)["keys"]["Product.product_id"]["values"])
+    snapshot = load_json(SNAPSHOT_PATH)["chunks"]
+    record_ids = {c["metadata"]["record_id"] for c in snapshot if c["metadata"].get("record_id")}
+    article_nos = {u["keys"]["article_no"] for u in load_json(SCHEMA_DIR / "regulation" / "units.json")["units"] if u["keys"]}
+    check = onto.check_rules(driver, generation, concepts, product_ids, record_ids, article_nos)
+    rules = ", ".join(f"{k} {r['violations']}" for k, r in check["rules"].items())
+    log(f"[온톨로지 ③] 검사 규칙: {'통과' if check['ok'] else '실패'} ({rules}. K06 비율 {check['k06_rate']:.0%})")
+    p = check["paths"]
+    log(f"      경로: P1 불만 상담 {p['P1']['complaint_consults']}건 중 약관 주제와 이어진 것 {p['P1']['linked']}건, "
+        f"P2 혜택 주제와 {p['P2']['linked']}건, P3과 P5 상담 키 {p['P3_P5']['product_id']}/{p['P3_P5']['consults']}, "
+        f"{p['P3_P5']['member_pseudo_id']}/{p['P3_P5']['consults']}, P4 업종 {p['P4']['with_category']}/{p['P4']['benefits']}, "
+        f"P6 혜택과 이용 기준 키 {p['P6']['product_id']}/{p['P6']['items']}")
+    log(f"      문서 종류를 넘어 이어진 주제 {len(p['shared_topics'])}개: "
+        + ", ".join(f"{x['topic']}({'+'.join(x['kinds'])})" for x in p["shared_topics"][:6]))
+    new_items = onto.new_map_items(driver, generation, load_json(CATEGORY_MAP_PATH), TOPIC_MAP_PATH)
+    log(f"[온톨로지 ④] 맞추기 표에 없는 새 항목: 혜택 {len(new_items['benefits'])}개, 주제 이름 {len(new_items['topics'])}개 "
+        "(사람이 확정할 목록. 세대 폴더의 new_map_items.json)")
+    return {"concept_layer": layer, "view_layer": views, "categories": linked, "check": check, "new_items": new_items}
+
+
+def view_layer(driver) -> dict | None:
+    """정형 조회용 뷰 설명을 DB 카탈로그와 대조한 뒤 그래프에 실음(onto.load_view_layer).
+
+    DB에 접속하지 못하면 싣지 않고 경고만 남김(문서 그래프 인덱싱은 계속함. 검색기의 정형 조회 툴만 쓰지 못함).
+    설명 파일과 DB 컬럼이 어긋나면 멈춤: 검색기가 없는 컬럼으로 SQL을 만들게 되기 때문임.
+    """
     values = dotenv_values(SECRETS_PATH) if SECRETS_PATH.exists() else {}
     dsn = os.environ.get("SQL_RETRIEVER_DB_DSN") or values.get("SQL_RETRIEVER_DB_DSN") or RDB_DSN_DEFAULT
     password = os.environ.get("SQL_RETRIEVER_DB_PASSWORD") or values.get("SQL_RETRIEVER_DB_PASSWORD") or ""
-    if not password:
-        raise SystemExit(f"{SECRETS_PATH}에 SQL_RETRIEVER_DB_PASSWORD=... 줄이 필요함(backing-services/rdb/README.md 접속 정보)")
-    return dsn, password
-
-
-def ontology_steps(driver, generation: str) -> dict:
-    """온톨로지 결합 단계(개선 3 ~ 5)를 차례로 돌리고 결과를 돌려줌. K5 병합 뒤, K6 임베딩 앞에서 부름."""
-    concepts = load_json(CONCEPTS_PATH)
-    category_map = load_json(CATEGORY_MAP_PATH)
-    categories = next(c["values"] for c in concepts["concepts"] if c["name"] == "업종")
-    dsn, password = rdb_account()
-
-    # 개선 3: 정형 스키마 설명과 공통 개념 층을 그래프에 실음(행 데이터는 DB에 그대로 둠)
-    schema_graph = onto.load_schema_graph(driver, concepts, onto.read_view_catalog(dsn, password))
-    log(f"[개선 3] 스키마 설명 싣기: 업무 개념 {schema_graph['concepts']}개, 뷰 {schema_graph['views']}개, "
-        f"컬럼 {schema_graph['columns']}개, 예시 쿼리 {schema_graph['examples']}개, 키 연결 {schema_graph['key_links']}개")
-
-    # 개선 4: 승인된 업종 매핑표로 혜택을 업종에 이음
-    linked = onto.link_categories(driver, generation, category_map, categories)
-    log(f"[개선 4] 업종 잇기: 업종 노드 {linked['categories']}개, 승인된 매핑 {linked['approved_rows']}건 중 "
-        f"이 세대 혜택 {linked['linked']}개를 이음")
-
-    # 개선 5: 두 저장소가 키로 이어지는지 검사함(관리 계정 정보가 없으면 DB 대조는 건너뜀)
-    reference = None
-    admin_password = os.environ.get("RDB_PASSWORD", "")
-    if RDB_ADMIN_DSN and admin_password:
-        reference = onto.read_db_reference(RDB_ADMIN_DSN, admin_password)
-    check = onto.check_bridge(driver, generation, categories, reference)
-    if check["skipped"]:
-        log("[개선 5] 건너가기 검사: 관리 계정 정보(RDB_ADMIN_DSN, RDB_PASSWORD)가 없어 DB 대조는 건너뜀")
-    else:
-        log(f"[개선 5] 건너가기 검사: {'통과' if check['ok'] else '실패'} (문서 상품 {check['graph_products']}개, "
-            f"DB에 없는 상품 ID {check['orphan_products']}, 업종 값 차이 {check['category_mismatch']})")
-    names = [f"{b['benefit_id']} {b['name']}" for b in check["unmapped_benefits"]]
-    log(f"      업종에 이어지지 않은 혜택 {len(names)}개(담당자가 매핑표에서 확정할 목록): {names[:5]}")
-    return {"schema_graph": schema_graph, "categories": linked, "check": check}
+    views = load_json(VIEWS_PATH)
+    try:
+        catalog = onto.read_view_catalog(dsn, password, views.get("schema", "app"))
+    except Exception as error:
+        log(f"[온톨로지 ①-2] 정형 DB 카탈로그를 읽지 못해 뷰 설명을 싣지 않음: {str(error).splitlines()[0][:80]}")
+        return None
+    problems = onto.check_view_catalog(views, catalog)
+    if problems:
+        raise SystemExit("뷰 설명 파일과 DB 카탈로그가 어긋남(" + VIEWS_PATH.name + "): " + "; ".join(problems[:8]))
+    return onto.load_view_layer(driver, views, catalog)
 
 
 def neo4j_password() -> str:
@@ -279,7 +295,7 @@ class GroqLLM(LLMInterface):
     추출기는 invoke(프롬프트) → LLMResponse(content=JSON 글)만 필요로 함. JSON 모드와 재시도(429, 5xx)는 ChatGroq가 맡음.
     """
 
-    def __init__(self, model_name: str, api_key: str) -> None:
+    def __init__(self, model_name: str, api_key: str, json_mode: bool = True) -> None:
         super().__init__(model_name=model_name)
         self.chat = ChatGroq(
             model=model_name,
@@ -288,7 +304,10 @@ class GroqLLM(LLMInterface):
             max_retries=6,  # 429(호출 제한)와 5xx는 기다렸다 다시 부름
             request_timeout=LLM_TIMEOUT,
             reasoning_effort="medium",  # gpt-oss 계열의 추론 강도. 추론 글은 content에 섞이지 않음
-            model_kwargs={"response_format": {"type": "json_object"}},  # 답을 JSON 하나로만 받음
+            max_tokens=LLM_MAX_TOKENS,
+            # JSON 모드: K8 보고서는 켜고, K2 추출은 끔. 추출 응답은 닫는 괄호 하나만 빠져도 Groq가 통째로 거부하므로(2026-11-18 실측)
+            # 라이브러리의 JSON 고치기(fix_invalid_json)에 맡김
+            model_kwargs={"response_format": {"type": "json_object"}} if json_mode else {},
         )
         self.usage = {"calls": 0, "total_tokens": 0}
         self._lock = threading.Lock()  # 여러 스레드가 usage를 함께 더하므로 잠금
@@ -327,8 +346,10 @@ def tidy_graph_json(content: str) -> str:
         return content  # JSON이 아니면 그대로 돌려줌(추출기가 형식 오류로 처리하고 다시 묻게 됨)
 
     def plain(value):
-        """속성 값은 글자, 숫자, 참거짓, 그 목록만 허용. 중첩 dict는 글자로 바꿈."""
-        if value is None or isinstance(value, (str, int, float, bool)):
+        """속성 값은 글자, 숫자, 참거짓, 그 목록만 허용. 중첩 dict는 글자로 바꿈. 빈 글과 빈 목록은 버림(스키마 설계 시험과 같음)."""
+        if value is None or value == "" or value == []:
+            return None
+        if isinstance(value, (str, int, float, bool)):
             return value
         if isinstance(value, list) and all(isinstance(x, (str, int, float, bool)) for x in value):
             return value
@@ -353,9 +374,9 @@ def tidy_graph_json(content: str) -> str:
     return json.dumps({"nodes": nodes, "relationships": relationships}, ensure_ascii=False)
 
 
-def make_llm() -> GroqLLM:
-    """secrets/.env의 GROQ_API_KEY로 GroqLLM을 만듦."""
-    return GroqLLM(LLM_MODEL, read_secret("GROQ_API_KEY"))
+def make_llm(json_mode: bool = True) -> GroqLLM:
+    """secrets/.env의 GROQ_API_KEY로 GroqLLM을 만듦. K2 추출은 json_mode=False로 부름."""
+    return GroqLLM(LLM_MODEL, read_secret("GROQ_API_KEY"), json_mode)
 
 
 _embedder = None
@@ -384,35 +405,52 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
 # 스키마와 설정 지문
 # ---------------------------------------------------------------------------
 def load_schemas() -> dict:
-    """문서 유형마다 graph_schema.json, 추출 청크 규칙(approval.json), 머리줄 칸(schema_spec.json)을 읽음."""
+    """문서 유형마다 스키마 설계가 남긴 두 파일을 읽음. 승인 기록(approval.json)은 읽지 않음.
+
+    graph_schema.json: 스키마 본체(추출 허용 목록과 가지치기 기준).
+    unit_text_rules.json: 추출 단위 글 규칙(청크를 추출 단위로 나누는 규칙, 앞에 붙일 머리줄 칸).
+    나누기와 머리줄은 K1에서 스키마 설계 도구의 함수가 단위마다 만들므로, 여기서는 파일에 적힌 규칙이
+    그 함수의 규칙과 같은지 확인하고 "header"는 비워 둠.
+    """
     schemas = {}
     for doc_type in DOC_TYPES:
         folder = SCHEMA_DIR / doc_type
         path = folder / "graph_schema.json"
         if not path.exists():
             continue
-        approval = load_json(folder / "approval.json")
+        rules_path = folder / "unit_text_rules.json"
+        if not rules_path.exists():  # 스키마만 있고 글 규칙이 없으면 설계 때와 같은 글로 추출하는지 알 수 없어 멈춤
+            raise SystemExit(f"추출 단위 글 규칙 파일이 없음: {rules_path}\n"
+                             "스키마 설계 9단계(schema/doc-ontology/tools/finalize.py)가 만드는 파일임")
+        rules = load_json(rules_path)
+        onto.check_unit_text_rules(doc_type, rules)  # 확정한 규칙과 지금 코드가 다르면 멈춤
         schemas[doc_type] = {
             "schema": GraphSchema.from_file(str(path)),
-            "unit_rule": approval.get("extraction_unit_rule"),  # 없으면 청크를 그대로 추출 청크로 씀
-            "header": load_json(folder / "schema_spec.json").get("metadata_header", []),
-            "signature": sha256_file(path),  # 스키마가 바뀌면 보관한 추출 결과를 다시 쓰지 않음
+            "unit_rule": rules["extraction_unit_rule"],  # 확정한 규칙. 실제 나누기는 schema_units.split_chunk
+            "header_fields": rules["metadata_header"],  # 확정한 머리줄 칸
+            "header": [],  # 머리줄은 단위의 header_text(version 2)를 씀
+            "prompt_template": onto.tagged_template(),  # 입력 글을 <input_text> 태그로 감싼 추출 틀
+            "retry_empty": True,  # 내용이 있는 단위의 빈 그래프는 다시 물음
+            "signature": core.sha256_text(sha256_file(path) + "|" + sha256_file(rules_path)),  # 둘 중 하나가 바뀌면 다시 추출
         }
     return schemas
 
 
 def config_signature() -> str:
-    """처리 설정 지문: 스키마 파일, LLM, 임베딩, BM25 값, 토큰화 규칙과 승인 별칭이 하나라도 바뀌면 사전 검사가 생략하지 않음."""
+    """처리 설정 지문: 스키마 파일, 추출 단위 글 규칙, LLM, 임베딩, BM25 값, 토큰화 규칙과 승인 별칭이
+    하나라도 바뀌면 사전 검사가 생략하지 않음."""
     parts = []
     for doc_type in DOC_TYPES:
-        path = SCHEMA_DIR / doc_type / "graph_schema.json"
-        if path.exists():
-            parts.append(sha256_file(path))
+        for name in ("graph_schema.json", "unit_text_rules.json"):  # 인덱서가 읽는 스키마 설계 결과 두 파일
+            path = SCHEMA_DIR / doc_type / name
+            if path.exists():
+                parts.append(sha256_file(path))
     parts += [LLM_MODEL, EMBEDDING_MODEL, str(EMBED_DIMENSION), str(BM25_K1), str(BM25_B), LEXICAL_RULES]
     parts.append(json.dumps(DOC_PROFILES, ensure_ascii=False, sort_keys=True))  # 문서 프로필이 바뀌어도 새로 만듦
     if ALIASES_APPROVED_PATH.exists():
         parts.append(sha256_file(ALIASES_APPROVED_PATH))
-    for path in (CONCEPTS_PATH, CATEGORY_MAP_PATH):  # 공통 개념 층이나 업종 매핑표가 바뀌어도 새로 만듦(개선 1, 2)
+    for path in (CONCEPTS_PATH, CATEGORY_MAP_PATH, TOPIC_MAP_PATH, VIEWS_PATH,  # 공통 개념 층이나 맞추기 표가 바뀌어도 새로 만듦
+                 SCHEMA_DIR / "tools" / "units.py", SCHEMA_DIR / "tools" / "fill_test.py"):  # 추출 단위와 머리줄 코드
         parts.append(sha256_file(path))
     return core.sha256_text("|".join(parts))
 
@@ -458,7 +496,7 @@ def check_environment(driver, os_client: OpenSearch, want_communities: bool) -> 
 # ---------------------------------------------------------------------------
 # ② 공통 단계: 입력 읽기와 청크 파일 고정
 # ---------------------------------------------------------------------------
-def read_chroma_rows(sample: bool) -> list[dict]:
+def read_chroma_rows() -> list[dict]:
     """RAG 실습 Chroma에서 본문과 메타데이터를 읽어 chroma_id 순서로 돌려줌. 벡터는 읽지 않음(S1이 다시 임베딩함)."""
     if not (CHROMA_DIR / "chroma.sqlite3").exists():
         raise SystemExit(f"RAG 실습 Chroma가 없음: {CHROMA_DIR}\n"
@@ -468,20 +506,10 @@ def read_chroma_rows(sample: bool) -> list[dict]:
     result = collection.get(include=["documents", "metadatas"])
     rows = []
     for chroma_id, text, metadata in zip(result["ids"], result["documents"], result["metadatas"]):
-        if sample and chroma_id not in SAMPLE_CHROMA_IDS:
-            continue
         profile = DOC_PROFILES.get(chroma_id[:2], {})  # 문서 프로필 값을 먼저 깔고 Chroma 메타데이터가 덮어씀
         rows.append({"chroma_id": chroma_id, "text": text, "metadata": {**profile, **metadata}})
     rows.sort(key=lambda row: row["chroma_id"])  # D1-0001, D1-0002, … 순서가 문서 안 순서임
     return rows
-
-
-def read_chunk_file(path: Path, sample: bool) -> list[dict]:
-    """강사가 배포한 prepared-chunks.json을 입력으로 씀(--chunks). 표본이면 같은 chroma_id만 고름."""
-    chunks = load_json(path)
-    if sample:
-        chunks = [c for c in chunks if c["metadata"].get("chroma_id") in SAMPLE_CHROMA_IDS]
-    return chunks
 
 
 def read_active() -> dict | None:
@@ -529,18 +557,21 @@ def k2_k3_extract(units: list[dict], schemas: dict, previous: dict | None) -> di
     todo = []
     for unit in units:
         unit["schema_signature"] = schemas[unit["doc_type"]]["signature"]
-        unit["header_text"] = core.head_line(unit["metadata"], schemas[unit["doc_type"]]["header"])
+        if unit["header_values"] is None:  # 표지, 차례, 참고 자료처럼 답이 없어야 하는 단위는 LLM에 보내지 않음
+            unit["skipped"] = "답이 없어야 하는 단위(머리줄 「아님」)"
+            continue
         hit = cache.get((unit["doc_type"], unit["text_hash"], unit["schema_signature"], unit["header_text"]))
         if hit is not None:
             unit["graph"] = hit
             unit["reused"] = True
         else:
             todo.append(unit)
-    log(f"[K2] LLM 추출 {len(todo)}개, 앞 결과 재사용 {len(units) - len(todo)}개 (동시 {LLM_CONCURRENCY}건)")
+    skipped = sum(1 for u in units if "skipped" in u)
+    log(f"[K2] LLM 추출 {len(todo)}개, 앞 결과 재사용 {len(units) - len(todo) - skipped}개, 건너뜀 {skipped}개 (동시 {LLM_CONCURRENCY}건)")
 
     usage = {"calls": 0, "total_tokens": 0}
     if todo:
-        llm = make_llm()
+        llm = make_llm(json_mode=False)  # 추출은 JSON 모드를 끔(닫는 괄호 하나만 빠져도 Groq가 응답을 통째로 거부함)
 
         def work(unit: dict) -> dict:
             # 리턴값: {"graph": pruned.model_dump(), "raw_nodes": len(graph.nodes), "kept_nodes": len(pruned.nodes)}
@@ -554,23 +585,33 @@ def k2_k3_extract(units: list[dict], schemas: dict, previous: dict | None) -> di
                 if done % 20 == 0:
                     log(f"[K2] {done}/{len(todo)}개 추출")
         usage = dict(llm.usage)
-    return {"llm_units": len(todo), "reused": len(units) - len(todo), "usage": usage}
+    # 추출 뒤 보정: 머리줄 값(header_fill_rule)과 주제 맞추기 표. 재사용한 결과는 이미 보정된 것이라 새로 뽑은 단위만 함
+    topic_map = onto.load_topic_map(TOPIC_MAP_PATH)
+    fixes = mapped = 0
+    for unit in todo:
+        if "graph" in unit:
+            done_fix = onto.postprocess_graph(unit, topic_map)
+            unit["header_fix"] = done_fix["fixes"]
+            fixes += len(done_fix["fixes"])
+            mapped += done_fix["topics_mapped"]
+    log(f"[K2] 머리줄 값 보정 {fixes}건, 주제 이름을 대표 이름으로 바꿈 {mapped}건(맞추기 표 approved {len(topic_map)}개)")
+    return {"llm_units": len(todo), "reused": len(units) - len(todo) - skipped, "skipped": skipped,
+            "header_fixes": fixes, "topics_mapped": mapped, "usage": usage}
 
 
 def header_fill_rate(units: list[dict], schemas: dict) -> dict:
-    """문서 유형별로 머리줄 칸이 몇 %나 채워졌는지(Chroma 메타데이터에 없는 칸은 비어 감)."""
+    """문서 유형별로 머리줄 값(header_values)이 주 노드에 들어간 단위의 비율(%). 머리줄 값 보정 뒤라 보통 100."""
     rates = {}
-    for doc_type, spec in schemas.items():
-        fields = spec["header"]
-        rows = [u for u in units if u["doc_type"] == doc_type]
-        if not rows or not fields:
+    for doc_type in schemas:
+        rows = [u for u in units if u["doc_type"] == doc_type and u.get("header_values") and "graph" in u]
+        if not rows:
             continue
         filled = 0
         for unit in rows:
-            for field in fields:
-                if unit["metadata"].get(field) not in (None, ""):
-                    filled += 1
-        rates[doc_type] = round(100 * filled / (len(rows) * len(fields)))
+            want = unit["header_values"]
+            key, value = next(iter(want["props"].items()))
+            filled += any(n["label"] == want["label"] and n["properties"].get(key) == value for n in unit["graph"]["nodes"])
+        rates[doc_type] = round(100 * filled / len(rows))
     return rates
 
 
@@ -831,6 +872,20 @@ def read_old_vectors(os_client: OpenSearch, index: str | None) -> dict[str, list
     return old
 
 
+def can_reuse_vectors(active: dict | None) -> bool:
+    """활성 세대의 벡터를 다시 써도 되는지 봄: 같은 임베딩 모델, 같은 차원으로 만든 벡터일 때만 True(교재 「S1. 임베딩」).
+
+    모델이나 차원이 다르면 본문이 같아도 벡터가 달라서, 옛 벡터를 섞어 쓰면 질문 벡터와 비교가 맞지 않음.
+    활성 세대 파일에 임베딩 설정이 적혀 있으면 그것과 비교함. 적히기 전에 만든 파일이면 설정 지문 전체가
+    같을 때만 같다고 보고, 다르면 안전하게 다시 쓰지 않음(전부 새로 임베딩).
+    """
+    if not active:  # 활성 세대가 없음(첫 실행)
+        return False
+    if "embedding_model" in active:  # ⑤ 게시가 적어 둔 임베딩 설정과 지금 설정을 비교
+        return active["embedding_model"] == EMBEDDING_MODEL and active.get("embed_dimension") == EMBED_DIMENSION
+    return active.get("config_signature") == config_signature()  # 옛 파일: 설정이 통째로 같을 때만
+
+
 def index_mapping(tokenizer_meta: dict) -> dict:
     """벡터(kNN)와 키워드(BM25)를 한 인덱스에 둠. 사전 기록은 _meta에 남겨 검색 쪽이 같은 토크나이저를 만들게 함(교재 58, 61쪽)."""
     keyword_fields = {name: {"type": "keyword"} for name in META_FIELDS}
@@ -893,13 +948,9 @@ def run(args) -> None:
         raise SystemExit("--until k8은 Neo4j GDS가 필요함(neo4j/README.md 「gds.version을 찾지 못함」 참고)")
 
     # ② 공통 단계(앞부분): 입력을 읽어 청크 한 건으로 만듦. 세대 ID의 사전 검사에 청크 지문이 필요해 ①보다 먼저 읽음
-    if args.chunks:
-        chunks = read_chunk_file(Path(args.chunks), args.sample)
-        log(f"② 공통 단계: 청크 파일 {args.chunks}에서 {len(chunks)}개 읽음")
-    else:
-        rows = read_chroma_rows(args.sample)
-        chunks = core.prepare_chunks(rows)
-        log(f"② 공통 단계: Chroma {COLLECTION_NAME}에서 {len(rows)}개 읽어 청크로 만듦")
+    rows = read_chroma_rows()
+    chunks = core.prepare_chunks(rows)
+    log(f"② 공통 단계: Chroma {COLLECTION_NAME}에서 {len(rows)}개 읽어 청크로 만듦")
     by_type = {}
     for chunk in chunks:
         by_type[chunk["doc_type"]] = by_type.get(chunk["doc_type"], 0) + 1
@@ -951,13 +1002,17 @@ def run(args) -> None:
         
         # --- K1 추출청크 구성
         schemas = load_schemas()
-        units, empty_chunks = core.k1_split_units(chunks, schemas)
+        # 1단계 개인정보 점검에서 남은 청크(생일이 가려지지 않은 상담 2건)는 외부 LLM에 보내지 않음
+        pii_ids = {p["chunk_id"] for p in load_json(DECISIONS_PATH)["input"]["pii_remaining"]}
+        units, empty_chunks, pii_chunks = onto.split_units(chunks, pii_ids)
+        if pii_chunks:
+            log(f"[K1] 개인정보가 남은 청크 {len(pii_chunks)}개는 추출하지 않음(스키마 설계 1단계 결정)")
         multi = [u for u in units if len(u["chunk_ids"]) > 1]
         by_type_units = {}
         for unit in units:
             by_type_units[unit["doc_type"]] = by_type_units.get(unit["doc_type"], 0) + 1
         log(f"[K1] 청크 {len(chunks)}개 → 추출 단위 {len(units)}개 {by_type_units}, 청크 2개 이상에 걸친 단위 {len(multi)}개, "
-            f"단위가 없는 청크 {len(empty_chunks)}개 {[c[:22] for c in empty_chunks][:5]}")
+            f"추출청크가 없는 청크(예: 목차, 각주 등) {len(empty_chunks)}개 {[c[:22] for c in empty_chunks][:5]}")
         sample_unit = next((u for u in units if u["doc_type"] == "regulation"), units[0] if units else None)
         if sample_unit:
             log(f"      단위 예: {sample_unit['unit_id']} ← 청크 {sample_unit['chunk_ids']}, 본문 {len(sample_unit['text'])}자")
@@ -1012,8 +1067,12 @@ def run(args) -> None:
             driver.close()  # --until k4나 k5이면 여기서 멈춤
             return
 
-        # --- 온톨로지 결합(개선 3 ~ 5): 스키마 설명 싣기, 업종 잇기, 건너가기 검사
+        # --- 온톨로지 결합: 공통 개념 층 싣기, 업종 잇기, 검사 규칙, 맞추기 표 새 항목
         ontology = ontology_steps(driver, generation)
+        save_json(gen_dir / "new_map_items.json", ontology["new_items"])
+        if ontology["new_items"]["benefits"] or ontology["new_items"]["topics"]:
+            log("      다음(사람 확정): cd ../schema/doc-ontology 에서 python common/tools/draft_category_map.py draft --from "
+                f"../../indexer/{(gen_dir / 'new_map_items.json').relative_to(BASE_DIR).as_posix()} (주제는 draft_topic_map.py)")
 
         # --- K6 엔터티 설명 임베딩  
         embedded = core.k6_embed_descriptions(driver, generation, embed_texts, EMBED_DIMENSION, ENTITY_INDEX)
@@ -1047,7 +1106,11 @@ def run(args) -> None:
             log("③ 인덱스 구축 시작: 검색엔진 인덱싱(S1 ~ S3)")
 
         index = index_name(generation)
-        old_vectors = read_old_vectors(os_client, active["search_index"] if active else None)
+        # 옛 벡터는 같은 임베딩 모델과 차원으로 만든 것일 때만 다시 씀. 아니면 빈 dict라 S1이 전부 새로 임베딩함
+        reuse_ok = can_reuse_vectors(active)
+        old_vectors = read_old_vectors(os_client, active["search_index"]) if reuse_ok else {}
+        if active and not reuse_ok:
+            log("[S1] 활성 세대와 임베딩 모델 또는 차원이 달라(또는 알 수 없어) 옛 벡터를 다시 쓰지 않음")
         texts = [c["text"] for c in chunks]
         hashes = [c["text_hash"] for c in chunks]
 
@@ -1100,8 +1163,8 @@ def run(args) -> None:
         "k2": {k: v for k, v in k2.items()}, "k4": {"nodes": len(nodes), "relationships": len(relationships)},
         "k5_merged_groups": merged, "ontology": ontology, "k6_embedded": embedded, "k8": k8_result,
         "s1_new_embeddings": new_count, "s3": s3, "verify": report, "labels": labels, "elapsed_seconds": elapsed})
-    if not ontology["check"]["ok"]:  # 문서의 키가 DB에 없으면 검색기가 건너가지 못하므로 게시하지 않음
-        raise SystemExit(f"④ 검증 실패(개선 5 건너가기 검사): 게시하지 않음. 자세한 목록: {gen_dir / 'build_report.json'}")
+    if not ontology["check"]["ok"]:  # 공통 개념 층의 검사 규칙을 어긴 그래프는 게시하지 않음
+        raise SystemExit(f"④ 검증 실패(공통 개념 층 검사 규칙): 게시하지 않음. 자세한 목록: {gen_dir / 'build_report.json'}")
     if not report["ok"]:
         raise SystemExit(f"④ 검증 실패: 게시하지 않음(활성 세대는 그대로). 자세한 목록: {gen_dir / 'build_report.json'}")
 
@@ -1109,6 +1172,7 @@ def run(args) -> None:
     core.publish_active({
         "generation": generation, "search_index": index, "neo4j_generation": generation, "chunk_count": len(chunks),
         "input_sha256": input_sha256, "config_signature": config_signature(),
+        "embedding_model": EMBEDDING_MODEL, "embed_dimension": EMBED_DIMENSION,  # 다음 실행의 S1이 벡터 재사용 여부를 정함
         "published_at": time.strftime("%Y-%m-%d %H:%M:%S"), "runs": [run_id]}, ACTIVE_FILE)
     log(f"⑤ 게시: 활성 세대 파일 → {generation}")
 
@@ -1120,8 +1184,7 @@ def run(args) -> None:
 def main() -> None:
     """명령줄 인자를 읽어 run을 부름."""
     parser = argparse.ArgumentParser(description="GraphRAG 인덱싱 예제(전체 재색인)")
-    parser.add_argument("--run", required=True, help="실행 이름. 교육생 별명을 넣음(예: hong-s1). 같은 이름이면 같은 세대 ID")
-    parser.add_argument("--sample", action="store_true", help="표본 10청크만(수업용)")
+    parser.add_argument("--run", required=True, help="실행 이름. 교육생 별명을 넣음(예: hong-f1). 같은 이름이면 같은 세대 ID")
     parser.add_argument("--full-reindex", action="store_true", help="사전 검사를 건너뛰고 새 세대를 만듦")
     parser.add_argument("--skip-communities", action="store_true", help="K8 커뮤니티 요약을 건너뜀")
     parser.add_argument("--until", default=None, metavar="단계",
@@ -1129,7 +1192,6 @@ def main() -> None:
                              "검색엔진 인덱싱: s1, s2, s3. 트랙은 접두어로 정해 k*는 KG만, s*는 검색엔진만 돌림. "
                              "멈추면 ④ 검증과 ⑤ 게시를 하지 않아 활성 세대는 그대로")
     parser.add_argument("--reuse", default=None, help="앞 결과 폴더(kg_prepared.json, community_reports.json). 강사 배포본 등")
-    parser.add_argument("--chunks", default=None, help="Chroma 대신 쓸 청크 파일(prepared-chunks.json)")
     parser.add_argument("--mine", action="store_true", help="강사 코드 대신 교육생 코드(my_graph.py)로 실행함")
     run(parser.parse_args())
 

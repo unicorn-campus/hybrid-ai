@@ -1,13 +1,14 @@
 """정형 조회(NL2SQL) 함수 모음: 그래프의 스키마 설명 읽기, SQL 검사, 읽기 전용 실행, 건너갈 키 고르기.
 
-온톨로지 결합 개선 6번(검색기에 정형 조회 툴 추가)에서 씀. search_graph.py의 query_customer_data 툴이 순서대로 부름.
-  ① read_schema_graph   Neo4j에 실어 둔 스키마 설명(뷰, 컬럼, 업무 개념, 예시 쿼리)을 읽음
+검색기의 정형 조회 툴에서 씀. search_graph.py의 query_customer_data 툴이 순서대로 부름.
+  ① read_schema_graph   인덱서가 Neo4j에 실어 둔 뷰 설명(뷰, 컬럼, 업무 개념, 예시 쿼리)을 읽음
   ② schema_text         읽은 설명을 LLM 프롬프트에 넣을 글로 만듦
   ③ check_sql           LLM이 만든 SQL을 실행 전에 검사함(SELECT만, 허용한 뷰만, 행 수 상한)
   ④ run_sql             읽기 전용 트랜잭션에서 실행함. 회원 범위는 세션 값으로만 넘김
   ⑤ bridge_keys         결과에서 문서 그래프로 건너갈 키 값(업종, 카드상품 ID)을 고름
 
-행 데이터는 PostgreSQL에 그대로 두고, Neo4j에는 스키마와 뜻만 둠(개선 3번이 실어 둠).
+행 데이터는 PostgreSQL에 그대로 두고, Neo4j에는 뜻만 둠.
+뜻은 인덱서(core_ontology.load_view_layer)가 schema/rdb/app_views.json을 DB 카탈로그와 대조해 실음.
 회원 격리는 이 코드가 아니라 DB가 맡음: 검색기 계정은 app 논리 뷰만 읽고, 뷰는 세션 값 app.member_id의 회원 행만 돌려줌.
 """
 
