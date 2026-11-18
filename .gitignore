@@ -47,3 +47,7 @@ desktop.ini
 research/build/preview/
 
 hands-on/videokiwi/.data/
+
+# 도구가 만드는 로컬 산출물: 브라우저 도구 로그, 영상과 이미지 결과물(저장소 루트의 폴더만)
+/.playwright-mcp/
+/output/
