@@ -133,7 +133,7 @@ flowchart LR
 | B3 | 36 / 36(100%) | 0 / 4(0%) | 35 / 36(97%) | 통과 |
 | B4 | 36 / 36(100%) | 0 / 4(0%) | 36 / 36(100%) | 통과 |
 
-- 최종 파일: `benefit_guide/graph_schema.json`, `benefit_guide/approval.json`  
+- 최종 파일: `benefit_guide/graph_schema.json`, `benefit_guide/unit_text_rules.json`, `benefit_guide/approval.json`  
 
 ### 3.3 상담 기록(consult_log)  
 
@@ -178,7 +178,7 @@ flowchart LR
 | C4 | 10 / 10(100%) | 0 / 8(0%) | 10 / 10(100%) | 통과 |
 | C5 | 14 / 14(100%) | 0 / 4(0%) | 14 / 14(100%) | 통과 |
 
-- 최종 파일: `consult_log/graph_schema.json`, `consult_log/approval.json`  
+- 최종 파일: `consult_log/graph_schema.json`, `consult_log/unit_text_rules.json`, `consult_log/approval.json`  
 
 ## 4. 주의와 남은 쟁점  
 

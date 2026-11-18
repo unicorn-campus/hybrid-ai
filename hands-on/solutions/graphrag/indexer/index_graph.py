@@ -333,18 +333,18 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
 # 스키마와 설정 지문
 # ---------------------------------------------------------------------------
 def load_schemas() -> dict:
-    """문서 유형마다 graph_schema.json, 추출 청크 규칙(approval.json), 머리줄 칸(schema_spec.json)을 읽음."""
+    """문서 유형마다 graph_schema.json과 추출 청크 글 규칙(unit_text_rules.json: 추출 청크 규칙, 머리줄 칸)을 읽음."""
     schemas = {}
     for doc_type in DOC_TYPES:
         folder = SCHEMA_DIR / doc_type
         path = folder / "graph_schema.json"
         if not path.exists():
             continue
-        approval = load_json(folder / "approval.json")
+        rules = load_json(folder / "unit_text_rules.json")
         schemas[doc_type] = {
             "schema": GraphSchema.from_file(str(path)),
-            "unit_rule": approval.get("extraction_unit_rule"),  # 없으면 청크를 그대로 추출 청크로 씀
-            "header": load_json(folder / "schema_spec.json").get("metadata_header", []),
+            "unit_rule": rules.get("extraction_unit_rule"),  # 없으면 청크를 그대로 추출 청크로 씀
+            "header": rules.get("metadata_header", []),
             "signature": sha256_file(path),  # 스키마가 바뀌면 보관한 추출 결과를 다시 쓰지 않음
         }
     return schemas

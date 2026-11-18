@@ -20,7 +20,7 @@ hands-on/solutions/graphrag/
 |---|---|---|---|
 | `indexer/` | `index_graph.py`, 확인 도구 `check_graph.py` | `my_graph.py`(`--mine`이 템플릿에서 만듦) | Neo4j 그래프 세대, OpenSearch 인덱스, 활성 세대 파일 |
 | `retriever/` | `search_graph.py` | `my_search.py`(`--mine`이 템플릿에서 만듦) | 단계별 검색 화면, 실행 기록 |
-| `schema/doc`, `schema/rdb` | `tools/*.py`(강사용 스키마 설계 도구) | - | `graph_schema.json`, `approval.json` 등 |
+| `schema/doc`, `schema/rdb` | `tools/*.py`(강사용 스키마 설계 도구) | - | `graph_schema.json`, `unit_text_rules.json`, `approval.json` 등 |
 
 ## 2. 준비물
 

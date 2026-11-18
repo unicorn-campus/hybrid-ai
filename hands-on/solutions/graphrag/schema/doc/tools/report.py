@@ -62,7 +62,7 @@ def main() -> None:
             L.append(f"| {q} | {v['hit']} / {v['pos']}({pct(v['recall'])}) | {v['fp']} / {v['neg']}({pct(v['fp_rate'])}) | "
                      f"{v['same']} / {v['hit']}({pct(v['match'])}) | {'통과' if v['pass'] else '미달'} |")
         final = BASE / doc / "graph_schema.json"
-        L += ["", f"- 최종 파일: " + (f"`{doc}/graph_schema.json`, `{doc}/approval.json`" if final.exists()
+        L += ["", f"- 최종 파일: " + (f"`{doc}/graph_schema.json`, `{doc}/unit_text_rules.json`, `{doc}/approval.json`" if final.exists()
                                      else "만들지 않음(합격 기준 미달)"), ""]
     L += ["## 4. 주의와 남은 쟁점", "",
           "- 자동 승인: 역량 질문, 묶음, 스키마 초안, 제약, 기대 답, 합격 기준, 시험 통과를 사람이 보지 않고 AI가 정함",

@@ -1,0 +1,11 @@
+{
+  "doc": "consult_log",
+  "extraction_unit_rule": null,
+  "metadata_header": [
+    "record_id",
+    "consult_date",
+    "channel",
+    "topic",
+    "member_pseudo_id"
+  ]
+}

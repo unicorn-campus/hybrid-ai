@@ -18,7 +18,7 @@ ACTIVE_FILE = DATA / "active_generation.json"
 # (2026-10-24까지는 Neo4j와 OpenSearch 볼륨을 hybrid-ai-lab과 함께 썼고, 지금은 hybrid-ai 전용 볼륨임)
 GENERATION_TAG = "hai"
 
-# 문서 유형별 그래프 스키마(graph_schema.json, approval.json, schema_spec.json). hands-on 실습 정답 폴더를 읽기만 함
+# 문서 유형별 그래프 스키마(graph_schema.json, unit_text_rules.json, approval.json). hands-on 실습 정답 폴더를 읽기만 함
 SCHEMA_DIR = REPO / "hands-on" / "solutions" / "graphrag" / "schema" / "doc"
 DOC_TYPES = ("regulation", "benefit_guide", "consult_log")
 

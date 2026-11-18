@@ -1,7 +1,8 @@
-"""9단계: 8단계 통과가 승인된 문서 종류만 GraphSchema 파일과 승인 기록을 만듦.
+"""9단계: 8단계 통과가 승인된 문서 종류만 GraphSchema 파일, 승인 기록, 추출 청크 글 규칙을 만듦.
 
 GraphSchema.save()로 저장한 뒤 from_file()로 다시 읽어 노드 타입, 관계, 패턴, 제약 수가 초안과 같은지 비교함.
-실행: python tools/finalize.py {doc} → {doc}/graph_schema.json, {doc}/approval.json
+인덱서는 graph_schema.json과 unit_text_rules.json만 읽음. schema_spec.json은 설계 단계의 중간 파일임.
+실행: python tools/finalize.py {doc} → {doc}/graph_schema.json, {doc}/approval.json, {doc}/unit_text_rules.json
 """
 
 from __future__ import annotations
@@ -48,11 +49,15 @@ def main() -> None:
     if not metrics["all_pass"]:
         approval["below_criteria"] = {"failed": [q for q, m in metrics["metrics"].items() if not m["pass"]],
                                       "reason": accept_below}
-    # 인덱싱이 스키마 설계와 같은 단위로 추출하도록 추출 청크 규칙을 함께 남김(규칙이 있는 문서 종류만)
-    unit_rule = load_json("decisions.json")["input"].get("extraction_units", {}).get(doc)
-    if unit_rule:
-        approval["extraction_unit_rule"] = unit_rule
     save_json(f"{doc}/approval.json", approval)
+    # 인덱싱이 스키마 설계와 같은 글로 추출하도록, 추출 청크(unit)의 글을 만드는 규칙 두 가지를 따로 남김
+    save_json(f"{doc}/unit_text_rules.json", {
+        "doc": doc,
+        # 청크를 추출 청크로 다시 나누는 규칙. 없으면(null) 청크를 그대로 추출 청크로 씀
+        "extraction_unit_rule": load_json("decisions.json")["input"].get("extraction_units", {}).get(doc),
+        # 추출 청크 앞에 머리줄로 붙일 메타데이터 칸(키 속성이 채워지게 함)
+        "metadata_header": load_json(f"{doc}/schema_spec.json").get("metadata_header", []),
+    })
     print(f"{doc}: 초안 {want} / 다시 읽음 {got} → {'같음' if same else '다름'}")
 
 

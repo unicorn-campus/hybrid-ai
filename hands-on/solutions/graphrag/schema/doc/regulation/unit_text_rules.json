@@ -1,0 +1,16 @@
+{
+  "doc": "regulation",
+  "extraction_unit_rule": {
+    "kind": "제목 꼴로 나눔",
+    "heading": "^(제\\d+조(?:의\\d+)?)\\(([^)]*)\\)\\s*$",
+    "body_start": "①",
+    "drop_lines": "^제\\d+장\\s"
+  },
+  "metadata_header": [
+    "source",
+    "version",
+    "effective_date",
+    "supersedes",
+    "section_label"
+  ]
+}

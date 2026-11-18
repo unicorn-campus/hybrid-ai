@@ -39,10 +39,11 @@ def load_schemas() -> dict[str, dict]:
         if not path.exists():
             continue
         approval = load_json(folder / "approval.json")
+        rules = load_json(folder / "unit_text_rules.json")  # 추출 청크 글 규칙(추출 청크 규칙, 머리줄 칸)
         out[doc_type] = {
             "schema": GraphSchema.from_file(str(path)),
-            "unit_rule": approval.get("extraction_unit_rule"),  # 없으면 청크를 그대로 추출 청크로 씀
-            "header": load_json(folder / "schema_spec.json").get("metadata_header", []),
+            "unit_rule": rules.get("extraction_unit_rule"),  # 없으면 청크를 그대로 추출 청크로 씀
+            "header": rules.get("metadata_header", []),
             "signature": sha256_file(path),  # 스키마가 바뀌면 보관한 추출 결과를 다시 쓰지 않음
             "below_criteria": approval.get("below_criteria"),
         }

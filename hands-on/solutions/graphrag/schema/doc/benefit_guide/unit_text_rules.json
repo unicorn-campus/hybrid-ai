@@ -1,0 +1,11 @@
+{
+  "doc": "benefit_guide",
+  "extraction_unit_rule": null,
+  "metadata_header": [
+    "product_id",
+    "card_name",
+    "benefit_id",
+    "section_label",
+    "effective_date"
+  ]
+}
