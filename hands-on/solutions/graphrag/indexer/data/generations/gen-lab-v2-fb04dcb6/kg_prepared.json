@@ -1,0 +1,1936 @@
+{
+ "chunks": [
+  {
+   "chunk_id": "D1_27223010abe31291_eb1ce5421e4639c4_0000",
+   "doc_id": "D1_27223010abe31291",
+   "doc_type": "regulation"
+  },
+  {
+   "chunk_id": "D1_27223010abe31291_166a4d98a94e8900_0000",
+   "doc_id": "D1_27223010abe31291",
+   "doc_type": "regulation"
+  },
+  {
+   "chunk_id": "D2_5a3c0df949be0524_eff8489ec994a497_0000",
+   "doc_id": "D2_5a3c0df949be0524",
+   "doc_type": "benefit_guide"
+  },
+  {
+   "chunk_id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000",
+   "doc_id": "D2_5a3c0df949be0524",
+   "doc_type": "benefit_guide"
+  },
+  {
+   "chunk_id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000",
+   "doc_id": "D2_5a3c0df949be0524",
+   "doc_type": "benefit_guide"
+  },
+  {
+   "chunk_id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000",
+   "doc_id": "D2_5a3c0df949be0524",
+   "doc_type": "benefit_guide"
+  },
+  {
+   "chunk_id": "D3_C-20260314-001_825562d46dabc39b_0000",
+   "doc_id": "D3_C-20260314-001",
+   "doc_type": "consult_log"
+  },
+  {
+   "chunk_id": "D3_C-20260401-001_2ff54b01d0a17959_0000",
+   "doc_id": "D3_C-20260401-001",
+   "doc_type": "consult_log"
+  },
+  {
+   "chunk_id": "D3_C-20260302-002_cb87e7b0c6dcd123_0000",
+   "doc_id": "D3_C-20260302-002",
+   "doc_type": "consult_log"
+  },
+  {
+   "chunk_id": "D3_C-20260501-003_a758447f33e1cc4f_0000",
+   "doc_id": "D3_C-20260501-003",
+   "doc_type": "consult_log"
+  }
+ ],
+ "units": [
+  {
+   "unit_id": "D1_27223010abe31291#제1조",
+   "doc_type": "regulation",
+   "doc_id": "D1_27223010abe31291",
+   "metadata": {
+    "version": "1.2",
+    "effective_date": "2027-01-15",
+    "supersedes": "1.1",
+    "page": 5,
+    "source": "D1_개인회원표준약관_합성.pdf",
+    "doc_type": "regulation",
+    "access_level": "public",
+    "doc_key": "D1",
+    "chunk_index": 0,
+    "chroma_id": "D1-0005",
+    "chunk_id": "D1_27223010abe31291_eb1ce5421e4639c4_0000",
+    "section_label": "제1조(목적)"
+   },
+   "text": "제1조(목적)\n① 이 약관은 가상 사업자인 한빛카드 주식회사와 개인회원 사이의 카드 발급, 이용대금 결제, 안전한 이용\n및 계약 종료에 관한 기본 절차를 정함을 목적으로 합니다.\n② 이 문서에서 정하지 않은 사항은 개별 상품안내서와 교육용 시나리오에 따릅니다. 실제 금융계약이나 민\n원 처리의 근거로 사용할 수 없습니다.",
+   "chunk_ids": [
+    "D1_27223010abe31291_eb1ce5421e4639c4_0000"
+   ],
+   "text_hash": "23a082cd2321f332cd50ecbcdf4d18969fb4015c0f0b86719a9bb52d2b8e6191",
+   "schema_signature": "fcb8a70d01ea9efcf75d40f4e9538f27f86686c48b0f85ef8fd45211b81427a4",
+   "header_text": "source: D1_개인회원표준약관_합성.pdf | version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1 | section_label: 제1조(목적)\n",
+   "graph": {
+    "nodes": [
+     {
+      "id": "D1_27223010abe31291#제1조:0",
+      "label": "TermsDocument",
+      "properties": {
+       "version": "1.2",
+       "effective_date": "2027-01-15",
+       "supersedes": "1.1"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제1조:1",
+      "label": "Clause",
+      "properties": {
+       "clause_no": "제1조",
+       "title": "목적"
+      },
+      "embedding_properties": {}
+     }
+    ],
+    "relationships": [
+     {
+      "start_node_id": "D1_27223010abe31291#제1조:0",
+      "end_node_id": "D1_27223010abe31291#제1조:1",
+      "type": "HAS_CLAUSE",
+      "properties": {},
+      "embedding_properties": {}
+     }
+    ]
+   },
+   "raw_nodes": 2,
+   "kept_nodes": 2
+  },
+  {
+   "unit_id": "D1_27223010abe31291#제2조",
+   "doc_type": "regulation",
+   "doc_id": "D1_27223010abe31291",
+   "metadata": {
+    "version": "1.2",
+    "effective_date": "2027-01-15",
+    "supersedes": "1.1",
+    "page": 5,
+    "source": "D1_개인회원표준약관_합성.pdf",
+    "doc_type": "regulation",
+    "access_level": "public",
+    "doc_key": "D1",
+    "chunk_index": 0,
+    "chroma_id": "D1-0005",
+    "chunk_id": "D1_27223010abe31291_eb1ce5421e4639c4_0000",
+    "section_label": "제2조(용어의 정의)"
+   },
+   "text": "제2조(용어의 정의)\n① '본인회원'은 자신의 이름으로 카드를 신청하여 승인받은 가상 고객을 말하며, '가족회원'은 본인회원의 요\n청에 따라 별도 카드를 받은 가상 사용자를 말합니다.\n② '이용금액'은 승인된 결제금액을 말합니다. 승인 취소, 환불, 수수료 및 연회비는 별도 표시하며 합계에 자\n동 포함하지 않습니다.\n③ '전자문서'는 앱 알림, 전자우편 또는 웹 화면에서 확인할 수 있는 기록을 뜻합니다. '영업일'은 토요일과\n공휴일을 제외한 날로 가정합니다.",
+   "chunk_ids": [
+    "D1_27223010abe31291_eb1ce5421e4639c4_0000"
+   ],
+   "text_hash": "e8c5ced5637eb2ef78da77c5eacb53479fe2c561cf77cae82a70cca3dc2255ed",
+   "schema_signature": "fcb8a70d01ea9efcf75d40f4e9538f27f86686c48b0f85ef8fd45211b81427a4",
+   "header_text": "source: D1_개인회원표준약관_합성.pdf | version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1 | section_label: 제2조(용어의 정의)\n",
+   "graph": {
+    "nodes": [
+     {
+      "id": "D1_27223010abe31291#제2조:0",
+      "label": "TermsDocument",
+      "properties": {
+       "version": "1.2",
+       "effective_date": "2027-01-15",
+       "supersedes": "1.1"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제2조:1",
+      "label": "Clause",
+      "properties": {
+       "clause_no": "제2조",
+       "title": "용어의 정의"
+      },
+      "embedding_properties": {}
+     }
+    ],
+    "relationships": [
+     {
+      "start_node_id": "D1_27223010abe31291#제2조:0",
+      "end_node_id": "D1_27223010abe31291#제2조:1",
+      "type": "HAS_CLAUSE",
+      "properties": {},
+      "embedding_properties": {}
+     }
+    ]
+   },
+   "raw_nodes": 2,
+   "kept_nodes": 2
+  },
+  {
+   "unit_id": "D1_27223010abe31291#제3조",
+   "doc_type": "regulation",
+   "doc_id": "D1_27223010abe31291",
+   "metadata": {
+    "version": "1.2",
+    "effective_date": "2027-01-15",
+    "supersedes": "1.1",
+    "page": 5,
+    "source": "D1_개인회원표준약관_합성.pdf",
+    "doc_type": "regulation",
+    "access_level": "public",
+    "doc_key": "D1",
+    "chunk_index": 0,
+    "chroma_id": "D1-0005",
+    "chunk_id": "D1_27223010abe31291_eb1ce5421e4639c4_0000",
+    "section_label": "제3조(회원의 구분과 책임)"
+   },
+   "text": "제3조(회원의 구분과 책임)\n① 본인회원은 신청 정보의 정확성을 확인하고 가족회원의 이용 범위를 설정합니다.\n② 가족회원의 결제금액은 본인회원의 명세서에 합산할 수 있습니다. 다만 분실 신고와 이의신청은 실제 이\n용자가 직접 접수할 수 있습니다.",
+   "chunk_ids": [
+    "D1_27223010abe31291_eb1ce5421e4639c4_0000"
+   ],
+   "text_hash": "ef06f58d84a5b1ed4228cf982fac9e5549f64319ec2e5e63a7b7ce73b22285f4",
+   "schema_signature": "fcb8a70d01ea9efcf75d40f4e9538f27f86686c48b0f85ef8fd45211b81427a4",
+   "header_text": "source: D1_개인회원표준약관_합성.pdf | version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1 | section_label: 제3조(회원의 구분과 책임)\n",
+   "graph": {
+    "nodes": [
+     {
+      "id": "D1_27223010abe31291#제3조:0",
+      "label": "TermsDocument",
+      "properties": {
+       "version": "1.2",
+       "effective_date": "2027-01-15",
+       "supersedes": "1.1"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제3조:1",
+      "label": "Clause",
+      "properties": {
+       "clause_no": "제3조",
+       "title": "회원의 구분과 책임"
+      },
+      "embedding_properties": {}
+     }
+    ],
+    "relationships": [
+     {
+      "start_node_id": "D1_27223010abe31291#제3조:0",
+      "end_node_id": "D1_27223010abe31291#제3조:1",
+      "type": "HAS_CLAUSE",
+      "properties": {},
+      "embedding_properties": {}
+     }
+    ]
+   },
+   "raw_nodes": 2,
+   "kept_nodes": 2
+  },
+  {
+   "unit_id": "D1_27223010abe31291#제4조",
+   "doc_type": "regulation",
+   "doc_id": "D1_27223010abe31291",
+   "metadata": {
+    "version": "1.2",
+    "effective_date": "2027-01-15",
+    "supersedes": "1.1",
+    "page": 5,
+    "source": "D1_개인회원표준약관_합성.pdf",
+    "doc_type": "regulation",
+    "access_level": "public",
+    "doc_key": "D1",
+    "chunk_index": 0,
+    "chroma_id": "D1-0005",
+    "chunk_id": "D1_27223010abe31291_eb1ce5421e4639c4_0000",
+    "section_label": "제4조(약관과 상품안내서의 확인)"
+   },
+   "text": "제4조(약관과 상품안내서의 확인)\n① 카드사는 신청 전에 이 약관, 연회비, 결제 조건 및 주요 혜택을 확인할 수 있는 화면을 제공합니다.\n② 회원은 핵심 조건 요약과 전문의 내용이 다를 때 전문을 다시 확인합니다. 표나 예시는 이해를 돕기 위한\n것으로 본문의 적용 조건을 대신하지 않습니다.",
+   "chunk_ids": [
+    "D1_27223010abe31291_eb1ce5421e4639c4_0000"
+   ],
+   "text_hash": "339f852658d1a0ca73309b9d2293637a8f5c9befe38973316cd28de0901c9d8f",
+   "schema_signature": "fcb8a70d01ea9efcf75d40f4e9538f27f86686c48b0f85ef8fd45211b81427a4",
+   "header_text": "source: D1_개인회원표준약관_합성.pdf | version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1 | section_label: 제4조(약관과 상품안내서의 확인)\n",
+   "graph": {
+    "nodes": [
+     {
+      "id": "D1_27223010abe31291#제4조:0",
+      "label": "TermsDocument",
+      "properties": {
+       "version": "1.2",
+       "effective_date": "2027-01-15",
+       "supersedes": "1.1"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제4조:1",
+      "label": "Clause",
+      "properties": {
+       "clause_no": "제4조",
+       "title": "약관과 상품안내서의 확인"
+      },
+      "embedding_properties": {}
+     }
+    ],
+    "relationships": [
+     {
+      "start_node_id": "D1_27223010abe31291#제4조:0",
+      "end_node_id": "D1_27223010abe31291#제4조:1",
+      "type": "HAS_CLAUSE",
+      "properties": {},
+      "embedding_properties": {}
+     }
+    ]
+   },
+   "raw_nodes": 2,
+   "kept_nodes": 2
+  },
+  {
+   "unit_id": "D1_27223010abe31291#제5조",
+   "doc_type": "regulation",
+   "doc_id": "D1_27223010abe31291",
+   "metadata": {
+    "version": "1.2",
+    "effective_date": "2027-01-15",
+    "supersedes": "1.1",
+    "page": 5,
+    "source": "D1_개인회원표준약관_합성.pdf",
+    "doc_type": "regulation",
+    "access_level": "public",
+    "doc_key": "D1",
+    "chunk_index": 0,
+    "chroma_id": "D1-0005",
+    "chunk_id": "D1_27223010abe31291_eb1ce5421e4639c4_0000",
+    "section_label": "제5조(통지 방법)"
+   },
+   "text": "제5조(통지 방법)\n① 카드사는 앱 알림, 문자, 전자우편 또는 우편 중 회원이 선택한 수단으로 중요한 내용을 알립니다.\n② 연락처가 바뀐 회원은 지체 없이 정보를 수정합니다. 변경하지 않아 통지가 도달하지 않은 경우에는 발송\n기록을 기준으로 재안내할 수 있습니다.\n통지 종류\n기본 수단\n보조 수단\n확인 기록\n약관 변경\n앱 알림\n전자우편\n발송일·열람일\n이상거래 정지\n문자\n앱 알림\n발송일·정지 사유\n연회비 반환 지연\n전자우편\n문자\n예정일·지연 사유\n[표 2] 실제 회사의 통지 수단과 기한을 나타내지 않습니다.",
+   "chunk_ids": [
+    "D1_27223010abe31291_eb1ce5421e4639c4_0000"
+   ],
+   "text_hash": "827f5ed28d70fd38f359861706f0aad5597afbde6f710aeb15aec8427b61c981",
+   "schema_signature": "fcb8a70d01ea9efcf75d40f4e9538f27f86686c48b0f85ef8fd45211b81427a4",
+   "header_text": "source: D1_개인회원표준약관_합성.pdf | version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1 | section_label: 제5조(통지 방법)\n",
+   "graph": {
+    "nodes": [
+     {
+      "id": "D1_27223010abe31291#제5조:0",
+      "label": "TermsDocument",
+      "properties": {
+       "version": "1.2",
+       "effective_date": "2027-01-15",
+       "supersedes": "1.1"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제5조:1",
+      "label": "Clause",
+      "properties": {
+       "clause_no": "제5조",
+       "title": "통지 방법"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제5조:2",
+      "label": "Handling",
+      "properties": {
+       "situation": "변경하지 않아 통지가 도달하지 않은 경우",
+       "action": "발송 기록을 기준으로 재안내할 수 있습니다"
+      },
+      "embedding_properties": {}
+     }
+    ],
+    "relationships": [
+     {
+      "start_node_id": "D1_27223010abe31291#제5조:0",
+      "end_node_id": "D1_27223010abe31291#제5조:1",
+      "type": "HAS_CLAUSE",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D1_27223010abe31291#제5조:1",
+      "end_node_id": "D1_27223010abe31291#제5조:2",
+      "type": "DEFINES_HANDLING",
+      "properties": {},
+      "embedding_properties": {}
+     }
+    ]
+   },
+   "raw_nodes": 3,
+   "kept_nodes": 3
+  },
+  {
+   "unit_id": "D1_27223010abe31291#제6조",
+   "doc_type": "regulation",
+   "doc_id": "D1_27223010abe31291",
+   "metadata": {
+    "version": "1.2",
+    "effective_date": "2027-01-15",
+    "supersedes": "1.1",
+    "doc_type": "regulation",
+    "access_level": "public",
+    "source": "D1_개인회원표준약관_합성.pdf",
+    "page": 6,
+    "doc_key": "D1",
+    "chunk_index": 1,
+    "chroma_id": "D1-0006",
+    "chunk_id": "D1_27223010abe31291_166a4d98a94e8900_0000",
+    "section_label": "제6조(발급 신청과 심사)"
+   },
+   "text": "제6조(발급 신청과 심사)\n① 신청인은 이름, 연락 수단, 결제계좌 및 실습 시나리오에서 요구한 정보를 제출합니다. 카드사는 가상 심\n사 기준에 따라 발급 여부와 이용한도를 결정합니다.\n② 심사 결과가 발급 거절인 경우 사유 범주와 재신청 가능 시점을 안내합니다. 자동화된 판정만으로 불리한\n결정을 확정하지 않습니다.",
+   "chunk_ids": [
+    "D1_27223010abe31291_166a4d98a94e8900_0000"
+   ],
+   "text_hash": "651f10b6dd58fcb8c8eab43f9285691ba4a5d3950bf9a72fdc8f9dae6b366bfc",
+   "schema_signature": "fcb8a70d01ea9efcf75d40f4e9538f27f86686c48b0f85ef8fd45211b81427a4",
+   "header_text": "source: D1_개인회원표준약관_합성.pdf | version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1 | section_label: 제6조(발급 신청과 심사)\n",
+   "graph": {
+    "nodes": [
+     {
+      "id": "D1_27223010abe31291#제6조:0",
+      "label": "TermsDocument",
+      "properties": {
+       "version": "1.2",
+       "effective_date": "2027-01-15",
+       "supersedes": "1.1"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제6조:1",
+      "label": "Clause",
+      "properties": {
+       "clause_no": "제6조",
+       "title": "발급 신청과 심사"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제6조:2",
+      "label": "Handling",
+      "properties": {
+       "situation": "심사 결과가 발급 거절인 경우",
+       "action": "사유 범주와 재신청 가능 시점을 안내합니다"
+      },
+      "embedding_properties": {}
+     }
+    ],
+    "relationships": [
+     {
+      "start_node_id": "D1_27223010abe31291#제6조:0",
+      "end_node_id": "D1_27223010abe31291#제6조:1",
+      "type": "HAS_CLAUSE",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D1_27223010abe31291#제6조:1",
+      "end_node_id": "D1_27223010abe31291#제6조:2",
+      "type": "DEFINES_HANDLING",
+      "properties": {},
+      "embedding_properties": {}
+     }
+    ]
+   },
+   "raw_nodes": 3,
+   "kept_nodes": 3
+  },
+  {
+   "unit_id": "D1_27223010abe31291#제6조의2",
+   "doc_type": "regulation",
+   "doc_id": "D1_27223010abe31291",
+   "metadata": {
+    "version": "1.2",
+    "effective_date": "2027-01-15",
+    "supersedes": "1.1",
+    "doc_type": "regulation",
+    "access_level": "public",
+    "source": "D1_개인회원표준약관_합성.pdf",
+    "page": 6,
+    "doc_key": "D1",
+    "chunk_index": 1,
+    "chroma_id": "D1-0006",
+    "chunk_id": "D1_27223010abe31291_166a4d98a94e8900_0000",
+    "section_label": "제6조의2(가족카드의 발급과 관리)"
+   },
+   "text": "제6조의2(가족카드의 발급과 관리)\n① 본인회원은 가족회원의 동의를 확인한 뒤 가족카드 발급을 신청하며, 카드사는 연회비, 발급 가능 수, 결\n제 책임과 이용 범위를 사전에 안내합니다.\n② 본인회원은 가족카드의 한도 감액, 이용정지 또는 해지를 요청할 수 있습니다. 카드사는 처리 결과를 본인\n회원과 가족회원에게 각각 알립니다.\n③ 가족관계가 변경되거나 가족회원이 사용 중단을 요청하면 카드사는 본인 확인 후 이용정지와 정산 절차\n를 진행합니다.",
+   "chunk_ids": [
+    "D1_27223010abe31291_166a4d98a94e8900_0000"
+   ],
+   "text_hash": "05affefa38adbe1b66dd890b8a98743d42a4124d6b04c70f0b1b2ce759d4f6bc",
+   "schema_signature": "fcb8a70d01ea9efcf75d40f4e9538f27f86686c48b0f85ef8fd45211b81427a4",
+   "header_text": "source: D1_개인회원표준약관_합성.pdf | version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1 | section_label: 제6조의2(가족카드의 발급과 관리)\n",
+   "graph": {
+    "nodes": [
+     {
+      "id": "D1_27223010abe31291#제6조의2:0",
+      "label": "TermsDocument",
+      "properties": {
+       "version": "1.2",
+       "effective_date": "2027-01-15",
+       "supersedes": "1.1"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제6조의2:1",
+      "label": "Clause",
+      "properties": {
+       "clause_no": "제6조의2",
+       "title": "가족카드의 발급과 관리"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제6조의2:2",
+      "label": "Requirement",
+      "properties": {
+       "description": "본인회원은 가족회원의 동의를 확인한 뒤 가족카드 발급을 신청하며, 카드사는 연회비, 발급 가능 수, 결제 책임과 이용 범위를 사전에 안내합니다."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제6조의2:3",
+      "label": "Handling",
+      "properties": {
+       "situation": "가족관계가 변경되거나 가족회원이 사용 중단을 요청하면",
+       "action": "카드사는 본인 확인 후 이용정지와 정산 절차를 진행합니다."
+      },
+      "embedding_properties": {}
+     }
+    ],
+    "relationships": [
+     {
+      "start_node_id": "D1_27223010abe31291#제6조의2:0",
+      "end_node_id": "D1_27223010abe31291#제6조의2:1",
+      "type": "HAS_CLAUSE",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D1_27223010abe31291#제6조의2:1",
+      "end_node_id": "D1_27223010abe31291#제6조의2:2",
+      "type": "SETS_REQUIREMENT",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D1_27223010abe31291#제6조의2:1",
+      "end_node_id": "D1_27223010abe31291#제6조의2:3",
+      "type": "DEFINES_HANDLING",
+      "properties": {},
+      "embedding_properties": {}
+     }
+    ]
+   },
+   "raw_nodes": 4,
+   "kept_nodes": 4
+  },
+  {
+   "unit_id": "D1_27223010abe31291#제7조",
+   "doc_type": "regulation",
+   "doc_id": "D1_27223010abe31291",
+   "metadata": {
+    "version": "1.2",
+    "effective_date": "2027-01-15",
+    "supersedes": "1.1",
+    "doc_type": "regulation",
+    "access_level": "public",
+    "source": "D1_개인회원표준약관_합성.pdf",
+    "page": 6,
+    "doc_key": "D1",
+    "chunk_index": 1,
+    "chroma_id": "D1-0006",
+    "chunk_id": "D1_27223010abe31291_166a4d98a94e8900_0000",
+    "section_label": "제7조(카드의 전달과 수령)"
+   },
+   "text": "제7조(카드의 전달과 수령)\n① 카드는 본인 확인 후 전달합니다. 대리 수령 시에는 사전에 등록한 절차를 적용합니다.\n② 포장 훼손이나 배송 오류를 발견하면 카드를 사용하지 않고 고객지원 채널에 신고합니다.",
+   "chunk_ids": [
+    "D1_27223010abe31291_166a4d98a94e8900_0000"
+   ],
+   "text_hash": "11bff27e8c72d831bcb998b5b16130226c4651e723033d75bdcd85515a7c2e33",
+   "schema_signature": "fcb8a70d01ea9efcf75d40f4e9538f27f86686c48b0f85ef8fd45211b81427a4",
+   "header_text": "source: D1_개인회원표준약관_합성.pdf | version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1 | section_label: 제7조(카드의 전달과 수령)\n",
+   "graph": {
+    "nodes": [
+     {
+      "id": "D1_27223010abe31291#제7조:0",
+      "label": "TermsDocument",
+      "properties": {
+       "version": "1.2",
+       "effective_date": "2027-01-15",
+       "supersedes": "1.1"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제7조:1",
+      "label": "Clause",
+      "properties": {
+       "clause_no": "제7조",
+       "title": "카드의 전달과 수령"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제7조:2",
+      "label": "Requirement",
+      "properties": {
+       "description": "본인 확인 후 전달합니다"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제7조:3",
+      "label": "Handling",
+      "properties": {
+       "situation": "대리 수령 시",
+       "action": "사전에 등록한 절차를 적용합니다"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제7조:4",
+      "label": "Handling",
+      "properties": {
+       "situation": "포장 훼손이나 배송 오류를 발견하면",
+       "action": "카드를 사용하지 않고 고객지원 채널에 신고합니다"
+      },
+      "embedding_properties": {}
+     }
+    ],
+    "relationships": [
+     {
+      "start_node_id": "D1_27223010abe31291#제7조:0",
+      "end_node_id": "D1_27223010abe31291#제7조:1",
+      "type": "HAS_CLAUSE",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D1_27223010abe31291#제7조:1",
+      "end_node_id": "D1_27223010abe31291#제7조:2",
+      "type": "SETS_REQUIREMENT",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D1_27223010abe31291#제7조:1",
+      "end_node_id": "D1_27223010abe31291#제7조:3",
+      "type": "DEFINES_HANDLING",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D1_27223010abe31291#제7조:1",
+      "end_node_id": "D1_27223010abe31291#제7조:4",
+      "type": "DEFINES_HANDLING",
+      "properties": {},
+      "embedding_properties": {}
+     }
+    ]
+   },
+   "raw_nodes": 5,
+   "kept_nodes": 5
+  },
+  {
+   "unit_id": "D1_27223010abe31291#제8조",
+   "doc_type": "regulation",
+   "doc_id": "D1_27223010abe31291",
+   "metadata": {
+    "version": "1.2",
+    "effective_date": "2027-01-15",
+    "supersedes": "1.1",
+    "doc_type": "regulation",
+    "access_level": "public",
+    "source": "D1_개인회원표준약관_합성.pdf",
+    "page": 6,
+    "doc_key": "D1",
+    "chunk_index": 1,
+    "chroma_id": "D1-0006",
+    "chunk_id": "D1_27223010abe31291_166a4d98a94e8900_0000",
+    "section_label": "제8조(사용 등록)"
+   },
+   "text": "제8조(사용 등록)\n① 회원이 본인 확인과 사용 등록을 마친 시점부터 결제 기능이 활성화됩니다.\n② 등록 전 발생한 거래는 승인 기록과 전달 기록을 함께 확인하여 처리합니다.",
+   "chunk_ids": [
+    "D1_27223010abe31291_166a4d98a94e8900_0000"
+   ],
+   "text_hash": "3ccc69f045f0f7b67d29da75d2475fd4337560fd52de2ad1303e78274f7d2e4f",
+   "schema_signature": "fcb8a70d01ea9efcf75d40f4e9538f27f86686c48b0f85ef8fd45211b81427a4",
+   "header_text": "source: D1_개인회원표준약관_합성.pdf | version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1 | section_label: 제8조(사용 등록)\n",
+   "graph": {
+    "nodes": [
+     {
+      "id": "D1_27223010abe31291#제8조:0",
+      "label": "TermsDocument",
+      "properties": {
+       "version": "1.2",
+       "effective_date": "2027-01-15",
+       "supersedes": "1.1"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제8조:1",
+      "label": "Clause",
+      "properties": {
+       "clause_no": "제8조",
+       "title": "사용 등록"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제8조:2",
+      "label": "Handling",
+      "properties": {
+       "situation": "회원이 본인 확인과 사용 등록을 마친 시점부터",
+       "action": "결제 기능이 활성화됩니다."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제8조:3",
+      "label": "Handling",
+      "properties": {
+       "situation": "등록 전 발생한 거래는",
+       "action": "승인 기록과 전달 기록을 함께 확인하여 처리합니다."
+      },
+      "embedding_properties": {}
+     }
+    ],
+    "relationships": [
+     {
+      "start_node_id": "D1_27223010abe31291#제8조:0",
+      "end_node_id": "D1_27223010abe31291#제8조:1",
+      "type": "HAS_CLAUSE",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D1_27223010abe31291#제8조:1",
+      "end_node_id": "D1_27223010abe31291#제8조:2",
+      "type": "DEFINES_HANDLING",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D1_27223010abe31291#제8조:1",
+      "end_node_id": "D1_27223010abe31291#제8조:3",
+      "type": "DEFINES_HANDLING",
+      "properties": {},
+      "embedding_properties": {}
+     }
+    ]
+   },
+   "raw_nodes": 4,
+   "kept_nodes": 4
+  },
+  {
+   "unit_id": "D1_27223010abe31291#제9조",
+   "doc_type": "regulation",
+   "doc_id": "D1_27223010abe31291",
+   "metadata": {
+    "version": "1.2",
+    "effective_date": "2027-01-15",
+    "supersedes": "1.1",
+    "doc_type": "regulation",
+    "access_level": "public",
+    "source": "D1_개인회원표준약관_합성.pdf",
+    "page": 6,
+    "doc_key": "D1",
+    "chunk_index": 1,
+    "chroma_id": "D1-0006",
+    "chunk_id": "D1_27223010abe31291_166a4d98a94e8900_0000",
+    "section_label": "제9조(연회비 부과)"
+   },
+   "text": "제9조(연회비 부과)\n① 연회비는 회원관리 비용에 해당하는 기본 연회비와 선택 서비스 비용으로 구분합니다. 가족카드 비용은\n본인카드와 별도로 표시합니다.\n② 연회비는 카드 사용 가능일을 기준으로 1년 단위로 청구합니다. 장기간 이용하지 않은 카드의 차기 연회\n비는 청구 전에 회원에게 안내합니다.\n구분\n연간 금액\n반환 계산 시 처리\n기본 연회비\n12,000원\n남은 일수 기준 계산\n선택 서비스 비용\n24,000원\n이미 사용한 서비스 원가 공제 가능\n신규 제작·배송비\n4,000원\n첫 발급 연도에 한해 공제 가능\n[표 1] 금액과 처리 기준은 전부 교육용 가상 값입니다.",
+   "chunk_ids": [
+    "D1_27223010abe31291_166a4d98a94e8900_0000"
+   ],
+   "text_hash": "7731249911a7a3293a91d733b868625f4e4746687f44ec2dc2e88270f3c0c012",
+   "schema_signature": "fcb8a70d01ea9efcf75d40f4e9538f27f86686c48b0f85ef8fd45211b81427a4",
+   "header_text": "source: D1_개인회원표준약관_합성.pdf | version: 1.2 | effective_date: 2027-01-15 | supersedes: 1.1 | section_label: 제9조(연회비 부과)\n",
+   "graph": {
+    "nodes": [
+     {
+      "id": "D1_27223010abe31291#제9조:td1",
+      "label": "TermsDocument",
+      "properties": {
+       "version": "1.2",
+       "effective_date": "2027-01-15",
+       "supersedes": "1.1"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제9조:c1",
+      "label": "Clause",
+      "properties": {
+       "clause_no": "제9조",
+       "title": "연회비 부과"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제9조:dl1",
+      "label": "Deadline",
+      "properties": {
+       "description": "청구 전에 회원에게 안내합니다."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제9조:h1",
+      "label": "Handling",
+      "properties": {
+       "situation": "기본 연회비",
+       "action": "남은 일수 기준 계산"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제9조:h2",
+      "label": "Handling",
+      "properties": {
+       "situation": "선택 서비스 비용",
+       "action": "이미 사용한 서비스 원가 공제 가능"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D1_27223010abe31291#제9조:h3",
+      "label": "Handling",
+      "properties": {
+       "situation": "신규 제작·배송비",
+       "action": "첫 발급 연도에 한해 공제 가능"
+      },
+      "embedding_properties": {}
+     }
+    ],
+    "relationships": [
+     {
+      "start_node_id": "D1_27223010abe31291#제9조:td1",
+      "end_node_id": "D1_27223010abe31291#제9조:c1",
+      "type": "HAS_CLAUSE",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D1_27223010abe31291#제9조:c1",
+      "end_node_id": "D1_27223010abe31291#제9조:dl1",
+      "type": "SETS_DEADLINE",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D1_27223010abe31291#제9조:c1",
+      "end_node_id": "D1_27223010abe31291#제9조:h1",
+      "type": "DEFINES_HANDLING",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D1_27223010abe31291#제9조:c1",
+      "end_node_id": "D1_27223010abe31291#제9조:h2",
+      "type": "DEFINES_HANDLING",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D1_27223010abe31291#제9조:c1",
+      "end_node_id": "D1_27223010abe31291#제9조:h3",
+      "type": "DEFINES_HANDLING",
+      "properties": {},
+      "embedding_properties": {}
+     }
+    ]
+   },
+   "raw_nodes": 6,
+   "kept_nodes": 6
+  },
+  {
+   "unit_id": "D2_5a3c0df949be0524_eff8489ec994a497_0000",
+   "doc_type": "benefit_guide",
+   "doc_id": "D2_5a3c0df949be0524",
+   "metadata": {
+    "card_name": "한빛 가족돌봄",
+    "access_level": "public",
+    "card_id": "D2-C021",
+    "doc_type": "benefit_guide",
+    "source": "D2_카드혜택안내_합성.pdf",
+    "page": 67,
+    "product_id": "D2-C021",
+    "doc_key": "D2",
+    "chunk_index": 0,
+    "chroma_id": "D2-0067",
+    "chunk_id": "D2_5a3c0df949be0524_eff8489ec994a497_0000"
+   },
+   "text": "[카드: 한빛 가족돌봄 (D2-C021)]\nD2-C021\n한빛 가족돌봄\n가상 시행일 2027-01-15 | 공개 등급: 교육용 공개 | 연회비 단위: 원\n연회비\n브랜드·발급 방식\n기본\n서비스\n총연회비\n국내전용\n해외 A\n가족카드: 가족카드 미운영. 본인 카드의 연회비만 적용함.\n카드별 명칭과 연회비 금액·구성은 모두 합성 설정임.\nD2-C021-B01 | 가상 돌봄 바우처\n항목\n합성 조건\n지원 내용\n가상 돌봄 프로그램 등록 시 연 1회 90,000원 돌봄 바우처 제공함.\n등록 조건\n교육용 신청 화면에서 돌봄 유형과 가상 자격코드를 등록함. 실제 공공지원 자격과 무관함.\n사용처\n가상 돌봄몰 함께자람의 등록 돌봄용품·서비스에 사용함.\n잔액·만료\n발급일부터 180일간 분할 사용 가능함. 현금 교환 및 타인 양도는 불가함.\n한도 관계\n별도 연간 지원으로 일반 월 통합한도와 실적 산정에서 제외함.\n취소\n유효기간 내 취소 금액은 바우처 잔액으로 복구함. 만료 후 취소분은 재사용 불가함.\n모든 명칭·수치·운영 조건은 교육용 가정이며 가상 시행일은 2027-01-15임.",
+   "chunk_ids": [
+    "D2_5a3c0df949be0524_eff8489ec994a497_0000"
+   ],
+   "text_hash": "eff8489ec994a49750df3ca0be8b4b9e8a76b4c44f9b98ad8dece4f640b5621c",
+   "schema_signature": "a4aea1a71ddeb0c2291df9297e6b4f4ec9a9d071e06567ccd46f8f41dc8c70a0",
+   "header_text": "product_id: D2-C021 | card_name: 한빛 가족돌봄\n",
+   "graph": {
+    "nodes": [
+     {
+      "id": "D2_5a3c0df949be0524_eff8489ec994a497_0000:0",
+      "label": "ProductGuide",
+      "properties": {
+       "product_id": "D2-C021",
+       "card_name": "한빛 가족돌봄"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_eff8489ec994a497_0000:1",
+      "label": "Benefit",
+      "properties": {
+       "benefit_id": "D2-C021-B01",
+       "product_id": "D2-C021",
+       "name": "가상 돌봄 바우처",
+       "amount": "연 1회 90,000원 돌봄 바우처 제공함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_eff8489ec994a497_0000:2",
+      "label": "BenefitCondition",
+      "properties": {
+       "description": "교육용 신청 화면에서 돌봄 유형과 가상 자격코드를 등록함. 실제 공공지원 자격과 무관함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_eff8489ec994a497_0000:3",
+      "label": "BenefitLimit",
+      "properties": {
+       "description": "발급일부터 180일간 분할 사용 가능함. 현금 교환 및 타인 양도는 불가함. 별도 연간 지원으로 일반 월 통합한도와 실적 산정에서 제외함. 유효기간 내 취소 금액은 바우처 잔액으로 복구함. 만료 후 취소분은 재사용 불가함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_eff8489ec994a497_0000:4",
+      "label": "BenefitExclusion",
+      "properties": {
+       "description": "현금 교환 및 타인 양도는 불가함."
+      },
+      "embedding_properties": {}
+     }
+    ],
+    "relationships": [
+     {
+      "start_node_id": "D2_5a3c0df949be0524_eff8489ec994a497_0000:0",
+      "end_node_id": "D2_5a3c0df949be0524_eff8489ec994a497_0000:1",
+      "type": "OFFERS_BENEFIT",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_eff8489ec994a497_0000:1",
+      "end_node_id": "D2_5a3c0df949be0524_eff8489ec994a497_0000:2",
+      "type": "REQUIRES",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_eff8489ec994a497_0000:1",
+      "end_node_id": "D2_5a3c0df949be0524_eff8489ec994a497_0000:3",
+      "type": "LIMITED_BY",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_eff8489ec994a497_0000:1",
+      "end_node_id": "D2_5a3c0df949be0524_eff8489ec994a497_0000:4",
+      "type": "EXCLUDES",
+      "properties": {},
+      "embedding_properties": {}
+     }
+    ]
+   },
+   "raw_nodes": 5,
+   "kept_nodes": 5
+  },
+  {
+   "unit_id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000",
+   "doc_type": "benefit_guide",
+   "doc_id": "D2_5a3c0df949be0524",
+   "metadata": {
+    "access_level": "public",
+    "card_id": "D2-C021",
+    "card_name": "한빛 가족돌봄",
+    "doc_type": "benefit_guide",
+    "source": "D2_카드혜택안내_합성.pdf",
+    "page": 68,
+    "product_id": "D2-C021",
+    "doc_key": "D2",
+    "chunk_index": 1,
+    "chroma_id": "D2-0068",
+    "chunk_id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000"
+   },
+   "text": "[카드: 한빛 가족돌봄 (D2-C021)]\nD2-C021-B02 | 병원·약국 할인\n항목\n합성 조건\n혜택\n대상 결제액의 4%를 할인함.\n대상·채널\n가상 일반 병원·약국 업종의 본인 결제\n실적 조건\n전월 국내외 일시불·유이자 할부 이용액 350,000원 이상. 세금·연회비·상품권·선불 충전·취소액은 실적\n에서 제외함.\n한도\n일반 혜택은 카드별 월 40,000원 상당 내 합산함(1P=1원). 이 항목은 월 8,000원 상당까지 제공함.\n지급 시점\n다음 달 청구금액에서 차감함.\n혜택 제외\n상품권·선불 충전·현금서비스·취소 거래에는 혜택을 제공하지 않음.\n모든 명칭·수치·운영 조건은 교육용 가정이며 가상 시행일은 2027-01-15임.\nD2-C021-B03 | 온라인몰 할인\n항목\n합성 조건\n혜택\n대상 결제액의 4%를 할인함.\n대상·채널\n가상 쇼핑몰 달빛상점의 직접 결제\n실적 조건\n전월 국내외 일시불·유이자 할부 이용액 350,000원 이상. 세금·연회비·상품권·선불 충전·취소액은 실적\n에서 제외함.\n한도\n일반 혜택은 카드별 월 40,000원 상당 내 합산함(1P=1원). 이 항목은 월 8,000원 상당까지 제공함.\n지급 시점\n다음 달 청구금액에서 차감함.\n혜택 제외\n상품권·선불 충전·현금서비스·취소 거래에는 혜택을 제공하지 않음.\n모든 명칭·수치·운영 조건은 교육용 가정이며 가상 시행일은 2027-01-15임.",
+   "chunk_ids": [
+    "D2_5a3c0df949be0524_3a258312fb98ec75_0000"
+   ],
+   "text_hash": "3a258312fb98ec75124c8ed7879a36ec4199e47f7f41597c3331c210f64d3c64",
+   "schema_signature": "a4aea1a71ddeb0c2291df9297e6b4f4ec9a9d071e06567ccd46f8f41dc8c70a0",
+   "header_text": "product_id: D2-C021 | card_name: 한빛 가족돌봄\n",
+   "graph": {
+    "nodes": [
+     {
+      "id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:PG0",
+      "label": "ProductGuide",
+      "properties": {
+       "product_id": "D2-C021",
+       "card_name": "한빛 가족돌봄"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:B0",
+      "label": "Benefit",
+      "properties": {
+       "benefit_id": "D2-C021-B02",
+       "product_id": "D2-C021",
+       "name": "병원·약국 할인",
+       "amount": "대상 결제액의 4%를 할인함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:B1",
+      "label": "Benefit",
+      "properties": {
+       "benefit_id": "D2-C021-B03",
+       "product_id": "D2-C021",
+       "name": "온라인몰 할인",
+       "amount": "대상 결제액의 4%를 할인함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:C0",
+      "label": "BenefitCondition",
+      "properties": {
+       "description": "가상 일반 병원·약국 업종의 본인 결제; 전월 국내외 일시불·유이자 할부 이용액 350,000원 이상. 세금·연회비·상품권·선불 충전·취소액은 실적에서 제외함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:C1",
+      "label": "BenefitCondition",
+      "properties": {
+       "description": "가상 쇼핑몰 달빛상점의 직접 결제; 전월 국내외 일시불·유이자 할부 이용액 350,000원 이상. 세금·연회비·상품권·선불 충전·취소액은 실적에서 제외함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:L0",
+      "label": "BenefitLimit",
+      "properties": {
+       "description": "일반 혜택은 카드별 월 40,000원 상당 내 합산함(1P=1원). 이 항목은 월 8,000원 상당까지 제공함. 지급 시점: 다음 달 청구금액에서 차감함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:L1",
+      "label": "BenefitLimit",
+      "properties": {
+       "description": "일반 혜택은 카드별 월 40,000원 상당 내 합산함(1P=1원). 이 항목은 월 8,000원 상당까지 제공함. 지급 시점: 다음 달 청구금액에서 차감함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:E0",
+      "label": "BenefitExclusion",
+      "properties": {
+       "description": "상품권·선불 충전·현금서비스·취소 거래에는 혜택을 제공하지 않음."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:E1",
+      "label": "BenefitExclusion",
+      "properties": {
+       "description": "상품권·선불 충전·현금서비스·취소 거래에는 혜택을 제공하지 않음."
+      },
+      "embedding_properties": {}
+     }
+    ],
+    "relationships": [
+     {
+      "start_node_id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:PG0",
+      "end_node_id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:B0",
+      "type": "OFFERS_BENEFIT",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:PG0",
+      "end_node_id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:B1",
+      "type": "OFFERS_BENEFIT",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:B0",
+      "end_node_id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:C0",
+      "type": "REQUIRES",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:B1",
+      "end_node_id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:C1",
+      "type": "REQUIRES",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:B0",
+      "end_node_id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:L0",
+      "type": "LIMITED_BY",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:B1",
+      "end_node_id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:L1",
+      "type": "LIMITED_BY",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:B0",
+      "end_node_id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:E0",
+      "type": "EXCLUDES",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:B1",
+      "end_node_id": "D2_5a3c0df949be0524_3a258312fb98ec75_0000:E1",
+      "type": "EXCLUDES",
+      "properties": {},
+      "embedding_properties": {}
+     }
+    ]
+   },
+   "raw_nodes": 9,
+   "kept_nodes": 9
+  },
+  {
+   "unit_id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000",
+   "doc_type": "benefit_guide",
+   "doc_id": "D2_5a3c0df949be0524",
+   "metadata": {
+    "page": 69,
+    "card_name": "한빛 가족돌봄",
+    "source": "D2_카드혜택안내_합성.pdf",
+    "doc_type": "benefit_guide",
+    "access_level": "public",
+    "card_id": "D2-C021",
+    "product_id": "D2-C021",
+    "doc_key": "D2",
+    "chunk_index": 2,
+    "chroma_id": "D2-0069",
+    "chunk_id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000"
+   },
+   "text": "[카드: 한빛 가족돌봄 (D2-C021)]\nD2-C021-B04 | 교육 할인\n항목\n합성 조건\n혜택\n대상 결제액의 4%를 할인함.\n대상·채널\n가상 학원 배움뜰·온라인 강의 지식마루의 수강료\n실적 조건\n전월 국내외 일시불·유이자 할부 이용액 350,000원 이상. 세금·연회비·상품권·선불 충전·취소액은 실적\n에서 제외함.\n한도\n일반 혜택은 카드별 월 40,000원 상당 내 합산함(1P=1원). 이 항목은 월 8,000원 상당까지 제공함.\n지급 시점\n다음 달 청구금액에서 차감함.\n혜택 제외\n상품권·선불 충전·현금서비스·취소 거래에는 혜택을 제공하지 않음.\n모든 명칭·수치·운영 조건은 교육용 가정이며 가상 시행일은 2027-01-15임.\nD2-C021-B05 | 식사배달 할인\n항목\n합성 조건\n혜택\n대상 결제액의 4%를 할인함.\n대상·채널\n가상 배달앱 한끼마당에서 앱 내 직접 결제한 식사 주문\n실적 조건\n전월 국내외 일시불·유이자 할부 이용액 350,000원 이상. 세금·연회비·상품권·선불 충전·취소액은 실적\n에서 제외함.\n한도\n일반 혜택은 카드별 월 40,000원 상당 내 합산함(1P=1원). 이 항목은 월 8,000원 상당까지 제공함.\n지급 시점\n다음 달 청구금액에서 차감함.\n혜택 제외\n상품권·선불 충전·현금서비스·취소 거래에는 혜택을 제공하지 않음.\n모든 명칭·수치·운영 조건은 교육용 가정이며 가상 시행일은 2027-01-15임.",
+   "chunk_ids": [
+    "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000"
+   ],
+   "text_hash": "71e0d3d5c16d2c3f0b1fcaaf3ee54b10034fff1b66f9bad828672adaffef0d5e",
+   "schema_signature": "a4aea1a71ddeb0c2291df9297e6b4f4ec9a9d071e06567ccd46f8f41dc8c70a0",
+   "header_text": "product_id: D2-C021 | card_name: 한빛 가족돌봄\n",
+   "graph": {
+    "nodes": [
+     {
+      "id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:0",
+      "label": "ProductGuide",
+      "properties": {
+       "product_id": "D2-C021",
+       "card_name": "한빛 가족돌봄"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:1",
+      "label": "Benefit",
+      "properties": {
+       "benefit_id": "D2-C021-B04",
+       "product_id": "D2-C021",
+       "name": "교육 할인",
+       "amount": "대상 결제액의 4%를 할인함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:2",
+      "label": "BenefitCondition",
+      "properties": {
+       "description": "전월 국내외 일시불·유이자 할부 이용액 350,000원 이상. 세금·연회비·상품권·선불 충전·취소액은 실적에서 제외함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:3",
+      "label": "BenefitLimit",
+      "properties": {
+       "description": "일반 혜택은 카드별 월 40,000원 상당 내 합산함(1P=1원). 이 항목은 월 8,000원 상당까지 제공함. 다음 달 청구금액에서 차감함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:4",
+      "label": "BenefitExclusion",
+      "properties": {
+       "description": "상품권·선불 충전·현금서비스·취소 거래에는 혜택을 제공하지 않음."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:5",
+      "label": "Benefit",
+      "properties": {
+       "benefit_id": "D2-C021-B05",
+       "product_id": "D2-C021",
+       "name": "식사배달 할인",
+       "amount": "대상 결제액의 4%를 할인함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:6",
+      "label": "BenefitCondition",
+      "properties": {
+       "description": "전월 국내외 일시불·유이자 할부 이용액 350,000원 이상. 세금·연회비·상품권·선불 충전·취소액은 실적에서 제외함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:7",
+      "label": "BenefitLimit",
+      "properties": {
+       "description": "일반 혜택은 카드별 월 40,000원 상당 내 합산함(1P=1원). 이 항목은 월 8,000원 상당까지 제공함. 다음 달 청구금액에서 차감함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:8",
+      "label": "BenefitExclusion",
+      "properties": {
+       "description": "상품권·선불 충전·현금서비스·취소 거래에는 혜택을 제공하지 않음."
+      },
+      "embedding_properties": {}
+     }
+    ],
+    "relationships": [
+     {
+      "start_node_id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:0",
+      "end_node_id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:1",
+      "type": "OFFERS_BENEFIT",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:1",
+      "end_node_id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:2",
+      "type": "REQUIRES",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:1",
+      "end_node_id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:3",
+      "type": "LIMITED_BY",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:1",
+      "end_node_id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:4",
+      "type": "EXCLUDES",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:0",
+      "end_node_id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:5",
+      "type": "OFFERS_BENEFIT",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:5",
+      "end_node_id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:6",
+      "type": "REQUIRES",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:5",
+      "end_node_id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:7",
+      "type": "LIMITED_BY",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:5",
+      "end_node_id": "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000:8",
+      "type": "EXCLUDES",
+      "properties": {},
+      "embedding_properties": {}
+     }
+    ]
+   },
+   "raw_nodes": 9,
+   "kept_nodes": 9
+  },
+  {
+   "unit_id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000",
+   "doc_type": "benefit_guide",
+   "doc_id": "D2_5a3c0df949be0524",
+   "metadata": {
+    "access_level": "public",
+    "card_id": "D2-C021",
+    "card_name": "한빛 가족돌봄",
+    "doc_type": "benefit_guide",
+    "page": 70,
+    "source": "D2_카드혜택안내_합성.pdf",
+    "product_id": "D2-C021",
+    "doc_key": "D2",
+    "chunk_index": 3,
+    "chroma_id": "D2-0070",
+    "chunk_id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000"
+   },
+   "text": "[카드: 한빛 가족돌봄 (D2-C021)]\nD2-C021-B06 | 영상구독 할인\n항목\n합성 조건\n혜택\n대상 결제액의 4%를 할인함.\n대상·채널\n가상 영상 서비스 화면극장의 직접 구독 결제\n실적 조건\n전월 국내외 일시불·유이자 할부 이용액 350,000원 이상. 세금·연회비·상품권·선불 충전·취소액은 실적\n에서 제외함.\n한도\n일반 혜택은 카드별 월 40,000원 상당 내 합산함(1P=1원). 이 항목은 월 8,000원 상당까지 제공함.\n지급 시점\n다음 달 청구금액에서 차감함.\n혜택 제외\n상품권·선불 충전·현금서비스·취소 거래에는 혜택을 제공하지 않음.\n모든 명칭·수치·운영 조건은 교육용 가정이며 가상 시행일은 2027-01-15임.\nD2-C021-B07 | 쇼핑 멤버십 할인\n항목\n합성 조건\n혜택\n대상 결제액의 4%를 할인함.\n대상·채널\n가상 멤버십 모음회원의 월 이용료\n실적 조건\n전월 국내외 일시불·유이자 할부 이용액 350,000원 이상. 세금·연회비·상품권·선불 충전·취소액은 실적\n에서 제외함.\n한도\n일반 혜택은 카드별 월 40,000원 상당 내 합산함(1P=1원). 이 항목은 월 8,000원 상당까지 제공함.\n지급 시점\n다음 달 청구금액에서 차감함.\n혜택 제외\n상품권·선불 충전·현금서비스·취소 거래에는 혜택을 제공하지 않음.\n모든 명칭·수치·운영 조건은 교육용 가정이며 가상 시행일은 2027-01-15임.",
+   "chunk_ids": [
+    "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000"
+   ],
+   "text_hash": "8cc32dbacd1ef7f2d6cc697d5efe43476f7acb18f68d169675b10c65dac69bd3",
+   "schema_signature": "a4aea1a71ddeb0c2291df9297e6b4f4ec9a9d071e06567ccd46f8f41dc8c70a0",
+   "header_text": "product_id: D2-C021 | card_name: 한빛 가족돌봄\n",
+   "graph": {
+    "nodes": [
+     {
+      "id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:PG1",
+      "label": "ProductGuide",
+      "properties": {
+       "product_id": "D2-C021",
+       "card_name": "한빛 가족돌봄"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:B1",
+      "label": "Benefit",
+      "properties": {
+       "benefit_id": "D2-C021-B06",
+       "product_id": "D2-C021",
+       "name": "영상구독 할인",
+       "amount": "대상 결제액의 4%를 할인함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:B2",
+      "label": "Benefit",
+      "properties": {
+       "benefit_id": "D2-C021-B07",
+       "product_id": "D2-C021",
+       "name": "쇼핑 멤버십 할인",
+       "amount": "대상 결제액의 4%를 할인함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:C1",
+      "label": "BenefitCondition",
+      "properties": {
+       "description": "전월 국내외 일시불·유이자 할부 이용액 350,000원 이상. 세금·연회비·상품권·선불 충전·취소액은 실적에서 제외함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:C2",
+      "label": "BenefitCondition",
+      "properties": {
+       "description": "전월 국내외 일시불·유이자 할부 이용액 350,000원 이상. 세금·연회비·상품권·선불 충전·취소액은 실적에서 제외함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:L1",
+      "label": "BenefitLimit",
+      "properties": {
+       "description": "일반 혜택은 카드별 월 40,000원 상당 내 합산함(1P=1원). 이 항목은 월 8,000원 상당까지 제공함. 다음 달 청구금액에서 차감함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:L2",
+      "label": "BenefitLimit",
+      "properties": {
+       "description": "일반 혜택은 카드별 월 40,000원 상당 내 합산함(1P=1원). 이 항목은 월 8,000원 상당까지 제공함. 다음 달 청구금액에서 차감함."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:E1",
+      "label": "BenefitExclusion",
+      "properties": {
+       "description": "상품권·선불 충전·현금서비스·취소 거래에는 혜택을 제공하지 않음."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:E2",
+      "label": "BenefitExclusion",
+      "properties": {
+       "description": "상품권·선불 충전·현금서비스·취소 거래에는 혜택을 제공하지 않음."
+      },
+      "embedding_properties": {}
+     }
+    ],
+    "relationships": [
+     {
+      "start_node_id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:PG1",
+      "end_node_id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:B1",
+      "type": "OFFERS_BENEFIT",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:PG1",
+      "end_node_id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:B2",
+      "type": "OFFERS_BENEFIT",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:B1",
+      "end_node_id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:C1",
+      "type": "REQUIRES",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:B2",
+      "end_node_id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:C2",
+      "type": "REQUIRES",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:B1",
+      "end_node_id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:L1",
+      "type": "LIMITED_BY",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:B2",
+      "end_node_id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:L2",
+      "type": "LIMITED_BY",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:B1",
+      "end_node_id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:E1",
+      "type": "EXCLUDES",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:B2",
+      "end_node_id": "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000:E2",
+      "type": "EXCLUDES",
+      "properties": {},
+      "embedding_properties": {}
+     }
+    ]
+   },
+   "raw_nodes": 9,
+   "kept_nodes": 9
+  },
+  {
+   "unit_id": "D3_C-20260314-001_825562d46dabc39b_0000",
+   "doc_type": "consult_log",
+   "doc_id": "D3_C-20260314-001",
+   "metadata": {
+    "source": "D3_S01_신규가입_상담이력_합성.txt",
+    "record_id": "C-20260314-001",
+    "member_pseudo_id": "m_03032936a6027b4e",
+    "access_level": "restricted",
+    "channel": "앱 채팅",
+    "doc_type": "consult_log",
+    "consult_date": "2026-03-14",
+    "doc_key": "D3",
+    "chunk_index": 0,
+    "chroma_id": "D3-0001",
+    "chunk_id": "D3_C-20260314-001_825562d46dabc39b_0000"
+   },
+   "text": "[상담ID] C-20260314-001 | 2026-03-14 | 채널: 앱 채팅\n[상담주제] 앱 인증 불편 완화\n고객: 인증이 안 되면 제가 뭘 잘못했나 싶어서 불안해요. 제 이름은 [고객]입니다.\n상담사: 어떤 단계에서 안내가 멈추나요?\n고객: 제 2026-02 실제 이용내역도 같이 확인해 주실래요?\n상담사: 가입일은 2026-03-01입니다. 직전월 2026-02은 가입 전이라 이용 비교 대상으로 삼지 않겠습니다.\n고객: 제일 불편한 건 본인 확인을 끝내려 해도 같은 요청 화면으로 계속 되돌아간다는 점이에요.\n상담사: 원인을 단정하지 않고 보이는 문구와 멈춘 단계를 확인하겠습니다.\n고객: 계속 누르지 않아도 되는 거죠?\n상담사: 혼자 반복해서 누르지 마시고 공식 도움 경로로 문의해 보시는 건 어떠세요?\n고객: 그렇게 할게요. 혼자 계속 눌러봐도 똑같이 막혀서 지쳤거든요.\n상담사: 말씀하신 대로 멈춘 단계와 오류 문구만 적어 두는 방법을 안내드릴게요.\n고객: 개인정보가 보이는 화면을 통째로 보내고 싶지는 않아요.\n상담사: 오늘은 민감정보를 제외한 오류 문구와 발생 단계만 설명하는 방법을 정리하겠습니다.\n고객: 앱 인증 불편 완화 때문에 처음 이 내용을 설명드렸어요. 제 요청과 답변을 따로 기록해 주세요.\n상담사: 이번 요청에 대해 ‘반복 인증을 본인 실수로 걱정’ 내용을 한빛 가족돌봄 카드 상담으로 기록하겠습니다.\n고객: 오후에는 업무 때문에 받기 어려워요. 후속 안내는 오전 전화 방식으로 부탁드려요.\n상담사: 후속 안내는 요청하신 방식(오전 전화)을 기준으로 남겼습니다.",
+   "chunk_ids": [
+    "D3_C-20260314-001_825562d46dabc39b_0000"
+   ],
+   "text_hash": "825562d46dabc39b567ca14c7dbb750795f56532a1b07fb57687da6b8c50278e",
+   "schema_signature": "e7c8888172e72d8e7e5d7ec6d8311c00bbcb152fe7ca265d97ba3645e4decd0a",
+   "header_text": "record_id: C-20260314-001 | consult_date: 2026-03-14 | channel: 앱 채팅 | member_pseudo_id: m_03032936a6027b4e\n",
+   "graph": {
+    "nodes": [
+     {
+      "id": "D3_C-20260314-001_825562d46dabc39b_0000:0",
+      "label": "Consultation",
+      "properties": {
+       "record_id": "C-20260314-001",
+       "consult_date": "2026-03-14",
+       "channel": "앱 채팅",
+       "member_pseudo_id": "m_03032936a6027b4e",
+       "topic": "앱 인증 불편 완화"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D3_C-20260314-001_825562d46dabc39b_0000:1",
+      "label": "Complaint",
+      "properties": {
+       "cause": "인증이 안 되면 제가 뭘 잘못했나 싶어서 불안해요."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D3_C-20260314-001_825562d46dabc39b_0000:2",
+      "label": "Complaint",
+      "properties": {
+       "cause": "본인 확인을 끝내려 해도 같은 요청 화면으로 계속 되돌아간다는 점"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D3_C-20260314-001_825562d46dabc39b_0000:3",
+      "label": "Complaint",
+      "properties": {
+       "cause": "혼자 계속 눌러봐도 똑같이 막혀서 지쳤거든요."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D3_C-20260314-001_825562d46dabc39b_0000:4",
+      "label": "Complaint",
+      "properties": {
+       "cause": "개인정보가 보이는 화면을 통째로 보내고 싶지는 않아요."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D3_C-20260314-001_825562d46dabc39b_0000:5",
+      "label": "Proposal",
+      "properties": {
+       "content": "혼자 반복해서 누르지 마시고 공식 도움 경로로 문의해 보시는 건 어떠세요?",
+       "decision": "수용"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D3_C-20260314-001_825562d46dabc39b_0000:6",
+      "label": "Proposal",
+      "properties": {
+       "content": "말씀하신 대로 멈춘 단계와 오류 문구만 적어 두는 방법을 안내드릴게요."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D3_C-20260314-001_825562d46dabc39b_0000:7",
+      "label": "Proposal",
+      "properties": {
+       "content": "오늘은 민감정보를 제외한 오류 문구와 발생 단계만 설명하는 방법을 정리하겠습니다."
+      },
+      "embedding_properties": {}
+     }
+    ],
+    "relationships": [
+     {
+      "start_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:0",
+      "end_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:1",
+      "type": "HAS_COMPLAINT",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:0",
+      "end_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:2",
+      "type": "HAS_COMPLAINT",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:0",
+      "end_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:3",
+      "type": "HAS_COMPLAINT",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:0",
+      "end_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:4",
+      "type": "HAS_COMPLAINT",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:0",
+      "end_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:5",
+      "type": "HAS_PROPOSAL",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:0",
+      "end_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:6",
+      "type": "HAS_PROPOSAL",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:0",
+      "end_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:7",
+      "type": "HAS_PROPOSAL",
+      "properties": {},
+      "embedding_properties": {}
+     }
+    ]
+   },
+   "raw_nodes": 8,
+   "kept_nodes": 8
+  },
+  {
+   "unit_id": "D3_C-20260401-001_2ff54b01d0a17959_0000",
+   "doc_type": "consult_log",
+   "doc_id": "D3_C-20260401-001",
+   "metadata": {
+    "consult_date": "2026-04-01",
+    "source": "D3_S01_신규가입_상담이력_합성.txt",
+    "record_id": "C-20260401-001",
+    "member_pseudo_id": "m_03032936a6027b4e",
+    "channel": "영업점",
+    "doc_type": "consult_log",
+    "access_level": "restricted",
+    "doc_key": "D3",
+    "chunk_index": 0,
+    "chroma_id": "D3-0002",
+    "chunk_id": "D3_C-20260401-001_2ff54b01d0a17959_0000"
+   },
+   "text": "[상담ID] C-20260401-001 | 2026-04-01 | 채널: 영업점\n[상담주제] 앱 인증 불편 완화\n고객: 지난 상담에서 무작정 반복하지 말라고 해서 마음이 놓였어요.\n상담사: 오류 내용을 다시 확인해보셨나요?\n고객: 2026-03에 쓴 내역과 제 문의를 구분해서 설명해 주세요.\n상담사: 2026-03 승인 거래는 9건, 합계 1,050,000원입니다. 취소 건은 제외했습니다.\n고객: 불편한 건 인증이 막히는 동안 급한 조회까지 못 한다는 점이에요.\n상담사: 인증정보 없이 문구와 발생 단계만 알려주시면 확인 방향을 잡을 수 있습니다.\n고객: 비밀번호를 말할 필요는 없어서 다행이에요.\n상담사: 민감한 정보는 공유하지 않고 상황 설명만 이어가겠습니다.\n고객: 오류 문의를 하면서도 급한 조회는 다른 방법으로 하고 싶어요.\n상담사: 급한 조회는 영업점 창구를 이용해 보시는 건 어떠세요? 필요한 절차는 확인해 안내드릴게요.\n고객: 창구까지 가는 건 어려워요. 영업점이 집에서 멀어 오가는 시간이 부담돼서요.\n상담사: 그러면 전화로 조회할 수 있는 방법이 있는지 확인해 안내드릴게요.\n고객: 2026-03-14 상담 C-20260314-001과 이어지는 기록으로 남겨 주세요. 이번 요청은 방금 말씀드린 내용입니다.\n상담사: 앞선 기록과 연결하고, 이번에는 ‘무리한 재시도 부담 감소’ 내용으로 한빛 가족돌봄 카드 상담 기록에 정리하겠습니다.\n고객: 지난번과 같이 오전 전화로 확인할게요. 오후에는 업무 때문에 받기 어려워요. 접수 연락처는 [전화번호]입니다.\n상담사: 후속 안내는 요청하신 방식(오전 전화)을 기준으로 남겼습니다.",
+   "chunk_ids": [
+    "D3_C-20260401-001_2ff54b01d0a17959_0000"
+   ],
+   "text_hash": "2ff54b01d0a179594a920c9895e530abfe833611370608b78ab138b2e2826a0b",
+   "schema_signature": "e7c8888172e72d8e7e5d7ec6d8311c00bbcb152fe7ca265d97ba3645e4decd0a",
+   "header_text": "record_id: C-20260401-001 | consult_date: 2026-04-01 | channel: 영업점 | member_pseudo_id: m_03032936a6027b4e\n",
+   "graph": {
+    "nodes": [
+     {
+      "id": "D3_C-20260401-001_2ff54b01d0a17959_0000:c0",
+      "label": "Consultation",
+      "properties": {
+       "record_id": "C-20260401-001",
+       "consult_date": "2026-04-01",
+       "channel": "영업점",
+       "topic": "앱 인증 불편 완화",
+       "member_pseudo_id": "m_03032936a6027b4e"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D3_C-20260401-001_2ff54b01d0a17959_0000:c1",
+      "label": "Consultation",
+      "properties": {
+       "record_id": "C-20260314-001"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D3_C-20260401-001_2ff54b01d0a17959_0000:comp0",
+      "label": "Complaint",
+      "properties": {
+       "cause": "인증이 막히는 동안 급한 조회까지 못 한다는 점"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D3_C-20260401-001_2ff54b01d0a17959_0000:comp1",
+      "label": "Complaint",
+      "properties": {
+       "cause": "창구까지 가는 건 어려워요. 영업점이 집에서 멀어 오가는 시간이 부담돼서요."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D3_C-20260401-001_2ff54b01d0a17959_0000:prop0",
+      "label": "Proposal",
+      "properties": {
+       "content": "급한 조회는 영업점 창구를 이용해 보시는 건 어떠세요? 필요한 절차는 확인해 안내드릴게요.",
+       "decision": "거절",
+       "reason": "창구까지 가는 건 어려워요. 영업점이 집에서 멀어 오가는 시간이 부담돼서요."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D3_C-20260401-001_2ff54b01d0a17959_0000:prop1",
+      "label": "Proposal",
+      "properties": {
+       "content": "전화로 조회할 수 있는 방법이 있는지 확인해 안내드릴게요.",
+       "decision": "수용",
+       "reason": "지난번과 같이 오전 전화로 확인할게요. 오후에는 업무 때문에 받기 어려워요."
+      },
+      "embedding_properties": {}
+     }
+    ],
+    "relationships": [
+     {
+      "start_node_id": "D3_C-20260401-001_2ff54b01d0a17959_0000:c0",
+      "end_node_id": "D3_C-20260401-001_2ff54b01d0a17959_0000:comp0",
+      "type": "HAS_COMPLAINT",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D3_C-20260401-001_2ff54b01d0a17959_0000:c0",
+      "end_node_id": "D3_C-20260401-001_2ff54b01d0a17959_0000:comp1",
+      "type": "HAS_COMPLAINT",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D3_C-20260401-001_2ff54b01d0a17959_0000:c0",
+      "end_node_id": "D3_C-20260401-001_2ff54b01d0a17959_0000:prop0",
+      "type": "HAS_PROPOSAL",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D3_C-20260401-001_2ff54b01d0a17959_0000:c0",
+      "end_node_id": "D3_C-20260401-001_2ff54b01d0a17959_0000:prop1",
+      "type": "HAS_PROPOSAL",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D3_C-20260401-001_2ff54b01d0a17959_0000:c0",
+      "end_node_id": "D3_C-20260401-001_2ff54b01d0a17959_0000:c1",
+      "type": "FOLLOWS",
+      "properties": {},
+      "embedding_properties": {}
+     }
+    ]
+   },
+   "raw_nodes": 6,
+   "kept_nodes": 6
+  },
+  {
+   "unit_id": "D3_C-20260302-002_cb87e7b0c6dcd123_0000",
+   "doc_type": "consult_log",
+   "doc_id": "D3_C-20260302-002",
+   "metadata": {
+    "member_pseudo_id": "m_42d36c900904670f",
+    "consult_date": "2026-03-02",
+    "access_level": "restricted",
+    "source": "D3_S01_신규가입_상담이력_합성.txt",
+    "channel": "영업점",
+    "doc_type": "consult_log",
+    "record_id": "C-20260302-002",
+    "doc_key": "D3",
+    "chunk_index": 0,
+    "chroma_id": "D3-0005",
+    "chunk_id": "D3_C-20260302-002_cb87e7b0c6dcd123_0000"
+   },
+   "text": "[상담ID] C-20260302-002 | 2026-03-02 | 채널: 영업점\n[상담주제] 명세서 항목 이해\n고객: 명세서에 있는 이용 기간은 결제일과 다른가요? 제 이름은 [고객]입니다.\n상담사: 결제일은 대금을 납부하는 기준일입니다.\n고객: 제 2026-02 실제 이용내역도 같이 확인해 주실래요?\n상담사: 가입일은 2026-03-01입니다. 직전월 2026-02은 가입 전이라 이용 비교 대상으로 삼지 않겠습니다.\n고객: 이용 기간은 어느 거래가 묶였는지 보는 거죠?\n상담사: 맞습니다. 화면을 같이 보면서 그 기간이 적힌 자리를 짚어 드릴까요?\n고객: 네, 그렇게 해 주세요. 글씨가 작아서 혼자 찾기는 어려웠어요.\n상담사: 그럼 지금 화면에서 기간이 표시되는 자리부터 함께 보겠습니다.\n고객: 가계부에는 구매한 달 기준으로 적어서 헷갈렸어요.\n상담사: 구매월과 명세서의 청구월을 구분하시면 됩니다.\n고객: 같은 달에 산 물건이 나뉘어 보여서 이유를 알고 싶었어요.\n상담사: 이용 기간과 거래일을 함께 확인해 주세요.\n고객: 명세서 항목 이해 때문에 처음 이 내용을 설명드렸어요. 제 요청과 답변을 따로 기록해 주세요.\n상담사: 이번 요청에 대해 ‘구매월과 청구월 구분 문의’ 내용을 한빛 가족돌봄 카드 상담으로 기록하겠습니다.\n고객: 긴 내용은 나중에 다시 읽어보고 싶어요. 후속 안내는 이메일 요약 방식으로 부탁드려요.\n상담사: 후속 안내는 요청하신 방식(이메일 요약)을 기준으로 남겼습니다.",
+   "chunk_ids": [
+    "D3_C-20260302-002_cb87e7b0c6dcd123_0000"
+   ],
+   "text_hash": "cb87e7b0c6dcd12335056516ee085fac7e855e433f39cd7061df446c03d10f60",
+   "schema_signature": "e7c8888172e72d8e7e5d7ec6d8311c00bbcb152fe7ca265d97ba3645e4decd0a",
+   "header_text": "record_id: C-20260302-002 | consult_date: 2026-03-02 | channel: 영업점 | member_pseudo_id: m_42d36c900904670f\n",
+   "graph": {
+    "nodes": [
+     {
+      "id": "D3_C-20260302-002_cb87e7b0c6dcd123_0000:c0",
+      "label": "Consultation",
+      "properties": {
+       "record_id": "C-20260302-002",
+       "consult_date": "2026-03-02",
+       "channel": "영업점",
+       "topic": "명세서 항목 이해",
+       "member_pseudo_id": "m_42d36c900904670f"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D3_C-20260302-002_cb87e7b0c6dcd123_0000:p0",
+      "label": "Proposal",
+      "properties": {
+       "content": "화면을 같이 보면서 그 기간이 적힌 자리를 짚어 드릴까요?",
+       "decision": "수용",
+       "reason": "글씨가 작아서 혼자 찾기는 어려웠어요."
+      },
+      "embedding_properties": {}
+     }
+    ],
+    "relationships": [
+     {
+      "start_node_id": "D3_C-20260302-002_cb87e7b0c6dcd123_0000:c0",
+      "end_node_id": "D3_C-20260302-002_cb87e7b0c6dcd123_0000:p0",
+      "type": "HAS_PROPOSAL",
+      "properties": {},
+      "embedding_properties": {}
+     }
+    ]
+   },
+   "raw_nodes": 2,
+   "kept_nodes": 2
+  },
+  {
+   "unit_id": "D3_C-20260501-003_a758447f33e1cc4f_0000",
+   "doc_type": "consult_log",
+   "doc_id": "D3_C-20260501-003",
+   "metadata": {
+    "consult_date": "2026-05-01",
+    "record_id": "C-20260501-003",
+    "member_pseudo_id": "m_42d36c900904670f",
+    "channel": "콜센터",
+    "doc_type": "consult_log",
+    "source": "D3_S01_신규가입_상담이력_합성.txt",
+    "access_level": "restricted",
+    "doc_key": "D3",
+    "chunk_index": 0,
+    "chroma_id": "D3-0006",
+    "chunk_id": "D3_C-20260501-003_a758447f33e1cc4f_0000"
+   },
+   "text": "[상담ID] C-20260501-003 | 2026-05-01 | 채널: 콜센터\n[상담주제] 명세서 항목 이해\n고객: 지난 상담에서 날짜 차이는 이해했어요.\n상담사: 이번에는 어떤 항목이 궁금하신가요?\n고객: 2026-04에 쓴 내역과 제 문의를 구분해서 설명해 주세요.\n상담사: 2026-04 승인 거래는 16건, 합계 1,218,000원입니다. 취소 건은 제외했습니다.\n고객: 매장 이름 옆의 지역 표시가 궁금해요.\n상담사: 실제 방문 장소와 등록 정보가 다를 수 있어 확인이 필요합니다.\n고객: 제가 산 거래인지 대조하려고요.\n상담사: 종이 영수증을 찾아서 거래 시점과 맞춰 보시는 건 어떠세요?\n고객: 영수증은 못 맞춰요. 온라인 주문이라 받은 종이가 아예 없거든요.\n상담사: 그러면 주문 내역 화면으로 대조해 보시겠어요? 판매자 등록 지역이 표시될 수 있습니다.\n고객: 주문서 정보부터 비교해 볼게요. 그래도 안 맞으면 다음 명세서 나올 때 다시 문의할게요.\n상담사: 지역 표시만으로 판단하지 않고 다른 거래 항목도 확인해 주세요.\n고객: 2026-03-02 상담 C-20260302-002과 이어지는 기록으로 남겨 주세요. 이번 요청은 방금 말씀드린 내용입니다.\n상담사: 앞선 기록과 연결하고, 이번에는 ‘가맹점 지역 표시 확인’ 내용으로 한빛 가족돌봄 카드 상담 기록에 정리하겠습니다.\n고객: 지난번과 같이 이메일 요약로 확인할게요. 긴 내용은 나중에 다시 읽어보고 싶어요. 접수 연락처는 [전화번호]입니다.\n상담사: 후속 안내는 요청하신 방식(이메일 요약)을 기준으로 남겼습니다.",
+   "chunk_ids": [
+    "D3_C-20260501-003_a758447f33e1cc4f_0000"
+   ],
+   "text_hash": "a758447f33e1cc4f7e5ba17c26a40b7170df7e715e75208d93d8a3c469a9a2bd",
+   "schema_signature": "e7c8888172e72d8e7e5d7ec6d8311c00bbcb152fe7ca265d97ba3645e4decd0a",
+   "header_text": "record_id: C-20260501-003 | consult_date: 2026-05-01 | channel: 콜센터 | member_pseudo_id: m_42d36c900904670f\n",
+   "graph": {
+    "nodes": [
+     {
+      "id": "D3_C-20260501-003_a758447f33e1cc4f_0000:0",
+      "label": "Consultation",
+      "properties": {
+       "record_id": "C-20260501-003",
+       "consult_date": "2026-05-01",
+       "channel": "콜센터",
+       "member_pseudo_id": "m_42d36c900904670f",
+       "topic": "명세서 항목 이해"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D3_C-20260501-003_a758447f33e1cc4f_0000:1",
+      "label": "Complaint",
+      "properties": {
+       "cause": "영수증은 못 맞춰요. 온라인 주문이라 받은 종이가 아예 없거든요."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D3_C-20260501-003_a758447f33e1cc4f_0000:2",
+      "label": "Proposal",
+      "properties": {
+       "content": "종이 영수증을 찾아서 거래 시점과 맞춰 보시는 건 어떠세요?",
+       "decision": "거절",
+       "reason": "영수증은 못 맞춰요. 온라인 주문이라 받은 종이가 아예 없거든요."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D3_C-20260501-003_a758447f33e1cc4f_0000:3",
+      "label": "Proposal",
+      "properties": {
+       "content": "그러면 주문 내역 화면으로 대조해 보시겠어요?",
+       "decision": "수용"
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D3_C-20260501-003_a758447f33e1cc4f_0000:4",
+      "label": "ReconsiderCondition",
+      "properties": {
+       "condition": "그래도 안 맞으면 다음 명세서 나올 때 다시 문의할게요."
+      },
+      "embedding_properties": {}
+     },
+     {
+      "id": "D3_C-20260501-003_a758447f33e1cc4f_0000:5",
+      "label": "Consultation",
+      "properties": {
+       "record_id": "C-20260302-002"
+      },
+      "embedding_properties": {}
+     }
+    ],
+    "relationships": [
+     {
+      "start_node_id": "D3_C-20260501-003_a758447f33e1cc4f_0000:0",
+      "end_node_id": "D3_C-20260501-003_a758447f33e1cc4f_0000:1",
+      "type": "HAS_COMPLAINT",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D3_C-20260501-003_a758447f33e1cc4f_0000:0",
+      "end_node_id": "D3_C-20260501-003_a758447f33e1cc4f_0000:2",
+      "type": "HAS_PROPOSAL",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D3_C-20260501-003_a758447f33e1cc4f_0000:0",
+      "end_node_id": "D3_C-20260501-003_a758447f33e1cc4f_0000:3",
+      "type": "HAS_PROPOSAL",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D3_C-20260501-003_a758447f33e1cc4f_0000:3",
+      "end_node_id": "D3_C-20260501-003_a758447f33e1cc4f_0000:4",
+      "type": "RECONSIDER_WHEN",
+      "properties": {},
+      "embedding_properties": {}
+     },
+     {
+      "start_node_id": "D3_C-20260501-003_a758447f33e1cc4f_0000:0",
+      "end_node_id": "D3_C-20260501-003_a758447f33e1cc4f_0000:5",
+      "type": "FOLLOWS",
+      "properties": {},
+      "embedding_properties": {}
+     }
+    ]
+   },
+   "raw_nodes": 6,
+   "kept_nodes": 6
+  }
+ ],
+ "no_unit_chunks": [],
+ "failed_units": [],
+ "llm_usage": {
+  "calls": 18,
+  "total_tokens": 55619
+ }
+}

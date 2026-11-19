@@ -1,0 +1,160 @@
+{
+ "단계": "K4 적재 + K5 병합",
+ "요약": {
+  "K4 적재": "노드 2201개(청크 노드 260개 + 엔티티 1941개), 관계 3484개(FROM_CHUNK 1941개 + 추출 관계 1543개)",
+  "K5 병합 전 → 후": "엔티티 1941개 → 1653개 (288개가 합쳐져 사라짐)",
+  "K5 병합": "검사한 값 113개 중 100묶음을 합침, FROM_CHUNK 중복 0개 지움",
+  "엔티티 라벨별": {
+   "BenefitCondition": 393,
+   "BenefitLimit": 306,
+   "Benefit": 270,
+   "BenefitExclusion": 261,
+   "Proposal": 80,
+   "Handling": 76,
+   "ProductGuide": 64,
+   "Clause": 52,
+   "Complaint": 51,
+   "Consultation": 48,
+   "Deadline": 18,
+   "Requirement": 17,
+   "ReconsiderCondition": 16,
+   "TermsDocument": 1
+  }
+ },
+ "합쳐진_엔티티_예": [
+  {
+   "label": "TermsDocument",
+   "속성": {
+    "generation": "gen-lab-v1-3bfc2695",
+    "effective_date": "2027-01-15",
+    "run_id": "v1@20261118223017",
+    "version": "1.2",
+    "supersedes": "1.1"
+   },
+   "나온_청크": [
+    "D1_27223010abe31291_f67200951d823978_0000",
+    "D1_27223010abe31291_b1dd24402750a58e_0000",
+    "D1_27223010abe31291_b1e1e3acbe30f1f7_0000",
+    "D1_27223010abe31291_2c85b7a211b30b0c_0000",
+    "D1_27223010abe31291_eb1ce5421e4639c4_0000",
+    "D1_27223010abe31291_44a53bb767bb4575_0000",
+    "D1_27223010abe31291_73549dfa944c4f77_0000",
+    "D1_27223010abe31291_166a4d98a94e8900_0000",
+    "D1_27223010abe31291_4b13e97abf5abdcf_0000",
+    "D1_27223010abe31291_a5142f49faf765a1_0000"
+   ]
+  },
+  {
+   "label": "ProductGuide",
+   "속성": {
+    "generation": "gen-lab-v1-3bfc2695",
+    "card_name": "한빛 가족돌봄",
+    "run_id": "v1@20261118223017",
+    "product_id": "D2-C021"
+   },
+   "나온_청크": [
+    "D2_5a3c0df949be0524_eff8489ec994a497_0000",
+    "D2_5a3c0df949be0524_3a258312fb98ec75_0000",
+    "D2_5a3c0df949be0524_71e0d3d5c16d2c3f_0000",
+    "D2_5a3c0df949be0524_8cc32dbacd1ef7f2_0000",
+    "D2_5a3c0df949be0524_63ebde516f8fd611_0000",
+    "D2_5a3c0df949be0524_c4c5dca7ba3d89d0_0000"
+   ]
+  },
+  {
+   "label": "ProductGuide",
+   "속성": {
+    "generation": "gen-lab-v1-3bfc2695",
+    "card_name": "한빛 모음상자 플러스",
+    "run_id": "v1@20261118223017",
+    "product_id": "D2-C011"
+   },
+   "나온_청크": [
+    "D2_5a3c0df949be0524_b10cdb4a0df8a5d4_0000",
+    "D2_5a3c0df949be0524_6ace249999ba0a23_0000",
+    "D2_5a3c0df949be0524_b574ee459365b76b_0000",
+    "D2_5a3c0df949be0524_cd51514716bb1ab4_0000",
+    "D2_5a3c0df949be0524_ea473c1dd739a33f_0000",
+    "D2_5a3c0df949be0524_fe1e3f9517d4616e_0000"
+   ]
+  }
+ ],
+ "청크_하나의_엔티티_예": [
+  {
+   "chunk_id": "D1_27223010abe31291_f67200951d823978_0000",
+   "n": 35,
+   "shown": [
+    {
+     "label": "TermsDocument",
+     "props": {
+      "generation": "gen-lab-v1-3bfc2695",
+      "effective_date": "2027-01-15",
+      "run_id": "v1@20261118223017",
+      "version": "1.2",
+      "supersedes": "1.1"
+     }
+    },
+    {
+     "label": "Handling",
+     "props": {
+      "generation": "gen-lab-v1-3bfc2695",
+      "action": "신규 승인 기능을 정지하고 회원에게 유지, 해지 또는 재사용 선택 방법을 안내합니다.",
+      "run_id": "v1@20261118223017",
+      "situation": "연속된 장기 미사용 상태가 확인되면"
+     }
+    },
+    {
+     "label": "Handling",
+     "props": {
+      "generation": "gen-lab-v1-3bfc2695",
+      "action": "계약 종료 절차를 진행하며, 이미 납부한 연회비는 제10조의 반환 기준을 적용합니다.",
+      "run_id": "v1@20261118223017",
+      "situation": "이용정지 뒤 다음 연회비 청구일까지 회원의 의사 표시가 없으면"
+     }
+    },
+    {
+     "label": "Deadline",
+     "props": {
+      "generation": "gen-lab-v1-3bfc2695",
+      "description": "다음 연회비 청구일까지",
+      "run_id": "v1@20261118223017"
+     }
+    },
+    {
+     "label": "Handling",
+     "props": {
+      "generation": "gen-lab-v1-3bfc2695",
+      "action": "지연 사유와 예정 일을 알리고 해지일부터 60일 안에 처리합니다.",
+      "run_id": "v1@20261118223017",
+      "situation": "이용내역 조사로 계산이 늦어지면"
+     }
+    },
+    {
+     "label": "Deadline",
+     "props": {
+      "generation": "gen-lab-v1-3bfc2695",
+      "description": "해지일부터 60일 안에",
+      "run_id": "v1@20261118223017"
+     }
+    }
+   ]
+  }
+ ],
+ "확인_명령": {
+  "Neo4j Browser에 붙여 넣기": [
+   {
+    "설명": "라벨별 노드 수",
+    "질의": "MATCH (n {generation: 'gen-lab-v1-3bfc2695'}) RETURN labels(n) AS 라벨, count(*) AS 개수 ORDER BY 개수 DESC"
+   },
+   {
+    "설명": "그림으로 보기: 청크와 그 청크에서 나온 엔티티 (결과 창에서 Graph 보기)",
+    "질의": "MATCH (c:Chunk {generation: 'gen-lab-v1-3bfc2695'})<-[r:FROM_CHUNK]-(e:__Entity__) RETURN c, r, e LIMIT 30"
+   },
+   {
+    "설명": "K5가 합친 엔티티: 청크 2개 이상에서 나온 엔티티",
+    "질의": "MATCH (e:__Entity__ {generation: 'gen-lab-v1-3bfc2695'})-[:FROM_CHUNK]->(c:Chunk) WITH e, count(c) AS 청크수 WHERE 청크수 > 1 RETURN labels(e) AS 라벨, properties(e) AS 속성, 청크수 ORDER BY 청크수 DESC LIMIT 10"
+   }
+  ],
+  "터미널에 붙여 넣기": []
+ }
+}
