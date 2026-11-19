@@ -425,7 +425,8 @@ def load_schemas() -> dict:
         rules = load_json(rules_path)
         onto.check_unit_text_rules(doc_type, rules)  # 확정한 규칙과 지금 코드가 다르면 멈춤
         schemas[doc_type] = {
-            "schema": GraphSchema.from_file(str(path)),
+            # GraphSchema.from_file()은 Windows 기본 인코딩(cp949)으로 읽어 한글 파일을 못 읽음 → UTF-8로 읽어 검증
+            "schema": GraphSchema.model_validate(load_json(path)),
             "unit_rule": rules["extraction_unit_rule"],  # 확정한 규칙. 실제 나누기는 schema_units.split_chunk
             "header_fields": rules["metadata_header"],  # 확정한 머리줄 칸
             "header": [],  # 머리줄은 단위의 header_text(version 2)를 씀

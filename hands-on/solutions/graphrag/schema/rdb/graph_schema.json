@@ -2,7 +2,7 @@
   "node_types": [
     {
       "label": "Card",
-      "description": "\uce74\ub4dc",
+      "description": "카드",
       "properties": [
         {
           "name": "card_id",
@@ -27,7 +27,7 @@
     },
     {
       "label": "CardTxn",
-      "description": "\uce74\ub4dc\uac70\ub798",
+      "description": "카드거래",
       "properties": [
         {
           "name": "txn_id",
@@ -58,7 +58,7 @@
     },
     {
       "label": "Delinquency",
-      "description": "\uc5f0\uccb4",
+      "description": "연체",
       "properties": [
         {
           "name": "member_id",
@@ -95,7 +95,7 @@
     },
     {
       "label": "Member",
-      "description": "\ud68c\uc6d0",
+      "description": "회원",
       "properties": [
         {
           "name": "member_id",
@@ -126,7 +126,7 @@
     },
     {
       "label": "Merchant",
-      "description": "\uac00\ub9f9\uc810",
+      "description": "가맹점",
       "properties": [
         {
           "name": "merchant_id",
@@ -151,7 +151,7 @@
     },
     {
       "label": "Product",
-      "description": "\uc0c1\ud488",
+      "description": "상품",
       "properties": [
         {
           "name": "product_id",
@@ -188,7 +188,7 @@
     },
     {
       "label": "ProductAnnualFee",
-      "description": "\uc0c1\ud488\uc5f0\ud68c\ube44",
+      "description": "상품연회비",
       "properties": [
         {
           "name": "product_id",
@@ -227,37 +227,37 @@
   "relationship_types": [
     {
       "label": "HAS_CARD",
-      "description": "\ubcf4\uc720\ud568",
+      "description": "보유함",
       "properties": [],
       "additional_properties": true
     },
     {
       "label": "APPLIES_FEE",
-      "description": "\uc5f0\ud68c\ube44\uc801\uc6a9",
+      "description": "연회비적용",
       "properties": [],
       "additional_properties": true
     },
     {
       "label": "MADE_TXN",
-      "description": "\uacb0\uc81c\ud568",
+      "description": "결제함",
       "properties": [],
       "additional_properties": true
     },
     {
       "label": "AT_MERCHANT",
-      "description": "\uc774\uc6a9\ud568",
+      "description": "이용함",
       "properties": [],
       "additional_properties": true
     },
     {
       "label": "HAS_DELINQUENCY",
-      "description": "\uc5f0\uccb4\ud568",
+      "description": "연체함",
       "properties": [],
       "additional_properties": true
     },
     {
       "label": "HAS_ANNUAL_FEE",
-      "description": "\uc5f0\ud68c\ube44\uc815\ud568",
+      "description": "연회비정함",
       "properties": [],
       "additional_properties": true
     }

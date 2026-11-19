@@ -2,24 +2,24 @@
   "node_types": [
     {
       "label": "TermsDocument",
-      "description": "(\uc57d\uad00 \ubb38\uc11c) \ud574\ub2f9: \uc57d\uad00 \ud30c\uc77c \ud55c \ud310(\uba38\ub9ac\uc904\uc758 source\uc640 version). \ube44\ud574\ub2f9: \uc870\ud56d \ud558\ub098, \uc0c1\ud488\uc548\ub0b4\uc11c",
+      "description": "(약관 문서) 해당: 약관 파일 한 판(머리줄의 source와 version). 비해당: 조항 하나, 상품안내서",
       "properties": [
         {
           "name": "version",
           "type": "STRING",
-          "description": "\uc57d\uad00 \ud310. \uba38\ub9ac\uc904 version \uac12(\uc608: 1.2)",
+          "description": "약관 판. 머리줄 version 값(예: 1.2)",
           "required": false
         },
         {
           "name": "effective_date",
           "type": "STRING",
-          "description": "\uc2dc\ud589\uc77c. \uba38\ub9ac\uc904 effective_date \uac12",
+          "description": "시행일. 머리줄 effective_date 값",
           "required": false
         },
         {
           "name": "supersedes",
           "type": "STRING",
-          "description": "\ubc14\ub00c\uae30 \uc804 \ud310. \uba38\ub9ac\uc904 supersedes \uac12",
+          "description": "바뀌기 전 판. 머리줄 supersedes 값",
           "required": false
         }
       ],
@@ -27,18 +27,18 @@
     },
     {
       "label": "Clause",
-      "description": "(\uc870\ud56d) \ud574\ub2f9: \ubcf8\ubb38\uc5d0 \uc870\ubb38 \ub0b4\uc6a9(\u2460, \u2461 \uac19\uc740 \ud56d)\uc774 \ud568\uaed8 \uc801\ud78c '\uc81cN\uc870(\uc81c\ubaa9)' \ud558\ub098. \ube44\ud574\ub2f9: \ucc28\ub840(\ubaa9\ucc28)\uc5d0 \uc81c\ubaa9\ub9cc \ub098\uc5f4\ub41c \uc870\ud56d, \uc870\ud56d \uc548\uc758 \ud56d\uc774\ub098 \ud638, \uc57d\uad00 \ubb38\uc11c \uc804\uccb4",
+      "description": "(조항) 해당: 본문에 조문 내용(①, ② 같은 항)이 함께 적힌 '제N조(제목)' 하나. 비해당: 차례(목차)에 제목만 나열된 조항, 조항 안의 항이나 호, 약관 문서 전체",
       "properties": [
         {
           "name": "clause_no",
           "type": "STRING",
-          "description": "\uc870\ud56d \ubc88\ud638(\uc608: \uc81c16\uc870\uc7582)",
+          "description": "조항 번호(예: 제16조의2)",
           "required": false
         },
         {
           "name": "title",
           "type": "STRING",
-          "description": "\uc870\ud56d \uc81c\ubaa9(\uad04\ud638 \uc548 \uae00\uc790)",
+          "description": "조항 제목(괄호 안 글자)",
           "required": false
         }
       ],
@@ -46,12 +46,12 @@
     },
     {
       "label": "Requirement",
-      "description": "(\ucda9\uc871 \uc870\uac74) \ud574\ub2f9: \ubb34\uc5c7\uc744 \ubc1b\uac70\ub098 \ud560 \uc218 \uc788\ub294\uc9c0\uac00 \uac08\ub9ac\ub294 \uae30\uc900. \ubcf4\ud1b5 \uc22b\uc790(\uae08\uc561, \uc77c\uc218, \ud69f\uc218, \ube44\uc728)\ub098 '~\uc774\uc0c1', '~\uc778 \uacbd\uc6b0\uc5d0\ub9cc', '~\ud558\uba74 \ubc1b\uc744 \uc218 \uc788\uc74c' \uaf34\uc784(\uc608: \uc9c1\uc804 12\uac1c\uc6d4 \uc774\uc6a9\uae08\uc561\uc774 300\ub9cc \uc6d0 \uc774\uc0c1\uc774\uba74 \uba74\uc81c). \ube44\ud574\ub2f9: \ub204\uac00 \ubb34\uc5c7\uc744 \ud55c\ub2e4\ub294 \uc758\ubb34\ub098 \uc808\ucc28 \ubb38\uc7a5(\uc608: \ud68c\uc6d0\uc740 ~\ub97c \uc218\uc815\ud569\ub2c8\ub2e4, ~\ub97c \uc81c\ucd9c\ud569\ub2c8\ub2e4, ~\ub97c \ud45c\uc2dc\ud569\ub2c8\ub2e4), \ud560 \uc218 \uc788\ub2e4\ub294 \uad8c\ub9ac \uc548\ub0b4\ub9cc \uc788\ub294 \ubb38\uc7a5, \uae30\ud55c\uc774\ub098 \ud1b5\uc9c0 \uc2dc\uc810",
+      "description": "(충족 조건) 해당: 무엇을 받거나 할 수 있는지가 갈리는 기준. 보통 숫자(금액, 일수, 횟수, 비율)나 '~이상', '~인 경우에만', '~하면 받을 수 있음' 꼴임(예: 직전 12개월 이용금액이 300만 원 이상이면 면제). 비해당: 누가 무엇을 한다는 의무나 절차 문장(예: 회원은 ~를 수정합니다, ~를 제출합니다, ~를 표시합니다), 할 수 있다는 권리 안내만 있는 문장, 기한이나 통지 시점",
       "properties": [
         {
           "name": "description",
           "type": "STRING",
-          "description": "\uc870\uac74 \ubb38\uc7a5(\uc6d0\ubb38 \uadf8\ub300\ub85c)",
+          "description": "조건 문장(원문 그대로)",
           "required": false
         }
       ],
@@ -59,12 +59,12 @@
     },
     {
       "label": "Deadline",
-      "description": "(\uae30\ud55c\uacfc \ud1b5\uc9c0 \uc2dc\uc810) \ud574\ub2f9: \ubb34\uc5c7\uc744 \ud574\uc57c \ud558\ub294 \uae30\ud55c\uc774\ub098 \uc2dc\uc810(\uc608: ~\uc77c \uc774\ub0b4, \uc989\uc2dc, \ub2e4\uc74c \uc601\uc5c5\uc77c, ~\uae4c\uc9c0), \ubbf8\ub9ac \uc54c\ub9ac\ub294 \uc2dc\uc810(\uc608: \uc0ac\uc804\uc5d0 \uc548\ub0b4, ~\uc804\uc5d0 \uc54c\ub9bc). \uc0c1\ud669 \uc870\uac74\uc774 \ubd99\uc740 \ubb38\uc7a5\uc774\uc5b4\ub3c4 \uc2dc\uc810\uc774 \uc788\uc73c\uba74 \ud574\ub2f9\ud558\uba70 \uac19\uc740 \ubb38\uc7a5\uc744 Handling\uc5d0\ub3c4 \ub458 \uc218 \uc788\uc74c. \ube44\ud574\ub2f9: \uc2dc\uc810\uc774 \uc5c6\ub294 \ucc98\ub9ac \ubc29\ubc95, \uae08\uc561 \uc870\uac74. \uc870\ud56d\uc5d0 \uae30\ud55c\uc774\ub098 \uc2dc\uc810\uc774 \uc5ec\ub7ec \uac1c \uc788\uc73c\uba74 \uc2dc\uc810\ub9c8\ub2e4 Deadline \ub178\ub4dc\ub97c \ud558\ub098\uc529 \ub9cc\ub4e4\uace0 SETS_DEADLINE\uc73c\ub85c \uc870\ud56d\uc5d0 \uc774\uc74c",
+      "description": "(기한과 통지 시점) 해당: 무엇을 해야 하는 기한이나 시점(예: ~일 이내, 즉시, 다음 영업일, ~까지), 미리 알리는 시점(예: 사전에 안내, ~전에 알림). 상황 조건이 붙은 문장이어도 시점이 있으면 해당하며 같은 문장을 Handling에도 둘 수 있음. 비해당: 시점이 없는 처리 방법, 금액 조건. 조항에 기한이나 시점이 여러 개 있으면 시점마다 Deadline 노드를 하나씩 만들고 SETS_DEADLINE으로 조항에 이음",
       "properties": [
         {
           "name": "description",
           "type": "STRING",
-          "description": "\uae30\ud55c\uc774\ub098 \ud1b5\uc9c0 \uc2dc\uc810 \ubb38\uc7a5(\uc6d0\ubb38 \uadf8\ub300\ub85c)",
+          "description": "기한이나 통지 시점 문장(원문 그대로)",
           "required": false
         }
       ],
@@ -72,18 +72,18 @@
     },
     {
       "label": "Handling",
-      "description": "(\uc0c1\ud669\ubcc4 \ucc98\ub9ac) \ud574\ub2f9: '~\uc774\uba74, ~\ud558\uba74, ~\uacbd\uc6b0'\ucc98\ub7fc \uc0c1\ud669\uc744 \uba3c\uc800 \ub9d0\ud558\uace0 \uadf8\ub54c\uc758 \ucc98\ub9ac\ub97c \uc815\ud55c \ubb38\uc7a5(\uc608: \uacb0\uc81c\uc77c\uc774 \ud734\uc77c\uc774\uba74 \ub2e4\uc74c \uc601\uc5c5\uc77c\uc5d0 \ucd9c\uae08, \uc624\ub798 \uc4f0\uc9c0 \uc54a\uc740 \uce74\ub4dc\ub294 \uc774\uc6a9\uc744 \uc815\uc9c0). \ucc98\ub9ac \uc2dc\uc810\uc774 \ud568\uaed8 \uc801\ud600 \uc788\uc5b4\ub3c4 \uc0c1\ud669\uc774 \uc55e\uc5d0 \uc788\uc73c\uba74 \uc5ec\uae30\uc5d0 \uc500. \ube44\ud574\ub2f9: \uc0c1\ud669 \uc5c6\uc774 \uae30\ud55c\ub9cc \uc815\ud55c \ubb38\uc7a5, \ucc98\ub9ac\ub97c \ubc1b\uae30 \uc704\ud55c \uae08\uc561 \uc870\uac74",
+      "description": "(상황별 처리) 해당: '~이면, ~하면, ~경우'처럼 상황을 먼저 말하고 그때의 처리를 정한 문장(예: 결제일이 휴일이면 다음 영업일에 출금, 오래 쓰지 않은 카드는 이용을 정지). 처리 시점이 함께 적혀 있어도 상황이 앞에 있으면 여기에 씀. 비해당: 상황 없이 기한만 정한 문장, 처리를 받기 위한 금액 조건",
       "properties": [
         {
           "name": "situation",
           "type": "STRING",
-          "description": "\uc0c1\ud669(\uc6d0\ubb38 \uadf8\ub300\ub85c)",
+          "description": "상황(원문 그대로)",
           "required": false
         },
         {
           "name": "action",
           "type": "STRING",
-          "description": "\uadf8\ub54c\uc758 \ucc98\ub9ac(\uc6d0\ubb38 \uadf8\ub300\ub85c)",
+          "description": "그때의 처리(원문 그대로)",
           "required": false
         }
       ],
@@ -93,25 +93,25 @@
   "relationship_types": [
     {
       "label": "HAS_CLAUSE",
-      "description": "(\uc870\ud56d\uc744 \uac00\uc9d0) \uc57d\uad00 \ubb38\uc11c\uc5d0 \ub4e4\uc5b4 \uc788\ub294 \uc870\ud56d",
+      "description": "(조항을 가짐) 약관 문서에 들어 있는 조항",
       "properties": [],
       "additional_properties": true
     },
     {
       "label": "SETS_REQUIREMENT",
-      "description": "(\uc870\uac74\uc744 \uc815\ud568) \uc870\ud56d\uc774 \uc815\ud55c \ucda9\uc871 \uc870\uac74",
+      "description": "(조건을 정함) 조항이 정한 충족 조건",
       "properties": [],
       "additional_properties": true
     },
     {
       "label": "SETS_DEADLINE",
-      "description": "(\uae30\ud55c\uc744 \uc815\ud568) \uc870\ud56d\uc774 \uc815\ud55c \uae30\ud55c\uc774\ub098 \ud1b5\uc9c0 \uc2dc\uc810",
+      "description": "(기한을 정함) 조항이 정한 기한이나 통지 시점",
       "properties": [],
       "additional_properties": true
     },
     {
       "label": "DEFINES_HANDLING",
-      "description": "(\ucc98\ub9ac\ub97c \uc815\ud568) \uc870\ud56d\uc774 \uc815\ud55c \uc0c1\ud669\ubcc4 \ucc98\ub9ac",
+      "description": "(처리를 정함) 조항이 정한 상황별 처리",
       "properties": [],
       "additional_properties": true
     }

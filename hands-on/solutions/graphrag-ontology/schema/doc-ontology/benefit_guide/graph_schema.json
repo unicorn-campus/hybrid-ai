@@ -2,78 +2,78 @@
   "node_types": [
     {
       "label": "Benefit",
-      "description": "\uce74\ub4dc\uc0c1\ud488\uc774 \ud68c\uc6d0\uc5d0\uac8c \uc8fc\ub294 \ud61c\ud0dd \ud56d\ubaa9 \ud558\ub098(\ud560\uc778, \uc801\ub9bd, \uce90\uc2dc\ubc31, \ubc14\uc6b0\ucc98, \ubcf4\ub108\uc2a4, \ubb34\uc774\uc790 \ud560\ubd80, \uc81c\ud734 \uc11c\ube44\uc2a4). \ud574\ub2f9: \uba38\ub9ac\uc904\uc758 \ud56d\ubaa9 ID \ud558\ub098\uc5d0 \ud61c\ud0dd \ub178\ub4dc \ud558\ub098. \ud56d\ubaa9 \uc81c\ubaa9\uc774 \ud560\uc778, \uc801\ub9bd, \uce90\uc2dc\ubc31, \ubc14\uc6b0\ucc98, \ubcf4\ub108\uc2a4, \ubb34\uc774\uc790 \ud560\ubd80, \ucfe0\ud3f0, \uc81c\ud734 \uc11c\ube44\uc2a4\uc774\uba74 \ud61c\ud0dd\uc784. \ube44\ud574\ub2f9: \ud56d\ubaa9 \uc81c\ubaa9\uc774 \uc774\uc6a9 \uae30\uc900, \ud1b5\ud569 \ud55c\ub3c4, \uacb0\uc81c \uc774\uc6a9 \ud55c\ub3c4, \ud3ec\uc778\ud2b8 \uc6b4\uc601 \uae30\uc900\ucc98\ub7fc \ud61c\ud0dd\uc744 \uc8fc\uc9c0 \uc54a\uace0 \uaddc\uce59\ub9cc \uc801\uc740 \ud56d\ubaa9(UsageRule\ub85c \uc500). \uba38\ub9ac\uc904\uc774 \u300c\ud61c\ud0dd \ud56d\ubaa9 \uc544\ub2d8\u300d\uc774\uba74 \uc544\ubb34 \ub178\ub4dc\ub3c4 \ub9cc\ub4e4\uc9c0 \uc54a\uc74c.",
+      "description": "카드상품이 회원에게 주는 혜택 항목 하나(할인, 적립, 캐시백, 바우처, 보너스, 무이자 할부, 제휴 서비스). 해당: 머리줄의 항목 ID 하나에 혜택 노드 하나. 항목 제목이 할인, 적립, 캐시백, 바우처, 보너스, 무이자 할부, 쿠폰, 제휴 서비스이면 혜택임. 비해당: 항목 제목이 이용 기준, 통합 한도, 결제 이용 한도, 포인트 운영 기준처럼 혜택을 주지 않고 규칙만 적은 항목(UsageRule로 씀). 머리줄이 「혜택 항목 아님」이면 아무 노드도 만들지 않음.",
       "properties": [
         {
           "name": "benefit_id",
           "type": "STRING",
-          "description": "\uba38\ub9ac\uc904\uc758 \ud56d\ubaa9 ID \uac12. \uc608: D2-C035-B02",
+          "description": "머리줄의 항목 ID 값. 예: D2-C035-B02",
           "required": false
         },
         {
           "name": "name",
           "type": "STRING",
-          "description": "\uba38\ub9ac\uc904\uc758 \ud56d\ubaa9 \uc81c\ubaa9. \uc608: \uc8fc\ub9d0 \uc678\uc2dd \uc801\ub9bd",
+          "description": "머리줄의 항목 제목. 예: 주말 외식 적립",
           "required": false
         },
         {
           "name": "product_id",
           "type": "STRING",
-          "description": "\uba38\ub9ac\uc904\uc758 product_id \uac12(\uce74\ub4dc\uc0c1\ud488 \ud0a4). \uc608: D2-C035. \ubcf8\ubb38\uc5d0\uc11c \ucc3e\uc9c0 \uc54a\uc74c",
+          "description": "머리줄의 product_id 값(카드상품 키). 예: D2-C035. 본문에서 찾지 않음",
           "required": false
         },
         {
           "name": "card_name",
           "type": "STRING",
-          "description": "\uba38\ub9ac\uc904\uc758 card_name \uac12. \uc608: \ud55c\ube5b \uc77c\uc0c1\ud3ec\uc778\ud2b8",
+          "description": "머리줄의 card_name 값. 예: 한빛 일상포인트",
           "required": false
         },
         {
           "name": "kind",
           "type": "STRING",
-          "description": "\ud61c\ud0dd \uc885\ub958 \ud55c \ub0b1\ub9d0: \ud560\uc778, \uc801\ub9bd, \uce90\uc2dc\ubc31, \ubc14\uc6b0\ucc98, \ubcf4\ub108\uc2a4, \ubb34\uc774\uc790 \ud560\ubd80, \ucfe0\ud3f0, \uc11c\ube44\uc2a4 \uc911 \ud558\ub098",
+          "description": "혜택 종류 한 낱말: 할인, 적립, 캐시백, 바우처, 보너스, 무이자 할부, 쿠폰, 서비스 중 하나",
           "required": false
         },
         {
           "name": "amount",
           "type": "STRING",
-          "description": "\uc8fc\ub294 \uc591\uc744 \uc6d0\ubb38 \ud45c\ud604\uc73c\ub85c(\ube44\uc728, \uae08\uc561, \ud69f\uc218). \uc608: \ub300\uc0c1 \uacb0\uc81c\uc561\uc758 1.2%\ub97c \uc801\ub9bd\ud568",
+          "description": "주는 양을 원문 표현으로(비율, 금액, 횟수). 예: 대상 결제액의 1.2%를 적립함",
           "required": false
         },
         {
           "name": "target",
           "type": "STRING",
-          "description": "\ud61c\ud0dd\uc744 \ubc1b\ub294 \uac00\ub9f9\uc810, \uc5c5\uc885, \uacb0\uc81c \ubc29\uc2dd\uc744 \uc6d0\ubb38 \ud45c\ud604\uc73c\ub85c. \uc608: \uc77c\ubc18 \uc74c\uc2dd\uc810 \uc5c5\uc885\uc758 \ub9e4\uc7a5 \uc9c1\uc811 \uacb0\uc81c. \uc5c5\uc885 \ub9de\ucd94\uae30 \ud45c\uc758 \uc785\ub825\uc774 \ub428",
+          "description": "혜택을 받는 가맹점, 업종, 결제 방식을 원문 표현으로. 예: 일반 음식점 업종의 매장 직접 결제. 업종 맞추기 표의 입력이 됨",
           "required": false
         },
         {
           "name": "condition",
           "type": "STRING",
-          "description": "\ubc1b\uc73c\ub824\uba74 \ucc44\uc6b8 \uc870\uac74(\uc804\uc6d4 \uc2e4\uc801, \ub4f1\ub85d, \uc2e0\uccad)\uc744 \uc6d0\ubb38 \ud45c\ud604\uc73c\ub85c. \uc608: \uc804\uc6d4 \uad6d\ub0b4\uc678 \uc77c\uc2dc\ubd88, \uc720\uc774\uc790 \ud560\ubd80 \uc774\uc6a9\uc561 350,000\uc6d0 \uc774\uc0c1",
+          "description": "받으려면 채울 조건(전월 실적, 등록, 신청)을 원문 표현으로. 예: 전월 국내외 일시불, 유이자 할부 이용액 350,000원 이상",
           "required": false
         },
         {
           "name": "limit",
           "type": "STRING",
-          "description": "\uc774 \ud61c\ud0dd\uc758 \ud55c\ub3c4\ub97c \uc6d0\ubb38 \ud45c\ud604\uc73c\ub85c. \uc608: \uc6d4 8,000\uc6d0 \uc0c1\ub2f9\uae4c\uc9c0",
+          "description": "이 혜택의 한도를 원문 표현으로. 예: 월 8,000원 상당까지",
           "required": false
         },
         {
           "name": "validity",
           "type": "STRING",
-          "description": "\uc0ac\uc6a9 \uae30\ud55c\uc774\ub098 \uc720\ud6a8\uae30\uac04\uc744 \uc6d0\ubb38 \ud45c\ud604\uc73c\ub85c. \uc608: \ubc1c\uae09\uc77c\ubd80\ud130 180\uc77c. \uc5c6\uc73c\uba74 \ube44\uc6c0",
+          "description": "사용 기한이나 유효기간을 원문 표현으로. 예: 발급일부터 180일. 없으면 비움",
           "required": false
         },
         {
           "name": "payout",
           "type": "STRING",
-          "description": "\uc9c0\uae09\ud558\uac70\ub098 \ucc28\uac10\ud558\ub294 \uc2dc\uc810\uc744 \uc6d0\ubb38 \ud45c\ud604\uc73c\ub85c. \uc608: \ub2e4\uc74c \ub2ec 18\uc77c \uc77c\ubc18 \ud3ec\uc778\ud2b8\ub85c \uc9c0\uae09\ud568",
+          "description": "지급하거나 차감하는 시점을 원문 표현으로. 예: 다음 달 18일 일반 포인트로 지급함",
           "required": false
         },
         {
           "name": "exclusion",
           "type": "STRING",
-          "description": "\ud61c\ud0dd\uc5d0\uc11c \ube60\uc9c0\ub294 \uac70\ub798\ub97c \uc6d0\ubb38 \ud45c\ud604\uc73c\ub85c. \uc608: \uc0c1\ud488\uad8c, \uc120\ubd88 \ucda9\uc804, \ud604\uae08\uc11c\ube44\uc2a4, \ucde8\uc18c \uac70\ub798",
+          "description": "혜택에서 빠지는 거래를 원문 표현으로. 예: 상품권, 선불 충전, 현금서비스, 취소 거래",
           "required": false
         }
       ],
@@ -81,42 +81,42 @@
     },
     {
       "label": "UsageRule",
-      "description": "\uc774\uc6a9 \uae30\uc900. \uce74\ub4dc\uc0c1\ud488\uc5d0 \uac78\ub9b0 \uc774\uc6a9 \uaddc\uce59 \ud56d\ubaa9 \ud558\ub098(\ud1b5\ud569 \ud55c\ub3c4, \uacb0\uc81c \ud55c\ub3c4, \uc2e4\uc801 \uc0b0\uc815, \uc815\uc0b0 \uae30\uc900). \ud574\ub2f9: \ud56d\ubaa9 \uc81c\ubaa9\uc774 \uc774\uc6a9 \uae30\uc900, \ud1b5\ud569 \ud55c\ub3c4, \uacb0\uc81c \uc774\uc6a9 \ud55c\ub3c4, \ud3ec\uc778\ud2b8 \uc6b4\uc601 \uae30\uc900, \ud55c\ub3c4 \ubcc0\uacbd\uc778 \ud56d\ubaa9. \ube44\ud574\ub2f9: \ud560\uc778\uc774\ub098 \uc801\ub9bd\uc744 \uc8fc\ub294 \ud61c\ud0dd \ud56d\ubaa9(Benefit\uc73c\ub85c \uc500).",
+      "description": "이용 기준. 카드상품에 걸린 이용 규칙 항목 하나(통합 한도, 결제 한도, 실적 산정, 정산 기준). 해당: 항목 제목이 이용 기준, 통합 한도, 결제 이용 한도, 포인트 운영 기준, 한도 변경인 항목. 비해당: 할인이나 적립을 주는 혜택 항목(Benefit으로 씀).",
       "properties": [
         {
           "name": "item_id",
           "type": "STRING",
-          "description": "\uba38\ub9ac\uc904\uc758 \ud56d\ubaa9 ID \uac12. \uc608: D2-C055-B04",
+          "description": "머리줄의 항목 ID 값. 예: D2-C055-B04",
           "required": false
         },
         {
           "name": "title",
           "type": "STRING",
-          "description": "\uba38\ub9ac\uc904\uc758 \ud56d\ubaa9 \uc81c\ubaa9. \uc608: \uacb0\uc81c \uc774\uc6a9 \ud55c\ub3c4",
+          "description": "머리줄의 항목 제목. 예: 결제 이용 한도",
           "required": false
         },
         {
           "name": "product_id",
           "type": "STRING",
-          "description": "\uba38\ub9ac\uc904\uc758 product_id \uac12(\uce74\ub4dc\uc0c1\ud488 \ud0a4). \ubcf8\ubb38\uc5d0\uc11c \ucc3e\uc9c0 \uc54a\uc74c",
+          "description": "머리줄의 product_id 값(카드상품 키). 본문에서 찾지 않음",
           "required": false
         },
         {
           "name": "card_name",
           "type": "STRING",
-          "description": "\uba38\ub9ac\uc904\uc758 card_name \uac12",
+          "description": "머리줄의 card_name 값",
           "required": false
         },
         {
           "name": "limit",
           "type": "STRING",
-          "description": "\ud55c\ub3c4\ub97c \uc6d0\ubb38 \ud45c\ud604\uc73c\ub85c. \uc608: \uac74\ubcc4 25,000\uc6d0, \uc6d4 150,000\uc6d0\uc744 \uae30\ubcf8 \uc0c1\ud55c\uc73c\ub85c \ud568",
+          "description": "한도를 원문 표현으로. 예: 건별 25,000원, 월 150,000원을 기본 상한으로 함",
           "required": false
         },
         {
           "name": "restriction",
           "type": "STRING",
-          "description": "\ub9c9\ub294 \uc5c5\uc885\uc774\ub098 \uac70\ub798, \uacc4\uc815 \uc870\uac74\uc744 \uc6d0\ubb38 \ud45c\ud604\uc73c\ub85c. \uc608: \uc8fc\ub958, \uc0ac\ud589\uc131 \uc5c5\uc885\uacfc \ud604\uae08\uc131 \uac70\ub798\ub294 \uc81c\ud55c\ud568",
+          "description": "막는 업종이나 거래, 계정 조건을 원문 표현으로. 예: 주류, 사행성 업종과 현금성 거래는 제한함",
           "required": false
         }
       ],
@@ -124,12 +124,12 @@
     },
     {
       "label": "Topic",
-      "description": "\ub2e8\uc704\uac00 \ub2e4\ub8e8\ub294 \uc5c5\ubb34 \ub300\uc0c1 \ud558\ub098\ub97c \uc9e7\uc740 \uba85\uc0ac\ub85c \uc4f4 \uac83(\uc608: \uc5f0\ud68c\ube44, \ubcf8\uc778 \ud655\uc778, \uad11\uace0 \uc218\uc2e0). \ud574\ub2f9: \uadf8 \ub2e8\uc704\uac00 \ub2e4\ub8e8\ub294 \uc5c5\ubb34 \ub300\uc0c1\uc744 2 ~ 8\uae00\uc790\uc758 \uba85\uc0ac\ub85c \uc500(\uc608: \uc5f0\ud68c\ube44, \ubcf8\uc778 \ud655\uc778, \uad11\uace0 \uc218\uc2e0, \ud61c\ud0dd \uc2e0\uccad, \uc774\uc758\uc2e0\uccad, \uacb0\uc81c\uc77c, \ud574\uc678 \uacb0\uc81c, \uce74\ub4dc \ud574\uc9c0). \ud61c\ud0dd \ud56d\ubaa9\uc774\uba74 \uadf8 \ud61c\ud0dd\uc774 \uc4f0\uc774\ub294 \uacf3\uc774\ub098 \ub300\uc0c1\uc744 \uc500(\uc608: \uc678\uc2dd, \ub300\uc911\uad50\ud1b5, \ub514\uc9c0\ud138 \uad6c\ub3c5, \ud574\uc678 \uacb0\uc81c, \uc804\uae30\ucc28 \ucda9\uc804, \ud1b5\ud569 \ud55c\ub3c4). \ub2e8\uc704 \ud558\ub098\uc5d0 \uac00\uc7a5 \uc911\uc2ec \ub300\uc0c1\ubd80\ud130 1 ~ 3\uac1c, \ub9ce\uc544\uc57c 3\uac1c. \ube44\ud574\ub2f9: \ubd88\ud3b8, \ubd88\ub9cc, \ubb38\uc758, \uc548\ub0b4, \uacc4\uc0b0 \uac19\uc740 \ub9d0, \ud61c\ud0dd, \ud560\uc778, \uc801\ub9bd, \uce90\uc2dc\ubc31, \ubcf4\ub108\uc2a4\ucc98\ub7fc \ub108\ubb34 \ub113\uc740 \ub9d0, \uce74\ub4dc \uc774\ub984, \uac00\ub9f9\uc810 \uc774\ub984, \uae08\uc561, \ub0a0\uc9dc, \uc0ac\ub78c.",
+      "description": "단위가 다루는 업무 대상 하나를 짧은 명사로 쓴 것(예: 연회비, 본인 확인, 광고 수신). 해당: 그 단위가 다루는 업무 대상을 2 ~ 8글자의 명사로 씀(예: 연회비, 본인 확인, 광고 수신, 혜택 신청, 이의신청, 결제일, 해외 결제, 카드 해지). 혜택 항목이면 그 혜택이 쓰이는 곳이나 대상을 씀(예: 외식, 대중교통, 디지털 구독, 해외 결제, 전기차 충전, 통합 한도). 단위 하나에 가장 중심 대상부터 1 ~ 3개, 많아야 3개. 비해당: 불편, 불만, 문의, 안내, 계산 같은 말, 혜택, 할인, 적립, 캐시백, 보너스처럼 너무 넓은 말, 카드 이름, 가맹점 이름, 금액, 날짜, 사람.",
       "properties": [
         {
           "name": "name",
           "type": "STRING",
-          "description": "\uc8fc\uc81c\uc758 \ub300\ud45c \uc774\ub984. \ub744\uc5b4\uc4f0\uae30\ub294 \ub0b1\ub9d0 \uc0ac\uc774\uc5d0 \ud55c \uce78. \uc608: \uc5f0\ud68c\ube44, \ubcf8\uc778 \ud655\uc778",
+          "description": "주제의 대표 이름. 띄어쓰기는 낱말 사이에 한 칸. 예: 연회비, 본인 확인",
           "required": false
         }
       ],
@@ -139,7 +139,7 @@
   "relationship_types": [
     {
       "label": "ABOUT",
-      "description": "\ub2e8\uc704\uac00 \ub2e4\ub8e8\ub294 \uc8fc\uc81c. \uc870\ud56d, \ud61c\ud0dd, \ubd88\ub9cc\ub9c8\ub2e4 \uc8fc\uc81c\ub97c 1 ~ 3\uac1c \ubc18\ub4dc\uc2dc \uc787\ub294\ub2e4(\uc8fc\uc81c \uc5c6\ub294 \uc870\ud56d, \ud61c\ud0dd, \ubd88\ub9cc\uc744 \ub9cc\ub4e4\uc9c0 \uc54a\uc74c). \ud574\ub2f9: \uadf8 \ub2e8\uc704\uc758 \uc911\uc2ec \ub300\uc0c1. \ube44\ud574\ub2f9: \uc9c0\ub098\uac00\ub4ef \ud55c \ubc88 \ub098\uc628 \ub0b1\ub9d0.",
+      "description": "단위가 다루는 주제. 조항, 혜택, 불만마다 주제를 1 ~ 3개 반드시 잇는다(주제 없는 조항, 혜택, 불만을 만들지 않음). 해당: 그 단위의 중심 대상. 비해당: 지나가듯 한 번 나온 낱말.",
       "properties": [],
       "additional_properties": true
     }

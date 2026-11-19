@@ -41,7 +41,8 @@ def load_schemas() -> dict[str, dict]:
         approval = load_json(folder / "approval.json")
         rules = load_json(folder / "unit_text_rules.json")  # 추출 청크 글 규칙(추출 청크 규칙, 머리줄 칸)
         out[doc_type] = {
-            "schema": GraphSchema.from_file(str(path)),
+            # GraphSchema.from_file()은 Windows 기본 인코딩(cp949)으로 읽어 한글 파일을 못 읽음 → UTF-8로 읽어 검증
+            "schema": GraphSchema.model_validate(load_json(path)),
             "unit_rule": rules.get("extraction_unit_rule"),  # 없으면 청크를 그대로 추출 청크로 씀
             "header": rules.get("metadata_header", []),
             "signature": sha256_file(path),  # 스키마가 바뀌면 보관한 추출 결과를 다시 쓰지 않음

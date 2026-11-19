@@ -345,7 +345,8 @@ def load_schemas() -> dict:
                              f"스키마 설계 9단계(schema/doc/tools/finalize.py {doc_type})를 다시 실행해 만들 것")
         rules = load_json(rules_path)
         schemas[doc_type] = {
-            "schema": GraphSchema.from_file(str(path)),
+            # GraphSchema.from_file()은 Windows 기본 인코딩(cp949)으로 읽어 한글 파일을 못 읽음 → UTF-8로 읽어 검증
+            "schema": GraphSchema.model_validate(load_json(path)),
             "unit_rule": rules.get("extraction_unit_rule"),  # 없으면 청크를 그대로 추출 청크로 씀
             "header": rules.get("metadata_header", []),
             "signature": sha256_file(path),  # 스키마가 바뀌면 보관한 추출 결과를 다시 쓰지 않음

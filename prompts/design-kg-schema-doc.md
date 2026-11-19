@@ -220,7 +220,10 @@
    - 출력파일: fill_test.py, fill_calls.jsonl, fill_report.md  
 9. GraphSchema 파일 생성  
    - 8단계에서 사용자가 통과를 승인한 문서 종류만 진행함  
-   - `GraphSchema.save()`로 저장한 뒤 `GraphSchema.from_file()`로 다시 읽어 노드 타입, 관계, 패턴, 제약 수가 검증된 초안과 같은지 비교함  
+   - 검증된 스키마의 `model_dump(mode="json")`을 한글 그대로(UTF-8, `ensure_ascii=False`) graph_schema.json에 저장함.  
+     UTF-8로 다시 읽어 `GraphSchema.model_validate()`로 만든 뒤 노드 타입, 관계, 패턴, 제약 수가 검증된 초안과 같은지 비교함  
+     - `GraphSchema.save()`는 한글을 `\uXXXX`로 바꿔 쓰고, `GraphSchema.from_file()`은 Windows 기본 인코딩(cp949)으로  
+       읽어 한글 파일을 못 읽으므로 둘 다 쓰지 않음  
    - 승인 기록 작성: 승인자, 승인 일시, 청크 출처(collection 이름과 건수), 입력 파일(chunks_snapshot.json,  
      competency_questions.md, sample_plan.json, decisions.json, expected_answers.json)의 SHA-256 값,  
      마지막 시험 지표. 사람이 확인하는 기록이며 인덱싱은 읽지 않음  
@@ -284,7 +287,8 @@
   - fill_report.md의 질문별 지표가 7단계에서 정한 합격 기준을 넘었고 사용자가 통과를 승인함  
   - fill_report.md에 연결 검사 결과가 있고, shared_concepts.json의 공통 노드 타입이 쓰이는 모든 문서 종류 스키마에서  
     같은 라벨, description, 키 속성임을 실행 로그로 확인함  
-  - `GraphSchema.from_file()`로 다시 읽은 노드 타입, 관계, 패턴, 제약 수가 검증된 초안과 같음  
+  - graph_schema.json에 한글이 그대로 적혀 있고(`\uXXXX` 없음), UTF-8로 다시 읽어 `GraphSchema.model_validate()`로  
+    만든 노드 타입, 관계, 패턴, 제약 수가 검증된 초안과 같음  
   - 저장된 제약이 모두 쓰는 Neo4j 판이 지원하는 제약임  
   - unit_text_rules.json에 추출 단위를 나누는 규칙(청크를 그대로 쓰면 null)과 머리줄 칸 목록이 있고,  
     그 값이 8단계 시험에서 쓴 것과 같음  

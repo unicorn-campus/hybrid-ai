@@ -122,7 +122,10 @@
    - 승인받은 항목의 후보 표시는 지움  
 9. GraphSchema 파일 생성  
    - 후보 표시가 남은 항목이 없을 때만 진행함  
-   - `GraphSchema.save()`로 저장한 뒤 `GraphSchema.from_file()`로 다시 읽음  
+   - 검증된 스키마의 `model_dump(mode="json")`을 한글 그대로(UTF-8, `ensure_ascii=False`) graph_schema.json에 저장한 뒤  
+     UTF-8로 다시 읽어 `GraphSchema.model_validate()`로 만듦  
+     - `GraphSchema.save()`는 한글을 `\uXXXX`로 바꿔 쓰고, `GraphSchema.from_file()`은 Windows 기본 인코딩(cp949)으로  
+       읽어 한글 파일을 못 읽으므로 둘 다 쓰지 않음  
      - 노드 타입, 관계, 패턴, 제약 수가 초안과 같은지 비교함  
    - 승인 기록 작성: 승인자, 승인 일시, 입력 파일(structure.json, decisions.json)의 SHA-256 값  
    - 출력파일: graph_schema.json, approval.json  
@@ -165,7 +168,8 @@
   - structure.json의 테이블 수가 DB 카탈로그에서 센 일반 테이블 수와 같음  
   - `GraphSchema.model_validate()` 통과, 노드 타입 라벨 중복 없음, 이름 규칙 검사 통과를 실행 로그로 확인함  
   - schema_preview.html이 브라우저에서 오류 없이 그려짐을 확인함  
-  - `GraphSchema.from_file()`로 다시 읽은 노드 타입, 관계, 패턴, 제약 수가 초안과 같음  
+  - graph_schema.json에 한글이 그대로 적혀 있고(`\uXXXX` 없음), UTF-8로 다시 읽어 `GraphSchema.model_validate()`로  
+    만든 노드 타입, 관계, 패턴, 제약 수가 초안과 같음  
   - approval.json에 승인자, 승인 일시, 입력 파일 SHA-256 값이 있음  
 
 [예시]  

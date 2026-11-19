@@ -1,7 +1,9 @@
 """9단계 [단계 ⑤]: 8단계에서 통과를 승인한 문서 종류의 스키마와 공통 개념 층을 함께 저장함.
 
-- 스키마: GraphSchema.save()로 {문서 종류}/graph_schema.json을 쓰고, GraphSchema.from_file()로 다시 읽어
-  노드 타입, 관계, 패턴, 제약 수가 검증된 초안과 같은지 비교함. 제약은 Community 판이 지원하는 UNIQUENESS만이어야 함
+- 스키마: {문서 종류}/graph_schema.json을 한글 그대로(UTF-8) 쓰고, UTF-8로 다시 읽어 GraphSchema로 검증한 뒤
+  노드 타입, 관계, 패턴, 제약 수가 검증된 초안과 같은지 비교함. 제약은 Community 판이 지원하는 UNIQUENESS만이어야 함.
+  GraphSchema.save()는 한글을 \\uXXXX로 바꿔 쓰고 from_file()은 Windows 기본 인코딩(cp949)으로 읽어 한글 파일을
+  못 읽으므로, 같은 일(model_dump로 쓰고 model_validate로 읽기)을 UTF-8로 직접 함
 - 공통 개념 층: concepts_draft.json에서 통과한 문서 종류와 관련된 내용을 common/concepts.json에 보탬.
   저장 전에 기존 층의 판 번호와 SHA-256 값이 1단계 기록과 같은지 비교함(다르면 저장하지 않음)
 - 추출 단위 글 규칙: {문서 종류}/unit_text_rules.json(청크를 추출 단위로 나누는 규칙, 단위 앞에 붙일 머리줄 칸).
@@ -38,8 +40,8 @@ def save_schema(doc_type: str) -> dict:
     draft = read_json(BASE_DIR / doc_type / "output/schema_draft.json")
     validated = GraphSchema.model_validate(copy.deepcopy(draft))
     path = BASE_DIR / doc_type / "graph_schema.json"
-    validated.save(str(path))
-    reloaded = GraphSchema.from_file(str(path))
+    write_json(path, validated.model_dump(mode="json"))  # 한글 그대로 UTF-8로 씀
+    reloaded = GraphSchema.model_validate(read_json(path))  # UTF-8로 읽어 다시 검증
     kinds = sorted({str(getattr(c.type, "value", c.type)) for c in reloaded.constraints})
     result = {"path": rel(path), "validated": counts(validated), "reloaded": counts(reloaded),
               "same": counts(validated) == counts(reloaded), "constraint_types": kinds,

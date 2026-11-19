@@ -3,7 +3,7 @@
 하위 명령:
   judge     structure.json → output/judgment_table.md (규칙 ②③④ 자동 판정, 규칙 ① 후보 표시)
   draft     + decisions.json → output/schema_draft.json, 기계 검증, output/schema.mmd, output/schema_preview.html
-  finalize  후보 표시가 하나도 없을 때만 → graph_schema.json(GraphSchema.save), approval.json
+  finalize  후보 표시가 하나도 없을 때만 → graph_schema.json(한글 그대로 UTF-8), approval.json
 
 판정 기준(위에서부터 먼저 맞는 것을 적용, FK 개수는 열 수가 아니라 제약 수):
   다른 테이블의 FK가 가리킴 → 노드 타입(관계는 FK가 가리킬 수 없음)
@@ -284,8 +284,9 @@ def cmd_finalize(args: argparse.Namespace) -> None:
     if check(schema):
         raise SystemExit("기계 검증 실패")
     write_json(DRAFT, schema)  # 승인된 decisions.json 기준으로 초안도 맞춰 둠
-    GraphSchema.model_validate(copy.deepcopy(schema)).save(FINAL, overwrite=True)
-    reloaded = GraphSchema.from_file(FINAL)
+    # GraphSchema.save()는 한글을 \uXXXX로 쓰고 from_file()은 cp949로 읽어 한글 파일을 못 읽음 → UTF-8로 직접 쓰고 읽음
+    write_json(FINAL, GraphSchema.model_validate(copy.deepcopy(schema)).model_dump(mode="json"))
+    reloaded = GraphSchema.model_validate(load(FINAL))
     got = {"node_types": len(reloaded.node_types), "relationship_types": len(reloaded.relationship_types),
            "patterns": len(reloaded.patterns), "constraints": len(reloaded.constraints)}
     want = counts(schema)

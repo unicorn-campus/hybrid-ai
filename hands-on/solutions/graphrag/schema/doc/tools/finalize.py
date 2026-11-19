@@ -1,6 +1,8 @@
 """9단계: 8단계 통과가 승인된 문서 종류만 GraphSchema 파일, 승인 기록, 추출 청크 글 규칙을 만듦.
 
-GraphSchema.save()로 저장한 뒤 from_file()로 다시 읽어 노드 타입, 관계, 패턴, 제약 수가 초안과 같은지 비교함.
+스키마를 한글 그대로(UTF-8) 저장한 뒤 다시 읽어 노드 타입, 관계, 패턴, 제약 수가 초안과 같은지 비교함.
+GraphSchema.save()는 한글을 \\uXXXX로 바꿔 쓰고, from_file()은 Windows 기본 인코딩(cp949)으로 읽어 한글 파일을
+못 읽음. 그래서 같은 일(model_dump로 쓰고 model_validate로 읽기)을 UTF-8로 직접 함.
 인덱서는 graph_schema.json과 unit_text_rules.json만 읽음. schema_spec.json은 설계 단계의 중간 파일임.
 실행: python tools/finalize.py {doc} → {doc}/graph_schema.json, {doc}/approval.json, {doc}/unit_text_rules.json
 """
@@ -35,9 +37,8 @@ def main() -> None:
         raise SystemExit(f"{doc}: 8단계 합격 기준 미달이라 9단계를 진행하지 않음 (확정하려면 --accept-below=사유)")
     draft = load_json(f"{doc}/output/schema_draft.json")
     schema = GraphSchema.model_validate(copy.deepcopy(draft))
-    path = BASE / doc / "graph_schema.json"
-    schema.save(str(path), overwrite=True)
-    reread = GraphSchema.from_file(str(path))
+    save_json(f"{doc}/graph_schema.json", schema.model_dump(mode="json"))  # 한글 그대로 UTF-8로 씀
+    reread = GraphSchema.model_validate(load_json(f"{doc}/graph_schema.json"))  # UTF-8로 읽어 다시 검증
     want = counts(schema)  # 검증을 거친 초안 기준(required 속성이 제약으로 바뀌는 판이 있어 원본 dict 수와 다를 수 있음)
     got = counts(reread)
     same = want == got
