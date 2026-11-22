@@ -84,7 +84,7 @@ COLLECTION_NAME = "card_docs"  # RAG 실습과 약속한 collection 이름
 # 고유 속성 version을 채움. 없으면 LLM이 파일 이름을 version에 넣는 일이 생김(2026-10-24 실측)
 DOC_PROFILES = {"D1": {"version": "1.2", "effective_date": "2027-01-15", "supersedes": "1.1"}}
 
-# 문서 유형별 그래프 스키마와 공통 개념 층: 스키마 설계(prompts/design-kg-schema-doc-ontology.md)가 확정한 결과. 읽기만 함
+# 문서 유형별 그래프 스키마와 공통 개념 층: 스키마 설계(prompts/design-kg-schema-ontology.md)가 확정한 결과. 읽기만 함
 SCHEMA_DIR = BASE_DIR.parent / "schema" / "doc-ontology"
 # 온톨로지 원본(Turtle): Class와 관계(card.ttl), 검사 규칙(shapes/checks.ttl), 맞추기 표(maps/). 읽기만 함.
 # graph_schema.json도 이 원본에서 만들어 낸 것임(ttl/tools/build_from_ttl.py)

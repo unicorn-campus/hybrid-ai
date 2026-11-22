@@ -1,9 +1,0 @@
-flowchart LR
-  subgraph regulation["약관"]
-    Article[":Article<br/>(조항)<br/>---<br/>article_no<br/>title<br/>condition<br/>action<br/>deadline<br/>amount"]
-  end
-  Topic{{":Topic<br/>(주제, 공통)<br/>---<br/>name"}}
-  Article -->|ABOUT| Topic
-  Article -->|REFERS_TO| Article
-  classDef shared fill:#fff3d6,stroke:#c98a00
-  class Topic shared

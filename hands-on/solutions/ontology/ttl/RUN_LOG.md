@@ -157,3 +157,17 @@ LLM이 후보를 내고, 사람이 확정하고, Turtle 초안에 적어 승인�
 - 확정 전 52건: 대상 문장 없음 18건, 여러 업종을 나열한 문장, 주말 한정 일반 가맹점, 후보가 갈린 「편의점 하루상점」 3건 등  
 - 평가 질문 가운데 업종을 묻는 문항이 없어 답변까지의 확인은 하지 않음. 경로 점검으로만 확인함  
 - Neo4j와 OpenSearch에 세대 `gen-lab-ttl-f4-ddf8bca3`가 더 생김. 앞선 `ttl-f1` ~ `ttl-f3`은 지우지 않았음
+
+## 8. 이름과 폴더 정리(2026-11-22, 사용자가 직접 함)
+
+- 프롬프트 이름을 `prompts/design-kg-schema-ontology.md`로 바꿈. 이 문서의 앞 절에 나오는 `design-kg-schema-doc-turtle.md`가 이 파일임(내용 같음)  
+- 옛 프롬프트 `prompts/design-kg-schema-doc-ontology.md`와 옛 폴더 `hands-on/solutions/graphrag-ontology`를 지움.  
+  둘 다 Git 기록(커밋 c4fbcd7까지)에 남아 있음. 이 문서의 앞 절에서 「비교 기준」으로 부른 것이 그 폴더임  
+- 비교 기준으로 쓰던 세대 결과는 이 폴더의 `indexer/data/generations/gen-lab-doconto-f1-0c0b0e64`와 `indexer/data/reuse-doconto-f1`에 사본이 있음(Git 밖)  
+- 이에 맞춰 코드 주석과 도구의 경로를 고침: `indexer/core_ontology.py`, `indexer/index_graph.py`, `schema/doc-ontology/tools/common.py`,  
+  `prepare.py`(정형 DB 구조 명세 경로를 이 폴더의 `schema/rdb`로), `render_step2.py`  
+- 그대로 둔 것: `sources.json`, `decisions.json`, `approval.json`, `review/step1.md`, `step2.md`, `schema/doc-ontology/RUN_LOG.md`에 적힌 옛 경로.  
+  2026-11-18 설계 당시의 기록이라 고치지 않음  
+- 프롬프트를 만들던 스크립트(`.temp/ontology-turtle-trial/make_turtle_prompt.py`)는 옛 프롬프트를 읽어 만들던 것이라 더 쓰지 않음.  
+  앞으로는 `prompts/design-kg-schema-ontology.md`를 직접 고침  
+- Neo4j와 OpenSearch에는 옛 폴더가 만든 세대 `gen-lab-doconto-f1-0c0b0e64`가 남아 있음(지우지 않았음)

@@ -1,6 +1,6 @@
 """KG 스키마 설계(온톨로지 판) 도구들이 함께 쓰는 경로와 기록 함수.
 
-프롬프트 `prompts/design-kg-schema-doc-turtle.md`의 1 ~ 9단계 스크립트가 이 파일을 불러 씀.
+프롬프트 `prompts/design-kg-schema-ontology.md`의 1 ~ 9단계 스크립트가 이 파일을 불러 씀.
 온톨로지 원본(Turtle)을 읽고 쓰는 함수는 ttl/tools/ttl_write.py에 있고, 이 파일이 그 폴더를 불러올 경로에 넣어 줌.
 - 경로: 저장소 루트와 출력 기준 폴더(base_dir)
 - 파일: JSON 읽기와 쓰기, SHA-256 값 계산
@@ -52,7 +52,7 @@ def sha256_of(path: Path | str) -> str:
 def load_decisions() -> dict:
     if DECISIONS_PATH.exists():
         return read_json(DECISIONS_PATH)
-    return {"prompt": "prompts/design-kg-schema-doc-turtle.md", "input": {}, "steps": []}
+    return {"prompt": "prompts/design-kg-schema-ontology.md", "input": {}, "steps": []}
 
 
 def record_step(step: str, title: str, content: dict, review: str | None = None,

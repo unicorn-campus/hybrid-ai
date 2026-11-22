@@ -213,7 +213,7 @@ AI 제안 3개(R4, M3, X3)는 빼도 됨. 넣은 까닭은 「근거」 칸에 �
 함께 볼 원본 파일
 - 역량 질문: `competency_questions.md`, `competency_questions.json`
 - 건너가는 지점: `crossing_points.json`
-- 사용자 질문: `hands-on/solutions/eval-set-full.json`, `hands-on/solutions/graphrag-ontology/README.md`
+- 사용자 질문: `hands-on/solutions/eval-set-full.json`, `hands-on/solutions/ontology/README.md`
 - 원천 목록 표: `sources.json`. 값 목록: `inputs/value_lists.json`, `inputs/key_values.json`
 - 작성 가이드: `references/how-to-competency-question.md`
 """, encoding="utf-8", newline="\n")

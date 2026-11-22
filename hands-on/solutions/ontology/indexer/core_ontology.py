@@ -1,6 +1,6 @@
 """온톨로지 결합 인덱싱 함수 모음. 스키마 설계(`schema/doc-ontology`)가 확정한 결과를 그대로 따름.
 
-스키마 설계 프롬프트(`prompts/design-kg-schema-doc-ontology.md`) 9단계가 남긴 추출 단위 글 규칙(unit_text_rules.json)대로
+스키마 설계 프롬프트(`prompts/design-kg-schema-ontology.md`) 9단계가 남긴 추출 단위 글 규칙(unit_text_rules.json)대로
 인덱싱에서도 같은 글로 추출하려고, 추출 단위와 머리줄과 머리줄 값 보정은 스키마 설계 도구(`schema/doc-ontology/tools`)의
 함수를 불러 씀. 파일에 적힌 규칙과 그 함수의 규칙이 같은지는 check_unit_text_rules가 시작할 때 확인함.
 

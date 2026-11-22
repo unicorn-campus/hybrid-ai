@@ -7,8 +7,9 @@ Class, 관계, 검사 규칙, 맞추기 표를 표준 형식(Turtle) 파일로 �
 
 ## 0. 이 폴더는 무엇인가(Turtle 원본판)
 
-`hands-on/solutions/graphrag`를 복사하고, `graphrag-ontology`에서 사람이 승인한 설계 결과(2026-11-18)를 얹은 뒤,  
-온톨로지를 적는 곳을 JSON에서 Turtle로 바꾼 폴더임(2026-11-22). 원래 두 폴더는 고치지 않았음.  
+`hands-on/solutions/graphrag`를 복사하고, 옛 `graphrag-ontology` 폴더에서 사람이 승인한 설계 결과(2026-11-18)를 얹은 뒤,  
+온톨로지를 적는 곳을 JSON에서 Turtle로 바꾼 폴더임(2026-11-22).  
+`graphrag-ontology` 폴더는 이 폴더로 바뀌면서 2026-11-22에 저장소에서 지웠고, Git 기록(커밋 c4fbcd7까지)에 남아 있음.  
 전제: 정형 데이터(회원, 카드, 거래)의 행은 PostgreSQL에 그대로 두고, 문서 노드에는 키 속성(상품 ID, 회원 가명 ID)만 둠.
 
 ### 0.1 무엇이 원본이고 무엇이 생성물인가
@@ -27,7 +28,7 @@ Class, 관계, 검사 규칙, 맞추기 표를 표준 형식(Turtle) 파일로 �
 - 표준에 없어 우리가 지은 낱말(`card:kind`, `card:order`, `card:fill` 등)은 `indexer/core_turtle.py`의 `CUSTOM_TERMS`에 뜻과 함께 적어 둠  
 - 낱말 주소 `card:`는 `https://hanbit-card.example/ontology#`임(가상 회사 주소)  
 - 옛 JSON 기록(`common/concepts.json`, `common/*_map_approved.json`)과 옛 도구(`tools/build_schema.py`,  
-  `common/tools/check_concepts.py`)는 이 폴더에서 지웠음. 내용은 모두 Turtle로 옮기고 대조했으며 `graphrag-ontology`에 그대로 남아 있음
+  `common/tools/check_concepts.py`)는 이 폴더에서 지웠음. 내용은 모두 Turtle로 옮기고 대조했으며, 옛 파일은 Git 기록의 `graphrag-ontology` 폴더에 남아 있음
 
 ### 0.2 어느 단계가 Turtle을 어떻게 읽고 쓰는가
 
@@ -42,7 +43,7 @@ Class, 관계, 검사 규칙, 맞추기 표를 표준 형식(Turtle) 파일로 �
 | 인덱서 | 공통 개념 층 싣기, 주제 이름 맞추기, 업종 잇기, SHACL 검사(K01 ~ K09), 재사용 판단(내용 지문) | `indexer/core_turtle.py`의 `load_concepts`, `load_topic_map`, `load_category_map`, `run_checks`, `signature` |
 | 검색기 | 엔티티 찾기의 키 표를 `owl:hasKey`에서 읽음. 그 밖은 그래프에 실린 공통 개념 층을 읽음 | `core_turtle.entity_keys` → `retriever/search_graph.py`의 `find_entities` |
 
-- 스키마 설계 절차는 `prompts/design-kg-schema-doc-turtle.md`를 따름(기존 `design-kg-schema-doc-ontology.md`에서 적는 곳만 Turtle로 바꾼 것)  
+- 스키마 설계 절차는 `prompts/design-kg-schema-ontology.md`를 따름(JSON에 적던 옛 온톨로지 프롬프트를 대신함)  
 - 인덱서와 검색기는 Turtle을 읽기만 하고, 쓰는 것은 스키마 설계 도구뿐임  
 - 지문은 글자가 아니라 내용으로 만듦. 주석이나 줄 순서만 바뀌면 지문이 같아 다시 인덱싱하지 않음
 

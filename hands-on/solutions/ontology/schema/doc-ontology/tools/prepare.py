@@ -18,8 +18,8 @@ from common import BASE_DIR, REPO_ROOT, SNAPSHOT_PATH, rel, sha256_of, write_jso
 CHROMA_DIR = REPO_ROOT / "hands-on/solutions/rag/indexing/data/chroma"
 COLLECTION = "card_docs"
 PAGE = 100  # 한 번에 읽는 청크 수(건수가 많아도 나눠 읽게 함)
-RDB_SCHEMA = REPO_ROOT / "hands-on/solutions/graphrag-ontology/schema/rdb/graph_schema.json"
-RDB_STRUCTURE = REPO_ROOT / "hands-on/solutions/graphrag-ontology/schema/rdb/output/structure.json"
+RDB_SCHEMA = REPO_ROOT / "hands-on/solutions/ontology/schema/rdb/graph_schema.json"
+RDB_STRUCTURE = REPO_ROOT / "hands-on/solutions/ontology/schema/rdb/output/structure.json"
 RDB_DDL = REPO_ROOT / "backing-services/rdb/init/01_schema.sql"
 RDB_SEED = REPO_ROOT / "backing-services/rdb/init/02_seed.sql"
 
