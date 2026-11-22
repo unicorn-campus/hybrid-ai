@@ -1,0 +1,123 @@
+{
+  "sources": [
+    {
+      "name": "정형 DB(cardlab)",
+      "kind": "정형 DB(PostgreSQL)",
+      "spec_files": [
+        "hands-on/solutions/graphrag-ontology/schema/rdb/graph_schema.json",
+        "hands-on/solutions/graphrag-ontology/schema/rdb/output/structure.json"
+      ],
+      "spec_sha256": {
+        "hands-on/solutions/graphrag-ontology/schema/rdb/graph_schema.json": "ffa42d5b23cd2f2d614ea217022ca49b32dfa257cfb1fd58eca02ecb2db73dcd",
+        "hands-on/solutions/graphrag-ontology/schema/rdb/output/structure.json": "91fcbfa463e8e766124b5edab264cc1a9220c60a259591ecf074470fc6a33360"
+      },
+      "labels": [
+        {
+          "label": "Card",
+          "korean_name": "카드",
+          "key_properties": [
+            "card_id"
+          ],
+          "properties": [
+            "card_id",
+            "issue_date",
+            "status"
+          ]
+        },
+        {
+          "label": "CardTxn",
+          "korean_name": "카드거래",
+          "key_properties": [
+            "txn_id"
+          ],
+          "properties": [
+            "txn_id",
+            "txn_date",
+            "amount",
+            "approval_code"
+          ]
+        },
+        {
+          "label": "Delinquency",
+          "korean_name": "연체",
+          "key_properties": [
+            "member_id",
+            "base_month"
+          ],
+          "properties": [
+            "member_id",
+            "base_month",
+            "overdue_days",
+            "overdue_count_12m",
+            "overdue_amount"
+          ]
+        },
+        {
+          "label": "Member",
+          "korean_name": "회원",
+          "key_properties": [
+            "member_id"
+          ],
+          "properties": [
+            "member_id",
+            "segment_id",
+            "join_date",
+            "age_band"
+          ]
+        },
+        {
+          "label": "Merchant",
+          "korean_name": "가맹점",
+          "key_properties": [
+            "merchant_id"
+          ],
+          "properties": [
+            "merchant_id",
+            "merchant_name",
+            "category"
+          ]
+        },
+        {
+          "label": "Product",
+          "korean_name": "상품",
+          "key_properties": [
+            "product_id"
+          ],
+          "properties": [
+            "product_id",
+            "product_name",
+            "effective_date",
+            "family_card_available",
+            "family_card_rule"
+          ]
+        },
+        {
+          "label": "ProductAnnualFee",
+          "korean_name": "상품연회비",
+          "key_properties": [
+            "product_id",
+            "brand"
+          ],
+          "properties": [
+            "product_id",
+            "brand",
+            "base_fee",
+            "service_fee",
+            "total_fee"
+          ]
+        }
+      ],
+      "relationships": [
+        "HAS_CARD",
+        "APPLIES_FEE",
+        "MADE_TXN",
+        "AT_MERCHANT",
+        "HAS_DELINQUENCY",
+        "HAS_ANNUAL_FEE"
+      ],
+      "not_in_spec": [
+        "값 목록(Merchant.category, Member.segment_id의 뜻)"
+      ]
+    }
+  ]
+}

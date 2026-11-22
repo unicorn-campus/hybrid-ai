@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>스키마 초안: 상담 기록</title>
+<style>body{font-family:Pretendard,system-ui,sans-serif;margin:24px;background:#fff;color:#222} h2{margin-top:32px}
+#status{padding:8px;background:#eef;}</style></head>
+<body><h1>스키마 초안: 상담 기록</h1><div id="status">그리는 중</div>
+<h2>상담 기록</h2>
+<pre class="mermaid">
+flowchart LR
+  subgraph consult_log[&quot;상담 기록&quot;]
+    Consultation[&quot;:Consultation&lt;br/&gt;(상담)&lt;br/&gt;---&lt;br/&gt;record_id&lt;br/&gt;consult_date&lt;br/&gt;channel&lt;br/&gt;member_pseudo_id&lt;br/&gt;product_id&lt;br/&gt;card_name&lt;br/&gt;subject&lt;br/&gt;progress&lt;br/&gt;follow_up_method&quot;]
+    CustomerSegment[&quot;:CustomerSegment&lt;br/&gt;(고객군)&lt;br/&gt;---&lt;br/&gt;name&quot;]
+    Complaint[&quot;:Complaint&lt;br/&gt;(불만)&lt;br/&gt;---&lt;br/&gt;content&quot;]
+    Request[&quot;:Request&lt;br/&gt;(요청)&lt;br/&gt;---&lt;br/&gt;content&quot;]
+    Proposal[&quot;:Proposal&lt;br/&gt;(제안)&lt;br/&gt;---&lt;br/&gt;content&lt;br/&gt;accepted&lt;br/&gt;reason&quot;]
+  end
+  Topic{{&quot;:Topic&lt;br/&gt;(주제, 공통)&lt;br/&gt;---&lt;br/&gt;name&quot;}}
+  Complaint --&gt;|ABOUT| Topic
+  Consultation --&gt;|FOLLOWS| Consultation
+  Consultation --&gt;|HAS_COMPLAINT| Complaint
+  Consultation --&gt;|HAS_PROPOSAL| Proposal
+  Consultation --&gt;|HAS_REQUEST| Request
+  Consultation --&gt;|IN_SEGMENT| CustomerSegment
+  classDef shared fill:#fff3d6,stroke:#c98a00
+  class Topic shared
+</pre>
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.esm.min.mjs";
+mermaid.initialize({startOnLoad:false, flowchart:{htmlLabels:true}});
+try { await mermaid.run({querySelector:".mermaid"}); document.getElementById("status").textContent="그림 " + document.querySelectorAll(".mermaid svg").length + "장 그림, 오류 없음"; }
+catch (e) { document.getElementById("status").textContent="오류: " + e.message; }
+</script></body></html>

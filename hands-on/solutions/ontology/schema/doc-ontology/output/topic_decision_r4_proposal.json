@@ -1,0 +1,18 @@
+{
+  "decided_by": "클로니 수정안(사용자 확정 전)",
+  "date": "2026-11-18",
+  "status": "proposal",
+  "approve_groups": [
+    "가계부",
+    "전자 명세서",
+    "조회 화면"
+  ],
+  "hold_groups": [
+    "이용",
+    "인증수단"
+  ],
+  "move": {
+    "인증": "본인 확인"
+  },
+  "not_linked": []
+}

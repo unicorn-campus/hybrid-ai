@@ -1,0 +1,16 @@
+{
+  "doc": "regulation",
+  "extraction_unit_rule": {
+    "unit": "조항 하나",
+    "heading": "^(제\\d+조(?:의\\d+)?)\\(([^)]*)\\)\\s*$",
+    "body_start": "제목 줄 바로 다음 줄부터. 본문 줄이 하나도 없는 제목(차례)은 단위로 만들지 않음",
+    "drop_lines": "^제\\d+장\\s",
+    "no_heading_chunk": "제목 줄이 없는 청크(표지, 문서 정보, 각주)는 청크째로 한 단위"
+  },
+  "metadata_header": [
+    "article_no",
+    "title"
+  ],
+  "header_version": 2,
+  "rule_code": "tools/units.py(split_chunk, header_of version 2, header_values)"
+}

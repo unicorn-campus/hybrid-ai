@@ -1,0 +1,54 @@
+LLMInterface is deprecated and will be removed in future versions. Please use LLMInterfaceV2 instead.
+[benefit_guide] D2-C018-B01: 노드 3 → 가지치기 뒤 3, 시도 1
+[benefit_guide] D2-C050-B02: 노드 6 → 가지치기 뒤 6, 시도 1
+[benefit_guide] D2-C050-B03: 노드 2 → 가지치기 뒤 2, 시도 1
+[benefit_guide] D2-C005-B02: 노드 1 → 가지치기 뒤 1, 시도 1
+[benefit_guide] D2-C007-B04: 노드 2 → 가지치기 뒤 2, 시도 1
+[benefit_guide] D2-C054-B04: 노드 3 → 가지치기 뒤 3, 시도 1
+[benefit_guide] D2-C005-B03: 노드 2 → 가지치기 뒤 2, 시도 1
+PRUNING: all nodes were pruned, resulting graph will be empty. Check logs for details.
+[benefit_guide] D2-C002-B02: 노드 0 → 가지치기 뒤 0, 시도 2
+[benefit_guide] D2-C002-B03: 노드 3 → 가지치기 뒤 3, 시도 1
+[benefit_guide] D2-C010-B02: 노드 2 → 가지치기 뒤 2, 시도 2
+[benefit_guide] D2-C059-B03: 노드 3 → 가지치기 뒤 3, 시도 1
+PRUNING: all nodes were pruned, resulting graph will be empty. Check logs for details.
+[benefit_guide] D2-C027-B01: 노드 0 → 가지치기 뒤 0, 시도 2
+[benefit_guide] D2-C024-B01: 노드 3 → 가지치기 뒤 3, 시도 2
+[benefit_guide] D2-C042-B03: 노드 2 → 가지치기 뒤 2, 시도 1
+[benefit_guide] D2-C014-B02: 노드 2 → 가지치기 뒤 2, 시도 1
+[benefit_guide] D2-C055-B01: 노드 1 → 가지치기 뒤 1, 시도 1
+[benefit_guide] D2-C045-B01: 노드 4 → 가지치기 뒤 4, 시도 1
+[benefit_guide] D2-C038-B01: 노드 4 → 가지치기 뒤 4, 시도 1
+[benefit_guide] D2-C036-B02: 노드 1 → 가지치기 뒤 1, 시도 1
+[benefit_guide] D2-C036-B03: 노드 3 → 가지치기 뒤 3, 시도 1
+[benefit_guide] D2-C044-B03: 노드 2 → 가지치기 뒤 2, 시도 1
+[benefit_guide] D2-C044-B02: 노드 3 → 가지치기 뒤 3, 시도 1
+PRUNING: all nodes were pruned, resulting graph will be empty. Check logs for details.
+[benefit_guide] D2-0003: 노드 0 → 가지치기 뒤 0, 시도 1
+[benefit_guide] D2-C041-B01: 노드 2 → 가지치기 뒤 2, 시도 1
+PRUNING: all nodes were pruned, resulting graph will be empty. Check logs for details.
+[benefit_guide] D2-0004: 노드 0 → 가지치기 뒤 0, 시도 1
+PRUNING: all nodes were pruned, resulting graph will be empty. Check logs for details.
+[benefit_guide] D2-0195: 노드 0 → 가지치기 뒤 0, 시도 1
+[benefit_guide] D2-C013-B02: 노드 3 → 가지치기 뒤 3, 시도 1
+PRUNING: all nodes were pruned, resulting graph will be empty. Check logs for details.
+[benefit_guide] D2-0005: 노드 0 → 가지치기 뒤 0, 시도 1
+[benefit_guide] D2-0193: 노드 1 → 가지치기 뒤 1, 시도 1
+[benefit_guide] D2-C007-B05: 노드 2 → 가지치기 뒤 2, 시도 1
+[benefit_guide] D2-C053-B05: 노드 1 → 가지치기 뒤 1, 시도 1
+[benefit_guide] D2-C045-B05: 노드 4 → 가지치기 뒤 4, 시도 1
+[benefit_guide] D2-C063-B04: 노드 6 → 가지치기 뒤 6, 시도 1
+[benefit_guide] D2-C002-B04: 노드 5 → 가지치기 뒤 5, 시도 1
+[benefit_guide] D2-C037-B06: 노드 6 → 가지치기 뒤 6, 시도 1
+[benefit_guide] D2-C044-B04: 노드 4 → 가지치기 뒤 4, 시도 1
+[benefit_guide] D2-C048-B05: 노드 1 → 가지치기 뒤 1, 시도 1
+PRUNING: all nodes were pruned, resulting graph will be empty. Check logs for details.
+[benefit_guide] D2-C011-B05: 노드 0 → 가지치기 뒤 0, 시도 1
+[benefit_guide] D2-C008-B01: 노드 2 → 가지치기 뒤 2, 시도 1
+[benefit_guide] D2-C063-B03: 노드 3 → 가지치기 뒤 3, 시도 1
+[benefit_guide] D2-C063-B02: 노드 3 → 가지치기 뒤 3, 시도 2
+[benefit_guide] D2-C011-B04: 노드 0 → 가지치기 뒤 0, 시도 3, 실패 BadRequestError: Error code: 400 - {'error': {'message': "Failed to generate JSO
+[benefit_guide] D2-C046-B01: 노드 3 → 가지치기 뒤 3, 시도 1
+[benefit_guide] D2-C056-B01: 노드 3 → 가지치기 뒤 3, 시도 1
+[benefit_guide] D2-C048-B04: 노드 4 → 가지치기 뒤 4, 시도 3
+[benefit_guide] 끝: 단위 45, 실패 1, 토큰 144,942, 57초

@@ -1,0 +1,17 @@
+flowchart LR
+  subgraph consult_log["상담 기록"]
+    Consultation[":Consultation<br/>(상담)<br/>---<br/>record_id<br/>consult_date<br/>channel<br/>member_pseudo_id<br/>product_id<br/>card_name<br/>subject<br/>progress<br/>follow_up_method"]
+    CustomerSegment[":CustomerSegment<br/>(고객군)<br/>---<br/>name"]
+    Complaint[":Complaint<br/>(불만)<br/>---<br/>content"]
+    Request[":Request<br/>(요청)<br/>---<br/>content"]
+    Proposal[":Proposal<br/>(제안)<br/>---<br/>content<br/>accepted<br/>reason"]
+  end
+  Topic{{":Topic<br/>(주제, 공통)<br/>---<br/>name"}}
+  Complaint -->|ABOUT| Topic
+  Consultation -->|FOLLOWS| Consultation
+  Consultation -->|HAS_COMPLAINT| Complaint
+  Consultation -->|HAS_PROPOSAL| Proposal
+  Consultation -->|HAS_REQUEST| Request
+  Consultation -->|IN_SEGMENT| CustomerSegment
+  classDef shared fill:#fff3d6,stroke:#c98a00
+  class Topic shared

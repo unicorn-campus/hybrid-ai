@@ -1,0 +1,4 @@
+# 실행 결과와 캐시는 Git에 올리지 않음(강사 배포본 data/teacher/만 예외)
+data/*
+!data/teacher/
+__pycache__/

@@ -1,0 +1,468 @@
+# 주제 맞추기 표(원본). LLM이 지은 주제 이름을 대표 이름 하나로 모음.
+#   skos:prefLabel  대표 이름. skos:altLabel  같은 주제로 확정한 다른 이름
+#   card:PendingMapping  아직 확정하지 않은 이름(status가 needs_review) 또는 잇지 않기로 한 이름(not_linked). 인덱서는 확정한 것만 바꿈
+
+@prefix card: <https://hanbit-card.example/ontology#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+card:pending_topic_거래 a card:PendingMapping ;
+    card:name "거래" ;
+    card:proposed "거래" ;
+    card:status "needs_review" .
+
+card:pending_topic_거래_확인 a card:PendingMapping ;
+    card:name "거래 확인" ;
+    card:proposed "거래" ;
+    card:status "needs_review" .
+
+card:pending_topic_결제 a card:PendingMapping ;
+    card:name "결제" ;
+    card:proposed "결제" ;
+    card:status "needs_review" .
+
+card:pending_topic_결제_조건 a card:PendingMapping ;
+    card:name "결제 조건" ;
+    card:proposed "결제" ;
+    card:status "needs_review" .
+
+card:pending_topic_결제금액 a card:PendingMapping ;
+    card:name "결제금액" ;
+    card:proposed "결제" ;
+    card:status "needs_review" .
+
+card:pending_topic_계산 a card:PendingMapping ;
+    card:name "계산" ;
+    card:status "needs_review" .
+
+card:pending_topic_교육 a card:PendingMapping ;
+    card:name "교육" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_교통 a card:PendingMapping ;
+    card:name "교통" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_놀이공원 a card:PendingMapping ;
+    card:name "놀이공원" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_단골 a card:PendingMapping ;
+    card:name "단골" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_단골_보너스 a card:PendingMapping ;
+    card:name "단골 보너스" ;
+    card:proposed "보너스" ;
+    card:status "needs_review" .
+
+card:pending_topic_단말기 a card:PendingMapping ;
+    card:name "단말기" ;
+    card:proposed "결제" ;
+    card:status "needs_review" .
+
+card:pending_topic_대중교통 a card:PendingMapping ;
+    card:name "대중교통" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_동의 a card:PendingMapping ;
+    card:name "동의" ;
+    card:proposed "이용" ;
+    card:status "needs_review" .
+
+card:pending_topic_렌탈 a card:PendingMapping ;
+    card:name "렌탈" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_보너스 a card:PendingMapping ;
+    card:name "보너스" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_생활_업종 a card:PendingMapping ;
+    card:name "생활 업종" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_생활요금 a card:PendingMapping ;
+    card:name "생활요금" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_선택_서비스 a card:PendingMapping ;
+    card:name "선택 서비스" ;
+    card:proposed "계약 해지" ;
+    card:status "needs_review" .
+
+card:pending_topic_쇼핑_할인 a card:PendingMapping ;
+    card:name "쇼핑 할인" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_안내 a card:PendingMapping ;
+    card:name "안내" ;
+    card:status "needs_review" .
+
+card:pending_topic_안내문 a card:PendingMapping ;
+    card:name "안내문" ;
+    card:status "needs_review" .
+
+card:pending_topic_외식 a card:PendingMapping ;
+    card:name "외식" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_원화결제 a card:PendingMapping ;
+    card:name "원화결제" ;
+    card:proposed "결제" ;
+    card:status "needs_review" .
+
+card:pending_topic_이용 a card:PendingMapping ;
+    card:name "이용" ;
+    card:proposed "이용" ;
+    card:status "needs_review" .
+
+card:pending_topic_이용_기간 a card:PendingMapping ;
+    card:name "이용 기간" ;
+    card:proposed "이용" ;
+    card:status "needs_review" .
+
+card:pending_topic_이용_기준 a card:PendingMapping ;
+    card:name "이용 기준" ;
+    card:proposed "이용" ;
+    card:status "needs_review" .
+
+card:pending_topic_이용_원칙 a card:PendingMapping ;
+    card:name "이용 원칙" ;
+    card:proposed "이용" ;
+    card:status "needs_review" .
+
+card:pending_topic_이용금액 a card:PendingMapping ;
+    card:name "이용금액" ;
+    card:proposed "이용" ;
+    card:status "needs_review" .
+
+card:pending_topic_이용내역 a card:PendingMapping ;
+    card:name "이용내역" ;
+    card:proposed "이용" ;
+    card:status "needs_review" .
+
+card:pending_topic_이용대금_결제 a card:PendingMapping ;
+    card:name "이용대금 결제" ;
+    card:proposed "결제" ;
+    card:status "needs_review" .
+
+card:pending_topic_이용한도 a card:PendingMapping ;
+    card:name "이용한도" ;
+    card:proposed "이용" ;
+    card:status "needs_review" .
+
+card:pending_topic_일상_업종 a card:PendingMapping ;
+    card:name "일상 업종" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_일시불_결제 a card:PendingMapping ;
+    card:name "일시불 결제" ;
+    card:proposed "결제" ;
+    card:status "needs_review" .
+
+card:pending_topic_장기할부 a card:PendingMapping ;
+    card:name "장기할부" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_적립 a card:PendingMapping ;
+    card:name "적립" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_전기·통신·해외_캐시백 a card:PendingMapping ;
+    card:name "전기·통신·해외 캐시백" ;
+    card:proposed "캐시백" ;
+    card:status "needs_review" .
+
+card:pending_topic_전기차_충전 a card:PendingMapping ;
+    card:name "전기차 충전" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_주말 a card:PendingMapping ;
+    card:name "주말" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_차량_구매 a card:PendingMapping ;
+    card:name "차량 구매" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_첫_이용 a card:PendingMapping ;
+    card:name "첫 이용" ;
+    card:proposed "보너스" ;
+    card:status "needs_review" .
+
+card:pending_topic_최초_이용 a card:PendingMapping ;
+    card:name "최초 이용" ;
+    card:proposed "이용" ;
+    card:status "needs_review" .
+
+card:pending_topic_친환경_실천 a card:PendingMapping ;
+    card:name "친환경 실천" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_캐시백 a card:PendingMapping ;
+    card:name "캐시백" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_할인 a card:PendingMapping ;
+    card:name "할인" ;
+    card:proposed "할인" ;
+    card:status "needs_review" .
+
+card:pending_topic_해외_이용_수수료 a card:PendingMapping ;
+    card:name "해외 이용 수수료" ;
+    card:status "needs_review" .
+
+card:pending_topic_혜택 a card:PendingMapping ;
+    card:name "혜택" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:pending_topic_혜택_제외 a card:PendingMapping ;
+    card:name "혜택 제외" ;
+    card:proposed "혜택" ;
+    card:status "needs_review" .
+
+card:topicMap a owl:Ontology ;
+    dcterms:creator "hiondal(사용자)" ;
+    dcterms:dateAccepted "2026-11-18" .
+
+card:topic_가계부 a skos:Concept ;
+    skos:prefLabel "가계부" .
+
+card:topic_가맹점 a skos:Concept ;
+    skos:altLabel "가상 마트",
+        "가상 쇼핑몰",
+        "가상서비스",
+        "나무잔",
+        "일반 가맹점",
+        "커피점" ;
+    skos:prefLabel "가맹점" .
+
+card:topic_가상편의점 a skos:Concept ;
+    skos:altLabel "가상 편의점",
+        "교환권" ;
+    skos:prefLabel "가상편의점" .
+
+card:topic_가족카드 a skos:Concept ;
+    skos:prefLabel "가족카드" .
+
+card:topic_가족회원 a skos:Concept ;
+    skos:prefLabel "가족회원" .
+
+card:topic_갱신 a skos:Concept ;
+    skos:altLabel "대체 발급" ;
+    skos:prefLabel "갱신" .
+
+card:topic_계약_종료 a skos:Concept ;
+    skos:altLabel "위법 계약" ;
+    skos:prefLabel "계약 종료" .
+
+card:topic_계약_해지 a skos:Concept ;
+    skos:prefLabel "계약 해지" .
+
+card:topic_구매월 a skos:Concept ;
+    skos:prefLabel "구매월" .
+
+card:topic_긴급_차단 a skos:Concept ;
+    skos:prefLabel "긴급 차단" .
+
+card:topic_대기_사유 a skos:Concept ;
+    skos:prefLabel "대기 사유" .
+
+card:topic_등록월 a skos:Concept ;
+    skos:prefLabel "등록월" .
+
+card:topic_디지털구독 a skos:Concept ;
+    skos:prefLabel "디지털구독" .
+
+card:topic_반환 a skos:Concept ;
+    skos:prefLabel "반환" .
+
+card:topic_본인_확인 a skos:Concept ;
+    skos:altLabel "앱 인증",
+        "인증" ;
+    skos:prefLabel "본인 확인" .
+
+card:topic_본인회원 a skos:Concept ;
+    skos:prefLabel "본인회원" .
+
+card:topic_부가서비스 a skos:Concept ;
+    skos:altLabel "장보기 할인",
+        "혜택 신청" ;
+    skos:prefLabel "부가서비스" .
+
+card:topic_부정사용_조사 a skos:Concept ;
+    skos:prefLabel "부정사용 조사" .
+
+card:topic_분실_신고 a skos:Concept ;
+    skos:altLabel "도난 신고" ;
+    skos:prefLabel "분실 신고" .
+
+card:topic_분쟁_처리 a skos:Concept ;
+    skos:prefLabel "분쟁 처리" .
+
+card:topic_비밀번호_거래 a skos:Concept ;
+    skos:prefLabel "비밀번호 거래" .
+
+card:topic_소멸_예정일 a skos:Concept ;
+    skos:prefLabel "소멸 예정일" .
+
+card:topic_쇼핑 a skos:Concept ;
+    skos:prefLabel "쇼핑" .
+
+card:topic_시행일 a skos:Concept ;
+    skos:prefLabel "시행일" .
+
+card:topic_신규_승인_기능 a skos:Concept ;
+    skos:prefLabel "신규 승인 기능" .
+
+card:topic_실적 a skos:Concept ;
+    skos:altLabel "실적 산정" ;
+    skos:prefLabel "실적" .
+
+card:topic_안전한_이용 a skos:Concept ;
+    skos:prefLabel "안전한 이용" .
+
+card:topic_앱 a skos:Concept ;
+    skos:prefLabel "앱" .
+
+card:topic_약관_변경 a skos:Concept ;
+    skos:prefLabel "약관 변경" .
+
+card:topic_연회비 a skos:Concept ;
+    skos:prefLabel "연회비" .
+
+card:topic_영업일 a skos:Concept ;
+    skos:prefLabel "영업일" .
+
+card:topic_영화 a skos:Concept ;
+    skos:prefLabel "영화" .
+
+card:topic_온라인강의 a skos:Concept ;
+    skos:altLabel "온라인 강의" ;
+    skos:prefLabel "온라인강의" .
+
+card:topic_이용정지 a skos:Concept ;
+    skos:prefLabel "이용정지" .
+
+card:topic_이의신청 a skos:Concept ;
+    skos:altLabel "민원 처리" ;
+    skos:prefLabel "이의신청" .
+
+card:topic_인증수단 a skos:Concept ;
+    skos:prefLabel "인증수단" .
+
+card:topic_전문 a skos:Concept ;
+    skos:prefLabel "전문" .
+
+card:topic_전자_명세서 a skos:Concept ;
+    skos:altLabel "명세서" ;
+    skos:prefLabel "전자 명세서" .
+
+card:topic_전자문서 a skos:Concept ;
+    skos:prefLabel "전자문서" .
+
+card:topic_정기납부 a skos:Concept ;
+    skos:prefLabel "정기납부" .
+
+card:topic_정산_기준 a skos:Concept ;
+    skos:prefLabel "정산 기준" .
+
+card:topic_정지_해제 a skos:Concept ;
+    skos:prefLabel "정지 해제" .
+
+card:topic_제한 a skos:Concept ;
+    skos:prefLabel "제한" .
+
+card:topic_조정_절차 a skos:Concept ;
+    skos:prefLabel "조정 절차" .
+
+card:topic_조회_화면 a skos:Concept ;
+    skos:altLabel "조회" ;
+    skos:prefLabel "조회 화면" .
+
+card:topic_주요_혜택 a skos:Concept ;
+    skos:prefLabel "주요 혜택" .
+
+card:topic_지정일 a skos:Concept ;
+    skos:altLabel "지정일 할인" ;
+    skos:prefLabel "지정일" .
+
+card:topic_청구월 a skos:Concept ;
+    skos:prefLabel "청구월" .
+
+card:topic_취소 a skos:Concept ;
+    skos:altLabel "취소 거래" ;
+    skos:prefLabel "취소" .
+
+card:topic_카드 a skos:Concept ;
+    skos:prefLabel "카드" .
+
+card:topic_카드_발급 a skos:Concept ;
+    skos:prefLabel "카드 발급" .
+
+card:topic_통지_방법 a skos:Concept ;
+    skos:altLabel "광고 수신",
+        "광고 알림",
+        "문자",
+        "알림 구분",
+        "앱 알림",
+        "우편",
+        "전자우편" ;
+    skos:prefLabel "통지 방법" .
+
+card:topic_통화 a skos:Concept ;
+    skos:prefLabel "통화" .
+
+card:topic_통화_가능_시간 a skos:Concept ;
+    skos:prefLabel "통화 가능 시간" .
+
+card:topic_포인트 a skos:Concept ;
+    skos:prefLabel "포인트" .
+
+card:topic_한도 a skos:Concept ;
+    skos:altLabel "통합 한도",
+        "한도 감액" ;
+    skos:prefLabel "한도" .
+
+card:topic_해석 a skos:Concept ;
+    skos:prefLabel "해석" .
+
+card:topic_해외 a skos:Concept ;
+    skos:altLabel "해외 거래",
+        "해외 수수료" ;
+    skos:prefLabel "해외" .
+
+card:topic_해외_이용 a skos:Concept ;
+    skos:prefLabel "해외 이용" .
+
+card:topic_핵심_조건_요약 a skos:Concept ;
+    skos:prefLabel "핵심 조건 요약" .
+
+card:topic_환율 a skos:Concept ;
+    skos:prefLabel "환율" .
+
+card:topic_휴면카드 a skos:Concept ;
+    skos:prefLabel "휴면카드" .
+

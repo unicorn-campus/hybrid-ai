@@ -1,0 +1,55 @@
+# 검사 규칙 K01 ~ K09(원본). 인덱서가 그래프 노드를 꺼내 이 규칙으로 검사함(SHACL 검사기 pyshacl).
+# 검사는 데이터를 고치지 않고 어긴 개체만 보고함. 규칙의 종류는 rdfs:label, 규칙의 글은 rdfs:comment에 적음.
+# K01, K02의 허용 값은 card.ttl의 값 목록과 같아야 함(tools/check_ttl.py가 대조함).
+
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix card: <https://hanbit-card.example/ontology#> .
+
+# 허용 값: 분류 노드의 이름이 값 목록 안에 있음
+card:K01 a sh:NodeShape ; rdfs:label "허용 값" ; rdfs:comment "값 목록의 고객군 6개 안에 있음" ;
+    sh:targetClass card:CustomerSegment ;
+    sh:property [ sh:path card:name ; sh:in ( "신규 가입" "장기 보유" "VIP" "휴면 직전" "다중 카드" "연회비 부담" ) ] .
+
+card:K02 a sh:NodeShape ; rdfs:label "허용 값" ; rdfs:comment "값 목록의 업종 8개 안에 있음" ;
+    sh:targetClass card:Category ;
+    sh:property [ sh:path card:name ; sh:in ( "식비" "쇼핑" "교통" "주유" "여행" "해외" "생활" "교육" ) ] .
+
+# 허용 수: 실제 상담(채널이 있는 노드)에만 검. 다른 상담이 가리키기만 한 빈 노드는 통과시킴
+card:K03 a sh:NodeShape ; rdfs:label "허용 수" ; rdfs:comment "IN_SEGMENT가 정확히 1개" ;
+    sh:targetClass card:Consultation ;
+    sh:or ( [ sh:path card:channel ; sh:maxCount 0 ]
+            [ sh:path card:IN_SEGMENT ; sh:minCount 1 ; sh:maxCount 1 ] ) .
+
+card:K04 a sh:NodeShape ; rdfs:label "허용 수" ; rdfs:comment "member_pseudo_id와 product_id가 정확히 1개씩" ;
+    sh:targetClass card:Consultation ;
+    sh:or ( [ sh:path card:channel ; sh:maxCount 0 ]
+            [ sh:property [ sh:path card:member_pseudo_id ; sh:minCount 1 ; sh:maxCount 1 ] ;
+              sh:property [ sh:path card:product_id ; sh:minCount 1 ; sh:maxCount 1 ] ] ) .
+
+card:K05 a sh:NodeShape ; rdfs:label "허용 수" ; rdfs:comment "product_id가 정확히 1개" ;
+    sh:targetClass card:Benefit , card:UsageRule ;
+    sh:property [ sh:path card:product_id ; sh:minCount 1 ; sh:maxCount 1 ] .
+
+# 허용 수: 주제(ABOUT)가 1 ~ 3개. 조항은 제목이 있는 노드만 봄(K06_Article은 K06에 합쳐 셈)
+card:K06 a sh:NodeShape ; rdfs:label "허용 수" ; rdfs:comment "ABOUT가 1 ~ 3개(주제 없이 떠 있거나 너무 넓게 잇지 않음)" ;
+    sh:targetClass card:Complaint , card:Benefit ;
+    sh:property [ sh:path card:ABOUT ; sh:minCount 1 ; sh:maxCount 3 ] .
+
+card:K06_Article a sh:NodeShape ;
+    sh:targetClass card:Article ;
+    sh:or ( [ sh:path card:title ; sh:maxCount 0 ]
+            [ sh:path card:ABOUT ; sh:minCount 1 ; sh:maxCount 3 ] ) .
+
+# 참조 무결성: 가리키는 대상이 실제로 있는 것이어야 함
+card:K07 a sh:NodeShape ; rdfs:label "참조 무결성" ; rdfs:comment "정형 DB의 상품 ID 목록(inputs/key_values.json)에 있는 값" ;
+    sh:targetClass card:Benefit , card:UsageRule , card:Consultation ;
+    sh:property [ sh:path card:ofProduct ; sh:class card:CardProduct ] .
+
+card:K08 a sh:NodeShape ; rdfs:label "참조 무결성" ; rdfs:comment "가리키는 record_id가 상담 기록(사본의 48건)에 있음" ;
+    sh:targetClass card:Consultation ;
+    sh:property [ sh:path card:FOLLOWS ; sh:class card:KnownConsultation ] .
+
+card:K09 a sh:NodeShape ; rdfs:label "참조 무결성" ; rdfs:comment "가리키는 article_no가 약관(사본의 52개 조)에 있음" ;
+    sh:targetClass card:Article ;
+    sh:property [ sh:path card:REFERS_TO ; sh:class card:KnownArticle ] .

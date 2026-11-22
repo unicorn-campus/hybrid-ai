@@ -1,0 +1,133 @@
+# 문서 종류 benefit_guide의 허용 목록(원본). 이 문서에서 쓰는 노드 타입의 속성과 허용 패턴을 SHACL로 적음.
+# 노드 타입의 뜻과 키는 card.ttl에 있음. 이 파일과 card.ttl에서 schema/doc-ontology/benefit_guide/graph_schema.json을 만들어 냄.
+#   sh:NodeShape + sh:targetClass  이 문서에서 쓰는 노드 타입
+#   sh:property + sh:datatype      노드 타입 속성(이름, 자료형, 설명, 필수이면 sh:minCount 1)
+#   sh:property + sh:class         허용 패턴: 이 노드가 이 관계로 가리킬 수 있는 Class
+#   sh:order                       목록에서의 순서
+# 관계의 이 문서용 설명과 순서는 이 파일에만 적음. 문서 종류 파일끼리는 합쳐 읽지 않음.
+
+@prefix card: <https://hanbit-card.example/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+card:benefit_guide_BenefitShape a sh:NodeShape ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:order 0 ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:description "받으려면 채울 조건(전월 실적, 등록, 신청)을 원문 표현으로. 예: 전월 국내외 일시불, 유이자 할부 이용액 350,000원 이상" ;
+            sh:order 7 ;
+            sh:path card:condition ],
+        [ sh:datatype xsd:string ;
+            sh:description "머리줄의 product_id 값(카드상품 키). 예: D2-C035. 본문에서 찾지 않음" ;
+            sh:order 2 ;
+            sh:path card:product_id ;
+            card:fill "머리줄 값" ;
+            card:fillNote "청크 메타데이터 card_id를 product_id로 넣음 추출 뒤 스크립트가 넣음(header_fill_rule)" ],
+        [ sh:datatype xsd:string ;
+            sh:description "머리줄의 항목 제목. 예: 주말 외식 적립" ;
+            sh:order 1 ;
+            sh:path card:name ],
+        [ sh:datatype xsd:string ;
+            sh:description "머리줄의 항목 ID 값. 예: D2-C035-B02" ;
+            sh:order 0 ;
+            sh:path card:benefit_id ],
+        [ sh:datatype xsd:string ;
+            sh:description "머리줄의 card_name 값. 예: 한빛 일상포인트" ;
+            sh:order 3 ;
+            sh:path card:card_name ],
+        [ sh:datatype xsd:string ;
+            sh:description "혜택 종류 한 낱말: 할인, 적립, 캐시백, 바우처, 보너스, 무이자 할부, 쿠폰, 서비스 중 하나" ;
+            sh:order 4 ;
+            sh:path card:kind ],
+        [ sh:datatype xsd:string ;
+            sh:description "지급하거나 차감하는 시점을 원문 표현으로. 예: 다음 달 18일 일반 포인트로 지급함" ;
+            sh:order 10 ;
+            sh:path card:payout ],
+        [ sh:class card:Topic ;
+            sh:order 0 ;
+            sh:path card:ABOUT ],
+        [ sh:datatype xsd:string ;
+            sh:description "이 혜택의 한도를 원문 표현으로. 예: 월 8,000원 상당까지" ;
+            sh:order 8 ;
+            sh:path card:limit ],
+        [ sh:datatype xsd:string ;
+            sh:description "혜택에서 빠지는 거래를 원문 표현으로. 예: 상품권, 선불 충전, 현금서비스, 취소 거래" ;
+            sh:order 11 ;
+            sh:path card:exclusion ],
+        [ sh:datatype xsd:string ;
+            sh:description "혜택을 받는 가맹점, 업종, 결제 방식을 원문 표현으로. 예: 일반 음식점 업종의 매장 직접 결제. 업종 맞추기 표의 입력이 됨" ;
+            sh:order 6 ;
+            sh:path card:target ],
+        [ sh:datatype xsd:string ;
+            sh:description "주는 양을 원문 표현으로(비율, 금액, 횟수). 예: 대상 결제액의 1.2%를 적립함" ;
+            sh:order 5 ;
+            sh:path card:amount ],
+        [ sh:datatype xsd:string ;
+            sh:description "사용 기한이나 유효기간을 원문 표현으로. 예: 발급일부터 180일. 없으면 비움" ;
+            sh:order 9 ;
+            sh:path card:validity ] ;
+    sh:targetClass card:Benefit ;
+    card:fill "LLM 추출" ;
+    card:fillNote "benefit_id, product_id, card_name은 머리줄 값 추출 뒤 스크립트가 넣음(header_fill_rule)" ;
+    card:keyOrder 0 .
+
+card:benefit_guide_TopicShape a sh:NodeShape ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:order 2 ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:description "주제의 대표 이름. 띄어쓰기는 낱말 사이에 한 칸. 예: 연회비, 본인 확인" ;
+            sh:order 0 ;
+            sh:path card:name ] ;
+    sh:targetClass card:Topic ;
+    card:fill "LLM 추출" ;
+    card:fillNote "이름은 LLM이 짓고, 인덱싱이 맞추기 표로 대표 이름에 맞춤" ;
+    card:keyOrder 2 .
+
+card:benefit_guide_UsageRuleShape a sh:NodeShape ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:order 1 ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:description "머리줄의 항목 제목. 예: 결제 이용 한도" ;
+            sh:order 1 ;
+            sh:path card:title ],
+        [ sh:datatype xsd:string ;
+            sh:description "머리줄의 card_name 값" ;
+            sh:order 3 ;
+            sh:path card:card_name ],
+        [ sh:datatype xsd:string ;
+            sh:description "머리줄의 항목 ID 값. 예: D2-C055-B04" ;
+            sh:order 0 ;
+            sh:path card:item_id ],
+        [ sh:datatype xsd:string ;
+            sh:description "막는 업종이나 거래, 계정 조건을 원문 표현으로. 예: 주류, 사행성 업종과 현금성 거래는 제한함" ;
+            sh:order 5 ;
+            sh:path card:restriction ],
+        [ sh:datatype xsd:string ;
+            sh:description "머리줄의 product_id 값(카드상품 키). 본문에서 찾지 않음" ;
+            sh:order 2 ;
+            sh:path card:product_id ;
+            card:fill "머리줄 값" ;
+            card:fillNote "청크 메타데이터 card_id를 product_id로 넣음 추출 뒤 스크립트가 넣음(header_fill_rule)" ],
+        [ sh:datatype xsd:string ;
+            sh:description "한도를 원문 표현으로. 예: 건별 25,000원, 월 150,000원을 기본 상한으로 함" ;
+            sh:order 4 ;
+            sh:path card:limit ] ;
+    sh:targetClass card:UsageRule ;
+    card:keyOrder 1 .
+
+card:profile_benefit_guide a card:GraphSchemaProfile ;
+    card:additional_node_types false ;
+    card:additional_patterns false ;
+    card:additional_relationship_types false .
+
+card:ABOUT a owl:ObjectProperty ;
+    skos:definition "단위가 다루는 주제. 조항, 혜택, 불만마다 주제를 1 ~ 3개 반드시 잇는다(주제 없는 조항, 혜택, 불만을 만들지 않음). 해당: 그 단위의 중심 대상. 비해당: 지나가듯 한 번 나온 낱말." ;
+    card:additionalProperties true ;
+    card:order 0 .
+

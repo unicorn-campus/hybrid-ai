@@ -1,0 +1,295 @@
+{
+  "node_types": [
+    {
+      "label": "Card",
+      "description": "카드",
+      "properties": [
+        {
+          "name": "card_id",
+          "type": "STRING"
+        },
+        {
+          "name": "issue_date",
+          "type": "DATE"
+        },
+        {
+          "name": "status",
+          "type": "STRING"
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "CardTxn",
+      "description": "카드거래",
+      "properties": [
+        {
+          "name": "txn_id",
+          "type": "STRING"
+        },
+        {
+          "name": "txn_date",
+          "type": "DATE"
+        },
+        {
+          "name": "amount",
+          "type": "INTEGER"
+        },
+        {
+          "name": "approval_code",
+          "type": "STRING"
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Delinquency",
+      "description": "연체",
+      "properties": [
+        {
+          "name": "member_id",
+          "type": "STRING"
+        },
+        {
+          "name": "base_month",
+          "type": "STRING"
+        },
+        {
+          "name": "overdue_days",
+          "type": "INTEGER"
+        },
+        {
+          "name": "overdue_count_12m",
+          "type": "INTEGER"
+        },
+        {
+          "name": "overdue_amount",
+          "type": "INTEGER"
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Member",
+      "description": "회원",
+      "properties": [
+        {
+          "name": "member_id",
+          "type": "STRING"
+        },
+        {
+          "name": "segment_id",
+          "type": "INTEGER"
+        },
+        {
+          "name": "join_date",
+          "type": "DATE"
+        },
+        {
+          "name": "age_band",
+          "type": "STRING"
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Merchant",
+      "description": "가맹점",
+      "properties": [
+        {
+          "name": "merchant_id",
+          "type": "STRING"
+        },
+        {
+          "name": "merchant_name",
+          "type": "STRING"
+        },
+        {
+          "name": "category",
+          "type": "STRING"
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Product",
+      "description": "상품",
+      "properties": [
+        {
+          "name": "product_id",
+          "type": "STRING"
+        },
+        {
+          "name": "product_name",
+          "type": "STRING"
+        },
+        {
+          "name": "effective_date",
+          "type": "DATE"
+        },
+        {
+          "name": "family_card_available",
+          "type": "BOOLEAN"
+        },
+        {
+          "name": "family_card_rule",
+          "type": "STRING"
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "ProductAnnualFee",
+      "description": "상품연회비",
+      "properties": [
+        {
+          "name": "product_id",
+          "type": "STRING"
+        },
+        {
+          "name": "brand",
+          "type": "STRING"
+        },
+        {
+          "name": "base_fee",
+          "type": "INTEGER"
+        },
+        {
+          "name": "service_fee",
+          "type": "INTEGER"
+        },
+        {
+          "name": "total_fee",
+          "type": "INTEGER"
+        }
+      ],
+      "additional_properties": false
+    }
+  ],
+  "relationship_types": [
+    {
+      "label": "HAS_CARD",
+      "description": "보유함",
+      "properties": [],
+      "additional_properties": false
+    },
+    {
+      "label": "APPLIES_FEE",
+      "description": "연회비적용",
+      "properties": [],
+      "additional_properties": false
+    },
+    {
+      "label": "MADE_TXN",
+      "description": "결제함",
+      "properties": [],
+      "additional_properties": false
+    },
+    {
+      "label": "AT_MERCHANT",
+      "description": "이용함",
+      "properties": [],
+      "additional_properties": false
+    },
+    {
+      "label": "HAS_DELINQUENCY",
+      "description": "연체함",
+      "properties": [],
+      "additional_properties": false
+    },
+    {
+      "label": "HAS_ANNUAL_FEE",
+      "description": "연회비정함",
+      "properties": [],
+      "additional_properties": false
+    }
+  ],
+  "patterns": [
+    {
+      "source": "Member",
+      "relationship": "HAS_CARD",
+      "target": "Card"
+    },
+    {
+      "source": "Card",
+      "relationship": "APPLIES_FEE",
+      "target": "ProductAnnualFee"
+    },
+    {
+      "source": "Card",
+      "relationship": "MADE_TXN",
+      "target": "CardTxn"
+    },
+    {
+      "source": "CardTxn",
+      "relationship": "AT_MERCHANT",
+      "target": "Merchant"
+    },
+    {
+      "source": "Member",
+      "relationship": "HAS_DELINQUENCY",
+      "target": "Delinquency"
+    },
+    {
+      "source": "Product",
+      "relationship": "HAS_ANNUAL_FEE",
+      "target": "ProductAnnualFee"
+    }
+  ],
+  "constraints": [
+    {
+      "type": "UNIQUENESS",
+      "node_type": "Card",
+      "property_names": [
+        "card_id"
+      ]
+    },
+    {
+      "type": "UNIQUENESS",
+      "node_type": "CardTxn",
+      "property_names": [
+        "txn_id"
+      ]
+    },
+    {
+      "type": "UNIQUENESS",
+      "node_type": "Delinquency",
+      "property_names": [
+        "member_id",
+        "base_month"
+      ]
+    },
+    {
+      "type": "UNIQUENESS",
+      "node_type": "Member",
+      "property_names": [
+        "member_id"
+      ]
+    },
+    {
+      "type": "UNIQUENESS",
+      "node_type": "Merchant",
+      "property_names": [
+        "merchant_id"
+      ]
+    },
+    {
+      "type": "UNIQUENESS",
+      "node_type": "Product",
+      "property_names": [
+        "product_id"
+      ]
+    },
+    {
+      "type": "UNIQUENESS",
+      "node_type": "ProductAnnualFee",
+      "property_names": [
+        "product_id",
+        "brand"
+      ]
+    }
+  ],
+  "additional_node_types": false,
+  "additional_relationship_types": false,
+  "additional_patterns": false
+}
