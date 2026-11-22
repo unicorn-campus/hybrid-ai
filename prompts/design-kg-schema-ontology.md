@@ -249,9 +249,9 @@
 
 | 정하는 것 | 파일 | 적는 법 |
 |---|---|---|
-| Class와 뜻 | card.ttl | `a owl:Class`, `rdfs:label`(한글 이름), `skos:definition`(뜻 한 줄), `skos:scopeNote`(해당과 비해당), `skos:altLabel`(동의어), `card:kind`(개체 또는 분류), `card:order`(목록 순서) |
+| Class와 뜻 | card.ttl | `a owl:Class`, `rdfs:label`(한글 이름), `skos:definition`(뜻 한 줄), `skos:scopeNote`(해당과 비해당), `skos:altLabel`(동의어), `card:order`(목록 순서). 여러 원천에 걸친 공통 개념이면 `rdfs:subClassOf card:CommonConcept`를 붙임(문서 하나에서만 쓰는 노드 타입에는 붙이지 않음). 개체와 분류는 따로 적지 않고 값 목록(`card:valueList`)이 있으면 분류로 봄 |
 | 동일 | card.ttl | `owl:hasKey ( card:키속성 )`. 키 비교가 아닌 규칙은 `card:identityRule [ card:between ; card:rule ; card:detail ]`, 다른 원천의 라벨과 키는 `card:sourceKey [ card:source ; card:label ; card:keyProperty ]` |
-| 분류 | card.ttl | Class에 `card:valueList`, 값 목록은 `skos:OrderedCollection`의 `skos:memberList ( 값 ... )`, 값마다 `a skos:Concept` + `skos:prefLabel`. 상하위가 있으면 `skos:broader` |
+| 분류 | card.ttl | Class에 `card:valueList`(이 줄이 있으면 분류 Class), 값 목록은 `skos:OrderedCollection`의 `skos:memberList ( 값 ... )`, 값마다 `a skos:Concept` + `skos:prefLabel`. 상하위가 있으면 `skos:broader` |
 | 개념 | card.ttl | `a owl:ObjectProperty`, `rdfs:domain`(출발이 여럿이면 `owl:unionOf`), `rdfs:range`, `card:docType`(쓰는 문서 종류), `card:order`(card.ttl 안의 가장 큰 번호 다음 수. 문서 종류 파일의 순서 번호는 그 파일 안에서 따로 셈) |
 | 역관 | card.ttl | `owl:inverseOf card:반대이름`, `card:inverseReason`(둔 까닭). 반대 이름도 `card:반대이름 a owl:ObjectProperty .` 한 줄로 따로 적음 |
 | 검사 규칙 | shapes/checks.ttl | `sh:NodeShape` + `sh:targetClass`. 허용 값은 `sh:in ( ... )`, 허용 수는 `sh:minCount`와 `sh:maxCount`, 참조 무결성은 `sh:class card:Known{라벨}`(검사할 때 실제로 있는 키 값으로 만들어 넣는 대상. 예: 조 번호는 `card:KnownArticle`). `rdfs:label`에 종류, `rdfs:comment`에 조건 글 |
@@ -558,7 +558,7 @@ ex:Product a owl:Class ;
     skos:definition "판매하는 제품 하나. 주문한 낱개가 아님." ;
     skos:altLabel "Item", "Model" ;
     owl:hasKey ( ex:product_id ) ;
-    ex:kind "개체" ; ex:order 0 ;
+    rdfs:subClassOf ex:CommonConcept ; ex:order 0 ;
     ex:sourceKey [ ex:source "정형 DB" ; ex:label "Product" ; ex:keyProperty "product_id" ] ;
     ex:identityRule [ ex:between "설명서와 정형 DB" ; ex:rule "값 같음" ; ex:detail "product_id가 같으면 같은 상품" ] .
 
@@ -566,7 +566,7 @@ ex:IssueCategory a owl:Class ;
     rdfs:label "오류 분류" ;
     skos:definition "신고된 오류를 나누는 정해진 갈래." ;
     owl:hasKey ( ex:name ) ;
-    ex:kind "분류" ; ex:order 1 ;
+    rdfs:subClassOf ex:CommonConcept ; ex:order 1 ;
     ex:valueList ex:IssueCategoryValues ;
     ex:addedBy "indexer" ; ex:docType "inquiry" ; ex:fill "맞추기 표" .
 

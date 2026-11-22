@@ -5,7 +5,7 @@
   검사 ①: 모든 Turtle 파일이 문법에 맞게 읽히고, 셰이프 파일이 SHACL 규격에 맞는가
   검사 ②: 검사 규칙의 허용 값(sh:in)이 card.ttl의 값 목록과 같은가(값이 두 곳에 적혀 있어 어긋날 수 있음)
   검사 ③: 셰이프가 겨냥하거나 가리키는 Class가 card.ttl에 뜻과 함께 있는가, 키 속성이 그 Class의 셰이프에 있는가,
-          노드 타입마다 채우는 방법(card:fill)이 적혀 있는가
+          공통 개념(rdfs:subClassOf card:CommonConcept)인 노드 타입마다 채우는 방법(card:fill)이 적혀 있는가
   검사 ④: Turtle에서 만든 그래프 스키마가 쓸 수 있는 꼴인가(GraphSchema 검증, 이름 규칙, 설명 유무, 목록 밖 허용 꺼짐,
           Community 판이 지원하는 제약만), 저장된 파일과 같은가(생성물을 손으로 고쳤는지 잡음)
   검사 ⑤: 설계 입력과 맞는가. 원천별 라벨과 키가 원천 목록 표(sources.json)에, 허용 값이 값 목록 파일에 있는가,
@@ -83,6 +83,7 @@ def run(ttl_dir: Path, schema_mode: str = "saved") -> dict:
 
     # 검사 ③
     defined = {cls for cls in card.subjects(RDF.type, OWL.Class) if card.value(cls, SKOS.definition) is not None}
+    common = set(turtle.common_concepts(card))
     for doc_type in turtle.DOC_TYPES:
         graph = graphs[f"shapes/{doc_type}.ttl"]
         for shape in graph.subjects(RDF.type, SH.NodeShape):
@@ -93,7 +94,7 @@ def run(ttl_dir: Path, schema_mode: str = "saved") -> dict:
             lost = [k for k in turtle.key_names(card, target) if k not in paths]
             if lost:
                 problems.append(f"③ {doc_type}: {local(target)}의 키 속성 {lost}이 셰이프에 없음")
-            if card.value(target, CARD.kind) is not None and graph.value(shape, CARD.fill) is None:
+            if target in common and graph.value(shape, CARD.fill) is None:
                 problems.append(f"③ {doc_type}: {local(target)}의 채우는 방법(card:fill)이 없음")
             for row in graph.objects(shape, SH.property):
                 pointed = graph.value(row, SH["class"])

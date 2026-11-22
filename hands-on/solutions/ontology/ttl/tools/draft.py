@@ -29,6 +29,13 @@ from core_turtle import local  # noqa: E402
 BASE_FILE = DRAFT_DIR / "BASE.json"  # 초안을 시작할 때의 승인본 지문. 그 사이 승인본이 바뀌었는지 올리기 전에 봄
 
 
+def version_of(ttl_dir: Path) -> str:
+    """card.ttl의 판 번호(owl:versionInfo)만 읽음. 공통 개념을 읽는 규칙이 바뀌어도 옛 승인본과 견줄 수 있게 따로 읽음."""
+    from rdflib.namespace import OWL
+    from core_turtle import CARD
+    return str(turtle.read(ttl_dir / "card.ttl").value(CARD.ontology, OWL.versionInfo))
+
+
 def start() -> None:
     if DRAFT_DIR.exists():
         raise SystemExit(f"초안이 이미 있음: {DRAFT_DIR}. 이어서 고치거나 discard로 지운 뒤 다시 시작함")
@@ -87,7 +94,7 @@ def promote() -> dict:
         raise SystemExit("승인본이 초안을 시작한 뒤에 바뀌었음(다른 설계가 고친 것). 올리지 않음. 바뀐 내용을 초안에 반영한 뒤 다시 함")
     changed = diff()
     meaning_changed = [c["file"] for c in changed if not c["file"].startswith("maps/")]  # 맞추기 표만 바뀐 것은 판을 올리지 않음
-    if meaning_changed and turtle.load_concepts(DRAFT_DIR)["version"] == turtle.load_concepts(TTL_DIR)["version"]:
+    if meaning_changed and version_of(DRAFT_DIR) == version_of(TTL_DIR):
         raise SystemExit(f"Class, 관계, 셰이프, 검사 규칙이 바뀌었는데({meaning_changed}) 판 번호가 그대로임. "
                          "초안 card.ttl의 card:ontology owl:versionInfo를 올린 뒤 다시 함")
     report = check_ttl.run(DRAFT_DIR, "draft")

@@ -171,3 +171,16 @@ LLM이 후보를 내고, 사람이 확정하고, Turtle 초안에 적어 승인�
 - 프롬프트를 만들던 스크립트(`.temp/ontology-turtle-trial/make_turtle_prompt.py`)는 옛 프롬프트를 읽어 만들던 것이라 더 쓰지 않음.  
   앞으로는 `prompts/design-kg-schema-ontology.md`를 직접 고침  
 - Neo4j와 OpenSearch에는 옛 폴더가 만든 세대 `gen-lab-doconto-f1-0c0b0e64`가 남아 있음(지우지 않았음)
+
+## 9. card:kind를 없애고 공통 개념 표시로 바꿈(2026-11-22, 사용자 결정 「수정안대로」)
+
+- 까닭: `card:kind "개체"`가 「종류」로 읽혀 `a owl:Class`와 같은 질문에 두 번 답하는 것처럼 보였음.  
+  코드를 보니 이 줄은 값이 아니라 「있는지」로 공통 개념 9개를 골라내는 숨은 표시였고, 「분류」 값은 `card:valueList`와 정확히 겹쳤음  
+- 바꾼 것: `card:kind` 9줄을 지우고 공통 개념 9개에 `rdfs:subClassOf card:CommonConcept`를 붙임. `card:CommonConcept` 정의를 더함. 판 1 → 2  
+- 개체와 분류는 따로 적지 않고 값 목록(`card:valueList`)이 있으면 분류로 계산함(`core_turtle.load_concepts`). 그래프의 OntoConcept 노드 값은 그대로임  
+- 고친 코드: `indexer/core_turtle.py`(`common_concepts` 추가, `CUSTOM_TERMS`), `ttl/tools/check_ttl.py`, `ttl/tools/draft.py`(판 번호만 따로 읽게 고침.  
+  처음 올리기는 옛 승인본을 새 규칙으로 읽다가 멈췄음), 프롬프트 `prompts/design-kg-schema-ontology.md`의 낱말 표와 예시  
+- 확인: 공통 개념 층(판 번호 빼고), 엔티티 키 표, 그래프 스키마 3개가 바꾸기 전과 같음. 초안 검사와 승인본 검사 통과.  
+  재인덱싱 `ttl-f5`(재사용, LLM 추출 0, 29초)가 `ttl-f4`와 라벨 수, 노드와 관계, 업종 잇기, 규칙 위반, 경로 모두 같음. 활성 세대 `gen-lab-ttl-f5-a6e78683`  
+- 교재 덱: 11쪽(Class 정의 코드와 풀이표에서 card:kind 줄을 빼고 「문장 6개」로)과 15쪽(업종 코드에서 card:kind 줄을 빼고 ④ 설명에 「이 줄이 있으면 분류 Class로 봄」)을 고침.  
+  사용자가 그 사이 덱에서 용어를 「주어, 속성, 값」으로 고친 판 위에 얹었음(`.temp/ttl-slides/edit_kind_on_user_deck.py`)

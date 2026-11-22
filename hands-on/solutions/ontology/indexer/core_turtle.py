@@ -36,7 +36,7 @@ SCHEMA_FLAGS = ("additional_node_types", "additional_relationship_types", "addit
 
 # 표준(OWL, RDFS, SKOS, SHACL)에 없어 우리가 지은 낱말과 그 뜻
 CUSTOM_TERMS = {
-    "kind": "Class가 개체인지 분류(값 목록)인지",
+    "CommonConcept": "공통 개념 층에 드는 Class들의 상위 Class. rdfs:subClassOf card:CommonConcept로 표시함",
     "order": "목록에서의 순서(Class, 관계, 제약). graph_schema.json을 똑같이 만들려는 것",
     "keyOrder": "고유 키 제약의 순서",
     "valueList": "분류 Class의 허용 값 목록",
@@ -85,6 +85,11 @@ def ordered(graph: Graph, subjects, predicate=None) -> list:
     return sorted(subjects, key=lambda s: int(graph.value(s, predicate)))
 
 
+def common_concepts(card: Graph) -> list:
+    """공통 개념 층에 드는 Class(rdfs:subClassOf card:CommonConcept). 문서 전용 노드 타입은 들지 않음."""
+    return [cls for cls in card.subjects(RDFS.subClassOf, CARD.CommonConcept) if (cls, RDF.type, OWL.Class) in card]
+
+
 def key_names(graph: Graph, cls) -> list[str]:
     keys = graph.value(cls, OWL.hasKey)
     return [local(k) for k in Collection(graph, keys)] if keys is not None else []
@@ -97,6 +102,8 @@ def load_concepts(ttl_dir: Path = TTL_DIR) -> dict:
     """card.ttl과 셰이프를 읽어 공통 개념 층을 돌려줌. 인덱서가 그래프에 싣고 검사할 때 쓰는 꼴임.
 
     classes: name(한글 이름), id, kind, definition, synonyms, allowed_values(values), doc_labels, source_labels, identity
+    공통 개념은 rdfs:subClassOf card:CommonConcept인 Class임. kind는 따로 적지 않고 값 목록(card:valueList)이 있으면 「분류」,
+    없으면 「개체」로 계산함.
     relations: label, source_class(목록), target_class, inverse
     checks: id, kind, rule (shapes/checks.ttl의 노드 셰이프)
     doc_labels는 따로 적지 않고 셰이프에서 알아냄: 그 Class를 겨냥한 노드 셰이프가 있으면 「노드」,
@@ -104,7 +111,7 @@ def load_concepts(ttl_dir: Path = TTL_DIR) -> dict:
     """
     card = read(ttl_dir / "card.ttl")
     shapes = {doc: read(ttl_dir / "shapes" / f"{doc}.ttl") for doc in DOC_TYPES}
-    concept_classes = ordered(card, [c for c in card.subjects(RDF.type, OWL.Class) if card.value(c, CARD.kind) is not None])
+    concept_classes = ordered(card, common_concepts(card))
     name_of = {cls: str(card.value(cls, RDFS.label)) for cls in concept_classes}
     node_classes = {cls for g in shapes.values() for cls in g.objects(None, SH.targetClass)}
     classes = []
@@ -127,7 +134,7 @@ def load_concepts(ttl_dir: Path = TTL_DIR) -> dict:
         if values_list is not None:
             values = [str(card.value(item, SKOS.prefLabel)) for item in Collection(card, card.value(values_list, SKOS.memberList))]
         classes.append({
-            "name": name_of[cls], "id": local(cls), "kind": str(card.value(cls, CARD.kind)),
+            "name": name_of[cls], "id": local(cls), "kind": "분류" if card.value(cls, CARD.valueList) is not None else "개체",
             "definition": str(card.value(cls, SKOS.definition)),
             "synonyms": sorted(str(o) for o in card.objects(cls, SKOS.altLabel)),
             "allowed_values": {"values": values} if values else None,
@@ -186,12 +193,13 @@ def entity_keys(ttl_dir: Path = TTL_DIR) -> dict:
     card = read(ttl_dir / "card.ttl")
     shapes = [read(ttl_dir / "shapes" / f"{doc}.ttl") for doc in DOC_TYPES]
     node_classes = {cls for g in shapes for cls in g.objects(None, SH.targetClass)}
+    common = set(common_concepts(card))
     nodes, refs = [], []
     for cls in sorted((c for c in card.subjects(RDF.type, OWL.Class) if isinstance(c, URIRef)), key=local):
         keys = key_names(card, cls)
         if len(keys) != 1:
             continue
-        name = card.value(cls, RDFS.label) if card.value(cls, CARD.kind) is not None else None
+        name = card.value(cls, RDFS.label) if cls in common else None
         if cls in node_classes:
             nodes.append({"label": local(cls), "name": str(name) if name is not None else None, "prop": keys[0]})
         elif card.value(cls, CARD.addedBy) is None:  # 인덱서가 더하는 업종은 엔티티 찾기의 대상이 아님(혜택으로 건너감)

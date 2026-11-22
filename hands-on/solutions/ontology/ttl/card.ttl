@@ -2,6 +2,7 @@
 # 사람이 승인하는 파일이며, schema/doc-ontology/{문서 종류}/graph_schema.json은 이 파일과 shapes/에서 만들어 냄.
 # 표준 낱말: owl:Class, rdfs:label, skos:definition(뜻), skos:scopeNote(해당과 비해당), skos:altLabel(동의어),
 #   owl:ObjectProperty, rdfs:domain, rdfs:range, owl:inverseOf(역관계), owl:hasKey(같은 개체 키), skos:OrderedCollection(값 목록)
+#   rdfs:subClassOf card:CommonConcept(공통 개념 층에 드는 Class). 값 목록(card:valueList)이 있는 Class는 분류, 없으면 개체
 # 우리가 지은 낱말(card:)의 뜻은 indexer/core_turtle.py의 CUSTOM_TERMS에 있음.
 
 @prefix card: <https://hanbit-card.example/ontology#> .
@@ -25,6 +26,7 @@ card:ABOUT a owl:ObjectProperty ;
 
 card:CardProduct a owl:Class ;
     rdfs:label "카드상품" ;
+    rdfs:subClassOf card:CommonConcept ;
     owl:hasKey ( card:product_id ) ;
     skos:altLabel "Card",
         "Product" ;
@@ -35,7 +37,6 @@ card:CardProduct a owl:Class ;
         [ card:between "상담 기록과 카드 혜택 안내" ;
             card:detail "상담 본문의 카드 이름을 카드 혜택 안내 메타데이터의 이름-ID 표(64쌍)로 product_id로 바꿈. 표에 없는 이름은 비워 둠" ;
             card:rule "바꾸는 규칙" ] ;
-    card:kind "개체" ;
     card:order 0 ;
     card:sourceKey [ card:keyProperty "product_id" ;
             card:label "Product" ;
@@ -74,6 +75,7 @@ card:IN_SEGMENT a owl:ObjectProperty ;
 
 card:Member a owl:Class ;
     rdfs:label "회원" ;
+    rdfs:subClassOf card:CommonConcept ;
     owl:hasKey ( card:member_pseudo_id ) ;
     skos:altLabel "Customer",
         "Member" ;
@@ -81,7 +83,6 @@ card:Member a owl:Class ;
     card:identityRule [ card:between "정형 DB와 상담 기록" ;
             card:detail "member_id를 SHA-256으로 바꾼 16진수 앞 16자리에 m_을 붙이면 member_pseudo_id가 됨(예: 평가 질문의 M-1042, M-3001로 확인함). 반대 방향으로는 바꿀 수 없음" ;
             card:rule "바꾸는 규칙" ] ;
-    card:kind "개체" ;
     card:order 1 ;
     card:sourceKey [ card:keyProperty "member_id" ;
             card:label "Member" ;
@@ -144,7 +145,7 @@ card:ontology a owl:Ontology ;
     dcterms:dateAccepted "2026-11-18T03:02:27" ;
     dcterms:description "문서 그래프 3종(약관, 카드 혜택 안내, 상담 기록)과 정형 DB를 같은 업무 개념(Class)으로 잇는 공통 개념 층. 뜻 한 줄은 여기에만 적고, 스키마 description의 첫머리는 build_schema.py가 여기서 가져옴" ;
     rdfs:comment "8단계에서 스키마와 함께 통과를 승인함(review/step8.md 라운드 3, 4)" ;
-    owl:versionInfo "1" .
+    owl:versionInfo "2" .
 
 card:CATEGORY_OF a owl:ObjectProperty .
 
@@ -222,6 +223,7 @@ card:TOPIC_OF a owl:ObjectProperty .
 
 card:Topic a owl:Class ;
     rdfs:label "주제" ;
+    rdfs:subClassOf card:CommonConcept ;
     owl:hasKey ( card:name ) ;
     skos:altLabel "Consultation.topic",
         "IssueTopic" ;
@@ -231,7 +233,6 @@ card:Topic a owl:Class ;
     card:identityRule [ card:between "문서 3종" ;
             card:detail "LLM이 지은 주제 이름을 사람이 확정한 대표 주제 표(common/topic_map_approved.json)로 대표 이름에 맞춤. 같은 대표 이름이면 같은 주제 노드. 표에 없거나 확정되지 않은 이름은 띄어쓰기만 맞춰 그대로 둠(다른 문서와 이어지지 않을 수 있음)" ;
             card:rule "맞추기 표" ] ;
-    card:kind "개체" ;
     card:order 4 .
 
 card:article_no a owl:DatatypeProperty .
@@ -248,6 +249,7 @@ card:record_id a owl:DatatypeProperty .
 
 card:Benefit a owl:Class ;
     rdfs:label "혜택" ;
+    rdfs:subClassOf card:CommonConcept ;
     owl:hasKey ( card:benefit_id ) ;
     skos:altLabel "Bonus",
         "Voucher" ;
@@ -257,11 +259,11 @@ card:Benefit a owl:Class ;
     card:identityRule [ card:between "카드 혜택 안내 안" ;
             card:detail "benefit_id(예: D2-C035-B02)가 같으면 같은 혜택" ;
             card:rule "값 같음" ] ;
-    card:kind "개체" ;
     card:order 6 .
 
 card:Complaint a owl:Class ;
     rdfs:label "불만" ;
+    rdfs:subClassOf card:CommonConcept ;
     skos:altLabel "Issue",
         "IssueTopic" ;
     skos:definition "고객이 상담에서 분명히 말한 불만이나 불편 하나." ;
@@ -270,11 +272,11 @@ card:Complaint a owl:Class ;
     card:identityRule [ card:between "상담 기록 안" ;
             card:detail "같은 상담(record_id) 안에서 content가 같으면 같은 불만" ;
             card:rule "값 같음" ] ;
-    card:kind "개체" ;
     card:order 8 .
 
 card:Article a owl:Class ;
     rdfs:label "조항" ;
+    rdfs:subClassOf card:CommonConcept ;
     owl:hasKey ( card:article_no ) ;
     skos:altLabel "Clause" ;
     skos:definition "개인회원 이용약관의 조(제N조) 하나." ;
@@ -283,13 +285,13 @@ card:Article a owl:Class ;
     card:identityRule [ card:between "약관 안" ;
             card:detail "article_no(예: 제10조, 제16조의2)가 같으면 같은 조항" ;
             card:rule "값 같음" ] ;
-    card:kind "개체" ;
     card:order 5 .
 
 card:name a owl:DatatypeProperty .
 
 card:Consultation a owl:Class ;
     rdfs:label "상담" ;
+    rdfs:subClassOf card:CommonConcept ;
     owl:hasKey ( card:record_id ) ;
     skos:altLabel "Consultation" ;
     skos:definition "상담 기록 한 건." ;
@@ -298,11 +300,11 @@ card:Consultation a owl:Class ;
     card:identityRule [ card:between "상담 기록 안" ;
             card:detail "record_id(예: C-20260314-001)가 같으면 같은 상담" ;
             card:rule "값 같음" ] ;
-    card:kind "개체" ;
     card:order 7 .
 
 card:CustomerSegment a owl:Class ;
     rdfs:label "고객군" ;
+    rdfs:subClassOf card:CommonConcept ;
     owl:hasKey ( card:name ) ;
     skos:altLabel "customer_group",
         "group" ;
@@ -315,7 +317,6 @@ card:CustomerSegment a owl:Class ;
         [ card:between "상담 기록 안" ;
             card:detail "name이 같으면 같은 고객군 노드" ;
             card:rule "값 같음" ] ;
-    card:kind "분류" ;
     card:order 2 ;
     card:sourceKey [ card:keyProperty "segment_id" ;
             card:label "Member" ;
@@ -324,6 +325,7 @@ card:CustomerSegment a owl:Class ;
 
 card:Category a owl:Class ;
     rdfs:label "업종" ;
+    rdfs:subClassOf card:CommonConcept ;
     owl:hasKey ( card:name ) ;
     skos:altLabel "DiscountCategory",
         "Industry",
@@ -341,10 +343,13 @@ card:Category a owl:Class ;
         [ card:between "정형 DB와 카드 혜택 안내" ;
             card:detail "Merchant.category 값과 Category.name이 같으면 같은 업종" ;
             card:rule "값 같음" ] ;
-    card:kind "분류" ;
     card:order 3 ;
     card:sourceKey [ card:keyProperty "category" ;
             card:label "Merchant" ;
             card:source "정형 DB(cardlab)" ] ;
     card:valueList card:CategoryValues .
+
+card:CommonConcept a owl:Class ;
+    rdfs:label "공통 개념" ;
+    skos:definition "여러 원천(문서 종류, 정형 DB)에 걸쳐 같은 뜻으로 쓰는 업무 개념. 이 Class의 하위 Class가 공통 개념 층을 이룸. 문서 하나에서만 쓰는 노드 타입(이용 기준, 요청, 제안)은 하위 Class가 아님." .
 
