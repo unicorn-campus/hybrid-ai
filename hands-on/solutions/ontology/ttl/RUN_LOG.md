@@ -212,3 +212,20 @@ LLM이 후보를 내고, 사람이 확정하고, Turtle 초안에 적어 승인�
 - 재인덱싱 `ttl-f9`(재사용, 사전 검사 무시 `--full-reindex`, LLM 추출 0): 개념 사이 관계 6종 8개(ABOUT 3, FOLLOWS, HAS_COMPLAINT, IN_CATEGORY,
   IN_SEGMENT, REFERS_TO), `CONCEPT_REL` 0개, 세대의 IN_CATEGORY 138개, 규칙 위반과 경로가 앞과 같음. 활성 세대 `gen-lab-ttl-f9-60f089e3`  
 - 교재 「공통 개념 층을 OntoConcept 노드로 싣기」 장표의 코드 발췌, 설명 ④, 아래 띠, 노트를 고침(`.temp/rel/fix_rel_names.py`)
+
+## 13. 정형 조회용 뷰 설명을 app 스키마의 논리 뷰 7개로 늘림(2026-11-22, 사용자 결정 「app 7개만」)
+
+- 까닭: sql-retriever는 app 스키마의 논리 뷰 7개를 쓰는데, 뷰 설명(`schema/rdb/app_views.json`)에는 2개(customer_cards, merchant_usage)만 있었음.  
+  검색기는 그래프에 실린 뷰로만 SQL을 허용하므로 연체, 일별 사용액, 가입 정보 질문을 SQL로 풀지 못했음.  
+  인덱서의 카탈로그 대조도 「파일에 적은 뷰」만 봐서 빠진 뷰를 알리지 않았음  
+- 바꾼 것: `app_views.json` 판 2. 뷰 7개(customer_profile, customer_cards, monthly_usage, merchant_usage, customer_daily_usage,
+  customer_delinquency, customer_delinquency_history), 컬럼 40개, 예시 SQL 5개(월별 총액, 연체 추이 추가). 뜻은 `backing-services/rdb/init`의
+  뷰 정의와 sql-retriever의 `query_config.json`, `search_plan.md`에서 가져옴. 건너가는 키 컬럼은 그대로 2개(product_id, category)  
+- app_internal 스키마(customer_cards_full, member_basic. 원본 카드 ID와 회원 ID가 있음)는 DB 주석과 sql-retriever README대로 NL2SQL에 열지 않는
+  서비스 코드 전용이라 적지 않음  
+- 고친 코드: `indexer/core_ontology.py`의 `check_view_catalog`가 DB의 app 스키마에 있는데 파일에 없는 뷰도 어긋남으로 잡음(옛 파일로 대조하면 5개가 걸림)  
+- 재인덱싱 `ttl-f10`(재사용, `--full-reindex`, LLM 추출 0): 뷰 7개, 컬럼 40개, 키 컬럼 2/2, 예시 SQL 5개. 규칙 위반과 경로가 앞과 같음. 활성 세대 `gen-lab-ttl-f10-0a7adf08`  
+- 검색기 확인: 「이 회원의 최근 12개월 연체 추이」(M-1042)에서 정형 조회가 `customer_delinquency_history`로 SQL을 만들어 12행을 받음(앞에서는 허용하지 않은 뷰라 실행 못 함).
+  다만 최종 답은 「확인할 수 없음」. 검색기의 ⑦ 판정이 문서 원문 근거를 요구하는 설계라, 정형 조회만으로 끝나는 질문은 답하지 않음(이번 수정과 별개).  
+  `check_paths.py`의 P4, P6 정형 조회도 앞과 같이 동작함  
+- 교재: 「정형 조회용 뷰 설명 싣기」 장표(아래 띠 숫자, 키 컬럼 없는 뷰 5개 글, 설명 ③, 노트)와 「검색기 ① 요청 접수」 장표의 「뷰 2개」를 고침(`.temp/views7/fix_views7.py`)

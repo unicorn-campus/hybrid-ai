@@ -193,9 +193,13 @@ def load_concept_layer(driver, concepts: dict) -> dict:
 def check_view_catalog(views: dict, catalog: dict) -> list[str]:
     """뷰 설명 파일(schema/rdb/app_views.json)을 DB 카탈로그와 대조함. 어긋난 곳을 글 목록으로 돌려줌(없으면 빈 목록).
 
-    예시: 파일에 merchant_usage.category가 있는데 DB 뷰에 그 컬럼이 없으면 「merchant_usage.category: DB에 없음」
+    예시: 파일에 merchant_usage.category가 있는데 DB 뷰에 그 컬럼이 없으면 「merchant_usage.category: DB에 없음」,
+          DB의 app 스키마에 customer_daily_usage가 있는데 파일에 없으면 「customer_daily_usage: 설명 없음(DB의 app 스키마에 있음)」
     """
     problems = []
+    described_views = {view["name"] for view in views["views"]}
+    problems += [f"{name}: 설명 없음(DB의 {views.get('schema', 'app')} 스키마에 있음)"
+                 for name in sorted(set(catalog) - described_views)]  # 검색기가 쓸 수 있는 뷰를 빠짐없이 적었는지
     for view in views["views"]:
         db_columns = catalog.get(view["name"])
         if db_columns is None:
