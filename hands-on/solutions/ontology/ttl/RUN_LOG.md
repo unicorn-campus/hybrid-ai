@@ -191,3 +191,24 @@ LLM이 후보를 내고, 사람이 확정하고, Turtle 초안에 적어 승인�
 - card.ttl이 바뀌어 올리기 도구의 규칙대로 판을 2 → 3으로 올림. 재인덱싱 `ttl-f6`(재사용, LLM 추출 0, 28초), 규칙 위반과 업종 잇기는 앞과 같음. 활성 세대 `gen-lab-ttl-f6-fcd0aad2`  
 - 교재 17쪽(Turtle로 적기: 개념, 역관)의 ⑤ 설명에 「M1, M2, A1은 스키마 설계 단계 ①에서 정한 역량 질문 번호」와 M1 질문 예를 넣고, 발표자 노트에 세 질문의 문장을 적음  
   (`.temp/ttl-slides/edit_p17_cq.py`, 사용자가 그 사이 저장한 판 위에 얹음)
+
+## 11. 주제 같은 개체 규칙의 옛 파일 경로를 고침(2026-11-22, 사용자 지시)
+
+- `card:Topic`의 `card:identityRule` 설명에 지운 파일 `common/topic_map_approved.json`이 남아 있었음.  
+  지금 쓰는 주제 맞추기 표 `maps/topic.ttl`로 고침. 이 글은 OntoConcept 노드의 identity 속성으로 그래프에 실려 검색기가 읽음  
+- 초안 폴더에서 고치고(`draft.py start`, 판 3 → 4) 기계 검사 통과 뒤 승인본으로 올림. 그래프 스키마 3개는 바뀌지 않음  
+- 재인덱싱 `ttl-f7`(재사용, LLM 추출 0): 공통 개념 층 판 4, 업종 잇기 138, 규칙 위반과 경로가 앞과 같음. 활성 세대 `gen-lab-ttl-f7-d4bd772c`  
+- 그대로 둔 것: `decisions.json`, `approval.json`, `output/round*/concepts_draft.json`, `schema/doc-ontology/RUN_LOG.md`의 옛 경로(설계 당시 기록)
+- 이어서 온톨로지 앞머리 설명(`dcterms:description`)의 지운 도구 이름 `build_schema.py`를 `build_from_ttl.py`로 고침.  
+  「graph_schema.json의 노드 타입 설명(description) 첫머리는 build_from_ttl.py가 여기서 가져옴」. 판 4 → 5, 그래프 스키마 3개는 그대로  
+- 재인덱싱 `ttl-f8`(재사용, LLM 추출 0): 공통 개념 층 판 5, 업종 잇기 138, 규칙 위반과 경로가 앞과 같음. 활성 세대 `gen-lab-ttl-f8-44b34a7f`
+
+## 12. Class 노드 사이 관계를 관계 이름 그대로 실음(2026-11-22, 사용자 결정 「네, 바꿔요」)
+
+- 바꾸기 전: OntoConcept 사이를 모두 `CONCEPT_REL` 한 가지로 잇고 관계 이름을 속성 `label`에 둠  
+- 바꾼 뒤: card.ttl의 관계 이름 그대로 이음(예: `(혜택)-[:IN_CATEGORY {inverse: "CATEGORY_OF"}]->(업종)`). 반대 이름은 그대로 속성  
+- 고친 코드: `indexer/core_ontology.py`의 `load_concept_layer`(`MERGE (a)-[x:$(r.label)]->(b)`, Cypher 동적 관계 이름. context7로 문법 확인)와 개수 세는 쿼리  
+- 확인: 관계 이름으로 거는 쿼리(검색기 경로, K8 투영, 검사 내보내기)는 모두 라벨이나 세대로 범위를 좁혀 개념 노드 사이 선이 섞이지 않음. 검색기는 이 관계를 읽지 않음  
+- 재인덱싱 `ttl-f9`(재사용, 사전 검사 무시 `--full-reindex`, LLM 추출 0): 개념 사이 관계 6종 8개(ABOUT 3, FOLLOWS, HAS_COMPLAINT, IN_CATEGORY,
+  IN_SEGMENT, REFERS_TO), `CONCEPT_REL` 0개, 세대의 IN_CATEGORY 138개, 규칙 위반과 경로가 앞과 같음. 활성 세대 `gen-lab-ttl-f9-60f089e3`  
+- 교재 「공통 개념 층을 OntoConcept 노드로 싣기」 장표의 코드 발췌, 설명 ④, 아래 띠, 노트를 고침(`.temp/rel/fix_rel_names.py`)

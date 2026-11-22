@@ -1,17 +1,16 @@
 {
-  "promoted_at": "2026-11-22T16:15:31",
+  "promoted_at": "2026-11-22T22:19:57",
   "changed": [
     {
       "file": "card.ttl",
       "added": 2,
       "removed": 2,
       "subjects": [
-        "FOLLOWS",
         "ontology"
       ]
     }
   ],
-  "signature": "4ff7e9bd6fcf0994cf73a2f508eccfd99e0be49c4f5bffbb89f46b5953eec0a3",
+  "signature": "d6f41b120a145a0db81d2e193ec98d8894c9dd69f62864f75a0ea3490106a6f7",
   "check_ok": true,
   "problems": []
 }

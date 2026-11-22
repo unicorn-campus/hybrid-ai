@@ -179,14 +179,14 @@ def load_concept_layer(driver, concepts: dict) -> dict:
     driver.execute_query(
         "UNWIND $rows AS k MERGE (oc:OntoConcept {name: k.name}) "
         "SET oc += k", rows=rows)
-    driver.execute_query(  # Class 사이 관계(개념 규칙): 출발 Class → 도착 Class, 이름과 반대 이름을 속성으로
+    driver.execute_query(  # Class 사이 관계(개념 규칙): card.ttl의 관계 이름 그대로(예: IN_CATEGORY), 반대 이름은 속성으로
         "UNWIND $rels AS r UNWIND r.sources AS s "
         "MATCH (a:OntoConcept {name: s}), (b:OntoConcept {name: r.target}) "
-        "MERGE (a)-[x:CONCEPT_REL {label: r.label}]->(b) SET x.inverse = r.inverse",
+        "MERGE (a)-[x:$(r.label)]->(b) SET x.inverse = r.inverse",
         rels=[{"label": r["label"], "target": r["target_class"], "inverse": r.get("inverse"),
                "sources": r["source_class"] if isinstance(r["source_class"], list) else [r["source_class"]]}
               for r in concepts["relations"]])
-    records, _, _ = driver.execute_query("MATCH (:OntoConcept)-[r:CONCEPT_REL]->(:OntoConcept) RETURN count(r) AS n")
+    records, _, _ = driver.execute_query("MATCH (:OntoConcept)-[r]->(:OntoConcept) RETURN count(r) AS n")
     return {"concepts": len(rows), "concept_relations": records[0]["n"], "version": concepts.get("version")}
 
 
