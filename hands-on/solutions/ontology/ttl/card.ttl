@@ -47,7 +47,7 @@ card:FOLLOWS a owl:ObjectProperty ;
     rdfs:range card:Consultation ;
     owl:inverseOf card:FOLLOWED_BY ;
     card:docType "consult_log" ;
-    card:inverseReason "C5, Q14는 첫 상담에서 뒤의 상담으로도 따라감" ;
+    card:inverseReason "C5는 첫 상담에서 뒤의 상담으로도 따라감" ;
     card:order 3 .
 
 card:HAS_COMPLAINT a owl:ObjectProperty ;
@@ -145,7 +145,7 @@ card:ontology a owl:Ontology ;
     dcterms:dateAccepted "2026-11-18T03:02:27" ;
     dcterms:description "문서 그래프 3종(약관, 카드 혜택 안내, 상담 기록)과 정형 DB를 같은 업무 개념(Class)으로 잇는 공통 개념 층. 뜻 한 줄은 여기에만 적고, 스키마 description의 첫머리는 build_schema.py가 여기서 가져옴" ;
     rdfs:comment "8단계에서 스키마와 함께 통과를 승인함(review/step8.md 라운드 3, 4)" ;
-    owl:versionInfo "2" .
+    owl:versionInfo "3" .
 
 card:CATEGORY_OF a owl:ObjectProperty .
 
