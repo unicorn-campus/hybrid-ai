@@ -10,7 +10,8 @@
           load_view_layer      정형 조회용 뷰 설명(schema/rdb/app_views.json)을 DB 카탈로그와 대조한 뒤 DbView, DbColumn,
                                SqlExample로 실음. 키 컬럼은 OntoConcept -[:KEY_IN]-> DbColumn(검색기의 정형 조회 툴이 읽음)
           link_categories      업종 맞추기 표의 approved 행만 Benefit -[:IN_CATEGORY]-> Category로 이음
-          check_rules          검사 규칙 K01 ~ K09의 위반 수와 건너가는 지점(P1 ~ P6)의 이어짐을 셈
+          new_map_items        맞추기 표에 없는 새 혜택과 주제 이름을 모음(사람이 확정할 목록)
+  ④ 검증  check_rules          검사 규칙 K01 ~ K09의 위반 수와 건너가는 지점(P1 ~ P6)의 이어짐을 셈. 그래프를 다 만든 뒤 부름
 
 정형 데이터(회원, 카드, 거래)는 PostgreSQL에 그대로 둠. 문서 노드에는 키 속성(product_id, member_pseudo_id)만 있음.
 """
@@ -141,7 +142,7 @@ def postprocess_graph(unit: dict, topic_map: dict[str, str]) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# K5 뒤: 공통 개념 층 싣기, 업종 잇기, 검사 규칙
+# K5 뒤: 공통 개념 층 싣기, 업종 잇기, 새 항목 / ④ 검증: 검사 규칙(check_rules)
 # ---------------------------------------------------------------------------
 def read_view_catalog(dsn: str, password: str, schema: str = "app") -> dict:
     """DB 카탈로그에서 논리 뷰의 컬럼과 자료형을 읽음. 반환값: {뷰 이름: {컬럼 이름: 자료형}}"""

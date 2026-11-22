@@ -202,8 +202,8 @@ def read_secret(name: str) -> str:
 def ontology_steps(driver, generation: str) -> dict:
     """온톨로지 결합 단계를 차례로 돌리고 결과를 돌려줌. K5 병합 뒤, K6 임베딩 앞에서 부름.
 
-    ① 공통 개념 층 싣기(OntoConcept) ② 업종 맞추기 표로 혜택을 업종에 잇기(IN_CATEGORY)
-    ③ 검사 규칙 K01 ~ K09와 건너가는 지점의 이어짐 세기(공통 개념 층 checks, paths)
+    ① 공통 개념 층 싣기(OntoConcept)와 정형 조회용 뷰 설명 ② 업종 맞추기 표로 혜택을 업종에 잇기(IN_CATEGORY)
+    ③ 맞추기 표에 없는 새 항목 모으기. 검사 규칙은 그래프를 다 만든 뒤 ④ 검증에서 봄(verify_ontology_rules)
     """
     concepts = turtle.load_concepts(TTL_DIR)  # card.ttl과 셰이프에서 읽음
     categories = next(c["allowed_values"]["values"] for c in concepts["classes"] if c["name"] == "업종")
@@ -220,13 +220,26 @@ def ontology_steps(driver, generation: str) -> dict:
     log(f"[온톨로지 ②] 업종 잇기(IN_CATEGORY): 업종 노드 {linked['categories']}개, 맞추기 표 approved {linked['approved_rows']}행 중 "
         f"이 세대 혜택 {linked['linked']}개를 이음")
 
+    new_items = onto.new_map_items(driver, generation, turtle.load_category_map(TTL_DIR), turtle.load_topic_map(TTL_DIR))
+    log(f"[온톨로지 ③] 맞추기 표에 없는 새 항목: 혜택 {len(new_items['benefits'])}개, 주제 이름 {len(new_items['topics'])}개 "
+        "(사람이 확정할 목록. 세대 폴더의 new_map_items.json)")
+    return {"concept_layer": layer, "view_layer": views, "categories": linked, "new_items": new_items}
+
+
+def verify_ontology_rules(driver, generation: str) -> dict:
+    """④ 검증 항목: 검사 규칙 K01 ~ K09와 건너가는 지점의 이어짐을 셈(공통 개념 층 checks, paths). 데이터는 고치지 않음.
+
+    그래프를 다 만든 뒤(K6, K8 뒤) 부름. K6과 K8은 검사 대상 라벨과 관계를 바꾸지 않아 K5 뒤에 세어도 결과는 같지만,
+    검증을 ④ 한 곳에 모아 둠. ok가 False면 ④가 게시하지 않음.
+    """
+    concepts = turtle.load_concepts(TTL_DIR)  # 검사 규칙 목록(shapes/checks.ttl)도 여기서 읽음
     product_ids = set(load_json(KEY_VALUES_PATH)["keys"]["Product.product_id"]["values"])
     snapshot = load_json(SNAPSHOT_PATH)["chunks"]
     record_ids = {c["metadata"]["record_id"] for c in snapshot if c["metadata"].get("record_id")}
     article_nos = {u["keys"]["article_no"] for u in load_json(SCHEMA_DIR / "regulation" / "units.json")["units"] if u["keys"]}
     check = onto.check_rules(driver, generation, concepts, product_ids, record_ids, article_nos)
     rules = ", ".join(f"{k} {r['violations']}" for k, r in check["rules"].items())
-    log(f"[온톨로지 ③] 검사 규칙: {'통과' if check['ok'] else '실패'} ({rules}. K06 비율 {check['k06_rate']:.0%})")
+    log(f"④ 검증(검사 규칙): {'통과' if check['ok'] else '실패'} ({rules}. K06 비율 {check['k06_rate']:.0%})")
     p = check["paths"]
     log(f"      경로: P1 불만 상담 {p['P1']['complaint_consults']}건 중 약관 주제와 이어진 것 {p['P1']['linked']}건, "
         f"P2 혜택 주제와 {p['P2']['linked']}건, P3과 P5 상담 키 {p['P3_P5']['product_id']}/{p['P3_P5']['consults']}, "
@@ -234,10 +247,7 @@ def ontology_steps(driver, generation: str) -> dict:
         f"P6 혜택과 이용 기준 키 {p['P6']['product_id']}/{p['P6']['items']}")
     log(f"      문서 종류를 넘어 이어진 주제 {len(p['shared_topics'])}개: "
         + ", ".join(f"{x['topic']}({'+'.join(x['kinds'])})" for x in p["shared_topics"][:6]))
-    new_items = onto.new_map_items(driver, generation, turtle.load_category_map(TTL_DIR), turtle.load_topic_map(TTL_DIR))
-    log(f"[온톨로지 ④] 맞추기 표에 없는 새 항목: 혜택 {len(new_items['benefits'])}개, 주제 이름 {len(new_items['topics'])}개 "
-        "(사람이 확정할 목록. 세대 폴더의 new_map_items.json)")
-    return {"concept_layer": layer, "view_layer": views, "categories": linked, "check": check, "new_items": new_items}
+    return check
 
 
 def view_layer(driver) -> dict | None:
@@ -1069,7 +1079,7 @@ def run(args) -> None:
             driver.close()  # --until k4나 k5이면 여기서 멈춤
             return
 
-        # --- 온톨로지 결합: 공통 개념 층 싣기, 업종 잇기, 검사 규칙, 맞추기 표 새 항목
+        # --- 온톨로지 결합: 공통 개념 층 싣기, 업종 잇기, 맞추기 표 새 항목
         ontology = ontology_steps(driver, generation)
         save_json(gen_dir / "new_map_items.json", ontology["new_items"])
         if ontology["new_items"]["benefits"] or ontology["new_items"]["topics"]:
@@ -1158,6 +1168,7 @@ def run(args) -> None:
         report["ok"] = report["ok"] and c["ok"]
         log(f"④ 검증(K8): {'통과' if c['ok'] else '실패'} (커뮤니티 {c['communities']}개, 요약 빠짐 {c['incomplete']}, "
             f"빈 묶음 {c['empty']}, 세대 밖 구성원 {c['foreign_members']})")
+    ontology["check"] = verify_ontology_rules(driver, generation)  # 보고서에서는 앞 판과 같은 자리(ontology.check)에 둠
     labels = label_counts(driver, generation)
     elapsed = round(time.time() - started)
     save_json(gen_dir / "build_report.json", {
