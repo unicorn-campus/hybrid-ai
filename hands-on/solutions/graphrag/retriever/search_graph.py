@@ -118,7 +118,7 @@ STORE_TIMEOUT = 10  # OpenSearch, Neo4j
 O_CANDIDATES = 25  # O1, O2 각 후보 수와 O3 뒤 남길 수
 O_KEEP = 6  # O4 뒤 청크 수(필터로 6개 이하면 O4 건너뜀)
 L_ENTITIES = 16  # L2 엔티티 축소 상한
-L_VECTOR_ENTITIES = 8  # L2 후보에 더할, 질문과 설명이 가까운 엔티티 수(이번 세대 엔티티 전체와 코사인을 직접 비교)
+L2_WEIGHT_ENGINE = 0.7  # L2 가중합에서 검색엔진 점수의 몫. 나머지 0.3은 엔티티 설명 코사인(평가 비교는 README 7.6)
 L_NEIGHBORS = 4  # L3 엔티티마다 이웃 수
 L_REPORTS = 3  # L4 보고서 수
 G_MAX_REPORTS = 12  # G1 고를 보고서 상한
@@ -149,7 +149,7 @@ AGENT_SYSTEM = """너는 카드사 상담 지원 시스템의 「근거 수집�
 
 툴 고르는 법(권장일 뿐 따르지 않아도 됨)
 - 특정 카드, 혜택, 약관 사실: local_search 또는 search_vector-bm25
-- 특정 회원의 상담: local_search(그 회원의 첫 상담과 가장 최근 상담 엔티티가 자동으로 들어감)
+- 특정 회원의 상담: local_search(회원 필터가 걸려 그 회원의 상담만 나옴)
 - 조항 번호, 약관 버전, 카드 id처럼 정확한 이름이나 번호로 찾을 대상: find_entities → 나온 엔티티 id로 get_source_chunks
 - 여러 상담의 경향, 공통점, 주제 나누기: global_search(요청당 1회). 원문이 없는 주제만 local_search(topic_id)로 보충
 - 질문에 사실이 둘이면 한 회차에 툴을 여러 개 불러도 됨(최대 5개)
@@ -552,18 +552,47 @@ def neighbors_and_reports(res: Resources, entity_ids: list[str], vector: list[fl
     return {"neighbors": neighbors, "reports": reports}
 
 
-def local_search(res: Resources, query: str, topic_id: str | None, filters: dict, ctx: dict) -> dict:
-    """L Local 검색: L1 검색엔진 검색 → L2 엔티티 축소(16) → L3 이웃(각 4) → L4 보고서(3) (교재 81, 82쪽).
+def spread(values: dict) -> dict:
+    """점수를 min-max로 0 ~ 1로 폄. 값이 모두 같으면 모두 1."""
+    lo, hi = min(values.values(), default=0.0), max(values.values(), default=0.0)
+    return {key: (value - lo) / (hi - lo) if hi > lo else 1.0 for key, value in values.items()}
 
-    L2 후보는 두 갈래를 합침: (가) L1 청크에서 나온 엔티티 (나) 질문과 설명(K6 임베딩)이 가까운 엔티티 8개.
-    두 갈래 모두 점수가 「질문 ↔ 엔티티 설명」 코사인이라 RRF 없이 한 줄로 세워 narrow_entities가 고름.
+
+def merge_entity_lists(list_a: list[dict], list_b: list[dict], chunk_scores: dict, limit: int) -> list[dict]:
+    """L2 합치기: 갈래 A(검색엔진 → 청크 엔티티 축소)와 갈래 B(엔티티 설명 벡터)의 엔티티를 가중합으로 하나로.
+
+    점수 = 0.7 × (검색엔진 점수: 엔티티가 나온 L1 청크의 점수를 0 ~ 1로 편 값. A에 없으면 0)
+         + 0.3 × (질문과 엔티티 설명의 코사인을 0 ~ 1로 편 값)
+    두 갈래 모두 엔티티라 같은 단위로 합침. 검색엔진 점수(리랭커 또는 RRF)와 코사인은 크기가 달라 먼저 0 ~ 1로 폄.
+    반환값: 점수 순 limit개. 각 줄에 merge_score를 붙임.
     """
-    found = search_engine(res, query, filters, ctx)  # L1 = O
+    rows = {}
+    for row in list_a + list_b:
+        rows.setdefault(row["id"], row)
+    chunk_norm = spread(chunk_scores)
+    cos_norm = spread({eid: row.get("score") or 0.0 for eid, row in rows.items()})
+    ids_a = {row["id"] for row in list_a}
+    score = {}
+    for eid, row in rows.items():
+        engine = max((chunk_norm[c] for c in row.get("chunk_ids") or [] if c in chunk_norm), default=0.0)
+        score[eid] = L2_WEIGHT_ENGINE * (engine if eid in ids_a else 0.0) + (1 - L2_WEIGHT_ENGINE) * cos_norm[eid]
+    ordered = sorted(rows.values(), key=lambda row: score[row["id"]], reverse=True)[:limit]
+    return [{**row, "merge_score": score[row["id"]]} for row in ordered]
+
+
+def local_search(res: Resources, query: str, topic_id: str | None, filters: dict, ctx: dict) -> dict:
+    """L Local 검색: L1 두 갈래 검색 → L2 엔티티 합치기(16) → L3 이웃(각 4) → L4 보고서(3) (교재 81, 82쪽).
+
+    갈래 A: 검색엔진 검색(O, 청크 6) → 청크에서 나온 엔티티를 질문 유사도로 16개로 축소(실습 함수 narrow_entities).
+    갈래 B: 이번 세대 엔티티 전체와 질문을 비교해 설명(K6 임베딩)이 가까운 16개.
+    두 갈래 모두 엔티티라 같은 단위로 가중합(검색엔진 0.7, 엔티티 설명 코사인 0.3)해 16개로 합침.
+    """
+    found = search_engine(res, query, filters, ctx)  # L1 갈래 A = O
     chunks = found["chunks"]
     vector = embed_query(res, query, ctx)
     candidates = []
     if chunks:
-        records = res.run(  # L2 후보 (가): 청크에서 나온 엔티티(권한 조건 통과)와 질문 유사도
+        records = res.run(  # 갈래 A 후보: 청크에서 나온 엔티티(권한 조건 통과)와 질문 유사도
             "UNWIND $cids AS cid MATCH (c:Chunk {generation: $g, chunk_id: cid})<-[:FROM_CHUNK]-(n:__Entity__) "
             "WHERE " + entity_allowed_clause("n") + " "
             "RETURN cid AS chunk_id, elementId(n) AS id, " + LABEL_OF + " AS label, " + PROPS_OF + " AS props, "
@@ -572,9 +601,10 @@ def local_search(res: Resources, query: str, topic_id: str | None, filters: dict
             cids=[c["chunk_id"] for c in chunks], g=filters["generation"], allowed=sorted(filters["allowed_ids"]),
             qv=vector)
         candidates = [dict(r) for r in records]
-    n_vector = 0
+    list_a = core.narrow_entities(candidates, limit=L_ENTITIES)  # 갈래 A: 청크 엔티티 16개로 축소(실습 함수)
+    list_b = []
     if vector is not None:
-        # L2 후보 (나): 이번 세대 엔티티 전체와 코사인을 직접 비교해 상위 8개(벡터 인덱스를 쓰지 않음).
+        # 갈래 B: 이번 세대 엔티티 전체와 코사인을 직접 비교해 상위 16개(벡터 인덱스를 쓰지 않음).
         # 인덱스 kg_entity_embedding은 모든 세대가 한 인덱스에 섞여 있어 「상위 k → 세대 거르기」로는 많이 놓침
         # (평가셋 10문항 실측 37/80). 직접 비교는 빠짐없이 찾고, 이번 세대 엔티티 약 1,650개라 0.1초 안팎임
         records = res.run(
@@ -582,33 +612,15 @@ def local_search(res: Resources, query: str, topic_id: str | None, filters: dict
             "WITH n, vector.similarity.cosine(n.embedding, $qv) AS score ORDER BY score DESC LIMIT $k "
             "RETURN elementId(n) AS id, " + LABEL_OF + " AS label, " + PROPS_OF + " AS props, "
             "[(n)-[:FROM_CHUNK]->(s:Chunk) | s.chunk_id] AS chunk_ids, score",
-            g=filters["generation"], allowed=sorted(filters["allowed_ids"]), qv=vector, k=L_VECTOR_ENTITIES)
-        known = {row["id"] for row in candidates}
-        for record in records:
-            row = dict(record)
-            if row["id"] in known:  # (가)에 이미 있으면 같은 점수라 다시 넣지 않음
-                continue
-            row["chunk_id"] = ""  # L1 청크 밖 엔티티. narrow_entities ②에서 이 묶음의 가장 가까운 1개가 자리를 받음
-            candidates.append(row)
-            n_vector += 1
-    pinned = []
-    if filters.get("member_pseudo_id"):  # 상담 질문: 그 회원의 첫 상담과 가장 최근 상담을 먼저 고정
-        records = res.run(
-            "MATCH (n:Consultation {generation: $g, member_pseudo_id: $m}) WHERE " + entity_allowed_clause("n") + " "
-            "WITH n ORDER BY n.consult_date WITH collect(n) AS cons WITH [cons[0], cons[-1]] AS pair UNWIND pair AS n "
-            "RETURN DISTINCT elementId(n) AS id, " + LABEL_OF + " AS label, " + PROPS_OF + " AS props, "
-            "[(n)-[:FROM_CHUNK]->(s:Chunk) | s.chunk_id] AS chunk_ids",
-            g=filters["generation"], m=filters["member_pseudo_id"], allowed=sorted(filters["allowed_ids"]))
-        for record in records:
-            row = dict(record)
-            row["chunk_id"] = row["chunk_ids"][0] if row["chunk_ids"] else ""
-            row["score"] = 1.0
-            candidates.append(row)
-            pinned.append(row["id"])
-    entities = core.narrow_entities(candidates, limit=L_ENTITIES, pinned_ids=pinned)  # L2 축소(실습 함수)
+            g=filters["generation"], allowed=sorted(filters["allowed_ids"]), qv=vector, k=L_ENTITIES)
+        list_b = [dict(r) for r in records]
+    chunk_scores = {c["chunk_id"]: c["score"] for c in chunks}
+    entities = merge_entity_lists(list_a, list_b, chunk_scores, L_ENTITIES)  # L2 합치기(가중합)
     graph = neighbors_and_reports(res, [e["id"] for e in entities], vector, filters)  # L3, L4
+    ids_a, ids_b = {e["id"] for e in list_a}, {e["id"] for e in list_b}
     return {"chunks": chunks, "entities": entities, "neighbors": graph["neighbors"], "reports": graph["reports"],
-            "n_candidates": len(candidates), "n_vector_entities": n_vector, "topic_id": topic_id}
+            "n_candidates": len(candidates), "n_a": len(list_a), "n_b": len(list_b),
+            "n_both": len(ids_a & ids_b), "topic_id": topic_id}
 
 
 def global_search(res: Resources, query: str, filters: dict, ctx: dict) -> dict:
@@ -806,8 +818,8 @@ def make_tool_functions(res: Resources) -> dict:
         new = add_chunks(ctx, ids, "local_search", topic_id, {c["chunk_id"]: c["score"] for c in found["chunks"]})
         eids = add_entities(ctx, found["entities"])
         add_reports(ctx, found["reports"])
-        lines = [f"원문 {len(ids)}개, 엔티티 {len(eids)}개(후보 {found['n_candidates']}개에서 축소, "
-                 f"그중 청크 밖에서 뜻으로 찾은 후보 {found['n_vector_entities']}개), "
+        lines = [f"원문 {len(ids)}개, 엔티티 {len(eids)}개(청크 엔티티 {found['n_a']}개와 뜻이 가까운 엔티티 "
+                 f"{found['n_b']}개를 합침, 겹침 {found['n_both']}개), "
                  f"보고서 {len(found['reports'])}개", chunk_lines(ctx, ids), "엔티티:"]
         for row in found["entities"][:8]:
             lines.append(f"  {short_entity_id(ctx, row['id'])} {short(entity_text(row['label'], row['props']), 90)}")
@@ -1332,8 +1344,7 @@ def first_message(ctx: dict, route: dict) -> str:
     if route["first_tool"]:
         lines.append(f"첫 툴 후보(권고일 뿐): {route['first_tool']}")
     if ids["member_pseudo_id"] and ctx["role"] == "auditor":
-        lines.append("회원 필터가 이미 걸려 있음(이 회원의 상담만 보임). 회원 상담은 local_search로 찾음"
-                     "(첫 상담과 가장 최근 상담 엔티티가 자동으로 들어감).")
+        lines.append("회원 필터가 이미 걸려 있음(이 회원의 상담만 보임). 회원 상담은 local_search로 찾음.")
     if ids["card_names"]:
         lines.append(f"카드 필터가 걸려 있음: {', '.join(ids['card_names'])}")
     if not ctx["allow_global"]:
