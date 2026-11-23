@@ -87,7 +87,6 @@ NEO4J_ENV_PATH = ROOT_DIR / "backing-services" / "neo4j" / ".env"  # NEO4J_PASSW
 NEO4J_URI = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.environ.get("NEO4J_USER", "neo4j")
 OPENSEARCH_URL = os.environ.get("OPENSEARCH_URL", "http://127.0.0.1:9200")
-ENTITY_INDEX = "kg_entity_embedding"  # K6 엔티티 설명 벡터 인덱스(E3 후보 찾기)
 
 # 모델
 AGENT_MODEL = "openai/gpt-oss-120b"  # ③ 검색 에이전트(툴 고르기). Groq. G1, G2, ⑧과 같은 모델(강사 결정 2026-10-25)
@@ -119,13 +118,13 @@ STORE_TIMEOUT = 10  # OpenSearch, Neo4j
 O_CANDIDATES = 25  # O1, O2 각 후보 수와 O3 뒤 남길 수
 O_KEEP = 6  # O4 뒤 청크 수(필터로 6개 이하면 O4 건너뜀)
 L_ENTITIES = 16  # L2 엔티티 축소 상한
+L_VECTOR_ENTITIES = 8  # L2 후보에 더할, 질문과 설명이 가까운 엔티티 수(이번 세대 엔티티 전체와 코사인을 직접 비교)
 L_NEIGHBORS = 4  # L3 엔티티마다 이웃 수
 L_REPORTS = 3  # L4 보고서 수
 G_MAX_REPORTS = 12  # G1 고를 보고서 상한
 G_REPORT_TOKENS = 12000  # G1 보고서 본문 몫(대략값: 글자 수 / 2)
 G_FALLBACK_REPORTS = 5  # G1 실패 때 보고서 벡터 상위 수
 G_MAX_TOPICS = 5  # G2 주제 수 상한
-E_CANDIDATES = 3  # E3 후보 수
 FINAL_CHUNKS = 8  # ⑥ 원문 자리 수
 REPORT_RELEVANCE_MIN = 0.25  # 보고서 관련도(질문과 보고서 요약 임베딩의 코사인) 하한. NO_REPORTS 판정에 씀
 
@@ -150,7 +149,8 @@ AGENT_SYSTEM = """너는 카드사 상담 지원 시스템의 「근거 수집�
 
 툴 고르는 법(권장일 뿐 따르지 않아도 됨)
 - 특정 카드, 혜택, 약관 사실: local_search 또는 search_vector-bm25
-- 특정 회원의 상담: find_entities(entity_key에 「회원」) → 나온 상담 엔티티 id로 get_source_chunks
+- 특정 회원의 상담: local_search(그 회원의 첫 상담과 가장 최근 상담 엔티티가 자동으로 들어감)
+- 조항 번호, 약관 버전, 카드 id처럼 정확한 이름이나 번호로 찾을 대상: find_entities → 나온 엔티티 id로 get_source_chunks
 - 여러 상담의 경향, 공통점, 주제 나누기: global_search(요청당 1회). 원문이 없는 주제만 local_search(topic_id)로 보충
 - 질문에 사실이 둘이면 한 회차에 툴을 여러 개 불러도 됨(최대 5개)
 
@@ -382,9 +382,8 @@ def jev_route(res: Resources, question: str, ctx: dict) -> dict | None:
     질문 문장은 영어로 씀(Jev는 영어가 가장 정확). 자료(state)는 식별자를 지운 한국어 질문 그대로 보냄.
     """
     criteria = {
-        "local_search": "a fact about a specific card, card benefit, or terms clause",
+        "local_search": "a fact about a specific card, card benefit, terms clause, or a specific member's consultations",
         "global_search": "a trend, common pattern, or grouping across many consultations or documents",
-        "find_entities": "a specific member's consultation history or a specific id",
         "search_vector-bm25": "find exact wording in documents",
     }
     swapped = dict(reversed(list(criteria.items())))  # 첫 보기 쏠림(공식 문서의 약점) 대비로 순서를 뒤집음
@@ -554,13 +553,17 @@ def neighbors_and_reports(res: Resources, entity_ids: list[str], vector: list[fl
 
 
 def local_search(res: Resources, query: str, topic_id: str | None, filters: dict, ctx: dict) -> dict:
-    """L Local 검색: L1 검색엔진 검색 → L2 엔티티 축소(16) → L3 이웃(각 4) → L4 보고서(3) (교재 81, 82쪽)."""
+    """L Local 검색: L1 검색엔진 검색 → L2 엔티티 축소(16) → L3 이웃(각 4) → L4 보고서(3) (교재 81, 82쪽).
+
+    L2 후보는 두 갈래를 합침: (가) L1 청크에서 나온 엔티티 (나) 질문과 설명(K6 임베딩)이 가까운 엔티티 8개.
+    두 갈래 모두 점수가 「질문 ↔ 엔티티 설명」 코사인이라 RRF 없이 한 줄로 세워 narrow_entities가 고름.
+    """
     found = search_engine(res, query, filters, ctx)  # L1 = O
     chunks = found["chunks"]
     vector = embed_query(res, query, ctx)
     candidates = []
     if chunks:
-        records = res.run(  # L2 후보: 청크에서 나온 엔티티(권한 조건 통과)와 질문 유사도
+        records = res.run(  # L2 후보 (가): 청크에서 나온 엔티티(권한 조건 통과)와 질문 유사도
             "UNWIND $cids AS cid MATCH (c:Chunk {generation: $g, chunk_id: cid})<-[:FROM_CHUNK]-(n:__Entity__) "
             "WHERE " + entity_allowed_clause("n") + " "
             "RETURN cid AS chunk_id, elementId(n) AS id, " + LABEL_OF + " AS label, " + PROPS_OF + " AS props, "
@@ -569,6 +572,25 @@ def local_search(res: Resources, query: str, topic_id: str | None, filters: dict
             cids=[c["chunk_id"] for c in chunks], g=filters["generation"], allowed=sorted(filters["allowed_ids"]),
             qv=vector)
         candidates = [dict(r) for r in records]
+    n_vector = 0
+    if vector is not None:
+        # L2 후보 (나): 이번 세대 엔티티 전체와 코사인을 직접 비교해 상위 8개(벡터 인덱스를 쓰지 않음).
+        # 인덱스 kg_entity_embedding은 모든 세대가 한 인덱스에 섞여 있어 「상위 k → 세대 거르기」로는 많이 놓침
+        # (평가셋 10문항 실측 37/80). 직접 비교는 빠짐없이 찾고, 이번 세대 엔티티 약 1,650개라 0.1초 안팎임
+        records = res.run(
+            "MATCH (n:__Entity__ {generation: $g}) WHERE n.embedding IS NOT NULL AND " + entity_allowed_clause("n") + " "
+            "WITH n, vector.similarity.cosine(n.embedding, $qv) AS score ORDER BY score DESC LIMIT $k "
+            "RETURN elementId(n) AS id, " + LABEL_OF + " AS label, " + PROPS_OF + " AS props, "
+            "[(n)-[:FROM_CHUNK]->(s:Chunk) | s.chunk_id] AS chunk_ids, score",
+            g=filters["generation"], allowed=sorted(filters["allowed_ids"]), qv=vector, k=L_VECTOR_ENTITIES)
+        known = {row["id"] for row in candidates}
+        for record in records:
+            row = dict(record)
+            if row["id"] in known:  # (가)에 이미 있으면 같은 점수라 다시 넣지 않음
+                continue
+            row["chunk_id"] = ""  # L1 청크 밖 엔티티. narrow_entities ②에서 이 묶음의 가장 가까운 1개가 자리를 받음
+            candidates.append(row)
+            n_vector += 1
     pinned = []
     if filters.get("member_pseudo_id"):  # 상담 질문: 그 회원의 첫 상담과 가장 최근 상담을 먼저 고정
         records = res.run(
@@ -586,7 +608,7 @@ def local_search(res: Resources, query: str, topic_id: str | None, filters: dict
     entities = core.narrow_entities(candidates, limit=L_ENTITIES, pinned_ids=pinned)  # L2 축소(실습 함수)
     graph = neighbors_and_reports(res, [e["id"] for e in entities], vector, filters)  # L3, L4
     return {"chunks": chunks, "entities": entities, "neighbors": graph["neighbors"], "reports": graph["reports"],
-            "n_candidates": len(candidates), "topic_id": topic_id}
+            "n_candidates": len(candidates), "n_vector_entities": n_vector, "topic_id": topic_id}
 
 
 def global_search(res: Resources, query: str, filters: dict, ctx: dict) -> dict:
@@ -645,7 +667,10 @@ def global_search(res: Resources, query: str, filters: dict, ctx: dict) -> dict:
 
 
 def find_entities(res: Resources, entity_key: str, filters: dict, ctx: dict) -> dict:
-    """E 엔티티 찾기: E1 정규화 → E2 레이블별 키 찾기 → E3 후보 제시(0건일 때) → E4 이웃 탐색(원문 없음) (교재 85쪽)."""
+    """E 엔티티 찾기: E1 정규화 → E2 레이블별 키 찾기 → E3 이웃 탐색(원문 없음) (교재 85쪽).
+
+    키가 같은 엔티티만 찾음. 0건이면 빈 결과(⑤가 NO_SEED)를 돌려주고, 뜻으로 찾는 일은 local_search가 맡음.
+    """
     raw = entity_key.strip()
     member = None
     if core.MEMBER_ID_PATTERN.search(raw) or core.PSEUDO_ID_PATTERN.search(raw) or "회원" in raw:
@@ -669,21 +694,8 @@ def find_entities(res: Resources, entity_key: str, filters: dict, ctx: dict) -> 
         "[(n)-[:FROM_CHUNK]->(s:Chunk) | s.chunk_id] AS chunk_ids LIMIT 12",
         g=filters["generation"], allowed=sorted(filters["allowed_ids"]), member=member, **keys)
     entities = [dict(r) for r in records]
-    candidates = []
-    if not entities:  # E3: 0건이면 노드 설명 임베딩(K6)으로 가까운 엔티티 3개를 후보로(오류가 아님)
-        vector = embed_query(res, raw, ctx)
-        if vector is not None:
-            records = res.run(
-                "CALL db.index.vector.queryNodes($index, 50, $qv) YIELD node AS n, score "
-                "WHERE n.generation = $g AND " + entity_allowed_clause("n") + " "
-                "RETURN elementId(n) AS id, " + LABEL_OF + " AS label, " + PROPS_OF + " AS props, "
-                "[(n)-[:FROM_CHUNK]->(s:Chunk) | s.chunk_id] AS chunk_ids, score ORDER BY score DESC LIMIT $k",
-                index=ENTITY_INDEX, qv=vector, g=filters["generation"], allowed=sorted(filters["allowed_ids"]),
-                k=E_CANDIDATES)
-            candidates = [dict(r) for r in records]
-    shown = entities or candidates
-    graph = neighbors_and_reports(res, [e["id"] for e in shown], filters.get("question_vector"), filters)  # E4
-    return {"entities": entities, "candidates": candidates, "neighbors": graph["neighbors"]}
+    graph = neighbors_and_reports(res, [e["id"] for e in entities], filters.get("question_vector"), filters)  # E3
+    return {"entities": entities, "neighbors": graph["neighbors"]}
 
 
 def get_source_chunks(res: Resources, entity_ids: list[str], with_reports: bool, filters: dict) -> dict:
@@ -794,7 +806,8 @@ def make_tool_functions(res: Resources) -> dict:
         new = add_chunks(ctx, ids, "local_search", topic_id, {c["chunk_id"]: c["score"] for c in found["chunks"]})
         eids = add_entities(ctx, found["entities"])
         add_reports(ctx, found["reports"])
-        lines = [f"원문 {len(ids)}개, 엔티티 {len(eids)}개(후보 {found['n_candidates']}개에서 축소), "
+        lines = [f"원문 {len(ids)}개, 엔티티 {len(eids)}개(후보 {found['n_candidates']}개에서 축소, "
+                 f"그중 청크 밖에서 뜻으로 찾은 후보 {found['n_vector_entities']}개), "
                  f"보고서 {len(found['reports'])}개", chunk_lines(ctx, ids), "엔티티:"]
         for row in found["entities"][:8]:
             lines.append(f"  {short_entity_id(ctx, row['id'])} {short(entity_text(row['label'], row['props']), 90)}")
@@ -827,13 +840,11 @@ def make_tool_functions(res: Resources) -> dict:
 
     def run_find(args, filters, ctx):
         found = find_entities(res, args["entity_key"], filters, ctx)
-        lines = []
-        if found["entities"]:
-            lines.append(f"엔티티 {len(found['entities'])}개(원문은 get_source_chunks로 붙임)")
-            rows = found["entities"]
+        rows = found["entities"]
+        if rows:
+            lines = [f"엔티티 {len(rows)}개(원문은 get_source_chunks로 붙임)"]
         else:
-            lines.append(f"「{args['entity_key']}」와 키가 같은 엔티티 없음. 가까운 후보 {len(found['candidates'])}개")
-            rows = found["candidates"]
+            lines = [f"「{args['entity_key']}」와 키가 같은 엔티티 없음. 뜻으로 찾으려면 local_search를 쓸 것"]
         add_entities(ctx, rows)
         for row in rows:
             lines.append(f"  {short_entity_id(ctx, row['id'])} {short(entity_text(row['label'], row['props']), 100)}")
@@ -1321,7 +1332,8 @@ def first_message(ctx: dict, route: dict) -> str:
     if route["first_tool"]:
         lines.append(f"첫 툴 후보(권고일 뿐): {route['first_tool']}")
     if ids["member_pseudo_id"] and ctx["role"] == "auditor":
-        lines.append("회원 필터가 이미 걸려 있음(이 회원의 상담만 보임). 회원을 찾을 때는 find_entities(entity_key=\"회원\").")
+        lines.append("회원 필터가 이미 걸려 있음(이 회원의 상담만 보임). 회원 상담은 local_search로 찾음"
+                     "(첫 상담과 가장 최근 상담 엔티티가 자동으로 들어감).")
     if ids["card_names"]:
         lines.append(f"카드 필터가 걸려 있음: {', '.join(ids['card_names'])}")
     if not ctx["allow_global"]:

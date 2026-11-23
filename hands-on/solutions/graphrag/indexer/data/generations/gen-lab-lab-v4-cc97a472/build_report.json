@@ -1,0 +1,73 @@
+{
+ "run_id": "lab-v4@20261123212348",
+ "generation": "gen-lab-lab-v4-cc97a472",
+ "chunks": 260,
+ "units": 297,
+ "k2": {
+  "llm_units": 297,
+  "reused": 0,
+  "usage": {
+   "calls": 297,
+   "total_tokens": 1029505
+  }
+ },
+ "k4": {
+  "nodes": 2182,
+  "relationships": 3491
+ },
+ "k5_merged_groups": 100,
+ "k6_embedded": 1646,
+ "k8": {
+  "entities": 1646,
+  "relations": 1569,
+  "groups": 83,
+  "summarized": 79,
+  "llm_calls": 79,
+  "reused": 0,
+  "usage": {
+   "calls": 79,
+   "total_tokens": 239845
+  }
+ },
+ "s1_new_embeddings": 260,
+ "s3": {
+  "deleted": 0,
+  "indexed": 260,
+  "documents": 50
+ },
+ "verify": {
+  "search_equal": true,
+  "kg_equal": true,
+  "search_missing": [],
+  "search_extra": [],
+  "kg_missing": [],
+  "kg_extra": [],
+  "kg_duplicate_chunk_nodes": [],
+  "ok": true,
+  "failed_units": [],
+  "communities": {
+   "communities": 79,
+   "incomplete": 0,
+   "empty": 0,
+   "foreign_members": 0,
+   "ok": true
+  }
+ },
+ "labels": {
+  "BenefitCondition": 371,
+  "BenefitLimit": 310,
+  "Benefit": 273,
+  "BenefitExclusion": 265,
+  "Proposal": 92,
+  "Handling": 75,
+  "ProductGuide": 65,
+  "Clause": 52,
+  "Consultation": 48,
+  "Complaint": 47,
+  "ReconsiderCondition": 18,
+  "Deadline": 17,
+  "Requirement": 12,
+  "TermsDocument": 1
+ },
+ "elapsed_seconds": 870
+}
