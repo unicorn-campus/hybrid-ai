@@ -135,7 +135,7 @@ REPORT_RELEVANCE_MIN = 0.25  # 보고서 관련도(질문과 보고서 요약 �
 # ② Jev 결정(교재 71쪽). aggregation: 「상담 집계 질문인가」 확률이 이 값 이상이면 상담 집계 질문(실측: 집계 0.43 이상,
 # 그 밖 0.18 이하, README 7.8)
 ROUTE_THRESHOLDS = {"end_noul": 0.7, "choice_confidence": 0.5, "aggregation": 0.3}
-# 상담 집계 경로(README 7.8): off(끔), route(A안: ② 판정으로 바로 감), tool(B안: 에이전트 툴), both(A + B)
+# 상담 집계 경로(README 7.8): off(끔), route(② 판정으로 바로 감), tool(에이전트 툴), both(둘 다)
 AGGREGATION_MODE = os.environ.get("AGGREGATION_MODE", "both")  # 혼합 질문 비교로 정함(README 7.8)
 PASSAGE_THRESHOLDS = {"relevant_min": 0.45, "answer_evidence_over": 0.55,  # ⑤ Jev 원문 판정(TypeSafe 쿡북 출발값)
                       "premise_conflict_over": 0.7, "injection_over": 0.7}
@@ -1016,10 +1016,10 @@ def tool_finish(status: Literal["sufficient", "unverifiable", "need_clarificatio
     return "수집 종료"
 
 
-@tool("consult_table")
+@tool("aggregated_consult_search")
 def tool_consult(question: str, runtime: ToolRuntime) -> str:
     """상담 구조화 표 집계: 여러 상담의 불만·문의·제안 결정(수용·거절·보류)·이유·안내 방식을 고객군·채널·기간으로 모으고,
-    필요하면 관련 약관 조항·카드 혜택까지 찾음. 요청당 1회. 결과는 답변 단계에 그대로 들어감.
+    필요하면 관련 약관 조항·카드 혜택까지 찾음. 요청당 1회(다시 부르지 않음). 결과 전체가 답변 단계에 그대로 들어감.
 
     Args:
         question: 표에 물을 질문(원 질문을 그대로 쓰거나 범위를 좁힌 문장).
@@ -1029,12 +1029,12 @@ def tool_consult(question: str, runtime: ToolRuntime) -> str:
 
 AGENT_TOOLS = [tool_search, tool_local, tool_global, tool_find, tool_sources, tool_finish]
 CONSULT_TOOL_GUIDE = ("- 여러 상담의 불만·일반 문의·제안 결정(수용·거절·보류)과 이유·후속 안내 방식을 모으거나 고객군·채널·기간으로 "
-                      "나누는 질문, 특정 고객군·상담 주제의 문의와 관련된 약관 조항·카드 혜택 찾기: consult_table(요청당 1회). "
-                      "결과는 답변 단계에 그대로 들어가므로, 부른 뒤 더 필요한 근거가 없으면 바로 finish(sufficient)\n")
+                      "나누는 질문, 특정 고객군·상담 주제의 문의와 관련된 약관 조항·카드 혜택 찾기: aggregated_consult_search(요청당 1회). "
+                      "결과 전체가 답변 단계에 그대로 들어가므로 다시 부르거나 같은 내용을 다른 툴로 더 찾지 말고, 표 밖의 사실을 따로 묻지 않으면 바로 finish(sufficient)\n")
 
 
 def agent_tools_and_prompt(data: dict) -> tuple[list, str]:
-    """③에 넘길 툴과 시스템 프롬프트. B안(tool, both)이고 표가 있으면 consult_table 툴과 안내 줄을 더함."""
+    """③에 넘길 툴과 시스템 프롬프트. 에이전트 툴이 켜져 있고(tool, both) 표가 있으면 aggregated_consult_search 툴과 안내 줄을 더함."""
     if AGGREGATION_MODE in ("tool", "both") and data.get("consult_table") is not None:
         prompt = AGENT_SYSTEM.replace("- 질문에 사실이 둘이면", CONSULT_TOOL_GUIDE + "- 질문에 사실이 둘이면", 1)
         return AGENT_TOOLS[:-1] + [tool_consult, tool_finish], prompt
@@ -1042,14 +1042,14 @@ def agent_tools_and_prompt(data: dict) -> tuple[list, str]:
 
 
 def consult_tool_body(question: str, runtime: ToolRuntime) -> str:
-    """consult_table 툴 몸통(B안). 실습 함수 run_tool(입력 검사표에 이 툴이 없음)을 거치지 않고 여기서 직접 실행함.
+    """aggregated_consult_search 툴 몸통. 실습 함수 run_tool(입력 검사표에 이 툴이 없음)을 거치지 않고 여기서 직접 실행함.
 
-    요청당 1회: A안에서 이미 표를 봤거나(줄 없음) 앞 회차에서 불렀으면 실행하지 않음. 질의 속 식별자는 지우고,
+    요청당 1회: ② 판정으로 바로 가서 이미 표를 봤거나(줄 없음) 앞 회차에서 불렀으면 실행하지 않음. 질의 속 식별자는 지우고,
     권한은 ② 필터(볼 수 있는 청크 표)를 그대로 씀. ⑤ 채점은 하지 않음(표의 줄은 원문 대조를 마친 값).
     """
     ctx = runtime.context
     if ctx.get("aggregation") is not None:
-        text = f"입력 오류: consult_table은 요청당 1회(이미 부름, 상담 {ctx['aggregation']['rows']}건)"
+        text = f"입력 오류: aggregated_consult_search는 요청당 1회(이미 부름, 상담 {ctx['aggregation']['rows']}건)"
         ctx["call_results"][runtime.tool_call_id] = {"text": text, "result": None, "error": True}
         return text
     query = core.strip_identifiers(question)
@@ -1064,7 +1064,7 @@ def consult_tool_body(question: str, runtime: ToolRuntime) -> str:
     plan = result["plan"]
     if result["rows"]:
         head = (f"상담 표 {result['rows']}건(고객군 {plan['segments'] or '전체'}, 채널 {plan['channels'] or '전체'}, "
-                f"묻는 것 {plan['focus']}), 약관·혜택 확인 {result['hops']}건. 이 결과는 답변 단계에 그대로 들어감.")
+                f"묻는 것 {plan['focus']}), 약관·혜택 확인 {result['hops']}건. 이 결과 전체가 답변 단계에 그대로 들어가니 같은 내용을 더 찾지 말고, 표 밖의 사실이 필요 없으면 바로 finish(sufficient).")
         lines = [ln[:200] for ln in result["evidence"].split("\n")[:12]]  # 에이전트에게는 앞부분만
         text = head + "\n" + "\n".join(lines)
     else:
@@ -1146,9 +1146,9 @@ class ToolWrapperMiddleware(AgentMiddleware):
             say(f"   ④ finish: {call['args'].get('status')} - {call['args'].get('reason')}")
             return message
         out = ctx["call_results"].get(call["id"], {})
-        if out.get("consult") and not out.get("error"):  # B안 consult_table: 표의 줄은 원문 대조를 마친 값이라 ⑤ 채점 없음
+        if out.get("consult") and not out.get("error"):  # aggregated_consult_search: 표의 줄은 원문 대조를 마친 값이라 ⑤ 채점 없음
             record_outcome(ctx, failed=False, no_new=not ctx["aggregation"]["rows"])
-            say(f"   ④ consult_table: {short(out['text'].splitlines()[0], 160)}")
+            say(f"   ④ aggregated_consult_search: {short(out['text'].splitlines()[0], 160)}")
             return message
         if out.get("error"):
             message.status = "error"
@@ -1482,7 +1482,7 @@ def first_message(ctx: dict, route: dict) -> str:
 
 
 def aggregation_route(route: dict, data: dict) -> bool:
-    """A안: ②(실습 함수 decide_question_route)가 상담 집계 질문으로 정했고, 집계 경로가 켜져 있고, 상담 표가 있으면 True.
+    """② 판정으로 바로 감: ②(실습 함수 decide_question_route)가 상담 집계 질문으로 정했고, 집계 경로가 켜져 있고, 상담 표가 있으면 True.
 
     교육생 함수가 aggregate를 돌려주지 않으면(예전 my_search.py) False로 보고 기존 흐름(③)으로 감.
     """
@@ -1502,7 +1502,7 @@ def run_aggregation(res: Resources, data: dict, ctx: dict, answer_on: bool) -> d
         return None
     ctx["aggregation"] = result
     plan = result["plan"]
-    say(f"── 집계 경로(A안): 고객군 {plan['segments'] or '전체'}, 채널 {plan['channels'] or '전체'}, 묻는 것 {plan['focus']}, "
+    say(f"── 집계 경로(② 판정): 고객군 {plan['segments'] or '전체'}, 채널 {plan['channels'] or '전체'}, 묻는 것 {plan['focus']}, "
         f"공통점 {plan['asks_pattern']}, 약관 {plan['needs_terms']}, 혜택 {plan['needs_benefits']} → "
         f"상담 {result['rows']}건, 약관·혜택 확인 {result['hops']}건")
     if not result["rows"]:
@@ -1512,7 +1512,7 @@ def run_aggregation(res: Resources, data: dict, ctx: dict, answer_on: bool) -> d
 
 
 def with_search_chunks(ctx: dict, result: dict, chunk_rows: list[dict]) -> dict:
-    """B안: 집계 근거 뒤에 ⑥이 고른 검색 원문을 이어 붙임(id는 표 근거 다음 번호부터)."""
+    """aggregated_consult_search 툴: 집계 근거 뒤에 ⑥이 고른 검색 원문을 이어 붙임(id는 표 근거 다음 번호부터)."""
     if not chunk_rows:
         return result
     out = {**result, "table": dict(result["table"]), "evidence_list": list(result["evidence_list"])}
@@ -1595,7 +1595,7 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
     if route["end"]:
         return finish_request(ctx, core.make_end_state(route["end"], route["reason"], "", [], warnings), [])
 
-    # A안: 여러 상담에 걸친 목록·집계 질문이면 상담 구조화 표로 바로 근거를 만듦(README 7.8). 못 하면 ③으로 감
+    # ② 판정으로 바로: 여러 상담에 걸친 목록·집계 질문이면 상담 구조화 표로 바로 근거를 만듦(README 7.8). 못 하면 ③으로 감
     if aggregation_route(route, data):
         end = run_aggregation(res, data, ctx, answer_on)
         if end is not None:
@@ -1603,7 +1603,7 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
 
     # ③ ~ ⑤ 검색 에이전트(반복 1): create_agent + 미들웨어 2개(실습 함수 build_agent)
     middleware = [GuardMiddleware(), ToolWrapperMiddleware()]
-    tools, system_prompt = agent_tools_and_prompt(data)  # B안이면 consult_table 툴이 더해짐
+    tools, system_prompt = agent_tools_and_prompt(data)  # 에이전트 툴이 켜져 있으면 aggregated_consult_search가 더해짐
     try:
         state = core.build_agent(res.agent, tools, system_prompt, middleware, first_message(ctx, route), ctx,
                                  RECURSION_LIMIT)
@@ -1625,12 +1625,12 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
         end = core.make_end_state("need_clarification", finish["reason"], "", [], warnings)
         return finish_request(ctx, end, messages)
 
-    # B안: 에이전트가 consult_table로 상담 표 줄을 얻었으면 표 근거 + ⑥ 원문으로 ⑧ ⇄ ⑨(표 줄은 ⑦을 거치지 않음)
+    # 에이전트가 aggregated_consult_search로 상담 표 줄을 얻었으면 표 근거 + ⑥ 원문으로 ⑧ ⇄ ⑨(표 줄은 ⑦을 거치지 않음)
     if ctx.get("aggregation") and ctx["aggregation"]["rows"]:
         has_chunks = any(not c.get("dropped") for c in ctx["chunks"].values())
         picked = step6_rerank(res, ctx) if has_chunks else {"chunks": []}
         result = with_search_chunks(ctx, ctx["aggregation"], picked["chunks"])
-        say(f"── 집계 경로(B안): 상담 표 {ctx['aggregation']['rows']}건 + 검색 원문 {len(picked['chunks'])}개로 ⑧")
+        say(f"── 집계 경로(aggregated_consult_search): 상담 표 {ctx['aggregation']['rows']}건 + 검색 원문 {len(picked['chunks'])}개로 ⑧")
         return finish_request(ctx, aggregation_answer(res, ctx, result, answer_on), messages)
 
     # ⑥ 리랭킹
