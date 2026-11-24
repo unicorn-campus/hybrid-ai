@@ -489,11 +489,11 @@ def rrf_merge(vector_hits: list[dict], bm25_hits: list[dict], k: int = 60, top: 
 # ===========================================================================
 # 실습 함수 6. ④ L Local 검색: 엔티티 축소 (교재 81, 82쪽) — 직접 작성
 # ===========================================================================
-def narrow_entities(candidates: list[dict], limit: int = 16, pinned_ids: list[str] | None = None) -> list[dict]:
-    """청크에서 나온 엔티티 후보를 질문과의 유사도로 줄여 limit개만 남김.
+def narrow_entities(candidates: list[dict], limit: int = 16) -> list[dict]:
+    """청크에서 나온 엔티티 후보를 질문과의 유사도로 줄여 limit개만 남김(L1 갈래 A).
 
-    방법: ① 고정할 엔티티(상담 질문의 첫 상담과 최근 상담)를 먼저 넣음 ② 청크마다 유사도가 가장 높은 엔티티 1개를 넣음
-          ③ 남은 자리를 전체 유사도 순으로 채움. 같은 엔티티는 한 번만 넣음.
+    방법: ① 청크마다 유사도가 가장 높은 엔티티 1개를 넣음 ② 남은 자리를 전체 유사도 순으로 채움.
+          같은 엔티티는 한 번만 넣음.
     인자: candidates는 [{"id", "chunk_id", "score"(질문과의 코사인 유사도), ...}]. 한 엔티티가 여러 청크에서 나오면 여러 줄.
     반환값: 고른 엔티티 목록(넣은 순서). 엔티티가 0개인 청크는 건너뜀.
     """
@@ -506,11 +506,7 @@ def narrow_entities(candidates: list[dict], limit: int = 16, pinned_ids: list[st
             chosen_ids.add(row["id"])
 
     by_score = sorted(candidates, key=lambda row: row["score"], reverse=True)  # 유사도 높은 순
-    # ① 고정 엔티티 먼저
-    for row in by_score:
-        if row["id"] in (pinned_ids or []):
-            add(row)
-    # ② 청크마다 가장 가까운 엔티티 1개(청크 순서는 처음 나온 순서)
+    # ① 청크마다 가장 가까운 엔티티 1개(청크 순서는 처음 나온 순서 = 검색엔진 순위)
     seen_chunks = []
     for row in candidates:
         if row["chunk_id"] not in seen_chunks:
@@ -520,7 +516,7 @@ def narrow_entities(candidates: list[dict], limit: int = 16, pinned_ids: list[st
             if row["chunk_id"] == chunk_id and row["id"] not in chosen_ids:
                 add(row)
                 break
-    # ③ 남은 자리는 유사도 순
+    # ② 남은 자리는 유사도 순
     for row in by_score:
         add(row)
     return chosen
