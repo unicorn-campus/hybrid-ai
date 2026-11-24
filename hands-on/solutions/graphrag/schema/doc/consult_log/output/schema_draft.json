@@ -33,6 +33,18 @@
           "type": "STRING",
           "description": "가명 회원ID. 머리줄 member_pseudo_id 값. 실명, 연락처는 넣지 않음",
           "required": false
+        },
+        {
+          "name": "summary",
+          "type": "STRING",
+          "description": "상담 내용 한 줄 요약(인덱싱이 상담 전체를 읽고 씀)",
+          "required": false
+        },
+        {
+          "name": "contact_preference",
+          "type": "STRING",
+          "description": "고객이 원한 후속 안내 방식(예: 오전 전화, 이메일 요약). 말하지 않았으면 비움",
+          "required": false
         }
       ],
       "additional_properties": false
@@ -45,6 +57,12 @@
           "name": "cause",
           "type": "STRING",
           "description": "고객이 말한 불만 원인 문장(원문 그대로)",
+          "required": false
+        },
+        {
+          "name": "summary",
+          "type": "STRING",
+          "description": "불만 내용 한 줄 요약",
           "required": false
         }
       ],
@@ -70,6 +88,12 @@
           "name": "reason",
           "type": "STRING",
           "description": "고객이 수용, 거절, 보류하며 말한 이유 문장(원문 그대로)",
+          "required": false
+        },
+        {
+          "name": "reply",
+          "type": "STRING",
+          "description": "제안 바로 뒤 고객 답(원문 그대로). 결정과 이유의 근거",
           "required": false
         }
       ],

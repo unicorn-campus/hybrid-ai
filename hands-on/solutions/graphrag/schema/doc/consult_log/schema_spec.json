@@ -13,7 +13,8 @@
     {"kind": "제거", "item": "Customer의 name, email, contact(개인정보 처리 대상)", "cq": []},
     {"kind": "제거", "item": "Transaction, TransactionSummary, TransactionBatch(정형 스키마 CardTxn에 이미 있음)", "cq": []},
     {"kind": "제거", "item": "Card(정형 스키마에 이미 있음)", "cq": []},
-    {"kind": "제거", "item": "Agent, Counselor, Address, Device, Menu, Preference 계열(어느 역량 질문에도 안 쓰임)", "cq": []}
+    {"kind": "제거", "item": "Agent, Counselor, Address, Device, Menu, Preference 계열(어느 역량 질문에도 안 쓰임)", "cq": []},
+    {"kind": "추가", "item": "Consultation.summary, Consultation.contact_preference, Complaint.summary, Proposal.reply(여러 상담에 걸친 목록과 집계 질문용. 상담 집계 경로, 2026-11-24)", "cq": ["C1", "C2", "C3"]}
   ],
   "node_types": [
     {"label": "Consultation", "ko": "상담", "description": "해당: 상담 기록 한 건(머리줄의 record_id 하나). 비해당: 상담 안의 발언 한 줄, 고객 개인, 거래 내역",
@@ -22,17 +23,21 @@
        {"name": "consult_date", "description": "상담일. 머리줄 consult_date 값"},
        {"name": "channel", "description": "상담 채널. 머리줄 channel 값(콜센터, 영업점, 앱 채팅)"},
        {"name": "topic", "description": "상담 주제. 머리줄 topic 값"},
-       {"name": "member_pseudo_id", "description": "가명 회원ID. 머리줄 member_pseudo_id 값. 실명, 연락처는 넣지 않음"}
+       {"name": "member_pseudo_id", "description": "가명 회원ID. 머리줄 member_pseudo_id 값. 실명, 연락처는 넣지 않음"},
+       {"name": "summary", "description": "상담 내용 한 줄 요약(인덱싱이 상담 전체를 읽고 씀)"},
+       {"name": "contact_preference", "description": "고객이 원한 후속 안내 방식(예: 오전 전화, 이메일 요약). 말하지 않았으면 비움"}
      ]},
     {"label": "Complaint", "ko": "불만 원인", "description": "해당: 고객이 이미 겪은 일에 대해 불편하다, 불만이다, 답답하다, 부담이다라고 직접 말한 원인. 비해당: 단순 질문, 무엇을 해 달라거나 하지 말아 달라는 부탁과 요청 문장 전체(예: ~해 주세요, ~하지 말아 주세요, ~가정하지 말아 주세요), 더 나은 방식을 고르는 선호 표현(예: ~가 나을 것 같아요), 앞으로의 걱정, 상담사의 추측, 고객이 만족한다고 한 점",
      "properties": [
-       {"name": "cause", "description": "고객이 말한 불만 원인 문장(원문 그대로)", "required": true}
+       {"name": "cause", "description": "고객이 말한 불만 원인 문장(원문 그대로)", "required": true},
+       {"name": "summary", "description": "불만 내용 한 줄 요약"}
      ]},
     {"label": "Proposal", "ko": "상담 제안", "description": "해당: 상담사가 고객에게 해 보라고 권한 구체적인 방법이나 대안(예: ~해 보시는 건 어떠세요?). 비해당: 사실 확인 질문, 인사, 기록하겠다는 말",
      "properties": [
        {"name": "content", "description": "상담사가 제안한 문장(원문 그대로)", "required": true},
        {"name": "decision", "description": "고객의 반응. 수용, 거절, 보류 중 하나만 씀"},
-       {"name": "reason", "description": "고객이 수용, 거절, 보류하며 말한 이유 문장(원문 그대로)"}
+       {"name": "reason", "description": "고객이 수용, 거절, 보류하며 말한 이유 문장(원문 그대로)"},
+       {"name": "reply", "description": "제안 바로 뒤 고객 답(원문 그대로). 결정과 이유의 근거"}
      ]},
     {"label": "ReconsiderCondition", "ko": "재검토 조건", "description": "해당: 고객이 결정을 미루며 말한 다시 생각할 조건(예: ~하면 다시 생각할게요, ~면 그때 ~할게요, ~나오면 다시 볼게요, 그래도 ~하면 다음에 문의할게요). 보류한 제안뿐 아니라 거절한 제안 뒤에 고객이 '나중에 ~하면 하겠다'고 덧붙인 조건도 해당하며, 그 제안에 RECONSIDER_WHEN으로 붙임. 비해당: 수용하거나 거절한 이유 자체(reason에 씀), 상담사의 안내",
      "properties": [
