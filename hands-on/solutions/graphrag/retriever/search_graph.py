@@ -590,7 +590,7 @@ def neighbors_and_reports(res: Resources, entity_ids: list[str], vector: list[fl
         ids=entity_ids, g=filters["generation"], allowed=sorted(filters["allowed_ids"]), qv=vector, k=L_NEIGHBORS)
     for record in records:
         neighbors[record["eid"]] = [dict(row) for row in record["rows"]]
-    # L4: L2 엔티티가 속한 커뮤니티를 걸린 횟수 순으로(이웃의 커뮤니티는 보지 않음). 볼 수 있는 보고서만
+    # L4: L2 엔티티가 속한 커뮤니티를 보고서와 연결된 검색결과 엔티티 수 순으로(이웃의 커뮤니티는 보지 않음). 볼 수 있는 보고서만
     records = res.run(
         "UNWIND $ids AS eid MATCH (e)-[:IN_COMMUNITY]->(c:Community {generation: $g}) WHERE elementId(e) = eid "
         "RETURN c.community_id AS id, count(*) AS hits ORDER BY hits DESC",
@@ -817,7 +817,7 @@ def add_entities(ctx: dict, rows: list[dict]) -> list[str]:
 
 
 def add_reports(ctx: dict, rows: list[dict]) -> None:
-    """보고서를 작업 기록에 더함(걸린 횟수는 더해 감)."""
+    """보고서를 작업 기록에 더함(보고서와 연결된 검색결과 엔티티 수는 더해 감)."""
     for row in rows:
         record = ctx["evidence_reports"].setdefault(row["id"], {"id": row["id"], "hits": 0,
                                                                 "relevance": row.get("relevance", 0.0)})
@@ -876,7 +876,7 @@ def make_tool_functions(res: Resources) -> dict:
             lines.append(f"  {short_entity_id(ctx, row['id'])} {short(entity_text(row['label'], row['props']), 90)}")
         lines += neighbor_lines(ctx, found["neighbors"], [e["id"] for e in found["entities"][:4]])[:8]
         for report in found["reports"]:
-            lines.append(f"보고서: {DATA['reports'][report['id']]['title']}(걸린 엔티티 {report['hits']})")
+            lines.append(f"보고서: {DATA['reports'][report['id']]['title']}(연결된 검색결과 엔티티 {report['hits']}개)")
         judge_q = ctx["topics"][topic_id]["follow_up"] if topic_id else None  # 주제가 있으면 그 Follow-up으로 채점
         return {"observation": "\n".join(lines), "chunk_ids": ids, "new": new, "tool": "local_search",
                 "judge_q": judge_q, "topic_id": topic_id}
@@ -1333,7 +1333,7 @@ def step6_rerank(res: Resources, ctx: dict) -> dict:
     """⑥ 리랭킹: 원문 청크만 원 질문 기준으로 다시 채점해 8자리(실습 함수 select_final_chunks).
 
     Global 주제가 있으면 14자리(FINAL_CHUNKS_TOPICS). 경향 질문은 근거가 주제마다 흩어져 8자리로는 잘림.
-    엔티티와 관계는 남은 원문과 이어진 것만, 보고서는 리랭킹하지 않고 걸린 횟수와 관련도 순으로 둠.
+    엔티티와 관계는 남은 원문과 이어진 것만, 보고서는 리랭킹하지 않고 보고서와 연결된 검색결과 엔티티 수와 관련도 순으로 둠.
     """
     usable = [c for c in ctx["chunks"].values() if not c.get("dropped")]
     limit = FINAL_CHUNKS_TOPICS if any(c["topic_ids"] for c in usable) else FINAL_CHUNKS
