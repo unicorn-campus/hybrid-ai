@@ -132,10 +132,11 @@ FINAL_CHUNKS_TOPICS = 14  # ⑥ Global 주제가 있을 때 원문 자리 수(�
 REPORT_RELEVANCE_MIN = 0.25  # 보고서 관련도(질문과 보고서 요약 임베딩의 코사인) 하한. NO_REPORTS 판정에 씀
 
 # 판단 기준값(가정값. 평가셋으로 조정 예정)
-ROUTE_THRESHOLDS = {"end_noul": 0.7, "choice_confidence": 0.5}  # ② Jev 결정(교재 71쪽)
+# ② Jev 결정(교재 71쪽). aggregation: 「상담 집계 질문인가」 확률이 이 값 이상이면 상담 집계 질문(실측: 집계 0.43 이상,
+# 그 밖 0.18 이하, README 7.8)
+ROUTE_THRESHOLDS = {"end_noul": 0.7, "choice_confidence": 0.5, "aggregation": 0.3}
 # 상담 집계 경로(README 7.8): off(끔), route(A안: ② 판정으로 바로 감), tool(B안: 에이전트 툴), both(A + B)
 AGGREGATION_MODE = os.environ.get("AGGREGATION_MODE", "both")  # 혼합 질문 비교로 정함(README 7.8)
-AGGREGATION_MIN = 0.3  # A안: ② Jev 「집계 질문」 확률이 이 값 이상이면 집계 경로로 감(실측: 집계 0.43 이상, 그 밖 0.18 이하)
 PASSAGE_THRESHOLDS = {"relevant_min": 0.45, "answer_evidence_over": 0.55,  # ⑤ Jev 원문 판정(TypeSafe 쿡북 출발값)
                       "premise_conflict_over": 0.7, "injection_over": 0.7}
 EVIDENCE_RELEVANT_MIN = 0.7  # ⑦ 답 근거로 셀 때 요구하는 관련 확률(평가셋 실측으로 정함: 정답 근거는 0.9 이상, 함정은 0.6대)
@@ -416,7 +417,7 @@ def jev_route(res: Resources, question: str, ctx: dict) -> dict | None:
                                                      "guides, and consultation records"),
             "first_tool": Choice(instructions="Which search tool should be tried first for this question",
                                  criteria=criteria),
-            # 상담 집계 경로(README 7.8)용. decide_question_route(실습 함수)는 이 값을 쓰지 않고 run_workflow가 씀
+            # 상담 집계 질문인가(README 7.8). decide_question_route(실습 함수)가 기준값과 비교해 aggregate를 정함
             "is_aggregation": Noul(instructions=AGGREGATION_QUESTION),
         })
         second = res.jev.system_one(state=state, questions={
@@ -1481,10 +1482,12 @@ def first_message(ctx: dict, route: dict) -> str:
 
 
 def aggregation_route(route: dict, data: dict) -> bool:
-    """A안 판정(코드): 표가 있고, 집계 경로가 켜져 있고, ② Jev 「집계 질문」 확률이 기준값 이상이면 True."""
-    answers = route.get("answers")
-    return (AGGREGATION_MODE in ("route", "both") and data.get("consult_table") is not None and answers is not None
-            and answers["is_aggregation"] >= AGGREGATION_MIN)
+    """A안: ②(실습 함수 decide_question_route)가 상담 집계 질문으로 정했고, 집계 경로가 켜져 있고, 상담 표가 있으면 True.
+
+    교육생 함수가 aggregate를 돌려주지 않으면(예전 my_search.py) False로 보고 기존 흐름(③)으로 감.
+    """
+    return (route.get("aggregate", False) and AGGREGATION_MODE in ("route", "both")
+            and data.get("consult_table") is not None)
 
 
 def run_aggregation(res: Resources, data: dict, ctx: dict, answer_on: bool) -> dict | None:

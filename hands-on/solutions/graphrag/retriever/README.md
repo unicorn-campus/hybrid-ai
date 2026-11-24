@@ -324,8 +324,10 @@ L2 엔티티 품질은 `eval-set-full.json`의 답이 있는 20문항을 local_s
   ② 「볼 수 있는 청크 표」 그대로) (3) 약관이나 혜택이 필요하면 고객마다 search_engine으로 다시 찾고, 고른 조항 번호나  
   카드 이름이 원문에 있는지 코드가 확인 (4) 표의 줄과 확인된 약관, 혜택을 ⑧ <근거>로 만들고 ⑧ ⇄ ⑨ ⇄ ⑩은  
   기존 실습 함수(`generate_answer`, `verify_answer`, `make_end_state`)를 그대로 씀
-- 부르는 곳 2개(같은 함수): A안은 ② Jev에 「집계 질문」 Noul을 더해 0.3 이상이면 ③ 없이 바로 집계 경로로 감  
-  (실습 함수 `decide_question_route`는 바꾸지 않고 run_workflow가 판정). B안은 ③ 에이전트 툴 `consult_table`  
+- 부르는 곳 2개(같은 함수): A안은 ② Jev에 「집계 질문」 Noul을 더해 0.3 이상이면 ③ 없이 바로 집계 경로로 감.  
+  판정은 실습 함수 `decide_question_route`가 함(잡담 → 모호 → 상담 집계 질문 → 첫 툴 순서로 보고 `aggregate`를 돌려줌,  
+  기준값은 `ROUTE_THRESHOLDS["aggregation"]` 0.3. 2026-11-24 옮김). 예전 교육생 파일처럼 `aggregate`가 없으면 집계 경로를  
+  타지 않고 ③으로 감. B안은 ③ 에이전트 툴 `consult_table`  
   (요청당 1회, ⑤ 채점 없음). A안에서 볼 수 있는 상담이 없으면 ③으로 돌아가고, 그때 B안 툴은 다시 부르지 않음
 - 켜고 끄기: 환경변수 `AGGREGATION_MODE` = `both`(기본, A + B), `route`(A만), `tool`(B만), `off`(끔).  
   상담 요약이 없는 옛 세대(v4 이전)면 자동으로 꺼짐
