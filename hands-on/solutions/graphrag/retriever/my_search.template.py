@@ -128,7 +128,7 @@ def rrf_merge(vector_hits: list[dict], bm25_hits: list[dict], k: int = 60, top: 
 # 6. ④ L Local 검색: 엔티티 축소 (교재 81, 82쪽) — 직접 작성
 # ===========================================================================
 def narrow_entities(candidates: list[dict], limit: int = 16) -> list[dict]:
-    """청크에서 나온 엔티티 후보를 질문과의 유사도로 줄여 limit개만 남김(L2 갈래 A).
+    """청크에서 나온 엔티티 후보를 질문과의 유사도로 줄여 limit개만 남김(L1 갈래 A).
 
     방법: ① 청크마다(처음 나온 청크 순서) 유사도가 가장 높은 엔티티 1개
           ② 남은 자리를 전체 유사도 순으로. 같은 id는 한 번만, 합계 limit개까지.

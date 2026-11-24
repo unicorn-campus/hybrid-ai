@@ -117,7 +117,7 @@ STORE_TIMEOUT = 10  # OpenSearch, Neo4j
 # 서브 워크플로우 크기(교재 79 ~ 85쪽)
 O_CANDIDATES = 25  # O1, O2 각 후보 수와 O3 뒤 남길 수
 O_KEEP = 6  # O4 뒤 청크 수(필터로 6개 이하면 O4 건너뜀)
-L_ENTITIES = 16  # L2 엔티티 축소 상한
+L_ENTITIES = 16  # L1 갈래 A 엔티티 축소 상한(L2 합친 뒤에도 16개)
 L2_WEIGHT_ENGINE = 0.7  # L2 가중합에서 검색엔진 점수의 몫. 나머지 0.3은 엔티티 설명 코사인(평가 비교는 README 7.6)
 L_NEIGHBORS = 4  # L3 엔티티마다 이웃 수
 L_REPORTS = 3  # L4 보고서 수
