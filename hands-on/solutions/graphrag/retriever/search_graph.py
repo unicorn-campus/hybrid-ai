@@ -37,7 +37,7 @@ from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
 from langchain_groq import ChatGroq
-from opensearchpy import OpenSearch
+from opensearchpy import OpenSearch, helpers
 from pydantic import BaseModel, Field
 from typesafe_sdk import Choice, Noul, TypeSafeClient
 
@@ -302,6 +302,7 @@ def load_generation_data(res: Resources) -> dict:
     """① 활성 세대의 자료를 한 번 읽어 둠: 청크 메타데이터 260건, 토크나이저 사전, 약관 버전, 보고서 78개.
 
     목적: 그래프의 Chunk 노드에는 권한 속성이 없어서 검색엔진의 메타데이터로 「볼 수 있는 청크 표」를 만듦.
+          청크 글(text)은 여기서 읽지 않음. 툴이 청크 id를 얻은 뒤 read_chunk_texts로 그때그때 읽음.
     반환값: chunk_meta, by_short(짧은 id → chunk_id), tokenizer, alias_to_name, name_to_card_id, versions, reports,
             index_exists, graph_chunk_count
     """
@@ -311,8 +312,9 @@ def load_generation_data(res: Resources) -> dict:
     index_exists = bool(res.os.indices.exists(index=index))
     data = {"index_exists": index_exists, "chunk_meta": {}, "by_short": {}, "reports": {}}
     if index_exists:
-        hits = res.os.search(index=index, body={"size": 1000, "_source": {"excludes": ["embedding", "text_tokens"]},
-                                                "query": {"match_all": {}}})["hits"]["hits"]
+        # 메타데이터만(글, 임베딩, BM25 낱말 제외). scan은 여러 번에 나눠 끝까지 읽음(건수 상한 없음)
+        hits = helpers.scan(res.os, index=index, query={"query": {"match_all": {}}},
+                            _source_excludes=["text", "embedding", "text_tokens"])
         for hit in hits:
             source = hit["_source"]
             source["short_id"] = source.get("chroma_id") or hit["_id"][:12]  # 화면과 관찰에 쓰는 짧은 id(예: D1-0007)
@@ -423,6 +425,32 @@ PASSAGE_QUESTIONS = {  # ⑤ 원문마다 묻는 Noul 4개(TypeSafe 쿡북 「Cl
 }
 
 
+def read_chunk_texts(ctx: dict, chunk_ids: list[str]) -> dict:
+    """청크 id로 원문 글을 검색엔진에서 읽음(mget 한 번). 이 요청 안에서 한 번 읽은 글은 다시 읽지 않음.
+
+    목적: 그래프의 Chunk 노드에는 글이 없음(ID와 최소 속성만). 글은 검색엔진(벡터 저장소)에만 있어
+          툴이 청크 id를 얻은 뒤 필요한 청크만 그때그때 읽음.
+    반환값: {chunk_id: 글}. 못 읽은 청크는 빈 글("")로 돌려주고 경고를 남김(다음에 다시 읽어 봄).
+    """
+    cache = ctx["texts"]
+    missing = [cid for cid in dict.fromkeys(chunk_ids) if cid not in cache]
+    if missing:
+        try:
+            docs = RES.os.mget(index=ctx["filters"]["index"], body={"ids": missing},  # 이 요청의 세대 인덱스
+                               _source_includes=["text"])["docs"]
+            with PRINT_LOCK:
+                ctx["calls"]["text_reads"] += 1
+            for doc in docs:
+                if doc.get("found"):
+                    cache[doc["_id"]] = doc["_source"].get("text") or ""
+        except Exception as error:
+            ctx["warnings"].append(f"원문 읽기 실패: {short(error, 60)}")
+        lost = [cid for cid in missing if cid not in cache]
+        if lost:
+            ctx["warnings"].append(f"원문을 못 읽은 청크 {len(lost)}개: {', '.join(lost[:3])}")
+    return {cid: cache.get(cid, "") for cid in chunk_ids}
+
+
 def jev_judge_passages(res: Resources, question: str, chunk_ids: list[str], ctx: dict) -> dict:
     """⑤, ⑦ 원문마다 Jev Noul 4개를 묻고 표시를 붙임. 판정은 (판정 질문, 청크 id, 모델 버전)으로 캐시해 두 번 묻지 않음.
 
@@ -437,9 +465,11 @@ def jev_judge_passages(res: Resources, question: str, chunk_ids: list[str], ctx:
         else:
             todo.append(chunk_id)
 
+    texts = read_chunk_texts(ctx, todo)  # 판정할 원문 글을 한 번에 읽음
+
     def ask(chunk_id: str):
         meta = DATA["chunk_meta"][chunk_id]
-        state = {"query": question, "passage": {"id": meta["short_id"], "text": meta["text"]}}
+        state = {"query": question, "passage": {"id": meta["short_id"], "text": texts[chunk_id]}}
         response = res.jev.system_one(state=state, questions=PASSAGE_QUESTIONS)
         return chunk_id, {name: response.answers[name].noul for name in PASSAGE_QUESTIONS}
 
@@ -502,10 +532,11 @@ def search_engine(res: Resources, query: str, filters: dict, ctx: dict) -> dict:
     except Exception as error:
         ctx["warnings"].append(f"O2 BM25 검색 실패: {short(error, 60)}")
     fused = core.rrf_merge(vector_hits, bm25_hits, k=60, top=O_CANDIDATES)  # O3
+    texts = read_chunk_texts(ctx, [row["chunk_id"] for row in fused])  # 검색은 id만 받고, 글은 리랭크 전에 읽음
     rows = []
     for row in fused:
         meta = DATA["chunk_meta"][row["chunk_id"]]
-        rows.append({"chunk_id": row["chunk_id"], "short_id": meta["short_id"], "text": meta["text"],
+        rows.append({"chunk_id": row["chunk_id"], "short_id": meta["short_id"], "text": texts[row["chunk_id"]],
                      "ranks": row["ranks"], "score": row["rrf"]})
     if len(rows) > O_KEEP:  # O4: 후보가 6개보다 많을 때만 리랭크
         scores = rerank(res, query, [r["text"] for r in rows], ctx)
@@ -776,12 +807,13 @@ def add_reports(ctx: dict, rows: list[dict]) -> None:
 
 
 def chunk_lines(ctx: dict, chunk_ids: list[str]) -> str:
-    """원문을 태그로 감싼 관찰 글(짧은 id 사용)."""
+    """원문을 태그로 감싼 관찰 글(짧은 id 사용). 글은 청크 id로 검색엔진에서 읽음."""
+    texts = read_chunk_texts(ctx, chunk_ids)
     rows = []
     for cid in chunk_ids:
         meta = DATA["chunk_meta"][cid]
         source = meta.get("source") if meta.get("doc_type") == "consult_log" else None  # 상담 파일 이름이 고객군을 말해 줌
-        rows.append({"chunk_id": meta["short_id"], "text": meta["text"], "source": source})
+        rows.append({"chunk_id": meta["short_id"], "text": texts[cid], "source": source})
     return core.wrap_chunks(rows)
 
 
@@ -1114,7 +1146,8 @@ def score_result(ctx: dict, call: dict, result: dict) -> str:
     new_relevant = [cid for cid in result["new"] if cid in usable]  # 새로 들어와 근거로 남은 원문
     if result["new"] and not marks:  # Jev 실패: 새 원문을 모두 관련으로 셈(계획서 4.5)
         new_relevant = list(result["new"])
-    texts = [DATA["chunk_meta"][cid]["text"] for cid in usable]
+    by_id = read_chunk_texts(ctx, usable)
+    texts = [by_id[cid] for cid in usable]
     terms = ctx["terms"] if not result.get("topic_id") else topic_terms(ctx, result["topic_id"])
     stats = {
         "tool": tool_name,
@@ -1186,7 +1219,8 @@ def new_context(res: Resources, data: dict, question: str, role: str, member_id:
         "rounds": 0, "queries": set(), "global_used": 0, "blocked": {}, "call_results": {}, "round_calls": [],
         "round_outcomes": [], "streak_checked": 0, "no_new_streak": 0, "same_call_streak": 1, "failed_rounds": 0,
         "finish": None, "forced_stop": None, "fatal": None, "jev_cache": {}, "signal_log": [], "warnings": [],
-        "calls": {"agent": 0, "jev": 0, "groq": 0, "cohere": 0}, "allow_global": False,
+        "texts": {},  # 이 요청에서 검색엔진에서 읽은 청크 글(청크 id → 글). 한 번 읽은 글은 다시 읽지 않음
+        "calls": {"agent": 0, "jev": 0, "groq": 0, "cohere": 0, "text_reads": 0}, "allow_global": False,
     }
 
 
@@ -1225,7 +1259,8 @@ def step6_rerank(res: Resources, ctx: dict) -> dict:
     usable = [c for c in ctx["chunks"].values() if not c.get("dropped")]
     skipped = ctx["rounds"] <= 1 and len(usable) <= FINAL_CHUNKS
     if not skipped:
-        scores = rerank(res, ctx["clean_question"], [DATA["chunk_meta"][c["chunk_id"]]["text"] for c in usable], ctx)
+        texts = read_chunk_texts(ctx, [c["chunk_id"] for c in usable])
+        scores = rerank(res, ctx["clean_question"], [texts[c["chunk_id"]] for c in usable], ctx)
         if scores is not None:
             for chunk, score in zip(usable, scores):
                 chunk["score"] = score
@@ -1244,7 +1279,8 @@ def step7_judge(res: Resources, ctx: dict, picked: dict) -> dict:
     Global 검색으로 모았으면 주제마다 그 주제의 Follow-up 낱말로 재확인하고, 하나라도 통과하면 통과로 봄.
     """
     chunk_ids = [row["chunk_id"] for row in picked["chunks"]]
-    chunks = [{"chunk_id": cid, "text": DATA["chunk_meta"][cid]["text"]} for cid in chunk_ids]
+    texts = read_chunk_texts(ctx, chunk_ids)
+    chunks = [{"chunk_id": cid, "text": texts[cid]} for cid in chunk_ids]
     chunk_entities = {cid: [] for cid in chunk_ids}
     entity_texts = {}
     links = set()
@@ -1301,11 +1337,13 @@ def step7_judge(res: Resources, ctx: dict, picked: dict) -> dict:
 def evidence_block(ctx: dict, picked: dict) -> tuple[str, dict]:
     """⑧에 넘길 근거 묶음: 원문 c1 ~ c8, 보고서 r1 ~ r3을 <근거> 줄로. 검증용 {id: {kind, text}}도 함께."""
     lines, table = [], {}
+    texts = read_chunk_texts(ctx, [row["chunk_id"] for row in picked["chunks"]])
     for number, row in enumerate(picked["chunks"], start=1):
         meta = DATA["chunk_meta"][row["chunk_id"]]
+        text = texts[row["chunk_id"]]
         cid = f"c{number}"
-        table[cid] = {"kind": "chunk", "text": meta["text"], "short_id": meta["short_id"]}
-        lines.append(f'<근거 id="{cid}" 출처="{meta["short_id"]}">{" ".join(meta["text"].split())}</근거>')
+        table[cid] = {"kind": "chunk", "text": text, "short_id": meta["short_id"]}
+        lines.append(f'<근거 id="{cid}" 출처="{meta["short_id"]}">{" ".join(text.split())}</근거>')
     for number, report in enumerate(picked["reports"], start=1):
         data = DATA["reports"][report["id"]]
         rid = f"r{number}"
@@ -1412,14 +1450,15 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
     say(f"── ⑥ 리랭킹: 원문 {picked['n_before']}개 → {len(picked['chunks'])}자리"
         f"{'(회차 1회, 8개 이하라 건너뜀)' if picked['skipped'] else ''}, 이어진 엔티티 {len(picked['entities'])}개, "
         f"보고서 {len(picked['reports'])}개")
+    texts = read_chunk_texts(ctx, [row["chunk_id"] for row in picked["chunks"]])
     for row in picked["chunks"]:
         meta = DATA["chunk_meta"][row["chunk_id"]]
         topics = f" {row['topic_ids']}" if row["topic_ids"] else ""
-        say(f"   {row['score']:.3f} {meta['short_id']}{topics} {short(meta['text'], 70)}")
+        say(f"   {row['score']:.3f} {meta['short_id']}{topics} {short(texts[row['chunk_id']], 70)}")
     evidence_list = []  # ⑩에 돌려줄 근거 목록(짧은 id와 원문)
     for row in picked["chunks"]:
         meta = DATA["chunk_meta"][row["chunk_id"]]
-        evidence_list.append({"id": meta["short_id"], "text": meta["text"]})
+        evidence_list.append({"id": meta["short_id"], "text": texts[row["chunk_id"]]})
 
     # ⑦ 수집 종료 판정
     decision = step7_judge(res, ctx, picked)
@@ -1487,7 +1526,7 @@ def finish_request(ctx: dict, end: dict, messages: list) -> dict:
     say(f"   에이전트(Groq) 비용 ${cost['usd']:.5f} (호출 {cost['calls']}번, 입력 {cost['input']}, 캐시 읽기 {cost['cache_read']}, "
         f"출력 {cost['output']} 토큰)")
     say(f"   호출 수: 에이전트 {ctx['calls']['agent']}번, Jev {ctx['calls']['jev']}번, Groq(G1, G2, ⑧) {ctx['calls']['groq']}번, Cohere {ctx['calls']['cohere']}번, "
-        f"툴 경로 {path or '-'}, {time.time() - ctx['started']:.1f}초")
+        f"원문 읽기 {ctx['calls']['text_reads']}번(청크 {len(ctx['texts'])}개), 툴 경로 {path or '-'}, {time.time() - ctx['started']:.1f}초")
     return {**end, "agent_cost": cost, "tool_path": path, "rounds": ctx["rounds"], "calls": ctx["calls"],
             "clean_question": ctx.get("clean_question", ""), "signals": ctx["signal_log"],
             "seconds": round(time.time() - ctx["started"], 1),
