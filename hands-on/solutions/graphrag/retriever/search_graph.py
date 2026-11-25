@@ -113,6 +113,7 @@ AGENT_PRICE = {"input": 0.15, "cache_read": 0.075, "output": 0.60}
 MAX_ROUNDS = 6  # 툴 호출 회차(= 에이전트 모델 호출) 상한
 CALL_LIMITS = {"parallel": 5, "global": 1, "queries": 8}  # 한 회차 병렬, global_search 요청당, 서로 다른 질의 수
 MAX_REWRITES = 2  # 반복 2: W8 재작성 상한
+GEN_RETRIES = 2  # W8 답변 생성을 Groq가 400(구조화 출력 JSON 검증 실패)으로 거절할 때 다시 부르는 횟수
 REQUEST_TIMEOUT = 180  # 요청 하나의 하드 상한(초). 넘으면 모은 근거로 W6에 감
 
 # --until: 그 단계까지만 수행하고 그 단계까지의 결과를 모아 보임(W10은 끝까지)
@@ -706,14 +707,14 @@ class GuardMiddleware(AgentMiddleware):
         return None
 
 
-def is_rejected_generation(error: Exception) -> bool:
+def is_rejected_generation(error: Exception, step: str = "W3") -> bool:
     """Groq가 모델 출력을 읽지 못해 거절한 오류(400, failed_generation)인지 봄. 맞으면 모델 호출을 다시 보냄.
 
     예: 툴 호출의 인자 꼴이 틀리거나 출력을 해석하지 못함(Parsing failed). Groq 공식 문서(Local Tool Calling)도 다시 요청을 권함.
     """
     rejected = getattr(error, "status_code", None) == 400 and "failed_generation" in str(error)
     if rejected:
-        say(f"   W3 Groq가 모델 출력을 거절함(400): {short(error, 70)} → 재시도가 남았으면 다시 보냄")
+        say(f"   {step} Groq가 모델 출력을 거절함(400): {short(error, 70)} → 다시 보냄")
     return rejected
 
 
@@ -1092,6 +1093,21 @@ def first_message(ctx: dict, route: dict) -> str:
     return "\n".join(lines)
 
 
+def generate_with_retry(res: Resources, ctx: dict, block: str, feedback: str, premise: str):
+    """W8 답변 생성(실습 함수 generate_answer)을 부름. Groq가 구조화 출력(JSON)을 거절하면(400) GEN_RETRIES번까지 다시 부름.
+
+    표처럼 긴 답에서 「Failed to validate JSON」이 가끔 남. 같은 요청을 다시 보내면 대개 통과함(Groq 공식 문서의 권장 처리).
+    그 밖의 오류나 재시도를 다 쓴 오류는 그대로 올려 run_workflow가 W10 「생성 실패」로 끝냄.
+    """
+    for attempt in range(GEN_RETRIES + 1):
+        ctx["calls"]["groq"] += 1
+        try:
+            return core.generate_answer(res.groq, ANSWER_PROMPT, ctx["clean_question"], block, feedback, premise)
+        except Exception as error:
+            if attempt == GEN_RETRIES or not is_rejected_generation(error, "W8"):
+                raise
+
+
 def run_workflow(res: Resources, data: dict, question: str, role: str, member_id: str | None,
                  until: str = "W10") -> dict:
     """질문 하나를 W1 ~ W10 순서로 처리하고 종료 상태(make_end_state 결과)와 기록을 돌려줌.
@@ -1264,8 +1280,7 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
     for attempt in range(MAX_REWRITES + 1):  # 첫 시도 1번 + 재작성 2번
         # --- W8 답변 생성: LCEL 체인 + 구조화 출력(실습 함수 generate_answer). LLM이 실패하면 W10 「생성 실패」
         try:
-            ctx["calls"]["groq"] += 1
-            answer = core.generate_answer(res.groq, ANSWER_PROMPT, ctx["clean_question"], block, feedback, premise)
+            answer = generate_with_retry(res, ctx, block, feedback, premise)
         except Exception as error:
             warnings.append(f"W8 답변 생성 실패: {short(error, 100)}")
             return finish_request(ctx, core.make_end_state("generation_failed", short(error, 100), "", evidence_list,
@@ -1427,7 +1442,11 @@ def answer_markdown(answer) -> str:
         if table_cites:
             lines += ["", f"(표의 근거: {', '.join(table_cites)})", ""]
             table_cites = []
-        lines += [f"{text} [{', '.join(sentence.citation_ids)}]" if sentence.citation_ids else text, ""]
+        cites = f"[{', '.join(sentence.citation_ids)}]" if sentence.citation_ids else ""
+        if "\n|" in text:  # 문장 안에 표가 들어 있으면 마지막 표 줄 뒤가 아니라 다음 줄에 인용을 적음
+            lines += [text, "", f"(근거: {', '.join(sentence.citation_ids)})" if cites else "", ""]
+        else:
+            lines += [f"{text} {cites}".rstrip(), ""]
     if table_cites:
         lines += ["", f"(표의 근거: {', '.join(table_cites)})"]
     return "\n".join(lines).strip()
