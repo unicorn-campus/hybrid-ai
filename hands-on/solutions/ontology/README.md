@@ -300,7 +300,7 @@ python index_graph.py --run {별명}-u1 --until k3
 python index_graph.py --run {별명}-f1 --reuse data/teacher
 python check_graph.py --qid Q01
 
-# 2) 그래프 검색 — 질문 하나를 ① ~ ⑩ 단계별 출력으로 확인
+# 2) 그래프 검색 — 질문 하나를 W1 ~ W10 단계별 출력으로 확인
 cd ../retriever
 python search_graph.py --qid Q01
 ```

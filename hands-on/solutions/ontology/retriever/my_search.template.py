@@ -1,23 +1,23 @@
 """교육생용 뼈대: core_search.py와 같은 이름, 같은 인자의 실습 함수 13개(+ 선택 1개)를 본인 코드로 채우는 파일임.
 
 채우는 순서(워크플로우 순서). "직접"은 NotImplementedError 자리에 본인 코드를 쓰고, "빈칸"은 거의 완성된 코드의 빈칸만 채움
-  [교시 2: ① ~ ④ 래퍼]
-   1 check_ready             (직접)      ① 권한, 같은 세대, 보고서 유무
-   2 decide_question_route   (직접)      ② Jev 확률 → 코드의 결정
-   3 build_agent             (빈칸 2곳)  ③ create_agent로 ReAct 고리 만들고 돌리기
-   4 run_tool                (빈칸 2곳)  ④ 래퍼: 질의 속 식별자 지우기, 필터 강제
-  [교시 3: ④ O, L과 ⑤]
-   5 rrf_merge               (직접)      ④ O3 RRF로 두 순위 합치기
-   6 narrow_entities         (직접)      ④ L2 엔티티 16개로 줄이기
-   7 diagnose_signals        (빈칸 3곳)  ⑤ 진단 신호 규칙
-   8 force_stop_reason       (직접)      ⑤ 강제 종료 조건
-   + normalize_entity_key    (선택, 직접) ④ E1 레이블마다 키를 같은 꼴로
-  [교시 4: ⑥ ~ ⑩]
-   9 select_final_chunks     (직접)      ⑥ 주제마다 1자리 먼저, 8자리
-  10 recheck_question        (빈칸 2곳)  ⑦ 원 질문 재확인 조건 ①, ②
-  11 generate_answer         (빈칸 2곳)  ⑧ LCEL 체인 + 구조화 출력
-  12 verify_answer           (직접)      ⑨ 인용, 숫자, 보고서 인용 검사
-  13 make_end_state          (빈칸 1곳)  ⑩ 종료 상태 이름과 돌려줄 것
+  [교시 2: W1 ~ W4 래퍼]
+   1 check_ready             (직접)      W1 권한, 같은 세대, 보고서 유무
+   2 decide_question_route   (직접)      W2 Jev 확률 → 코드의 결정
+   3 build_agent             (빈칸 2곳)  W3 create_agent로 ReAct 루프 만들고 돌리기
+   4 run_tool                (빈칸 2곳)  W4 래퍼: 질의 속 식별자 지우기, 필터 강제
+  [교시 3: W4 O, L과 W5]
+   5 rrf_merge               (직접)      W4 O3 RRF로 두 순위 합치기
+   6 narrow_entities         (직접)      W4 L2 엔티티 16개로 줄이기
+   7 diagnose_signals        (빈칸 3곳)  W5 진단 신호 규칙
+   8 force_stop_reason       (직접)      W5 강제 종료 조건
+   + normalize_entity_key    (선택, 직접) W4 E1 레이블마다 키를 같은 꼴로
+  [교시 4: W6 ~ W10]
+   9 select_final_chunks     (직접)      W6 주제마다 1자리 먼저, 8자리
+  10 recheck_question        (빈칸 2곳)  W7 원 질문 재확인 조건 ①, ②
+  11 generate_answer         (빈칸 2곳)  W8 LCEL 체인 + 구조화 출력
+  12 verify_answer           (직접)      W9 인용, 숫자, 보고서 인용 검사
+  13 make_end_state          (빈칸 1곳)  W10 종료 상태 이름과 돌려줄 것
   제공(완성본, 읽기만): 상수, 스키마(GroundedAnswer), 제공 함수는 core_search에서 그대로 가져옴(아래 import)
 
 사용법(이 파일은 강사 뼈대(템플릿)임. 직접 고치지 않고 복사본 my_search.py를 고침. my_search.py는 Git이 무시해 pull 충돌이 없음)
@@ -42,7 +42,7 @@ from core_search import (  # noqa: F401
 
 
 # ===========================================================================
-# 1. ① 요청 접수: 준비 확인 (교재 71쪽) — 직접 작성
+# 1. W1 요청 접수: 준비 확인 (교재 71쪽) — 직접 작성
 # ===========================================================================
 def check_ready(role: str, active: dict | None, index_exists: bool, graph_chunk_count: int, report_count: int) -> dict:
     """검색을 시작해도 되는지 세 조건(권한, 같은 세대, 보고서 유무)으로 판정함.
@@ -56,7 +56,7 @@ def check_ready(role: str, active: dict | None, index_exists: bool, graph_chunk_
 
 
 # ===========================================================================
-# 2. ② 질문 분석: Jev 확률 → 코드의 결정 (교재 71, 72쪽) — 직접 작성
+# 2. W2 질문 분석: Jev 확률 → 코드의 결정 (교재 71, 72쪽) — 직접 작성
 # ===========================================================================
 def decide_question_route(answers: dict | None, thresholds: dict) -> dict:
     """Jev가 낸 확률을 기준값과 비교해 「끝낼지, 첫 툴 후보는 무엇인지」를 정함.
@@ -72,18 +72,18 @@ def decide_question_route(answers: dict | None, thresholds: dict) -> dict:
 
 
 # ===========================================================================
-# 3. ③ 검색 에이전트: create_agent로 ReAct 고리 (교재 75, 76쪽) — 빈칸 2곳
+# 3. W3 검색 에이전트: create_agent로 ReAct 루프 (교재 75, 76쪽) — 빈칸 2곳
 # ===========================================================================
 def build_agent(model, tools: list, system_prompt: str, middleware: list, first_message: str, context: dict,
                 recursion_limit: int) -> dict:
-    """LangChain create_agent로 「생각 → 툴 호출 → 관찰」 고리를 만들고 돌려서 마지막 상태를 돌려줌.
+    """LangChain create_agent로 「생각 → 툴 호출 → 관찰」 루프를 만들고 돌려서 마지막 상태를 돌려줌.
 
     반환값: 에이전트의 마지막 상태(dict). "messages"에 모든 대화가 순서대로 있음.
     """
     # 빈칸 1: create_agent에 model, tools, system_prompt, middleware를 이름 붙여 넘겨 에이전트를 만들고 agent에 받음
     raise NotImplementedError("빈칸 1을 채울 것")
 
-    # 빈칸 2: agent.invoke(입력, context=..., config=...)로 고리를 끝까지 돌려 state에 받음
+    # 빈칸 2: agent.invoke(입력, context=..., config=...)로 루프를 끝까지 돌려 state에 받음
     #         입력은 {"messages": [{"role": "user", "content": first_message}]},
     #         config는 {"recursion_limit": recursion_limit}
     raise NotImplementedError("빈칸 2를 채우고 이 줄을 지울 것")
@@ -91,7 +91,7 @@ def build_agent(model, tools: list, system_prompt: str, middleware: list, first_
 
 
 # ===========================================================================
-# 4. ④ 툴 실행: 래퍼 (교재 77, 78쪽) — 빈칸 2곳
+# 4. W4 툴 실행: 래퍼 (교재 77, 78쪽) — 빈칸 2곳
 # ===========================================================================
 def run_tool(name: str, args: dict, ctx: dict, tool_functions: dict) -> dict:
     """에이전트의 툴 호출 하나를 실행하는 래퍼. 입력 검사, 질의 속 식별자 지우기, 필터 강제를 함.
@@ -112,7 +112,7 @@ def run_tool(name: str, args: dict, ctx: dict, tool_functions: dict) -> dict:
 
 
 # ===========================================================================
-# 5. ④ O 검색엔진 검색: RRF (교재 79, 80쪽) — 직접 작성
+# 5. W4 O 검색엔진 검색: RRF (교재 79, 80쪽) — 직접 작성
 # ===========================================================================
 def rrf_merge(vector_hits: list[dict], bm25_hits: list[dict], k: int = 60, top: int = 25) -> list[dict]:
     """벡터 검색과 BM25 검색의 두 순위를 RRF로 합침.
@@ -125,7 +125,7 @@ def rrf_merge(vector_hits: list[dict], bm25_hits: list[dict], k: int = 60, top: 
 
 
 # ===========================================================================
-# 6. ④ L Local 검색: 엔티티 축소 (교재 81, 82쪽) — 직접 작성
+# 6. W4 L Local 검색: 엔티티 축소 (교재 81, 82쪽) — 직접 작성
 # ===========================================================================
 def narrow_entities(candidates: list[dict], limit: int = 16, pinned_ids: list[str] | None = None) -> list[dict]:
     """청크에서 나온 엔티티 후보를 질문과의 유사도로 줄여 limit개만 남김.
@@ -138,7 +138,7 @@ def narrow_entities(candidates: list[dict], limit: int = 16, pinned_ids: list[st
 
 
 # ===========================================================================
-# 선택 과제. ④ E 엔티티 찾기: 키 정규화 (교재 85쪽) — 직접 작성
+# 선택 과제. W4 E 엔티티 찾기: 키 정규화 (교재 85쪽) — 직접 작성
 # ===========================================================================
 def normalize_entity_key(label: str, text: str) -> str:
     """찾을 대상의 글을 레이블별 키 속성과 같은 꼴로 맞춤(E1 정규화).
@@ -151,7 +151,7 @@ def normalize_entity_key(label: str, text: str) -> str:
 
 
 # ===========================================================================
-# 7. ⑤ 채점: 진단 신호 (교재 87, 88쪽) — 빈칸 3곳
+# 7. W5 채점: 진단 신호 (교재 87, 88쪽) — 빈칸 3곳
 # ===========================================================================
 def diagnose_signals(stats: dict, thresholds: dict) -> list[str]:
     """툴 결과 하나의 통계로 진단 신호를 매김.
@@ -182,7 +182,7 @@ def diagnose_signals(stats: dict, thresholds: dict) -> list[str]:
 
 
 # ===========================================================================
-# 8. ⑤ 상한 판정: 강제 종료 (교재 89, 90쪽) — 직접 작성
+# 8. W5 상한 판정: 강제 종료 (교재 89, 90쪽) — 직접 작성
 # ===========================================================================
 def force_stop_reason(counts: dict, max_rounds: int) -> str | None:
     """더 찾아도 소용없거나 상한을 다 쓰면 강제 종료 이유 한 줄을, 아니면 None을 돌려줌.
@@ -194,7 +194,7 @@ def force_stop_reason(counts: dict, max_rounds: int) -> str | None:
 
 
 # ===========================================================================
-# 9. ⑥ 리랭킹: 8자리 고르기 (교재 91, 92쪽) — 직접 작성
+# 9. W6 리랭킹: 8자리 고르기 (교재 91, 92쪽) — 직접 작성
 # ===========================================================================
 def select_final_chunks(scored: list[dict], limit: int = 8) -> list[dict]:
     """리랭커 점수가 붙은 원문에서 limit자리를 고름. Global 검색 주제마다 1자리를 먼저 맡김.
@@ -206,7 +206,7 @@ def select_final_chunks(scored: list[dict], limit: int = 8) -> list[dict]:
 
 
 # ===========================================================================
-# 10. ⑦ 수집 종료 판정: 코드 재확인 (교재 93, 94쪽) — 빈칸 2곳
+# 10. W7 수집 종료 판정: 코드 재확인 (교재 93, 94쪽) — 빈칸 2곳
 # ===========================================================================
 def recheck_question(terms: list[str], chunks: list[dict], chunk_entities: dict, entity_texts: dict,
                      links: set) -> dict:
@@ -231,7 +231,7 @@ def recheck_question(terms: list[str], chunks: list[dict], chunk_entities: dict,
 
 
 # ===========================================================================
-# 11. ⑧ 답변 생성: LCEL 체인 + 구조화 출력 (교재 95, 96쪽) — 빈칸 2곳
+# 11. W8 답변 생성: LCEL 체인 + 구조화 출력 (교재 95, 96쪽) — 빈칸 2곳
 # ===========================================================================
 def generate_answer(llm, prompt, question: str, evidence_text: str, feedback: str, premise_note: str) -> GroundedAnswer:
     """근거만으로 답을 만듦. 답은 문장마다 인용 id를 단 구조화 객체(GroundedAnswer)로 받음."""
@@ -245,7 +245,7 @@ def generate_answer(llm, prompt, question: str, evidence_text: str, feedback: st
 
 
 # ===========================================================================
-# 12. ⑨ 근거 검증 (교재 95, 97쪽) — 직접 작성
+# 12. W9 근거 검증 (교재 95, 97쪽) — 직접 작성
 # ===========================================================================
 def verify_answer(answer: GroundedAnswer, evidence: dict) -> list[str]:
     """답을 근거와 대조해 실패 사유 목록을 돌려줌. 빈 목록이면 통과.
@@ -260,7 +260,7 @@ def verify_answer(answer: GroundedAnswer, evidence: dict) -> list[str]:
 
 
 # ===========================================================================
-# 13. ⑩ 종료 상태 (교재 98, 99쪽) — 빈칸 1곳
+# 13. W10 종료 상태 (교재 98, 99쪽) — 빈칸 1곳
 # ===========================================================================
 def make_end_state(end_code: str, reason: str, answer_text: str, evidence: list[dict], warnings: list[str]) -> dict:
     """어디서 끝나든 종료 상태 이름과 끝난 이유를 함께 돌려줌."""

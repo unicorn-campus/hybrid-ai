@@ -2,19 +2,19 @@
 
 이 파일의 함수는 main(search_graph.py)이 순서대로 부름. 단계와 함수의 대응은 아래와 같음.
   단계                 함수                      실습 방식     하는 일
-  ① 요청 접수          check_ready               (직접 작성)  권한, 같은 세대, 보고서 유무
-  ② 질문 분석          decide_question_route     (직접 작성)  Jev 확률 → 코드의 결정
-  ③ 검색 에이전트      build_agent               (빈칸 2곳)   create_agent로 ReAct 고리를 만들고 돌림
-  ④ 툴 실행(래퍼)      run_tool                  (빈칸 2곳)   질의 속 식별자 지우기, 필터 강제
-  ④ O 검색엔진 검색    rrf_merge                 (직접 작성)  RRF로 두 순위 합치기
-  ④ L Local 검색       narrow_entities           (직접 작성)  L1 갈래 A 엔티티 16개로 줄이기
-  ⑤ 채점               diagnose_signals          (빈칸 3곳)   진단 신호 규칙
-  ⑤ 상한 판정          force_stop_reason         (직접 작성)  강제 종료 조건
-  ⑥ 리랭킹             select_final_chunks       (직접 작성)  주제마다 1자리 먼저, 8자리
-  ⑦ 수집 종료 판정     recheck_question          (빈칸 2곳)   원 질문 재확인 조건 ①, ②
-  ⑧ 답변 생성          generate_answer           (빈칸 2곳)   LCEL 체인 + 구조화 출력
-  ⑨ 근거 검증          verify_answer             (직접 작성)  인용, 숫자, 보고서 인용 검사
-  ⑩ 종료 상태          make_end_state            (빈칸 1곳)   종료 상태 이름과 돌려줄 것
+  W1 요청 접수          check_ready               (직접 작성)  권한, 같은 세대, 보고서 유무
+  W2 질문 분석          decide_question_route     (직접 작성)  Jev 확률 → 코드의 결정
+  W3 검색 에이전트      build_agent               (빈칸 2곳)   create_agent로 ReAct 루프를 만들고 돌림
+  W4 툴 실행(래퍼)      run_tool                  (빈칸 2곳)   질의 속 식별자 지우기, 필터 강제
+  W4 O 검색엔진 검색    rrf_merge                 (직접 작성)  RRF로 두 순위 합치기
+  W4 L Local 검색       narrow_entities           (직접 작성)  L1 갈래 A 엔티티 16개로 줄이기
+  W5 채점               diagnose_signals          (빈칸 3곳)   진단 신호 규칙
+  W5 상한 판정          force_stop_reason         (직접 작성)  강제 종료 조건
+  W6 리랭킹             select_final_chunks       (직접 작성)  주제마다 1자리 먼저, 8자리
+  W7 수집 종료 판정     recheck_question          (빈칸 2곳)   원 질문 재확인 조건 ①, ②
+  W8 답변 생성          generate_answer           (빈칸 2곳)   LCEL 체인 + 구조화 출력
+  W9 근거 검증          verify_answer             (직접 작성)  인용, 숫자, 보고서 인용 검사
+  W10 종료 상태          make_end_state            (빈칸 1곳)   종료 상태 이름과 돌려줄 것
   제공(읽기만): 아래 「제공 함수」 구역의 함수들
 
 교육생은 my_search.py(--mine 실행 때 뼈대 my_search.template.py에서 복사됨)에 같은 이름, 같은 인자로 함수를 채운 뒤 main을 --mine으로 실행함.
@@ -37,10 +37,10 @@ NUMBER_PATTERN = re.compile(r"\d[\d,]*(?:\.\d+)?\s*(?:%|원|일|개월|년|회|P
 CLAUSE_PATTERN = re.compile(r"제\s*\d+\s*조(?:\s*의\s*\d+)?")  # 조항 번호. 예: 제16조의2
 SENTENCE_SPLIT = re.compile(r"(?<=[.!?。])\s+|\n+")  # 문장 나누기(마침표 뒤 공백, 줄바꿈)
 
-# ⑨ 「보고서 인용은 경향 문장에만」: 경향을 말하는 문장인지 가리는 낱말
+# W9 「보고서 인용은 경향 문장에만」: 경향을 말하는 문장인지 가리는 낱말
 TREND_WORDS = ("경향", "공통", "많이", "주로", "대체로", "자주", "반복", "대부분", "여러", "흔히", "유형", "주제")
 
-# ⑩ 종료 상태 8가지. 코드 → (화면에 보일 이름, 뜻). 끝나는 자리마다 이 표의 코드만 씀
+# W10 종료 상태 8가지. 코드 → (화면에 보일 이름, 뜻). 끝나는 자리마다 이 표의 코드만 씀
 END_STATES = {
     "error": ("오류", "권한이 없거나 검색할 세대가 준비되지 않아 시작하지 못함"),
     "no_search": ("검색 불필요", "인사나 잡담이라 찾을 필요가 없음"),
@@ -54,7 +54,7 @@ END_STATES = {
 
 
 # ---------------------------------------------------------------------------
-# 제공 스키마: ⑧ 답변의 구조화 출력(Pydantic). LLM이 이 칸을 채운 객체로 답함
+# 제공 스키마: W8 답변의 구조화 출력(Pydantic). LLM이 이 칸을 채운 객체로 답함
 #   Field의 description이 곧 LLM에 주는 지시임
 # ---------------------------------------------------------------------------
 class AnswerSentence(BaseModel):
@@ -79,7 +79,7 @@ def member_pseudonym(member_id: str) -> str:
 
 
 def replace_identifiers(question: str, alias_to_name: dict, name_to_card_id: dict, versions: list[str]) -> dict:
-    """② 앞부분(코드): 질문에서 식별자를 찾아 필터 값으로 바꾸고, 질문에서는 회원번호를 지움.
+    """W2 앞부분(코드): 질문에서 식별자를 찾아 필터 값으로 바꾸고, 질문에서는 회원번호를 지움.
 
     목적: 회원번호는 외부 모델(Groq, Jev)로 보내지 않고 필터로만 씀.
     방법: 회원번호 꼴(M-0000)은 가명 id로, 카드명과 별칭은 card_id로 바꿈. 약관 버전을 물으면 색인에 있는 버전인지 봄.
@@ -103,7 +103,7 @@ def replace_identifiers(question: str, alias_to_name: dict, name_to_card_id: dic
             flat = flat.replace(key, "|")  # 찾은 부분을 지워 그 안의 짧은 별칭(모아생활 플러스 안의 모아생활)을 다시 잡지 않음
     card_ids = sorted({name_to_card_id[name] for name in card_names if name in name_to_card_id})
 
-    # (3) 약관 버전: 질문이 말한 버전이 색인에 없으면 ⑦에서 불통과가 됨
+    # (3) 약관 버전: 질문이 말한 버전이 색인에 없으면 W7에서 불통과가 됨
     version_asked = None
     match = VERSION_PATTERN.search(question)
     if match:
@@ -212,7 +212,7 @@ def count_cooccur(term_a: str, term_b: str, texts: list[str]) -> int:
 
 
 def core_terms(tagged: list[tuple[str, str]], card_names: list[str], stopwords: set) -> list[str]:
-    """원 질문의 핵심 낱말을 중요한 순서로 고름(⑤ 공존, ⑦ 재확인이 앞 2개를 씀).
+    """원 질문의 핵심 낱말을 중요한 순서로 고름(W5 공존, W7 재확인이 앞 2개를 씀).
 
     방법: 명사, 숫자, 외국어만 후보로 두고 흔한 말(stopwords)은 뺌. 순서는 ① 버전 번호(예: 1.1) ② 카드명 ③ 조항 번호
           ④ 나머지 명사는 질문에 나온 순서 ⑤ 단위 없는 숫자(예: 12개월의 12)는 맨 뒤.
@@ -252,9 +252,9 @@ def core_terms(tagged: list[tuple[str, str]], card_names: list[str], stopwords: 
 
 
 def candidate_pairs(a: str, b: str, chunks: list[dict], chunk_entities: dict, entity_texts: dict) -> list[tuple]:
-    """⑦ 조건 ②의 후보: 낱말 a를 가진 엔티티와 낱말 b를 가진 엔티티의 쌍 목록 [(엔티티 a, 엔티티 b, 설명)].
+    """W7 조건 ②의 후보: 낱말 a를 가진 엔티티와 낱말 b를 가진 엔티티의 쌍 목록 [(엔티티 a, 엔티티 b, 설명)].
 
-    두 가지 경우를 모음(⑦ 조건 ② 「관계 하나로 이어진 두 엔티티의 원문에 나뉘어 있음」).
+    두 가지 경우를 모음(W7 조건 ② 「관계 하나로 이어진 두 엔티티의 원문에 나뉘어 있음」).
       ㉠ 서로 다른 원문: a가 원문 A에, b가 원문 B에 있으면 A의 엔티티와 B의 엔티티(교재 예: 청크 1의 A카드, 청크 2의 실적 우대)
       ㉡ 같은 원문이어도: a가 엔티티 속성에, b가 다른 엔티티 속성에 있으면 그 두 엔티티(예: 카드 노드의 이름과 혜택 노드의 이름)
     공백은 지우고 비교함. 쌍이 관계로 이어졌는지는 recheck_question이 봄.
@@ -296,7 +296,7 @@ def coverage(terms: list[str], texts: list[str]) -> float:
 
 
 def apply_passage_judgments(probs: dict, thresholds: dict) -> dict:
-    """⑤ Jev 원문 판정: 확률 4개를 기준값과 비교해 표시를 붙임(결정은 코드가 함).
+    """W5 Jev 원문 판정: 확률 4개를 기준값과 비교해 표시를 붙임(결정은 코드가 함).
 
     반환값: relevant(관련 있음), answer_evidence(답 근거), premise_conflict(질문 전제와 사실 충돌), injection(지시 끼워 넣기), probs
     """
@@ -310,7 +310,7 @@ def apply_passage_judgments(probs: dict, thresholds: dict) -> dict:
 
 
 def block_calls(tool_calls: list[dict], counters: dict, limits: dict) -> dict:
-    """⑤ 상한: 한 회차의 툴 호출 중 상한에 걸린 호출을 골라 막을 이유를 돌려줌(호출 순서대로 셈).
+    """W5 상한: 한 회차의 툴 호출 중 상한에 걸린 호출을 골라 막을 이유를 돌려줌(호출 순서대로 셈).
 
     상한: 한 회차 병렬 5개, global_search 요청당 1회, 서로 다른 질의 8개.
     부수효과: counters["queries"](쓴 질의 집합)와 counters["global_used"]를 늘림.
@@ -347,15 +347,15 @@ def block_calls(tool_calls: list[dict], counters: dict, limits: dict) -> dict:
 
 def decide_collection(recheck: dict, marks: dict, version_missing: bool, jev_ok: bool, relevant_min: float,
                       exempt_ids: set) -> dict:
-    """⑦ Jev 종합(제공): 코드 재확인 결과와 Jev 표시로 통과와 불통과를 정함.
+    """W7 Jev 종합(제공): 코드 재확인 결과와 Jev 표시로 통과와 불통과를 정함.
 
     규칙: 약관 버전이 색인에 없음 → 불통과. 코드 재확인 불통과 → 불통과(Jev가 살리지 않음).
           답 근거 원문 0개 → 불통과. 질문 전제와 사실 충돌 원문이 있으면 통과 + 표시. 그 밖 → 통과.
           Jev가 실패했으면(jev_ok False) 코드 재확인 결과만 씀.
     답 근거 원문: Jev가 「바로 답이 됨」으로 본 원문 중 「질문의 주제를 다룸」 확률도 relevant_min 이상인 것.
           관련이 낮은데 답이 된다고 본 판정은 한국어 함정 질문에서 틀린 경우가 많았음(2026-10-25 평가셋 실측).
-          exempt_ids(회원 필터로 고른 그 회원의 상담 원문)는 관련 확률을 보지 않음(⑤와 같은 규칙).
-    인자: marks는 {chunk_id: apply_passage_judgments 결과}(⑥ 뒤 남은 원문만)
+          exempt_ids(회원 필터로 고른 그 회원의 상담 원문)는 관련 확률을 보지 않음(W5와 같은 규칙).
+    인자: marks는 {chunk_id: apply_passage_judgments 결과}(W6 뒤 남은 원문만)
     """
     # (1) 약관 버전이 색인에 없으면 불통과
     if version_missing:
@@ -383,7 +383,7 @@ def decide_collection(recheck: dict, marks: dict, version_missing: bool, jev_ok:
 
 
 def keep_linked_entities(entities: dict, kept_chunk_ids: set) -> dict:
-    """⑥ 엔티티와 관계: 남은 원문과 이어진 엔티티만 남김(리랭킹하지 않음)."""
+    """W6 엔티티와 관계: 남은 원문과 이어진 엔티티만 남김(리랭킹하지 않음)."""
     kept = {}
     for entity_id, entity in entities.items():
         if set(entity.get("chunk_ids", [])) & kept_chunk_ids:
@@ -392,12 +392,12 @@ def keep_linked_entities(entities: dict, kept_chunk_ids: set) -> dict:
 
 
 # ===========================================================================
-# 실습 함수 1. ① 요청 접수: 준비 확인 — 직접 작성
+# 실습 함수 1. W1 요청 접수: 준비 확인 — 직접 작성
 # ===========================================================================
 def check_ready(role: str, active: dict | None, index_exists: bool, graph_chunk_count: int, report_count: int) -> dict:
     """검색을 시작해도 되는지 세 조건(권한, 같은 세대, 보고서 유무)으로 판정함.
 
-    목적: 이 요청이 끝날 때까지 한 세대로 찾게 하고, 준비가 안 됐으면 찾지 않고 ⑩ 오류로 끝냄.
+    목적: 이 요청이 끝날 때까지 한 세대로 찾게 하고, 준비가 안 됐으면 찾지 않고 W10 오류로 끝냄.
     인자: active는 활성 세대 파일 내용(없으면 None), graph_chunk_count는 그 세대의 그래프 청크 노드 수.
     반환값: ok(시작 가능), reason(오류 이유 또는 「준비 완료」), allow_global(보고서가 있어 global_search 가능)
     """
@@ -421,7 +421,7 @@ def check_ready(role: str, active: dict | None, index_exists: bool, graph_chunk_
 
 
 # ===========================================================================
-# 실습 함수 2. ② 질문 분석: Jev 확률 → 코드의 결정 — 직접 작성
+# 실습 함수 2. W2 질문 분석: Jev 확률 → 코드의 결정 — 직접 작성
 # ===========================================================================
 def decide_question_route(answers: dict | None, thresholds: dict) -> dict:
     """Jev가 낸 확률을 기준값과 비교해 「끝낼지, 첫 툴 후보는 무엇인지」를 정함. Jev는 확률만 내고 결정은 여기서 함.
@@ -455,15 +455,15 @@ def decide_question_route(answers: dict | None, thresholds: dict) -> dict:
 
 
 # ===========================================================================
-# 실습 함수 3. ③ 검색 에이전트: create_agent로 ReAct 고리 — 빈칸 2곳
+# 실습 함수 3. W3 검색 에이전트: create_agent로 ReAct 루프 — 빈칸 2곳
 # ===========================================================================
 def build_agent(model, tools: list, system_prompt: str, middleware: list, first_message: str, context: dict,
                 recursion_limit: int) -> dict:
-    """LangChain create_agent로 「생각 → 툴 호출 → 관찰」 고리를 만들고 돌려서 마지막 상태를 돌려줌.
+    """LangChain create_agent로 「생각 → 툴 호출 → 관찰」 루프를 만들고 돌려서 마지막 상태를 돌려줌.
 
     목적: 툴 고르기는 에이전트 모델(Groq)이 하고, 막는 일(상한, 강제 종료, 필터, 채점)은 미들웨어 코드가 하게 묶음.
     방법: 모델, 툴 5개, 시스템 프롬프트, 미들웨어 2개를 create_agent에 넘겨 에이전트를 만들고,
-          첫 메시지(②의 결과)와 이 요청의 작업 기록(context)을 주어 한 번 돌림. 메시지는 덧붙이기만 됨.
+          첫 메시지(W2의 결과)와 이 요청의 작업 기록(context)을 주어 한 번 돌림. 메시지는 덧붙이기만 됨.
     반환값: 에이전트의 마지막 상태(dict). "messages"에 모든 대화(생각, 툴 호출, 관찰)가 순서대로 있음.
     """
     # 빈칸 1: 에이전트 만들기. 모델과 툴과 시스템 프롬프트와 미들웨어를 넘김
@@ -474,9 +474,9 @@ def build_agent(model, tools: list, system_prompt: str, middleware: list, first_
         middleware=middleware,        # [상한과 강제 종료, 래퍼와 채점]. 에이전트가 넘을 수 없는 코드
     )
 
-    # 빈칸 2: 첫 메시지와 작업 기록을 주고 고리를 끝까지 돌림
+    # 빈칸 2: 첫 메시지와 작업 기록을 주고 루프를 끝까지 돌림
     state = agent.invoke(
-        {"messages": [{"role": "user", "content": first_message}]},  # ②의 결과(식별자를 지운 질문, 첫 툴 후보)
+        {"messages": [{"role": "user", "content": first_message}]},  # W2의 결과(식별자를 지운 질문, 첫 툴 후보)
         context=context,                                            # 툴과 미들웨어가 함께 보는 이 요청의 작업 기록
         config={"recursion_limit": recursion_limit},                # 프레임워크 쪽 안전 상한(코드 상한보다 넉넉히)
     )
@@ -484,7 +484,7 @@ def build_agent(model, tools: list, system_prompt: str, middleware: list, first_
 
 
 # ===========================================================================
-# 실습 함수 4. ④ 툴 실행: 래퍼 — 빈칸 2곳
+# 실습 함수 4. W4 툴 실행: 래퍼 — 빈칸 2곳
 # ===========================================================================
 def run_tool(name: str, args: dict, ctx: dict, tool_functions: dict) -> dict:
     """에이전트의 툴 호출 하나를 실행하는 래퍼. 입력 검사, 질의 속 식별자 지우기, 필터 강제, 태그 감싸기를 함.
@@ -514,7 +514,7 @@ def run_tool(name: str, args: dict, ctx: dict, tool_functions: dict) -> dict:
 
 
 # ===========================================================================
-# 실습 함수 5. ④ O 검색엔진 검색: RRF — 직접 작성
+# 실습 함수 5. W4 O 검색엔진 검색: RRF — 직접 작성
 # ===========================================================================
 def rrf_merge(vector_hits: list[dict], bm25_hits: list[dict], k: int = 60, top: int = 25) -> list[dict]:
     """벡터 검색과 BM25 검색의 두 순위를 RRF(점수 대신 순위만 쓰는 합치기)로 합침.
@@ -541,7 +541,7 @@ def rrf_merge(vector_hits: list[dict], bm25_hits: list[dict], k: int = 60, top: 
 
 
 # ===========================================================================
-# 실습 함수 6. ④ L Local 검색: L1 갈래 A 엔티티 축소 — 직접 작성
+# 실습 함수 6. W4 L Local 검색: L1 갈래 A 엔티티 축소 — 직접 작성
 # ===========================================================================
 def narrow_entities(candidates: list[dict], limit: int = 16) -> list[dict]:
     """청크에서 나온 엔티티 후보를 질문과의 유사도로 줄여 limit개만 남김(L1 갈래 A).
@@ -582,7 +582,7 @@ def narrow_entities(candidates: list[dict], limit: int = 16) -> list[dict]:
 
 
 # ===========================================================================
-# 실습 함수 7. ⑤ 채점: 진단 신호 — 빈칸 3곳
+# 실습 함수 7. W5 채점: 진단 신호 — 빈칸 3곳
 # ===========================================================================
 def diagnose_signals(stats: dict, thresholds: dict) -> list[str]:
     """툴 결과 하나의 통계로 진단 신호를 매김. 신호는 「왜 부족한가」를 에이전트에게 알려 줌.
@@ -625,7 +625,7 @@ def diagnose_signals(stats: dict, thresholds: dict) -> list[str]:
 
 
 # ===========================================================================
-# 실습 함수 8. ⑤ 상한 판정: 강제 종료 — 직접 작성
+# 실습 함수 8. W5 상한 판정: 강제 종료 — 직접 작성
 # ===========================================================================
 def force_stop_reason(counts: dict, max_rounds: int) -> str | None:
     """더 찾아도 소용없거나 상한을 다 쓰면 강제 종료 이유를 돌려줌. 아니면 None.
@@ -650,7 +650,7 @@ def force_stop_reason(counts: dict, max_rounds: int) -> str | None:
 
 
 # ===========================================================================
-# 실습 함수 9. ⑥ 리랭킹: 8자리 고르기 — 직접 작성
+# 실습 함수 9. W6 리랭킹: 8자리 고르기 — 직접 작성
 # ===========================================================================
 def select_final_chunks(scored: list[dict], limit: int = 8) -> list[dict]:
     """리랭커 점수가 붙은 원문에서 limit자리를 고름. Global 검색 주제마다 1자리를 먼저 맡김.
@@ -686,12 +686,12 @@ def select_final_chunks(scored: list[dict], limit: int = 8) -> list[dict]:
             chosen.append(row)
             chosen_ids.add(row["chunk_id"])
 
-    # ③ 고른 원문을 다시 점수 내림차순으로 돌려줌(⑦ 수집 종료 판정과 ⑧ 답변 생성의 근거가 됨)
+    # ③ 고른 원문을 다시 점수 내림차순으로 돌려줌(W7 수집 종료 판정과 W8 답변 생성의 근거가 됨)
     return sorted(chosen, key=lambda row: row["score"], reverse=True)
 
 
 # ===========================================================================
-# 실습 함수 10. ⑦ 수집 종료 판정: 코드 재확인 — 빈칸 2곳
+# 실습 함수 10. W7 수집 종료 판정: 코드 재확인 — 빈칸 2곳
 # ===========================================================================
 def recheck_question(terms: list[str], chunks: list[dict], chunk_entities: dict, entity_texts: dict,
                      links: set) -> dict:
@@ -723,19 +723,19 @@ def recheck_question(terms: list[str], chunks: list[dict], chunk_entities: dict,
         if entity_a != entity_b and frozenset((entity_a, entity_b)) in links:
             return {"passed": True, "rule": "조건 ②", "detail": f"「{a}」와 「{b}」가 관계 하나로 이어짐({where})"}
 
-    # 둘 다 아니면 불통과 → ⑩ 「확인할 수 없음」. Jev가 관련 있다고 해도 살리지 않음
+    # 둘 다 아니면 불통과 → W10 「확인할 수 없음」. Jev가 관련 있다고 해도 살리지 않음
     return {"passed": False, "rule": "-", "detail": f"「{a}」와 「{b}」를 잇는 근거 없음"}
 
 
 # ===========================================================================
-# 실습 함수 11. ⑧ 답변 생성: LCEL 체인 + 구조화 출력 — 빈칸 2곳
+# 실습 함수 11. W8 답변 생성: LCEL 체인 + 구조화 출력 — 빈칸 2곳
 # ===========================================================================
 def generate_answer(llm, prompt, question: str, evidence_text: str, feedback: str, premise_note: str) -> GroundedAnswer:
     """근거만으로 답을 만듦. 답은 문장마다 인용 id를 단 구조화 객체(GroundedAnswer)로 받음.
 
     방법: LCEL 체인 「프롬프트 | 구조화 모델」을 만들어 한 번 부름. 재작성이면 feedback(무엇이 틀렸는지)을 함께 넣음.
     인자: llm은 Groq ChatGroq, prompt는 main의 ChatPromptTemplate(변수 question, evidence, feedback, premise_note).
-    반환값: GroundedAnswer. 예외(호출 실패, 파싱 실패)는 그대로 올려 main이 ⑩ 생성 실패로 처리함.
+    반환값: GroundedAnswer. 예외(호출 실패, 파싱 실패)는 그대로 올려 main이 W10 생성 실패로 처리함.
     """
     # 빈칸 1: 모델이 GroundedAnswer 칸을 채워 답하게 함(strict: gpt-oss-120b는 이 값이 있어야 스키마를 지킴)
     structured = llm.with_structured_output(GroundedAnswer, method="json_schema", strict=True)
@@ -749,7 +749,7 @@ def generate_answer(llm, prompt, question: str, evidence_text: str, feedback: st
 
 
 # ===========================================================================
-# 실습 함수 12. ⑨ 근거 검증 — 직접 작성
+# 실습 함수 12. W9 근거 검증 — 직접 작성
 # ===========================================================================
 def verify_answer(answer: GroundedAnswer, evidence: dict) -> list[str]:
     """답을 근거와 대조해 실패 사유 목록을 돌려줌. 빈 목록이면 통과. LLM이 아니라 규칙으로 봄.
@@ -774,7 +774,7 @@ def verify_answer(answer: GroundedAnswer, evidence: dict) -> list[str]:
             continue
 
         # 검사 ②: 문장 속 조항 번호와 숫자를 뽑아, 값 그대로 또는 숫자만 남긴 꼴이 인용 원문에 있는지 봄
-        #         인용한 원문은 공백과 쉼표를 지워 한 글로 이어 둠. 실패 사유는 ⑧ 재작성의 피드백이 됨
+        #         인용한 원문은 공백과 쉼표를 지워 한 글로 이어 둠. 실패 사유는 W8 재작성의 피드백이 됨
         cited_text = " ".join(evidence[cid]["text"] for cid in cited).replace(" ", "").replace(",", "")
         values = CLAUSE_PATTERN.findall(sentence.text) + NUMBER_PATTERN.findall(sentence.text)
         for value in values:
@@ -791,7 +791,7 @@ def verify_answer(answer: GroundedAnswer, evidence: dict) -> list[str]:
 
 
 # ===========================================================================
-# 실습 함수 13. ⑩ 종료 상태 — 빈칸 1곳
+# 실습 함수 13. W10 종료 상태 — 빈칸 1곳
 # ===========================================================================
 def make_end_state(end_code: str, reason: str, answer_text: str, evidence: list[dict], warnings: list[str]) -> dict:
     """어디서 끝나든 종료 상태 이름과 끝난 이유를 함께 돌려줌. 「확인할 수 없음」도 정상 종료임.

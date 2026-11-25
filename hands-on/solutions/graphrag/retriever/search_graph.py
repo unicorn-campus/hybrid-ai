@@ -1,26 +1,26 @@
-"""GraphRAG 검색 예제 main: ① 요청 접수 → ② 질문 분석 → ③ 검색 에이전트 ⇄ ④ 툴 실행 → ⑤ 채점과 상한 판정 →
-⑥ 리랭킹 → ⑦ 수집 종료 판정 → ⑧ 답변 생성 ⇄ ⑨ 근거 검증 → ⑩ 종료 상태.
+"""GraphRAG 검색 예제 main: W1 요청 접수 → W2 질문 분석 → W3 검색 에이전트 ⇄ W4 툴 실행 → W5 채점과 상한 판정 →
+W6 리랭킹 → W7 수집 종료 판정 → W8 답변 생성 ⇄ W9 근거 검증 → W10 종료 상태.
 
-③ ~ ⑤(반복 1)는 LangChain create_agent와 미들웨어 2개가 맡고, 나머지는 run_workflow가 파이썬 순서로 부름.
+W3 ~ W5(반복 1)는 LangChain create_agent와 미들웨어 2개가 맡고, 나머지는 run_workflow가 파이썬 순서로 부름.
 단계마다 알맹이는 core_search.py의 함수가 맡고, 이 파일은 설정값, 저장소 접속, 외부 API 호출, 서브 워크플로우(O, L, G, R),
 미들웨어, 순서, 화면 출력을 맡음. 인덱싱 실습(../indexer)이 만든 활성 세대를 읽기만 함.
 
 판단을 맡는 쪽
-  생성형AI(Groq)      ③ 툴 고르기, G1 보고서 고르기, G2 주제 나누기, ⑧ 답변 생성
-  예측형AI(Jev)       ② 질문 분석, ⑤ 원문 채점, ⑦ 수집 종료 판정. 확률만 내고 결정은 코드의 기준값으로
+  생성형AI(Groq)      W3 툴 고르기, G1 보고서 고르기, G2 주제 나누기, W8 답변 생성
+  예측형AI(Jev)       W2 질문 분석, W5 원문 채점, W7 수집 종료 판정. 확률만 내고 결정은 코드의 기준값으로
   규칙기반 코드       필터, 상한, 강제 종료, 원 질문 재확인, 근거 검증
   서브 워크플로우     O, L, G는 순서가 정해진 코드 함수(툴 안은 고정 순서)
 
 파일 안의 순서(위에서 아래로)
   설정값 → 프롬프트와 스키마 → 작은 도구 → 자원(Resources) → 외부 호출(임베딩, 리랭크, Jev)
-  → ④ 서브 워크플로우(O, L, G, R) → 툴 결과를 작업 기록으로 → 툴 5개 → 미들웨어 2개 → ⑤ 채점
-  → 단계 함수(①, ②, ⑥, ⑦) → run_workflow(전체 흐름) → 시작 검사, 평가셋, 명령행
+  → W4 서브 워크플로우(O, L, G, R) → 툴 결과를 작업 기록으로 → 툴 5개 → 미들웨어 2개 → W5 채점
+  → 단계 함수(W1, W2, W6, W7) → run_workflow(전체 흐름) → 시작 검사, 평가셋, 명령행
 
 실행(이 폴더에서):
   ../.venv/Scripts/python.exe search_graph.py --qid Q01                       평가셋 질문(역할은 평가셋 filters대로)
   ../.venv/Scripts/python.exe search_graph.py "할부 철회는 며칠 안에 하나요?" --role agent
   ../.venv/Scripts/python.exe search_graph.py --eval                          평가셋 25문항 일괄(강사용, API 비용 듦)
-옵션: --role agent|auditor, --member-id M-1042, --no-answer(⑧ 끔), --eval --start Q10 --only Q18,Q19 --repeat 3
+옵션: --role agent|auditor, --member-id M-1042, --no-answer(W8 끔), --eval --start Q10 --only Q18,Q19 --repeat 3
 """
 
 import argparse
@@ -101,25 +101,25 @@ NEO4J_USER = os.environ.get("NEO4J_USER", "neo4j")
 OPENSEARCH_URL = os.environ.get("OPENSEARCH_URL", "http://127.0.0.1:9200")
 
 # 모델
-AGENT_MODEL = "openai/gpt-oss-120b"  # ③ 검색 에이전트(툴 고르기). Groq. G1, G2, ⑧과 같은 모델(강사 결정 2026-10-25)
+AGENT_MODEL = "openai/gpt-oss-120b"  # W3 검색 에이전트(툴 고르기). Groq. G1, G2, W8과 같은 모델(강사 결정 2026-10-25)
 AGENT_REASONING = "medium"  # gpt-oss의 추론 강도. 추론 글은 메시지 본문에 섞이지 않음
-JEV_MODEL = "jev-1.14.0"  # ②, ⑤, ⑦ 판단. 기준값을 맞춘 버전이 바뀌지 않게 고정(jev-latest 아님)
-LLM_MODEL = "openai/gpt-oss-120b"  # G1, G2, ⑧(Groq)
+JEV_MODEL = "jev-1.14.0"  # W2, W5, W7 판단. 기준값을 맞춘 버전이 바뀌지 않게 고정(jev-latest 아님)
+LLM_MODEL = "openai/gpt-oss-120b"  # G1, G2, W8(Groq)
 EMBEDDING_MODEL = "embed-v5.0-fast"  # Cohere 임베딩(색인과 같은 모델, 2048차원)
-RERANK_MODEL = "rerank-v4.0-fast"  # Cohere 리랭커(O4, ⑥)
+RERANK_MODEL = "rerank-v4.0-fast"  # Cohere 리랭커(O4, W6)
 
-# ③ 에이전트 실제 비용 계산용 단가(100만 토큰당 달러). Groq 공식 모델 문서 2026-10-25 확인
+# W3 에이전트 실제 비용 계산용 단가(100만 토큰당 달러). Groq 공식 모델 문서 2026-10-25 확인
 # (https://console.groq.com/docs/model/openai/gpt-oss-120b: 입력 $0.15, 캐시된 입력 $0.075, 출력 $0.60)
 AGENT_PRICE = {"input": 0.15, "cache_read": 0.075, "output": 0.60}
 
 # 반복 1의 상한
 MAX_ROUNDS = 6  # 툴 호출 회차(= 에이전트 모델 호출) 상한
 CALL_LIMITS = {"parallel": 5, "global": 1, "queries": 8}  # 한 회차 병렬, global_search 요청당, 서로 다른 질의 수
-MAX_REWRITES = 2  # 반복 2: ⑧ 재작성 상한
-REQUEST_TIMEOUT = 180  # 요청 하나의 하드 상한(초). 넘으면 모은 근거로 ⑥에 감
+MAX_REWRITES = 2  # 반복 2: W8 재작성 상한
+REQUEST_TIMEOUT = 180  # 요청 하나의 하드 상한(초). 넘으면 모은 근거로 W6에 감
 
 # --until: 워크플로우 단계 번호. 그 단계까지만 수행하고 결과를 보임(10은 끝까지)
-UNTIL_STEPS = {5: "⑤ 채점과 상한 판정", 7: "⑦ 수집 종료 판정", 10: "⑩ 종료 상태"}
+UNTIL_STEPS = {5: "W5 채점과 상한 판정", 7: "W7 수집 종료 판정", 10: "W10 종료 상태"}
 EVAL_REQUEST_TIMEOUT = 600  # --eval 때는 정상 문항이 잘리지 않게 넉넉히 둠
 RECURSION_LIMIT = 60  # 프레임워크 쪽 안전 상한(노드 실행 수). 코드 상한(6회차)보다 넉넉함
 
@@ -143,17 +143,17 @@ G_MAX_REPORTS = 12  # G1 고를 보고서 상한
 G_REPORT_TOKENS = 12000  # G1 보고서 본문 몫(대략값: 글자 수 / 2)
 G_FALLBACK_REPORTS = 5  # G1 실패 때 보고서 벡터 상위 수
 G_MAX_TOPICS = 5  # G2 주제 수 상한
-# ⑥ 리랭킹
-FINAL_CHUNKS = 8  # ⑥ 원문 자리 수
-FINAL_CHUNKS_TOPICS = 14  # ⑥ Global 주제가 있을 때 원문 자리 수(경향 질문은 근거가 여러 주제에 흩어짐. README 7.7)
+# W6 리랭킹
+FINAL_CHUNKS = 8  # W6 원문 자리 수
+FINAL_CHUNKS_TOPICS = 14  # W6 Global 주제가 있을 때 원문 자리 수(경향 질문은 근거가 여러 주제에 흩어짐. README 7.7)
 REPORT_RELEVANCE_MIN = 0.25  # 보고서 관련도(질문과 보고서 요약 임베딩의 코사인) 하한. NO_REPORTS 판정에 씀
 
 # 판단 기준값(가정값. 평가셋으로 조정 예정)
-ROUTE_THRESHOLDS = {"end_noul": 0.7, "choice_confidence": 0.5}  # ② Jev 결정
-PASSAGE_THRESHOLDS = {"relevant_min": 0.45, "answer_evidence_over": 0.55,  # ⑤ Jev 원문 판정(TypeSafe 쿡북 출발값)
+ROUTE_THRESHOLDS = {"end_noul": 0.7, "choice_confidence": 0.5}  # W2 Jev 결정
+PASSAGE_THRESHOLDS = {"relevant_min": 0.45, "answer_evidence_over": 0.55,  # W5 Jev 원문 판정(TypeSafe 쿡북 출발값)
                       "premise_conflict_over": 0.7, "injection_over": 0.7}
-EVIDENCE_RELEVANT_MIN = 0.7  # ⑦ 답 근거로 셀 때 요구하는 관련 확률(평가셋 실측으로 정함: 정답 근거는 0.9 이상, 함정은 0.6대)
-SIGNAL_THRESHOLDS = {"coverage": 0.6, "min_chunks": 2}  # ⑤ 진단 신호(가정값)
+EVIDENCE_RELEVANT_MIN = 0.7  # W7 답 근거로 셀 때 요구하는 관련 확률(평가셋 실측으로 정함: 정답 근거는 0.9 이상, 함정은 0.6대)
+SIGNAL_THRESHOLDS = {"coverage": 0.6, "min_chunks": 2}  # W5 진단 신호(가정값)
 
 # 핵심 낱말에서 빼는 흔한 말(질문 꼴 낱말, 문서 어디에나 있는 말)
 STOPWORDS = {"카드", "회원", "상담", "고객", "경우", "때", "것", "수", "얼마", "무엇", "어디", "언제", "기준", "방법", "내용",
@@ -320,7 +320,7 @@ class Resources:
 
 
 def load_generation_data(res: Resources) -> dict:
-    """① 활성 세대의 자료를 한 번 읽어 둠: 청크 메타데이터 260건, 토크나이저 사전, 약관 버전, 보고서 78개.
+    """W1 활성 세대의 자료를 한 번 읽어 둠: 청크 메타데이터 260건, 토크나이저 사전, 약관 버전, 보고서 78개.
 
     목적: 그래프의 Chunk 노드에는 권한 속성이 없어서 검색엔진의 메타데이터로 「볼 수 있는 청크 표」를 만듦.
           청크 글(text)은 여기서 읽지 않음. 툴이 청크 id를 얻은 뒤 read_chunk_texts로 그때그때 읽음.
@@ -348,14 +348,14 @@ def load_generation_data(res: Resources) -> dict:
         meta = res.os.indices.get_mapping(index=index)[index]["mappings"]["_meta"]["tokenizer"]
         data["tokenizer"] = kr_tokenizer.tokenizer_from_meta(meta)
 
-        # 카드 별칭 → 카드명 표(② 질문 분석이 질문 속 카드명을 찾을 때 씀)
+        # 카드 별칭 → 카드명 표(W2 질문 분석이 질문 속 카드명을 찾을 때 씀)
         data["alias_to_name"] = dict(data["tokenizer"].alias_to_name)
         for name in data["tokenizer"].card_names:  # 값은 모두 정식명(띄어쓰기 없는 꼴). 한 카드가 두 꼴로 잡히지 않게 함
             canonical = kr_tokenizer.canonical_card_name(name)
             data["alias_to_name"].setdefault(name, canonical)
             data["alias_to_name"].setdefault(name.replace("한빛 ", ""), canonical)
 
-    # (2) 카드명 → card_id 표(② 카드 필터). 별칭표는 띄어쓰기 없는 꼴(한빛가족돌봄)을 돌려주므로 두 꼴을 모두 키로 둠
+    # (2) 카드명 → card_id 표(W2 카드 필터). 별칭표는 띄어쓰기 없는 꼴(한빛가족돌봄)을 돌려주므로 두 꼴을 모두 키로 둠
     names = {}
     for meta in data["chunk_meta"].values():
         if meta.get("card_name") and meta.get("card_id"):
@@ -364,11 +364,11 @@ def load_generation_data(res: Resources) -> dict:
             names[kr_tokenizer.canonical_card_name(meta["card_name"])] = meta["card_id"]  # 정식명은 소문자(통신할부 A → a)
     data["name_to_card_id"] = names
 
-    # (3) 그래프: 청크 노드 수(① 같은 세대 확인), 약관 버전(② 버전 확인), 커뮤니티 보고서(G1, L4)
+    # (3) 그래프: 청크 노드 수(W1 같은 세대 확인), 약관 버전(W2 버전 확인), 커뮤니티 보고서(G1, L4)
     data["graph_chunk_count"] = res.run("MATCH (c:Chunk {generation: $g}) RETURN count(c) AS n", g=generation)[0]["n"]
     data["versions"] = [r["v"] for r in res.run("MATCH (t:TermsDocument {generation: $g}) RETURN t.version AS v",
                                                 g=generation) if r["v"]]
-    # 보고서마다 sources(보고서를 이루는 원문 청크 id)를 둠. ②가 「볼 수 있는 보고서」를 정할 때 씀
+    # 보고서마다 sources(보고서를 이루는 원문 청크 id)를 둠. W2가 「볼 수 있는 보고서」를 정할 때 씀
     for record in res.run(
             "MATCH (c:Community {generation: $g}) "
             "OPTIONAL MATCH (c)<-[:IN_COMMUNITY]-(e)-[:FROM_CHUNK]->(s:Chunk) "
@@ -412,7 +412,7 @@ def rerank(res: Resources, query: str, texts: list[str], ctx: dict) -> list[floa
 
 
 def jev_route(res: Resources, question: str, ctx: dict) -> dict | None:
-    """② Jev 한 요청(잡담, 모호, 첫 툴) + 보기 순서를 뒤집은 첫 툴 한 요청. 실패하면 None.
+    """W2 Jev 한 요청(잡담, 모호, 첫 툴) + 보기 순서를 뒤집은 첫 툴 한 요청. 실패하면 None.
 
     질문 문장은 영어로 씀(Jev는 영어가 가장 정확). 자료(state)는 식별자를 지운 한국어 질문 그대로 보냄.
     """
@@ -443,7 +443,7 @@ def jev_route(res: Resources, question: str, ctx: dict) -> dict | None:
             "first_tool": Choice(instructions="Which search tool should be tried first for this question",
                                  criteria=swapped)})
     except Exception as error:
-        ctx["warnings"].append(f"② Jev 실패(규칙만으로 진행): {short(error, 60)}")
+        ctx["warnings"].append(f"W2 Jev 실패(규칙만으로 진행): {short(error, 60)}")
         return None
 
     # 확률만 꺼내 돌려줌. 끝낼지와 첫 툴 후보는 코드(decide_question_route)가 기준값으로 정함
@@ -454,7 +454,7 @@ def jev_route(res: Resources, question: str, ctx: dict) -> dict | None:
             "first_tool_swapped": (b.choice, b.confidence)}
 
 
-# ⑤ 원문마다 묻는 Noul 4개(TypeSafe 쿡북 「Classifying RAG passages」 문장 그대로)
+# W5 원문마다 묻는 Noul 4개(TypeSafe 쿡북 「Classifying RAG passages」 문장 그대로)
 # 질문의 주제를 다루나 / 바로 답이 되나 / 질문의 전제와 어긋나나 / 시스템을 조종하려 하나
 PASSAGE_QUESTIONS = {
     "is_relevant": Noul(instructions="Does this passage address the subject of the query?"),
@@ -471,7 +471,7 @@ def read_chunk_texts(ctx: dict, chunk_ids: list[str]) -> dict:
 
     목적: 그래프의 Chunk 노드에는 글이 없음(ID와 최소 속성만). 글은 검색엔진(벡터 저장소)에만 있어
           툴이 청크 id를 얻은 뒤 필요한 청크만 그때그때 읽음.
-    쓰는 곳: 관찰 글, ⑤ 채점, ⑥ 리랭킹, ⑦ 수집 종료 판정(재확인), ⑧ 답변 생성(근거 묶음)
+    쓰는 곳: 관찰 글, W5 채점, W6 리랭킹, W7 수집 종료 판정(재확인), W8 답변 생성(근거 묶음)
     반환값: {chunk_id: 글}. 못 읽은 청크는 빈 글("")로 돌려주고 경고를 남김(다음에 다시 읽어 봄).
     """
     # (1) 이 요청에서 이미 읽은 청크는 건너뛰고, 모자란 청크만 고름(순서는 지키고 중복은 뺌)
@@ -500,7 +500,7 @@ def read_chunk_texts(ctx: dict, chunk_ids: list[str]) -> dict:
 
 
 def jev_judge_passages(res: Resources, question: str, chunk_ids: list[str], ctx: dict) -> dict:
-    """⑤, ⑦ 원문마다 Jev Noul 4개를 묻고 표시를 붙임. 판정은 (판정 질문, 청크 id, 모델 버전)으로 캐시해 두 번 묻지 않음.
+    """W5, W7 원문마다 Jev Noul 4개를 묻고 표시를 붙임. 판정은 (판정 질문, 청크 id, 모델 버전)으로 캐시해 두 번 묻지 않음.
 
     반환값: {chunk_id: 표시 dict}. Jev가 실패한 원문은 결과에 없음(호출한 쪽이 「모두 관련」으로 셈).
     """
@@ -543,8 +543,8 @@ def jev_judge_passages(res: Resources, question: str, chunk_ids: list[str], ctx:
 
 
 # ---------------------------------------------------------------------------
-# ④ 서브 워크플로우: O 검색엔진 검색, L Local 검색, G Global 검색, R 원문 붙이기
-#   툴 안은 순서가 정해진 코드 함수임. 모든 함수가 ② 질문 분석이 만든 같은 필터(filters)를 받음
+# W4 서브 워크플로우: O 검색엔진 검색, L Local 검색, G Global 검색, R 원문 붙이기
+#   툴 안은 순서가 정해진 코드 함수임. 모든 함수가 W2 질문 분석이 만든 같은 필터(filters)를 받음
 # ---------------------------------------------------------------------------
 # Cypher 조각: 여러 질의에서 같은 꼴로 씀
 LABEL_OF = "[l IN labels(n) WHERE NOT l STARTS WITH '__'][0]"  # 엔티티의 레이블(관리용 __Entity__ 등 제외)
@@ -856,7 +856,7 @@ def get_source_chunks(res: Resources, entity_ids: list[str], with_reports: bool,
 # ---------------------------------------------------------------------------
 # 툴 결과 → 작업 기록(근거)과 관찰 글
 #   서브 워크플로우 결과를 작업 기록(ctx)에 더하고, 에이전트에게 돌려줄 관찰 글을 만듦
-#   작업 기록은 ⑤ 채점, ⑥ 리랭킹, ⑦ 수집 종료 판정, ⑧ 답변 생성이 씀
+#   작업 기록은 W5 채점, W6 리랭킹, W7 수집 종료 판정, W8 답변 생성이 씀
 # ---------------------------------------------------------------------------
 def short_entity_id(ctx: dict, element_id: str) -> str:
     """엔티티 elementId를 이 요청 안에서만 쓰는 짧은 id(e1, e2 …)로 바꿈(에이전트가 읽기 쉽게)."""
@@ -870,7 +870,7 @@ def add_chunks(ctx: dict, chunk_ids: list[str], tool: str, topic_id: str | None,
                scores: dict | None = None) -> list[str]:
     """원문을 작업 기록에 더하고, 이번에 처음 들어온 원문 id 목록을 돌려줌.
 
-    같은 원문이 여러 번 들어오면 한 줄에 툴 이름과 주제 번호(topic_ids)만 더함. new는 ⑤ 채점의 NO_NEW 판정에 씀.
+    같은 원문이 여러 번 들어오면 한 줄에 툴 이름과 주제 번호(topic_ids)만 더함. new는 W5 채점의 NO_NEW 판정에 씀.
     """
     new = []
     for chunk_id in chunk_ids:
@@ -903,7 +903,7 @@ def add_entities(ctx: dict, rows: list[dict]) -> list[str]:
 def add_reports(ctx: dict, rows: list[dict]) -> None:
     """보고서를 작업 기록에 더함(보고서와 연결된 검색결과 엔티티 수는 더해 감).
 
-    수집이 끝나면 ⑥ 리랭킹이 「연결된 검색결과 엔티티 수」와 「관련도」 순으로 3개를 골라 ⑧의 r1 ~ r3이 됨.
+    수집이 끝나면 W6 리랭킹이 「연결된 검색결과 엔티티 수」와 「관련도」 순으로 3개를 골라 W8의 r1 ~ r3이 됨.
     """
     for row in rows:
         record = ctx["evidence_reports"].setdefault(row["id"], {"id": row["id"], "hits": 0,
@@ -982,7 +982,7 @@ def make_tool_functions(res: Resources) -> dict:
         for report in found["reports"]:
             lines.append(f"보고서: {DATA['reports'][report['id']]['title']}(연결된 검색결과 엔티티 {report['hits']}개)")
 
-        # (4) 채점 질문: 주제가 있으면 원 질문 대신 그 주제의 Follow-up 질문으로 ⑤ 채점
+        # (4) 채점 질문: 주제가 있으면 원 질문 대신 그 주제의 Follow-up 질문으로 W5 채점
         judge_q = ctx["topics"][topic_id]["follow_up"] if topic_id else None
         return {"observation": "\n".join(lines), "chunk_ids": ids, "new": new, "tool": "local_search",
                 "judge_q": judge_q, "topic_id": topic_id}
@@ -1000,7 +1000,7 @@ def make_tool_functions(res: Resources) -> dict:
         # (3) 주제마다: 주제 기록 → 청크(주제 번호 포함)와 엔티티 기록 → 관찰 글(제목, Follow-up, 원문 3개)
         all_ids, all_new, per_topic = [], [], {}
         for topic, local in zip(found["topics"], found["locals"]):
-            ctx["topics"][topic["topic_id"]] = topic  # local_search(topic_id) 입력 검사와 ⑦ 주제별 재확인이 씀
+            ctx["topics"][topic["topic_id"]] = topic  # local_search(topic_id) 입력 검사와 W7 주제별 재확인이 씀
             ids = [c["chunk_id"] for c in local["chunks"]]
             new = add_chunks(ctx, ids, "global_search", topic["topic_id"],
                              {c["chunk_id"]: c["score"] for c in local["chunks"]})
@@ -1011,7 +1011,7 @@ def make_tool_functions(res: Resources) -> dict:
             lines.append(f"[{topic['topic_id']}] {topic['title']} / Follow-up: {topic['follow_up']} / 원문 {len(ids)}개")
             lines.append(chunk_lines(ctx, ids[:3]))  # 주제마다 원문 3개까지 보임
 
-        # (4) 리턴: per_topic은 ⑤가 주제마다 그 주제의 Follow-up 질문으로 채점할 때 씀
+        # (4) 리턴: per_topic은 W5가 주제마다 그 주제의 Follow-up 질문으로 채점할 때 씀
         return {"observation": "\n".join(lines), "chunk_ids": all_ids, "new": all_new, "tool": "global_search",
                 "judge_q": None, "per_topic": per_topic, "n_reports": found["n_relevant_reports"]}
 
@@ -1043,7 +1043,7 @@ def make_tool_functions(res: Resources) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# ③ ~ ⑤ 툴 5개(LangChain @tool). 입력에 필터 칸이 없음. 몸통은 래퍼(core.run_tool)를 부름
+# W3 ~ W5 툴 5개(LangChain @tool). 입력에 필터 칸이 없음. 몸통은 래퍼(core.run_tool)를 부름
 #   검색 툴 4개는 몸통이 call_wrapper 한 줄로 같은 꼴임. 툴 이름 하나가 함수 표에서 서브 워크플로우를 정함
 #   docstring의 첫 줄과 Args는 에이전트에게 보이는 툴 설명이 됨(요청 내내 같아 프롬프트 캐시 적용)
 # ---------------------------------------------------------------------------
@@ -1058,10 +1058,10 @@ def call_wrapper(name: str, args: dict, runtime: ToolRuntime) -> str:
     try:
         out = core.run_tool(name, args, ctx, TOOL_FUNCTIONS)
     except Exception:
-        ctx["fatal"] = traceback.format_exc()  # 감추지 않고 ⑩에서 그대로 보여 줌. 다음 회차 전에 고리를 끊음
+        ctx["fatal"] = traceback.format_exc()  # 감추지 않고 W10에서 그대로 보여 줌. 다음 회차 전에 루프를 끊음
         out = {"text": "툴 실행 중 오류(요청을 끝냄)", "result": None, "error": True}
 
-    # (2) 결과 전체는 작업 기록에 둠(wrap_tool_call이 툴 호출 id로 찾아 ⑤ 채점에 씀)
+    # (2) 결과 전체는 작업 기록에 둠(wrap_tool_call이 툴 호출 id로 찾아 W5 채점에 씀)
     ctx["call_results"][runtime.tool_call_id] = out
 
     # (3) 관찰 글만 돌려줌. 이 글이 ToolMessage가 되어 wrap_tool_call로 감
@@ -1119,7 +1119,7 @@ def tool_finish(status: Literal["sufficient", "unverifiable", "need_clarificatio
         status: sufficient(충분), unverifiable(확인 불가), need_clarification(확인 필요) 중 하나.
         reason: 끝내는 이유 한 줄.
     """
-    # 검색하지 않고 작업 기록에 표시만 함. 다음 before_model이 이 표시를 보고 고리를 끝냄
+    # 검색하지 않고 작업 기록에 표시만 함. 다음 before_model이 이 표시를 보고 루프를 끝냄
     runtime.context["finish"] = {"status": status, "reason": reason}
     return "수집 종료"
 
@@ -1128,19 +1128,19 @@ AGENT_TOOLS = [tool_search, tool_local, tool_global, tool_sources, tool_finish] 
 
 
 # ---------------------------------------------------------------------------
-# ③ ~ ⑤ 미들웨어 2개: 막는 일은 코드가 함
+# W3 ~ W5 미들웨어 2개: 막는 일은 코드가 함
 #   한 회차: before_model → 모델(Groq) → after_model → 툴마다 wrap_tool_call
 #   AgentMiddleware를 상속해 정해진 이름의 메서드를 만들면 LangChain이 그 자리에서 부름
 # ---------------------------------------------------------------------------
 class GuardMiddleware(AgentMiddleware):
-    """⑤ 상한 판정: 모델을 부르기 전에 강제 종료를 보고(before_model), 모델이 고른 호출을 상한으로 거름(after_model).
+    """W5 상한 판정: 모델을 부르기 전에 강제 종료를 보고(before_model), 모델이 고른 호출을 상한으로 거름(after_model).
 
-    강제 종료에 걸리면 모델을 다시 부르지 않고 고리를 끝냄(jump_to end). 종료 상태는 run_workflow가 ⑦ 기준으로 정함.
+    강제 종료에 걸리면 모델을 다시 부르지 않고 루프를 끝냄(jump_to end). 종료 상태는 run_workflow가 W7 기준으로 정함.
     """
 
     @hook_config(can_jump_to=["end"])
     def before_model(self, state, runtime):
-        """모델 호출 전: 강제 종료 조건과 하드 상한을 보고, 걸리면 모델을 부르지 않고 고리를 끝냄(jump_to end)."""
+        """모델 호출 전: 강제 종료 조건과 하드 상한을 보고, 걸리면 모델을 부르지 않고 루프를 끝냄(jump_to end)."""
         ctx = runtime.context
 
         # (1) 치명 오류나 finish 표시가 있으면 회차를 세지 않고 바로 끝냄(다음 모델 호출이 없으므로 토큰도 안 씀)
@@ -1161,14 +1161,14 @@ class GuardMiddleware(AgentMiddleware):
         if reason is None and time.time() - ctx["started"] > ctx["timeout"]:
             reason = f"하드 상한: 요청 {ctx['timeout']}초 넘음"
 
-        # (4) 걸리면 이유를 적고 모델을 부르지 않고 끝냄. 모은 근거는 ⑥으로, 종료 상태는 ⑦이 정함
+        # (4) 걸리면 이유를 적고 모델을 부르지 않고 끝냄. 모은 근거는 W6으로, 종료 상태는 W7이 정함
         if reason:
             ctx["forced_stop"] = reason
-            say(f"   ⑤ 강제 종료: {reason} → 모델을 부르지 않고 ⑥으로")
+            say(f"   W5 강제 종료: {reason} → 모델을 부르지 않고 W6으로")
             return {"jump_to": "end"}
 
         # (5) 통과하면 다음 회차의 모델 호출로 감
-        say(f"\n── ③ 회차 {ctx['rounds'] + 1}/{MAX_ROUNDS}: 에이전트(Groq) 호출")
+        say(f"\n── W3 회차 {ctx['rounds'] + 1}/{MAX_ROUNDS}: 에이전트(Groq) 호출")
         return None
 
     def after_model(self, state, runtime):
@@ -1199,17 +1199,17 @@ class GuardMiddleware(AgentMiddleware):
         # (4) 화면 출력: 고른 툴 호출(막힌 것은 이유와 함께)
         for call in calls:
             note = f"  (막힘: {ctx['blocked'][call['id']]})" if call["id"] in ctx["blocked"] else ""
-            say(f"   ③ → {call['name']} {json.dumps(call['args'], ensure_ascii=False)}{note}")
+            say(f"   W3 → {call['name']} {json.dumps(call['args'], ensure_ascii=False)}{note}")
         if not calls:
-            say("   ③ 툴 호출 없이 끝냄(end_turn) → 코드가 종료 상태를 정함")
+            say("   W3 툴 호출 없이 끝냄(end_turn) → 코드가 종료 상태를 정함")
         return None
 
 
 class ToolWrapperMiddleware(AgentMiddleware):
-    """④ 래퍼와 ⑤ 채점: 막힌 호출은 실행하지 않고 오류 표시로 돌려주고, 실행한 결과에는 Jev 판정과 진단 신호를 붙임."""
+    """W4 래퍼와 W5 채점: 막힌 호출은 실행하지 않고 오류 표시로 돌려주고, 실행한 결과에는 Jev 판정과 진단 신호를 붙임."""
 
     def wrap_tool_call(self, request, handler):
-        """툴 호출 하나를 감쌈: 막힌 호출은 오류 표시로 돌려주고, 실행한 결과에는 ⑤ 채점 글을 덧붙임."""
+        """툴 호출 하나를 감쌈: 막힌 호출은 오류 표시로 돌려주고, 실행한 결과에는 W5 채점 글을 덧붙임."""
         ctx = request.runtime.context
         call = request.tool_call
 
@@ -1224,7 +1224,7 @@ class ToolWrapperMiddleware(AgentMiddleware):
 
         # (3) finish는 수집을 끝내는 툴이라 채점하지 않고 그대로 돌려줌
         if call["name"] == "finish":
-            say(f"   ④ finish: {call['args'].get('status')} - {call['args'].get('reason')}")
+            say(f"   W4 finish: {call['args'].get('status')} - {call['args'].get('reason')}")
             return message
 
         # (4) 입력 오류: run_tool이 입력 오류를 내면 오류 표시만 붙여 돌려줌
@@ -1232,10 +1232,10 @@ class ToolWrapperMiddleware(AgentMiddleware):
         if out.get("error"):
             message.status = "error"
             record_outcome(ctx, failed=True, no_new=True)
-            say(f"   ④ {call['name']}: {out['text']}")
+            say(f"   W4 {call['name']}: {out['text']}")
             return message
 
-        # (5) ⑤ 채점 붙이기: Jev 원문 판정과 진단 신호를 관찰 끝에 덧붙임(관련 없는 원문은 근거에서 뺌)
+        # (5) W5 채점 붙이기: Jev 원문 판정과 진단 신호를 관찰 끝에 덧붙임(관련 없는 원문은 근거에서 뺌)
         try:
             note = score_result(ctx, call, out["result"])
         except Exception:
@@ -1279,7 +1279,7 @@ def update_streaks(ctx: dict) -> None:
 
 
 def score_result(ctx: dict, call: dict, result: dict) -> str:
-    """⑤ 채점: 새 원문마다 Jev 판정 → 관련 없음과 지시 끼워 넣기는 근거에서 뺌 → 진단 신호 → 관찰에 덧붙일 글.
+    """W5 채점: 새 원문마다 Jev 판정 → 관련 없음과 지시 끼워 넣기는 근거에서 뺌 → 진단 신호 → 관찰에 덧붙일 글.
 
     질의가 없는 툴(get_source_chunks)은 원 질문으로 채점하고 관련 낮은 원문도 버리지 않고 표시만 함.
     순서: (a) Jev 원문 판정 → (b) 근거에서 빼기 → (c) 진단 신호 → (d) 결과 기록 → (e) 채점 4줄
@@ -1335,7 +1335,7 @@ def score_result(ctx: dict, call: dict, result: dict) -> str:
         "n_reports": result.get("n_reports", 0),
         "n_new_relevant": len(new_relevant),
     }
-    if tool_name == "global_search":  # 경향 질문은 원 질문 기준 공존이 늘 0이라 주제별 확인은 ⑦에 맡김
+    if tool_name == "global_search":  # 경향 질문은 원 질문 기준 공존이 늘 0이라 주제별 확인은 W7에 맡김
         stats["coverage"], stats["cooccur"] = 1.0, None
 
     # 신호 매기기(실습 함수 diagnose_signals)
@@ -1357,12 +1357,12 @@ def score_result(ctx: dict, call: dict, result: dict) -> str:
     left = MAX_ROUNDS - ctx["rounds"]
 
     # 화면 출력: 툴 결과 요약, Jev 판정, 신호
-    say(f"   ④ {tool_name} {json.dumps(call['args'], ensure_ascii=False)} → 원문 {len(result['chunk_ids'])}개"
+    say(f"   W4 {tool_name} {json.dumps(call['args'], ensure_ascii=False)} → 원문 {len(result['chunk_ids'])}개"
         f"(새 원문 {len(result['new'])}, 근거에서 뺌 {len(removed)})")
     for line in judged:
-        say(f"      ⑤ Jev {line}")
+        say(f"      W5 Jev {line}")
     cooc = stats["cooccur"] if stats["cooccur"] is not None else "-"
-    say(f"      ⑤ 신호 {signals or ['-']} (포함률 {stats['coverage']:.2f}, 공존 {cooc}문장, "
+    say(f"      W5 신호 {signals or ['-']} (포함률 {stats['coverage']:.2f}, 공존 {cooc}문장, "
         f"문서 종류 {stats['n_doc_types']}, 근거로 남은 새 원문 {stats['n_new_relevant']})")
 
     # 에이전트에게 줄 채점 글(관찰 끝에 덧붙임)
@@ -1377,7 +1377,7 @@ def score_result(ctx: dict, call: dict, result: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
-# 단계 함수: ① ~ ⑩. run_workflow가 순서대로 부름(③ ~ ⑤는 위의 툴과 미들웨어가 맡음)
+# 단계 함수: W1 ~ W10. run_workflow가 순서대로 부름(W3 ~ W5는 위의 툴과 미들웨어가 맡음)
 # ---------------------------------------------------------------------------
 def question_terms(res: Resources, data: dict, text: str, card_names: list[str]) -> list[str]:
     """글의 핵심 낱말(중요한 순서). 형태소 분석 결과를 core_terms에 넘김."""
@@ -1386,14 +1386,14 @@ def question_terms(res: Resources, data: dict, text: str, card_names: list[str])
 
 
 def topic_terms(ctx: dict, topic_id: str) -> list[str]:
-    """주제의 Follow-up 질문에서 뽑은 핵심 낱말(Global 검색 원문의 채점과 ⑦ 재확인에 씀)."""
+    """주제의 Follow-up 질문에서 뽑은 핵심 낱말(Global 검색 원문의 채점과 W7 재확인에 씀)."""
     return question_terms(RES, DATA, ctx["topics"][topic_id]["follow_up"], [])
 
 
 def new_context(res: Resources, data: dict, question: str, role: str, member_id: str | None, timeout: int) -> dict:
     """요청 하나의 작업 기록(ctx)을 만듦. 툴과 미들웨어가 함께 보고 씀(create_agent의 context로 넘김).
 
-    ② 질문 분석이 identifiers, clean_question, terms, filters를 더 채움.
+    W2 질문 분석이 identifiers, clean_question, terms, filters를 더 채움.
     """
     return {
         # 요청 정보
@@ -1401,25 +1401,25 @@ def new_context(res: Resources, data: dict, question: str, role: str, member_id:
         "timeout": timeout,
         # 모은 근거: 원문, 엔티티, 보고서, Global 주제, 엔티티 짧은 id 표(e1 ↔ elementId)
         "chunks": {}, "entities": {}, "evidence_reports": {}, "topics": {}, "entity_short": {}, "entity_long": {},
-        # ⑤ 상한 판정용 셈: 회차, 쓴 질의, global 사용 수, 막은 호출, 회차별 호출과 결과, 연속 횟수
+        # W5 상한 판정용 셈: 회차, 쓴 질의, global 사용 수, 막은 호출, 회차별 호출과 결과, 연속 횟수
         "rounds": 0, "queries": set(), "global_used": 0, "blocked": {}, "call_results": {}, "round_calls": [],
         "round_outcomes": [], "streak_checked": 0, "no_new_streak": 0, "same_call_streak": 1, "failed_rounds": 0,
         # 끝난 방법(finish, 강제 종료, 치명 오류)과 Jev 캐시, 신호 기록, 경고
         "finish": None, "forced_stop": None, "fatal": None, "jev_cache": {}, "signal_log": [], "warnings": [],
         "texts": {},  # 이 요청에서 검색엔진에서 읽은 청크 글(청크 id → 글). 한 번 읽은 글은 다시 읽지 않음
-        # 외부 호출 수(화면 끝에 찍음)와 global_search 허용 여부(① 요청 접수가 정함)
+        # 외부 호출 수(화면 끝에 찍음)와 global_search 허용 여부(W1 요청 접수가 정함)
         "calls": {"agent": 0, "jev": 0, "groq": 0, "cohere": 0, "text_reads": 0}, "allow_global": False,
     }
 
 
 def step1_ready(data: dict, res: Resources, role: str) -> dict:
-    """① 요청 접수: 활성 세대와 저장소 상태를 보고 준비 판정(실습 함수 check_ready)."""
+    """W1 요청 접수: 활성 세대와 저장소 상태를 보고 준비 판정(실습 함수 check_ready)."""
     report_count = len(data["reports"])
     return core.check_ready(role, res.active, data["index_exists"], data["graph_chunk_count"], report_count)
 
 
 def step2_analyze(res: Resources, data: dict, ctx: dict) -> dict:
-    """② 질문 분석: 코드가 식별자를 바꾸고(제공 replace_identifiers), Jev 확률로 코드가 결정함(실습 함수)."""
+    """W2 질문 분석: 코드가 식별자를 바꾸고(제공 replace_identifiers), Jev 확률로 코드가 결정함(실습 함수)."""
     # --- 코드: 식별자 바꾸기. 회원번호는 가명 id로, 카드명과 별칭은 card_id로. 질문에서는 회원번호를 지움
     ids = core.replace_identifiers(ctx["question"], data["alias_to_name"], data["name_to_card_id"], data["versions"])
     if ctx["member_id"]:  # --member-id로 회원을 준 경우(질문에 회원번호가 없을 때)
@@ -1427,7 +1427,7 @@ def step2_analyze(res: Resources, data: dict, ctx: dict) -> dict:
     ctx["identifiers"] = ids
     ctx["clean_question"] = ids["clean_question"]
 
-    # --- 코드: 핵심 낱말 구하기(한 번만). ⑤ 포함률과 공존, ⑦ 재확인이 씀
+    # --- 코드: 핵심 낱말 구하기(한 번만). W5 포함률과 공존, W7 재확인이 씀
     ctx["terms"] = question_terms(res, data, ids["clean_question"], ids["card_names"])
 
     # --- 코드: 검색 필터 만들기. 역할과 회원, 카드로 「볼 수 있는 청크 표」를 만들고,
@@ -1448,12 +1448,12 @@ def step2_analyze(res: Resources, data: dict, ctx: dict) -> dict:
 
 
 def step6_rerank(res: Resources, ctx: dict) -> dict:
-    """⑥ 리랭킹: 원문 청크만 원 질문 기준으로 다시 채점해 8자리(실습 함수 select_final_chunks).
+    """W6 리랭킹: 원문 청크만 원 질문 기준으로 다시 채점해 8자리(실습 함수 select_final_chunks).
 
     Global 주제가 있으면 14자리(FINAL_CHUNKS_TOPICS). 경향 질문은 근거가 주제마다 흩어져 8자리로는 잘림.
     엔티티와 관계는 남은 원문과 이어진 것만, 보고서는 리랭킹하지 않고 보고서와 연결된 검색결과 엔티티 수와 관련도 순으로 둠.
     """
-    # --- 자리 수 정하기: ⑤에서 근거에서 뺀 원문은 빼고, Global 주제가 붙은 원문이 있으면 14자리, 아니면 8자리
+    # --- 자리 수 정하기: W5에서 근거에서 뺀 원문은 빼고, Global 주제가 붙은 원문이 있으면 14자리, 아니면 8자리
     usable = [c for c in ctx["chunks"].values() if not c.get("dropped")]
     limit = FINAL_CHUNKS_TOPICS if any(c["topic_ids"] for c in usable) else FINAL_CHUNKS
 
@@ -1482,11 +1482,11 @@ def step6_rerank(res: Resources, ctx: dict) -> dict:
 
 
 def step7_judge(res: Resources, ctx: dict, picked: dict) -> dict:
-    """⑦ 수집 종료 판정: 코드 재확인(실습 함수 recheck_question) → Jev 종합(제공 decide_collection).
+    """W7 수집 종료 판정: 코드 재확인(실습 함수 recheck_question) → Jev 종합(제공 decide_collection).
 
     Global 검색으로 모았으면 주제마다 그 주제의 Follow-up 낱말로 재확인하고, 하나라도 통과하면 통과로 봄.
     """
-    # --- 재확인 자료 준비: ⑥이 고른 원문의 글
+    # --- 재확인 자료 준비: W6이 고른 원문의 글
     chunk_ids = [row["chunk_id"] for row in picked["chunks"]]
     texts = read_chunk_texts(ctx, chunk_ids)
     chunks = [{"chunk_id": cid, "text": texts[cid]} for cid in chunk_ids]
@@ -1522,7 +1522,7 @@ def step7_judge(res: Resources, ctx: dict, picked: dict) -> dict:
             terms = topic_terms(ctx, topic_id)
             checks[topic_id] = core.recheck_question(terms, topic_chunks, chunk_entities, entity_texts, links)
         for topic_id, check in checks.items():
-            say(f"   ⑦ [{topic_id}] {ctx['topics'][topic_id]['title']}: {'통과' if check['passed'] else '불통과'} "
+            say(f"   W7 [{topic_id}] {ctx['topics'][topic_id]['title']}: {'통과' if check['passed'] else '불통과'} "
                 f"[{check['rule']}] {check['detail']}")
         passed = [t for t, r in checks.items() if r["passed"]]
         recheck = {"passed": bool(passed), "rule": "주제별",
@@ -1531,7 +1531,7 @@ def step7_judge(res: Resources, ctx: dict, picked: dict) -> dict:
     else:
         recheck = core.recheck_question(ctx["terms"], chunks, chunk_entities, entity_texts, links)
 
-    # --- Jev 판정(코드 재확인을 통과한 것만): ⑤에서 해 둔 판정을 다시 쓰고
+    # --- Jev 판정(코드 재확인을 통과한 것만): W5에서 해 둔 판정을 다시 쓰고
     #     (Global 검색 원문은 그 주제의 Follow-up 질문으로 한 판정), 판정이 없는 원문만 원 질문으로 새로 물음
     marks = {}
     if recheck["passed"]:
@@ -1561,13 +1561,13 @@ def customer_group(meta: dict) -> str | None:
 
 
 def evidence_block(ctx: dict, picked: dict) -> tuple[str, dict]:
-    """⑧에 넘길 근거 묶음: 원문 c1 ~ c8(Global이면 c14까지), 보고서 r1 ~ r3을 <근거> 줄로. 검증용 {id: {kind, text}}도 함께.
+    """W8에 넘길 근거 묶음: 원문 c1 ~ c8(Global이면 c14까지), 보고서 r1 ~ r3을 <근거> 줄로. 검증용 {id: {kind, text}}도 함께.
 
     상담 원문에는 고객군(상담 파일 이름의 고객군, 예: 장기보유)을 붙여 「고객군별」 질문에 답할 수 있게 함.
     """
     lines, table = [], {}
 
-    # (1) 원문: ⑥이 고른 순서대로 c1, c2 …를 붙임
+    # (1) 원문: W6이 고른 순서대로 c1, c2 …를 붙임
     texts = read_chunk_texts(ctx, [row["chunk_id"] for row in picked["chunks"]])
     for number, row in enumerate(picked["chunks"], start=1):
         meta = DATA["chunk_meta"][row["chunk_id"]]
@@ -1578,7 +1578,7 @@ def evidence_block(ctx: dict, picked: dict) -> tuple[str, dict]:
         group_attr = f' 고객군="{group}"' if group else ""
         lines.append(f'<근거 id="{cid}" 출처="{meta["short_id"]}"{group_attr}>{" ".join(text.split())}</근거>')
 
-    # (2) 보고서: r1 ~ r3. 요약 + 핵심 발견. ⑨가 보고서 인용은 경향 문장에만 쓰였는지 봄
+    # (2) 보고서: r1 ~ r3. 요약 + 핵심 발견. W9가 보고서 인용은 경향 문장에만 쓰였는지 봄
     for number, report in enumerate(picked["reports"], start=1):
         data = DATA["reports"][report["id"]]
         rid = f"r{number}"
@@ -1594,7 +1594,7 @@ def answer_text(answer) -> str:
 
 
 def agent_cost(messages: list) -> dict:
-    """③ 에이전트(Groq) 응답의 실제 사용량(usage_metadata)으로 비용을 계산함. input_tokens는 캐시된 입력을 포함한 합계임."""
+    """W3 에이전트(Groq) 응답의 실제 사용량(usage_metadata)으로 비용을 계산함. input_tokens는 캐시된 입력을 포함한 합계임."""
     total = {"calls": 0, "input": 0, "cache_read": 0, "output": 0}
     for message in messages:
         usage = getattr(message, "usage_metadata", None)
@@ -1611,7 +1611,7 @@ def agent_cost(messages: list) -> dict:
 
 
 def first_message(ctx: dict, route: dict) -> str:
-    """③ 첫 메시지: 식별자를 지운 질문 + 첫 툴 후보(권고일 뿐) + 필터 안내(② 질문 분석의 결과)."""
+    """W3 첫 메시지: 식별자를 지운 질문 + 첫 툴 후보(권고일 뿐) + 필터 안내(W2 질문 분석의 결과)."""
     ids = ctx["identifiers"]
     lines = [f"질문: {ctx['clean_question']}"]
     if route["first_tool"] and (route["first_tool"] != "global_search" or ctx["allow_global"]):  # 쓸 수 없는 툴은 권하지 않음
@@ -1628,26 +1628,26 @@ def first_message(ctx: dict, route: dict) -> str:
 
 def run_workflow(res: Resources, data: dict, question: str, role: str, member_id: str | None, answer_on: bool,
                  timeout: int = REQUEST_TIMEOUT, until: int = 10) -> dict:
-    """질문 하나를 ① ~ ⑩ 순서로 처리하고 종료 상태(make_end_state 결과)와 기록을 돌려줌.
+    """질문 하나를 W1 ~ W10 순서로 처리하고 종료 상태(make_end_state 결과)와 기록을 돌려줌.
 
-    until: 5면 ⑤ 채점과 상한 판정까지, 7이면 ⑦ 수집 종료 판정까지 수행하고 그 결과를 화면에 보인 뒤 멈춤(10은 끝까지).
-    끝나는 자리는 여러 곳이지만 어디서 끝나든 finish_request가 ⑩ 종료 상태를 찍고 돌려줌.
+    until: 5면 W5 채점과 상한 판정까지, 7이면 W7 수집 종료 판정까지 수행하고 그 결과를 화면에 보인 뒤 멈춤(10은 끝까지).
+    끝나는 자리는 여러 곳이지만 어디서 끝나든 finish_request가 W10 종료 상태를 찍고 돌려줌.
     """
     # 준비: 이 요청의 작업 기록(ctx)을 만듦. 툴, 미들웨어, 단계 함수가 모두 이 기록을 함께 보고 씀
     ctx = new_context(res, data, question, role, member_id, timeout)
     warnings = ctx["warnings"]
 
-    # ① 요청 접수: 검색 권한, 활성 세대 인덱스, 커뮤니티 보고서 유무를 확인(실습 함수 check_ready)
+    # W1 요청 접수: 검색 권한, 활성 세대 인덱스, 커뮤니티 보고서 유무를 확인(실습 함수 check_ready)
     ready = step1_ready(data, res, role)
-    say(f"── ① 요청 접수: {ready['reason']} (세대 {res.active['generation'] if res.active else '-'}, "
+    say(f"── W1 요청 접수: {ready['reason']} (세대 {res.active['generation'] if res.active else '-'}, "
         f"보고서 {len(data['reports'])}개)")
 
-    # --- 하나라도 실패하면 검색하지 않고 ⑩ 종료 상태 「오류」로 끝냄
+    # --- 하나라도 실패하면 검색하지 않고 W10 종료 상태 「오류」로 끝냄
     if not ready["ok"]:
         return finish_request(ctx, core.make_end_state("error", ready["reason"], "", [], warnings), [])
     ctx["allow_global"] = ready["allow_global"]  # 보고서가 없으면 global_search만 막음
 
-    # ② 질문 분석: 코드가 식별자로 검색 필터를 만들고, Jev 확률을 코드가 기준값과 비교해 결정함
+    # W2 질문 분석: 코드가 식별자로 검색 필터를 만들고, Jev 확률을 코드가 기준값과 비교해 결정함
     route = step2_analyze(res, data, ctx)
 
     # --- 회원 필터가 걸린 질문(한 회원의 상담)은 global_search(여러 상담의 경향)를 막음.
@@ -1657,74 +1657,74 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
 
     # --- 화면 출력: 코드가 만든 결과(식별자를 지운 질문, 회원과 카드 필터, 볼 수 있는 청크 수, 핵심 낱말)
     ids = ctx["identifiers"]
-    say(f"── ② 질문 분석(코드): 질문 「{ctx['clean_question']}」, 회원 필터 {'있음' if ctx['filters']['member_pseudo_id'] else '없음'}, "
+    say(f"── W2 질문 분석(코드): 질문 「{ctx['clean_question']}」, 회원 필터 {'있음' if ctx['filters']['member_pseudo_id'] else '없음'}, "
         f"카드 {ids['card_names'] or '-'}, 볼 수 있는 청크 {len(ctx['filters']['allowed_ids'])}개, "
         f"보고서 {len(ctx['filters']['allowed_reports'])}개, 핵심 낱말 {ctx['terms'][:4]}")
-    if ids["version_asked"]:  # 색인에 없는 약관 버전을 물으면 ⑦에서 불통과가 됨
-        say(f"   ② 약관 버전 {ids['version_asked']} 물음 → 색인 버전 {data['versions']} "
-            f"{'(없음: ⑦에서 불통과)' if ids['version_missing'] else ''}")
+    if ids["version_asked"]:  # 색인에 없는 약관 버전을 물으면 W7에서 불통과가 됨
+        say(f"   W2 약관 버전 {ids['version_asked']} 물음 → 색인 버전 {data['versions']} "
+            f"{'(없음: W7에서 불통과)' if ids['version_missing'] else ''}")
 
     # --- 화면 출력: Jev가 낸 확률(잡담, 모호, 첫 툴)과 그 확률로 코드가 내린 결정
     if route["answers"]:
         a = route["answers"]
-        say(f"   ② Jev: 잡담 {a['is_smalltalk']:.2f}, 모호 {a['needs_clarification']:.2f}, "
+        say(f"   W2 Jev: 잡담 {a['is_smalltalk']:.2f}, 모호 {a['needs_clarification']:.2f}, "
             f"첫 툴 {a['first_tool'][0]}({a['first_tool'][1]:.2f}) / 순서 바꿔 {a['first_tool_swapped'][0]}"
             f"({a['first_tool_swapped'][1]:.2f})")
-    say(f"   ② 코드의 결정: {route['reason']}")
+    say(f"   W2 코드의 결정: {route['reason']}")
 
-    # --- 잡담이면 ⑩ 「검색 불필요」, 모호하면 ⑩ 「확인 필요」로 끝냄(검색하지 않음)
+    # --- 잡담이면 W10 「검색 불필요」, 모호하면 W10 「확인 필요」로 끝냄(검색하지 않음)
     if route["end"]:
         return finish_request(ctx, core.make_end_state(route["end"], route["reason"], "", [], warnings), [])
 
-    # ③ ~ ⑤ 검색 에이전트(반복 1): ③ 에이전트(Groq)가 툴을 고르고 → ④ 툴 실행 → ⑤ 채점과 상한 판정을 되풀이함
+    # W3 ~ W5 검색 에이전트(반복 1): W3 에이전트(Groq)가 툴을 고르고 → W4 툴 실행 → W5 채점과 상한 판정을 되풀이함
     #   create_agent + 미들웨어 2개(실습 함수 build_agent). 막는 일(상한, 강제 종료, 필터, 채점)은 미들웨어가 함
 
-    # --- 에이전트 실행: finish를 부르거나 미들웨어가 강제 종료할 때까지 「추론 → 툴 호출 → 관찰」 고리를 돎(최대 6회차)
+    # --- 에이전트 실행: finish를 부르거나 미들웨어가 강제 종료할 때까지 「추론 → 툴 호출 → 관찰」 루프를 돎(최대 6회차)
     middleware = [GuardMiddleware(), ToolWrapperMiddleware()]
     try:
         state = core.build_agent(res.agent, AGENT_TOOLS, AGENT_SYSTEM, middleware, first_message(ctx, route), ctx,
                                  RECURSION_LIMIT)
         messages = state["messages"]
-    except Exception as error:  # 에이전트 모델 장애: 모은 근거로 ⑥에 감(모은 근거가 없으면 ⑩ 오류)
+    except Exception as error:  # 에이전트 모델 장애: 모은 근거로 W6에 감(모은 근거가 없으면 W10 오류)
         messages = []
-        warnings.append(f"③ 에이전트 실패: {short(error, 100)}")
-        say(f"   ③ 에이전트 실패: {short(error, 100)}")
+        warnings.append(f"W3 에이전트 실패: {short(error, 100)}")
+        say(f"   W3 에이전트 실패: {short(error, 100)}")
         if not ctx["chunks"] and not ctx["entities"]:
             return finish_request(ctx, core.make_end_state("error", f"검색 에이전트 실패: {short(error, 100)}", "", [],
                                                            warnings), messages)
 
-    # --- 실습 함수 오류(fatal)가 났으면 감추지 않고 그대로 보여 주고 ⑩ 「오류」로 끝냄
+    # --- 실습 함수 오류(fatal)가 났으면 감추지 않고 그대로 보여 주고 W10 「오류」로 끝냄
     if ctx["fatal"]:
         say("\n[실습 함수 오류] 아래 내용을 보고 함수를 고침\n" + ctx["fatal"])
         return finish_request(ctx, core.make_end_state("error", "실습 함수 실행 중 오류", "", [], warnings), messages)
 
     # --- 수집이 어떻게 끝났는지 정리: finish를 불렀으면 그 status와 reason, 아니면 강제 종료 이유
     finish = ctx["finish"] or {"status": None, "reason": ctx["forced_stop"] or "finish 없이 끝남"}
-    say(f"\n── ③ 수집 끝: {finish['status'] or '코드가 정함'} - {finish['reason']} "
+    say(f"\n── W3 수집 끝: {finish['status'] or '코드가 정함'} - {finish['reason']} "
         f"(회차 {ctx['rounds']}, 원문 {len(ctx['chunks'])}개, 엔티티 {len(ctx['entities'])}개)")
 
-    # --- --until 5: ③ ~ ⑤ 반복이 모은 것(진단 신호, 남은 원문과 뺀 원문, 엔티티, 보고서)을 보이고 멈춤
+    # --- --until 5: W3 ~ W5 반복이 모은 것(진단 신호, 남은 원문과 뺀 원문, 엔티티, 보고서)을 보이고 멈춤
     if until == 5:
         until_banner(5)
         evidence_list = show_collected(ctx)
         if finish["status"] == "need_clarification":
-            next_step = "⑩ 종료 상태 「확인 필요」(에이전트가 need_clarification으로 끝냄)"
+            next_step = "W10 종료 상태 「확인 필요」(에이전트가 need_clarification으로 끝냄)"
         else:
-            next_step = "⑥ 리랭킹 → ⑦ 수집 종료 판정"
-        return finish_request(ctx, until_end(ctx, 5, f"③ 수집 끝: {finish['reason']}", evidence_list, next_step),
+            next_step = "W6 리랭킹 → W7 수집 종료 판정"
+        return finish_request(ctx, until_end(ctx, 5, f"W3 수집 끝: {finish['reason']}", evidence_list, next_step),
                               messages)
 
-    # --- 에이전트가 need_clarification으로 끝냈으면 ⑥ ~ ⑨를 건너뛰고 ⑩ 「확인 필요」로 끝냄
+    # --- 에이전트가 need_clarification으로 끝냈으면 W6 ~ W9를 건너뛰고 W10 「확인 필요」로 끝냄
     if finish["status"] == "need_clarification":
         end = core.make_end_state("need_clarification", finish["reason"], "", [], warnings)
         return finish_request(ctx, end, messages)
 
-    # ⑥ 리랭킹: 모든 회차에서 모은 원문을 원 질문 기준으로 다시 채점해 8자리(Global 주제가 있으면 14자리)를 고름
+    # W6 리랭킹: 모든 회차에서 모은 원문을 원 질문 기준으로 다시 채점해 8자리(Global 주제가 있으면 14자리)를 고름
     #   (실습 함수 select_final_chunks). 엔티티는 남은 원문과 이어진 것만, 보고서는 따로 정렬
     picked = step6_rerank(res, ctx)
 
     # --- 화면 출력: 고른 원문의 리랭커 점수, 짧은 id, 주제 번호, 글 앞부분
-    say(f"── ⑥ 리랭킹: 원문 {picked['n_before']}개 → {len(picked['chunks'])}자리"
+    say(f"── W6 리랭킹: 원문 {picked['n_before']}개 → {len(picked['chunks'])}자리"
         f"{'(회차 1회, 8개 이하라 건너뜀)' if picked['skipped'] else ''}, 이어진 엔티티 {len(picked['entities'])}개, "
         f"보고서 {len(picked['reports'])}개")
     texts = read_chunk_texts(ctx, [row["chunk_id"] for row in picked["chunks"]])
@@ -1733,46 +1733,46 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
         topics = f" {row['topic_ids']}" if row["topic_ids"] else ""
         say(f"   {row['score']:.3f} {meta['short_id']}{topics} {short(texts[row['chunk_id']], 70)}")
 
-    # --- ⑩에 돌려줄 근거 목록(짧은 id와 원문)
+    # --- W10에 돌려줄 근거 목록(짧은 id와 원문)
     evidence_list = []
     for row in picked["chunks"]:
         meta = DATA["chunk_meta"][row["chunk_id"]]
         evidence_list.append({"id": meta["short_id"], "text": texts[row["chunk_id"]]})
 
-    # ⑦ 수집 종료 판정: 코드가 원 질문을 다시 확인하고(실습 함수 recheck_question), 통과한 것만 Jev 판정으로 한 번 더 거름
-    #   (제공 함수 decide_collection). 통과하면 ⑧, 불통과면 ⑩ 「확인할 수 없음」
+    # W7 수집 종료 판정: 코드가 원 질문을 다시 확인하고(실습 함수 recheck_question), 통과한 것만 Jev 판정으로 한 번 더 거름
+    #   (제공 함수 decide_collection). 통과하면 W8, 불통과면 W10 「확인할 수 없음」
     decision = step7_judge(res, ctx, picked)
 
     # --- 화면 출력: 코드 재확인 결과, Jev 판정(답 근거, 질문 전제와 사실 충돌), 최종 판정
     recheck = decision["recheck"]
-    say(f"── ⑦ 코드 재확인: {'통과' if recheck['passed'] else '불통과'} [{recheck['rule']}] {recheck['detail']}")
+    say(f"── W7 코드 재확인: {'통과' if recheck['passed'] else '불통과'} [{recheck['rule']}] {recheck['detail']}")
     if decision["marks"]:
         n_answer = sum(1 for m in decision["marks"].values() if m["answer_evidence"])
         n_conflict = sum(1 for m in decision["marks"].values() if m["premise_conflict"])
-        say(f"   ⑦ Jev: 답 근거 {n_answer}개, 사실 충돌 {n_conflict}개")
+        say(f"   W7 Jev: 답 근거 {n_answer}개, 사실 충돌 {n_conflict}개")
         by_evidence = sorted(decision["marks"].items(), key=lambda kv: -kv[1]["probs"]["contains_answer_evidence"])
         for chunk_id, mark in by_evidence:
             p = mark["probs"]
             say(f"      {DATA['chunk_meta'][chunk_id]['short_id']} 답 근거 {p['contains_answer_evidence']:.2f}, "
                 f"관련 {p['is_relevant']:.2f}, 사실 충돌 {p['contradicts_query_premise']:.2f}")
-    say(f"   ⑦ 판정: {'통과 → ⑧' if decision['passed'] else '불통과 → ⑩'} ({decision['reason']})")
+    say(f"   W7 판정: {'통과 → W8' if decision['passed'] else '불통과 → W10'} ({decision['reason']})")
 
-    # --- 에이전트가 unverifiable로 끝냈으면 ⑦이 통과로 봐도 더 엄격한 쪽(불통과)을 따름
+    # --- 에이전트가 unverifiable로 끝냈으면 W7이 통과로 봐도 더 엄격한 쪽(불통과)을 따름
     if finish["status"] == "unverifiable" and decision["passed"]:
         decision = {**decision, "passed": False, "reason": f"에이전트가 확인 불가로 끝냄: {finish['reason']}"}
-        say("   ⑦ 에이전트가 unverifiable로 끝냈으므로 더 엄격한 쪽을 따름 → ⑩")
+        say("   W7 에이전트가 unverifiable로 끝냈으므로 더 엄격한 쪽을 따름 → W10")
 
-    # --- --until 7: ⑥ 최종 근거와 ⑦ 판정을 보이고 멈춤
+    # --- --until 7: W6 최종 근거와 W7 판정을 보이고 멈춤
     if until == 7:
         until_banner(7)
         show_judged(picked, decision, texts)
-        next_step = ("⑧ 답변 생성 ⇄ ⑨ 근거 검증" + ("(전제를 바로잡는 답)" if decision.get("premise_conflict") else "")
-                     if decision["passed"] else "⑩ 종료 상태 「확인할 수 없음」")
+        next_step = ("W8 답변 생성 ⇄ W9 근거 검증" + ("(전제를 바로잡는 답)" if decision.get("premise_conflict") else "")
+                     if decision["passed"] else "W10 종료 상태 「확인할 수 없음」")
         verdict = "통과" if decision["passed"] else "불통과"
-        reason = f"⑦ 판정: {verdict}" + (f" ({decision['reason']})" if decision["reason"] != verdict else "")
+        reason = f"W7 판정: {verdict}" + (f" ({decision['reason']})" if decision["reason"] != verdict else "")
         return finish_request(ctx, until_end(ctx, 7, reason, evidence_list, next_step), messages)
 
-    # --- 불통과면 ⑩ 「확인할 수 없음」, 답변 생성을 껐으면(--no-answer) ⑩ 「검색 결과」로 끝냄
+    # --- 불통과면 W10 「확인할 수 없음」, 답변 생성을 껐으면(--no-answer) W10 「검색 결과」로 끝냄
     if not decision["passed"]:
         return finish_request(ctx, core.make_end_state("unverifiable", decision["reason"], "", evidence_list, warnings),
                               messages)
@@ -1780,44 +1780,44 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
         return finish_request(ctx, core.make_end_state("evidence_only", "답변 생성 끔", "", evidence_list, warnings),
                               messages)
 
-    # ⑧ 답변 생성 ⇄ ⑨ 근거 검증(반복 2): 근거만으로 답하고, 인용과 숫자를 코드가 확인해 틀리면
+    # W8 답변 생성 ⇄ W9 근거 검증(반복 2): 근거만으로 답하고, 인용과 숫자를 코드가 확인해 틀리면
     #   실패 사유를 피드백으로 붙여 다시 쓰게 함. 재작성은 최대 2회(MAX_REWRITES)
 
-    # --- 근거 묶음 만들기: 원문 c1 ~ c8(Global이면 c14까지), 보고서 r1 ~ r3. ⑦이 질문 전제와 사실 충돌을 찾았으면 전제 메모도 넣음
+    # --- 근거 묶음 만들기: 원문 c1 ~ c8(Global이면 c14까지), 보고서 r1 ~ r3. W7이 질문 전제와 사실 충돌을 찾았으면 전제 메모도 넣음
     block, table = evidence_block(ctx, picked)
     premise = "질문의 전제가 원문과 다름. 전제를 바로잡는 답을 씀" if decision["premise_conflict"] else ""
     feedback, answer, failures = "", None, []
 
     for attempt in range(MAX_REWRITES + 1):  # 첫 시도 1번 + 재작성 2번
-        # --- ⑧ 답변 생성: LCEL 체인 + 구조화 출력(실습 함수 generate_answer). LLM이 실패하면 ⑩ 「생성 실패」
+        # --- W8 답변 생성: LCEL 체인 + 구조화 출력(실습 함수 generate_answer). LLM이 실패하면 W10 「생성 실패」
         try:
             ctx["calls"]["groq"] += 1
             answer = core.generate_answer(res.groq, ANSWER_PROMPT, ctx["clean_question"], block, feedback, premise)
         except Exception as error:
-            warnings.append(f"⑧ 답변 생성 실패: {short(error, 100)}")
+            warnings.append(f"W8 답변 생성 실패: {short(error, 100)}")
             return finish_request(ctx, core.make_end_state("generation_failed", short(error, 100), "", evidence_list,
                                                            warnings), messages)
         text = answer_text(answer)
-        say(f"── ⑧ 답변({'첫 시도' if attempt == 0 else f'재작성 {attempt}/{MAX_REWRITES}'}): {short(text, 300)}")
+        say(f"── W8 답변({'첫 시도' if attempt == 0 else f'재작성 {attempt}/{MAX_REWRITES}'}): {short(text, 300)}")
 
-        # --- 답 문장이 없으면(근거로 답할 수 없다고 함) 지어내지 않고 ⑩ 「확인할 수 없음」
+        # --- 답 문장이 없으면(근거로 답할 수 없다고 함) 지어내지 않고 W10 「확인할 수 없음」
         if not answer.sentences:
             return finish_request(ctx, core.make_end_state("unverifiable", "답변 LLM이 근거로 답할 수 없다고 함", "",
                                                            evidence_list, warnings), messages)
 
-        # --- ⑨ 근거 검증: 인용 id, 숫자와 조항 번호, 보고서 인용을 규칙으로 검사(실습 함수 verify_answer)
-        #     모두 통과하면 ⑩ 「답변 완료」
+        # --- W9 근거 검증: 인용 id, 숫자와 조항 번호, 보고서 인용을 규칙으로 검사(실습 함수 verify_answer)
+        #     모두 통과하면 W10 「답변 완료」
         failures = core.verify_answer(answer, table)
         if not failures:
-            say("── ⑨ 근거 검증: 통과")
+            say("── W9 근거 검증: 통과")
             end = core.make_end_state("answered", decision["reason"], text, evidence_list, warnings)
             return finish_request(ctx, end, messages)
 
-        # --- 하나라도 실패하면 실패 사유를 피드백으로 붙여 ⑧로 돌아가 다시 씀
-        say(f"── ⑨ 근거 검증: 실패 {failures}")
+        # --- 하나라도 실패하면 실패 사유를 피드백으로 붙여 W8로 돌아가 다시 씀
+        say(f"── W9 근거 검증: 실패 {failures}")
         feedback = "; ".join(failures)
 
-    # ⑩ 종료 상태: 재작성 2회 뒤에도 검증을 통과하지 못하면 「확인 필요(2회 소진)」로 답과 경고를 함께 줌
+    # W10 종료 상태: 재작성 2회 뒤에도 검증을 통과하지 못하면 「확인 필요(2회 소진)」로 답과 경고를 함께 줌
     warnings.append(f"인용 검증을 통과하지 못함: {feedback}")
     return finish_request(ctx, core.make_end_state("answered_with_warning", "재작성 2회 뒤에도 검증 실패",
                                                    answer_text(answer), evidence_list, warnings), messages)
@@ -1838,13 +1838,13 @@ def until_end(ctx: dict, until: int, reason: str, evidence_list: list[dict], nex
 
 
 def show_collected(ctx: dict) -> list[dict]:
-    """--until 5: ③ ~ ⑤ 반복이 모은 것(회차별 진단 신호, 남은 원문과 뺀 원문, 엔티티, 보고서, 주제)을 보이고 근거 목록을 돌려줌."""
+    """--until 5: W3 ~ W5 반복이 모은 것(회차별 진단 신호, 남은 원문과 뺀 원문, 엔티티, 보고서, 주제)을 보이고 근거 목록을 돌려줌."""
     finish = ctx["finish"] or {"status": None, "reason": ctx["forced_stop"] or "finish 없이 끝남"}
     path = [tool for calls in ctx["round_calls"] for tool, _ in calls]
     how = f"finish({finish['status']})" if finish["status"] else "코드가 끝냄(강제 종료 또는 상한)"
-    say(f"[③ 검색 에이전트] 끝낸 방법: {how} - {finish['reason']}")
+    say(f"[W3 검색 에이전트] 끝낸 방법: {how} - {finish['reason']}")
     say(f"   회차 {ctx['rounds']}/{MAX_ROUNDS}, 툴 경로: {' → '.join(path) or '-'}")
-    say("[④ 툴 실행 → ⑤ 채점] 회차별 진단 신호")
+    say("[W4 툴 실행 → W5 채점] 회차별 진단 신호")
     for log in ctx["signal_log"]:
         stats = log["stats"]
         cooc = "-" if stats.get("cooccur") is None else stats["cooccur"]
@@ -1855,7 +1855,7 @@ def show_collected(ctx: dict) -> list[dict]:
     kept = [c for c in ctx["chunks"].values() if not c.get("dropped")]
     dropped = [c for c in ctx["chunks"].values() if c.get("dropped")]
     texts = read_chunk_texts(ctx, [c["chunk_id"] for c in kept])
-    say(f"[⑤ 근거로 남은 원문] {len(kept)}개 (Jev 확률: 관련 / 답 근거 / 사실 충돌)")
+    say(f"[W5 근거로 남은 원문] {len(kept)}개 (Jev 확률: 관련 / 답 근거 / 사실 충돌)")
     for c in sorted(kept, key=lambda c: (c["round"], -c["score"])):
         p = (c.get("mark") or {}).get("probs")
         probs = (f"{p['is_relevant']:.2f} / {p['contains_answer_evidence']:.2f} / {p['contradicts_query_premise']:.2f}"
@@ -1864,7 +1864,7 @@ def show_collected(ctx: dict) -> list[dict]:
         say(f"   {DATA['chunk_meta'][c['chunk_id']]['short_id']} 회차 {c['round']} {', '.join(c['tools'])}{topics} | "
             f"{probs} | {short(texts[c['chunk_id']], 60)}")
     if dropped:
-        say(f"[⑤ 근거에서 뺀 원문] {len(dropped)}개")
+        say(f"[W5 근거에서 뺀 원문] {len(dropped)}개")
         for c in dropped:
             p = (c.get("mark") or {}).get("probs") or {}
             say(f"   {DATA['chunk_meta'][c['chunk_id']]['short_id']} {c['dropped']} (관련 {p.get('is_relevant', 0):.2f})")
@@ -1889,12 +1889,12 @@ def show_collected(ctx: dict) -> list[dict]:
 
 
 def show_judged(picked: dict, decision: dict, texts: dict) -> None:
-    """--until 7: ⑥ 최종 근거와 ⑦ 수집 종료 판정을 한곳에 모아 보임."""
+    """--until 7: W6 최종 근거와 W7 수집 종료 판정을 한곳에 모아 보임."""
     marks = decision.get("marks") or {}
-    say(f"[⑥ 리랭킹] 원문 {picked['n_before']}개 → {len(picked['chunks'])}자리"
+    say(f"[W6 리랭킹] 원문 {picked['n_before']}개 → {len(picked['chunks'])}자리"
         f"{'(회차 1회, 자리 수 이하라 건너뜀)' if picked['skipped'] else ''}, 이어진 엔티티 {len(picked['entities'])}개, "
         f"보고서 {len(picked['reports'])}개")
-    say("[⑥ 최종 근거] 리랭커 점수 / ⑦ Jev 답 근거 확률")
+    say("[W6 최종 근거] 리랭커 점수 / W7 Jev 답 근거 확률")
     for row in picked["chunks"]:
         p = (marks.get(row["chunk_id"]) or {}).get("probs")
         answer = f"{p['contains_answer_evidence']:.2f}" if p else "-"
@@ -1902,23 +1902,23 @@ def show_judged(picked: dict, decision: dict, texts: dict) -> None:
         say(f"   {row['score']:.3f} / {answer} {DATA['chunk_meta'][row['chunk_id']]['short_id']}{topics} "
             f"{short(texts[row['chunk_id']], 60)}")
     recheck = decision["recheck"]
-    say(f"[⑦ 코드 재확인] {'통과' if recheck['passed'] else '불통과'} [{recheck['rule']}] {recheck['detail']}")
+    say(f"[W7 코드 재확인] {'통과' if recheck['passed'] else '불통과'} [{recheck['rule']}] {recheck['detail']}")
     if marks:
         n_answer = sum(1 for m in marks.values() if m["answer_evidence"])
         n_conflict = sum(1 for m in marks.values() if m["premise_conflict"])
-        say(f"[⑦ Jev] 답 근거 {n_answer}개, 사실 충돌 {n_conflict}개")
+        say(f"[W7 Jev] 답 근거 {n_answer}개, 사실 충돌 {n_conflict}개")
     verdict = "통과" if decision["passed"] else "불통과"
-    say(f"[⑦ 판정] {verdict}" + (f" - {decision['reason']}" if decision["reason"] != verdict else ""))
+    say(f"[W7 판정] {verdict}" + (f" - {decision['reason']}" if decision["reason"] != verdict else ""))
 
 
 def finish_request(ctx: dict, end: dict, messages: list) -> dict:
-    """⑩ 종료 상태를 화면에 찍고, ③ 에이전트 실제 비용과 호출 수, 툴 경로를 붙여 돌려줌."""
+    """W10 종료 상태를 화면에 찍고, W3 에이전트 실제 비용과 호출 수, 툴 경로를 붙여 돌려줌."""
     cost = agent_cost(messages)
     path = [tool for calls in ctx["round_calls"] for tool, _ in calls]
-    if end.get("until"):  # --until로 멈춘 경우: ⑩ 종료 상태가 아니라 멈춘 자리를 찍음
+    if end.get("until"):  # --until로 멈춘 경우: W10 종료 상태가 아니라 멈춘 자리를 찍음
         say(f"\n── 멈춤(--until {end['until']}): {end['status']} - {end['reason']}")
     else:
-        say(f"\n── ⑩ 종료 상태: {end['status']} - {end['reason']}")
+        say(f"\n── W10 종료 상태: {end['status']} - {end['reason']}")
         say(f"   뜻: {end['meaning']}")
     if end["answer"]:
         say(f"   답: {end['answer']}")
@@ -1926,7 +1926,7 @@ def finish_request(ctx: dict, end: dict, messages: list) -> dict:
         say(f"   경고: {short(warning, 120)}")
     say(f"   에이전트(Groq) 비용 ${cost['usd']:.5f} (호출 {cost['calls']}번, 입력 {cost['input']}, 캐시 읽기 {cost['cache_read']}, "
         f"출력 {cost['output']} 토큰)")
-    say(f"   호출 수: 에이전트 {ctx['calls']['agent']}번, Jev {ctx['calls']['jev']}번, Groq(G1, G2, ⑧) {ctx['calls']['groq']}번, Cohere {ctx['calls']['cohere']}번, "
+    say(f"   호출 수: 에이전트 {ctx['calls']['agent']}번, Jev {ctx['calls']['jev']}번, Groq(G1, G2, W8) {ctx['calls']['groq']}번, Cohere {ctx['calls']['cohere']}번, "
         f"원문 읽기 {ctx['calls']['text_reads']}번(청크 {len(ctx['texts'])}개), 툴 경로 {path or '-'}, {time.time() - ctx['started']:.1f}초")
     return {**end, "agent_cost": cost, "tool_path": path, "rounds": ctx["rounds"], "calls": ctx["calls"],
             "clean_question": ctx.get("clean_question", ""), "signals": ctx["signal_log"],
@@ -1966,7 +1966,7 @@ def eval_item_role(item: dict) -> tuple[str, str | None]:
 
 
 def hit_check(item: dict, result: dict, data: dict) -> bool | None:
-    """근거 적중: 평가셋 relevance.clues(정답 단서) 하나 이상이 ⑥ 뒤 원문에 그대로 있으면 적중(답 없는 문항은 None)."""
+    """근거 적중: 평가셋 relevance.clues(정답 단서) 하나 이상이 W6 뒤 원문에 그대로 있으면 적중(답 없는 문항은 None)."""
     if not item.get("answerable"):
         return None
     texts = " ".join(e["text"] for e in result["evidence"]).replace(" ", "")
@@ -2032,7 +2032,7 @@ def main_cli() -> None:
     parser.add_argument("--qid", help="평가셋 질문 번호(예: Q01). 역할과 회원은 평가셋 filters대로")
     parser.add_argument("--role", default=None, help="agent(공개 문서만) 또는 auditor(상담 기록까지)")
     parser.add_argument("--member-id", default=None, help="회원번호(예: M-1042). auditor일 때 그 회원 상담만 봄")
-    parser.add_argument("--no-answer", action="store_true", help="⑧ 답변 생성을 끄고 근거 목록만(⑩ 검색 결과)")
+    parser.add_argument("--no-answer", action="store_true", help="W8 답변 생성을 끄고 근거 목록만(W10 검색 결과)")
     parser.add_argument("--eval", action="store_true", help="평가셋 일괄 실행(강사용)")
     parser.add_argument("--start", help="--eval을 이 문항부터(이어 하기)")
     parser.add_argument("--only", help="--eval에서 이 문항만(쉼표로). 예: Q18,Q19")
@@ -2040,7 +2040,7 @@ def main_cli() -> None:
     parser.add_argument("--sleep", type=float, default=0, help="--eval 문항 사이 쉬는 초(호출 제한 대비)")
     parser.add_argument("--mine", action="store_true", help="강사 코드 대신 교육생 코드(my_search.py)로 실행함")
     parser.add_argument("--until", type=int, choices=sorted(UNTIL_STEPS), default=10,
-                        help="워크플로우 단계 번호. 5: ⑤ 채점과 상한 판정까지, 7: ⑦ 수집 종료 판정까지, 10: 끝까지(기본)")
+                        help="워크플로우 단계 번호. 5: W5 채점과 상한 판정까지, 7: W7 수집 종료 판정까지, 10: 끝까지(기본)")
     args = parser.parse_args()
     if args.eval and args.until != 10:
         raise SystemExit("--until은 질문 하나를 실행할 때만 씀(--eval은 끝까지 돌려야 채점함)")
@@ -2071,7 +2071,7 @@ def main_cli() -> None:
         raise SystemExit("질문을 주거나 --qid Q01 처럼 평가셋 번호를 줌")
     say(f"질문: {core.MEMBER_ID_PATTERN.sub('M-****', question)} (역할 {role}{', 회원 지정' if member else ''})")
 
-    # 워크플로우 실행(① ~ ⑩)
+    # 워크플로우 실행(W1 ~ W10)
     result = run_workflow(res, data, question, role, member, not args.no_answer, until=args.until)
 
     # 실행 기록 저장
