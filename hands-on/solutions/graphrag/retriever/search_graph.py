@@ -2,7 +2,7 @@
 ⑥ 리랭킹 → ⑦ 수집 종료 판정 → ⑧ 답변 생성 ⇄ ⑨ 근거 검증 → ⑩ 종료 상태.
 
 ③ ~ ⑤(반복 1)는 LangChain create_agent와 미들웨어 2개가 맡고, 나머지는 run_workflow가 파이썬 순서로 부름.
-단계마다 알맹이는 core_search.py의 함수가 맡고, 이 파일은 설정값, 저장소 접속, 외부 API 호출, 서브 워크플로우(O, L, G, E, R),
+단계마다 알맹이는 core_search.py의 함수가 맡고, 이 파일은 설정값, 저장소 접속, 외부 API 호출, 서브 워크플로우(O, L, G, R),
 미들웨어, 순서, 화면 출력을 맡음. 인덱싱 실습(../indexer)이 만든 활성 세대를 읽기만 함.
 
 판단을 맡는 쪽
@@ -13,7 +13,7 @@
 
 파일 안의 순서(위에서 아래로)
   설정값 → 프롬프트와 스키마 → 작은 도구 → 자원(Resources) → 외부 호출(임베딩, 리랭크, Jev)
-  → ④ 서브 워크플로우(O, L, G, E, R) → 툴 결과를 작업 기록으로 → 툴 6개 → 미들웨어 2개 → ⑤ 채점
+  → ④ 서브 워크플로우(O, L, G, R) → 툴 결과를 작업 기록으로 → 툴 5개 → 미들웨어 2개 → ⑤ 채점
   → 단계 함수(①, ②, ⑥, ⑦) → run_workflow(전체 흐름) → 시작 검사, 평가셋, 명령행
 
 실행(이 폴더에서):
@@ -170,8 +170,8 @@ AGENT_SYSTEM = """너는 카드사 상담 지원 시스템의 「근거 수집�
 툴 고르는 법(권장일 뿐 따르지 않아도 됨)
 - 특정 카드, 혜택, 약관 사실: local_search 또는 search_vector-bm25
 - 특정 회원의 상담: local_search(회원 필터가 걸려 그 회원의 상담만 나옴)
-- 조항 번호, 약관 버전, 카드 id처럼 정확한 이름이나 번호로 찾을 대상: find_entities → 나온 엔티티 id로 get_source_chunks
-- 여러 상담의 경향, 공통점, 주제 나누기: global_search(요청당 1회). 원문이 없는 주제만 local_search(topic_id)로 보충
+- 조항 번호, 약관 버전, 카드 id처럼 정확한 이름이나 번호로 찾을 대상: search_vector-bm25(BM25가 낱말을 그대로 맞춤)
+- 여러 상담의 경향, 공통점, 주제 나누기: global_search(요청당 1회, 회원 필터가 걸린 질문에는 쓸 수 없음). 원문이 없는 주제만 local_search(topic_id)로 보충
 - 질문에 사실이 둘이면 한 회차에 툴을 여러 개 불러도 됨(최대 5개)
 
 툴 결과에 붙는 진단 신호의 뜻과 권장 행동
@@ -543,7 +543,7 @@ def jev_judge_passages(res: Resources, question: str, chunk_ids: list[str], ctx:
 
 
 # ---------------------------------------------------------------------------
-# ④ 서브 워크플로우: O 검색엔진 검색, L Local 검색, G Global 검색, E 엔티티 찾기, R 원문 붙이기
+# ④ 서브 워크플로우: O 검색엔진 검색, L Local 검색, G Global 검색, R 원문 붙이기
 #   툴 안은 순서가 정해진 코드 함수임. 모든 함수가 ② 질문 분석이 만든 같은 필터(filters)를 받음
 # ---------------------------------------------------------------------------
 # Cypher 조각: 여러 질의에서 같은 꼴로 씀
@@ -617,17 +617,14 @@ def search_engine(res: Resources, query: str, filters: dict, ctx: dict) -> dict:
 def entity_allowed_clause(var: str) -> str:
     """엔티티가 나온 청크가 모두 「볼 수 있는 청크 표」에 있을 때만 남기는 Cypher 조건(4.4 권한 필터).
 
-    L1 갈래 A와 B, L3 이웃, E2 키 찾기가 모두 이 조건을 씀. $allowed에는 볼 수 있는 청크 id 목록을 넘김.
+    L1 갈래 A와 B, L3 이웃이 모두 이 조건을 씀. $allowed에는 볼 수 있는 청크 id 목록을 넘김.
     """
     return (f"ALL(src IN [({var})-[:FROM_CHUNK]->(s:Chunk) | s.chunk_id] WHERE src IN $allowed) "
             f"AND size([({var})-[:FROM_CHUNK]->(s:Chunk) | s]) > 0")
 
 
 def neighbors_and_reports(res: Resources, entity_ids: list[str], vector: list[float] | None, filters: dict) -> dict:
-    """L3 이웃 탐색(엔티티마다 관계 1개로 이어진 이웃 4개, 관계 이름과 방향 포함) + L4 커뮤니티 보고서 3개.
-
-    find_entities의 E3 이웃 탐색도 이 함수를 그대로 씀.
-    """
+    """L3 이웃 탐색(엔티티마다 관계 1개로 이어진 이웃 4개, 관계 이름과 방향 포함) + L4 커뮤니티 보고서 3개."""
     if not entity_ids:
         return {"neighbors": {}, "reports": []}
 
@@ -830,46 +827,6 @@ def global_search(res: Resources, query: str, filters: dict, ctx: dict) -> dict:
             "n_relevant_reports": sum(1 for rid in picked if relevance[rid] >= REPORT_RELEVANCE_MIN)}
 
 
-def find_entities(res: Resources, entity_key: str, filters: dict, ctx: dict) -> dict:
-    """E 엔티티 찾기: E1 정규화 → E2 레이블별 키 찾기 → E3 이웃 탐색(원문 없음).
-
-    키가 같은 엔티티만 찾음. 0건이면 빈 결과(⑤가 NO_SEED)를 돌려주고, 뜻으로 찾는 일은 local_search가 맡음.
-    """
-    # --- 회원은 필터 값으로: 질의에 회원번호, 가명 id, 「회원」이 있으면 질의 속 번호는 쓰지 않고
-    #     ② 질문 분석이 바꾼 가명 id 필터로 찾음. 상담원 역할은 이 값이 없어 회원 상담이 안 나옴
-    raw = entity_key.strip()
-    member = None
-    if core.MEMBER_ID_PATTERN.search(raw) or core.PSEUDO_ID_PATTERN.search(raw) or "회원" in raw:
-        member = filters.get("member_pseudo_id")
-
-    # --- E1 정규화: 레이블마다 키를 저장된 꼴로 맞춤(선택 과제 normalize_entity_key)
-    keys = {
-        "card": core.normalize_entity_key("ProductGuide", raw),
-        "clause": core.normalize_entity_key("Clause", raw),
-        "benefit": core.normalize_entity_key("Benefit", raw),
-        "raw": raw,
-    }
-
-    # --- E2 레이블별 키 찾기: 레이블마다 다른 키 속성을 OR로 묶은 Cypher 한 번. 이번 세대, 권한 조건, 최대 12개
-    records = res.run(
-        "MATCH (n:__Entity__ {generation: $g}) WHERE ("
-        " (n:ProductGuide AND (replace(replace(n.card_name, '한빛', ''), ' ', '') = $card OR n.product_id = $raw))"
-        " OR (n:Clause AND n.clause_no = $clause)"
-        " OR (n:Consultation AND ((n.member_pseudo_id = $member AND $member IS NOT NULL) OR n.record_id = $raw))"
-        " OR (n:Benefit AND (replace(replace(replace(n.name, ' ', ''), '(', ''), ')', '') = $benefit"
-        "    OR n.benefit_id = $raw))"
-        " OR (n:TermsDocument AND n.version = $raw)"
-        ") AND " + entity_allowed_clause("n") + " "
-        "RETURN elementId(n) AS id, " + LABEL_OF + " AS label, " + PROPS_OF + " AS props, "
-        "[(n)-[:FROM_CHUNK]->(s:Chunk) | s.chunk_id] AS chunk_ids LIMIT 12",
-        g=filters["generation"], allowed=sorted(filters["allowed_ids"]), member=member, **keys)
-    entities = [dict(r) for r in records]
-
-    # --- E3 이웃 탐색: L3과 같은 함수로 1-hop 이웃을 붙임. 원문은 붙이지 않음(필요하면 에이전트가 get_source_chunks로)
-    graph = neighbors_and_reports(res, [e["id"] for e in entities], filters.get("question_vector"), filters)
-    return {"entities": entities, "neighbors": graph["neighbors"]}
-
-
 def get_source_chunks(res: Resources, entity_ids: list[str], with_reports: bool, filters: dict) -> dict:
     """R 원문 붙이기: R1 엔티티의 FROM_CHUNK 원문(보고서 선택) → R2 볼 수 있는 청크 표로 다시 거름.
 
@@ -1058,26 +1015,6 @@ def make_tool_functions(res: Resources) -> dict:
         return {"observation": "\n".join(lines), "chunk_ids": all_ids, "new": all_new, "tool": "global_search",
                 "judge_q": None, "per_topic": per_topic, "n_reports": found["n_relevant_reports"]}
 
-    # 엔티티 직접 검색(E) 툴: find_entities
-    def run_find(args, filters, ctx):
-        # (1) E 서브 워크플로우 실행
-        found = find_entities(res, args["entity_key"], filters, ctx)
-        rows = found["entities"]
-
-        # (2) 관찰 글 첫 줄: 0건이면 local_search를 쓰라고 안내
-        if rows:
-            lines = [f"엔티티 {len(rows)}개(원문은 get_source_chunks로 붙임)"]
-        else:
-            lines = [f"「{args['entity_key']}」와 키가 같은 엔티티 없음. 뜻으로 찾으려면 local_search를 쓸 것"]
-
-        # (3) 엔티티와 이웃을 작업 기록에 더하고 관찰 글에 붙임(원문은 없음)
-        add_entities(ctx, rows)
-        for row in rows:
-            lines.append(f"  {short_entity_id(ctx, row['id'])} {short(entity_text(row['label'], row['props']), 100)}")
-        lines += neighbor_lines(ctx, found["neighbors"], [r["id"] for r in rows])[:12]
-        return {"observation": "\n".join(lines), "chunk_ids": [], "new": [], "tool": "find_entities", "judge_q": None,
-                "n_entities": len(rows)}
-
     # 원문 붙이기(R) 툴: get_source_chunks
     def run_sources(args, filters, ctx):
         # (1) 짧은 id(e1, e2 …)를 elementId로 되돌림. 모르는 id는 따로 모아 관찰에 알림
@@ -1102,12 +1039,12 @@ def make_tool_functions(res: Resources) -> dict:
 
     # 함수 표: 툴 이름 → 서브 워크플로우 함수. 갈라지는 곳은 이 표 한 곳뿐임
     return {"search_vector-bm25": run_search, "local_search": run_local, "global_search": run_global,
-            "find_entities": run_find, "get_source_chunks": run_sources}
+            "get_source_chunks": run_sources}
 
 
 # ---------------------------------------------------------------------------
-# ③ ~ ⑤ 툴 6개(LangChain @tool). 입력에 필터 칸이 없음. 몸통은 래퍼(core.run_tool)를 부름
-#   검색 툴 5개는 몸통이 call_wrapper 한 줄로 같은 꼴임. 툴 이름 하나가 함수 표에서 서브 워크플로우를 정함
+# ③ ~ ⑤ 툴 5개(LangChain @tool). 입력에 필터 칸이 없음. 몸통은 래퍼(core.run_tool)를 부름
+#   검색 툴 4개는 몸통이 call_wrapper 한 줄로 같은 꼴임. 툴 이름 하나가 함수 표에서 서브 워크플로우를 정함
 #   docstring의 첫 줄과 Args는 에이전트에게 보이는 툴 설명이 됨(요청 내내 같아 프롬프트 캐시 적용)
 # ---------------------------------------------------------------------------
 TOOL_FUNCTIONS: dict = {}  # 함수 표 {툴 이름: 서브 워크플로우 함수}. 프로그램 시작 때 main_cli가 make_tool_functions로 채움
@@ -1162,16 +1099,6 @@ def tool_global(query: str, runtime: ToolRuntime) -> str:
     return call_wrapper("global_search", {"query": query}, runtime)
 
 
-@tool("find_entities")
-def tool_find(entity_key: str, runtime: ToolRuntime) -> str:
-    """엔티티 직접 검색: 레이블별 키(카드명, 조항 번호, 회원)로 엔티티와 1-hop 이웃을 찾음. 원문은 붙이지 않음.
-
-    Args:
-        entity_key: 찾을 대상의 이름이나 번호. 예: 「모아생활 카드」, 「제16조의2」, 회원 상담이면 「회원」.
-    """
-    return call_wrapper("find_entities", {"entity_key": entity_key}, runtime)
-
-
 @tool("get_source_chunks")
 def tool_sources(entity_ids: list[str], with_reports: bool, runtime: ToolRuntime) -> str:
     """원문 붙이기: 엔티티가 나온 원문 청크를 가져옴(with_reports면 소속 커뮤니티 보고서도).
@@ -1197,7 +1124,7 @@ def tool_finish(status: Literal["sufficient", "unverifiable", "need_clarificatio
     return "수집 종료"
 
 
-AGENT_TOOLS = [tool_search, tool_local, tool_global, tool_find, tool_sources, tool_finish]  # 검색 툴 5개 + finish
+AGENT_TOOLS = [tool_search, tool_local, tool_global, tool_sources, tool_finish]  # 검색 툴 4개 + finish
 
 
 # ---------------------------------------------------------------------------
@@ -1411,14 +1338,11 @@ def score_result(ctx: dict, call: dict, result: dict) -> str:
     if tool_name == "global_search":  # 경향 질문은 원 질문 기준 공존이 늘 0이라 주제별 확인은 ⑦에 맡김
         stats["coverage"], stats["cooccur"] = 1.0, None
 
-    # 신호 매기기: find_entities는 원문 대신 엔티티 0개면 NO_SEED, 나머지는 실습 함수 diagnose_signals
-    if tool_name == "find_entities":
-        signals = ["NO_SEED"] if result.get("n_entities", 0) == 0 else []
-    else:
-        signals = core.diagnose_signals(stats, SIGNAL_THRESHOLDS)
+    # 신호 매기기(실습 함수 diagnose_signals)
+    signals = core.diagnose_signals(stats, SIGNAL_THRESHOLDS)
 
     # --- (d) 결과 기록: 이 호출이 NO_NEW인지 적어 둠. before_model이 「NO_NEW 2회 연속」 강제 종료에 씀
-    record_outcome(ctx, failed=False, no_new="NO_NEW" in signals or (tool_name != "find_entities" and not new_relevant))
+    record_outcome(ctx, failed=False, no_new="NO_NEW" in signals or not new_relevant)
     with PRINT_LOCK:
         ctx["signal_log"].append({"round": ctx["rounds"], "tool": tool_name, "signals": signals, "stats": stats})
 
@@ -1438,11 +1362,8 @@ def score_result(ctx: dict, call: dict, result: dict) -> str:
     for line in judged:
         say(f"      ⑤ Jev {line}")
     cooc = stats["cooccur"] if stats["cooccur"] is not None else "-"
-    if tool_name == "find_entities":
-        say(f"      ⑤ 신호 {signals or ['-']} (엔티티 {result.get('n_entities', 0)}개, 원문은 get_source_chunks로)")
-    else:
-        say(f"      ⑤ 신호 {signals or ['-']} (포함률 {stats['coverage']:.2f}, 공존 {cooc}문장, "
-            f"문서 종류 {stats['n_doc_types']}, 근거로 남은 새 원문 {stats['n_new_relevant']})")
+    say(f"      ⑤ 신호 {signals or ['-']} (포함률 {stats['coverage']:.2f}, 공존 {cooc}문장, "
+        f"문서 종류 {stats['n_doc_types']}, 근거로 남은 새 원문 {stats['n_new_relevant']})")
 
     # 에이전트에게 줄 채점 글(관찰 끝에 덧붙임)
     lines.append(f"[채점] 신호: {', '.join(signals) or '없음'} / 포함률 {stats['coverage']:.2f}, 공존 문장 {cooc}")
@@ -1693,13 +1614,14 @@ def first_message(ctx: dict, route: dict) -> str:
     """③ 첫 메시지: 식별자를 지운 질문 + 첫 툴 후보(권고일 뿐) + 필터 안내(② 질문 분석의 결과)."""
     ids = ctx["identifiers"]
     lines = [f"질문: {ctx['clean_question']}"]
-    if route["first_tool"]:
+    if route["first_tool"] and (route["first_tool"] != "global_search" or ctx["allow_global"]):  # 쓸 수 없는 툴은 권하지 않음
         lines.append(f"첫 툴 후보(권고일 뿐): {route['first_tool']}")
     if ids["member_pseudo_id"] and ctx["role"] == "auditor":
-        lines.append("회원 필터가 이미 걸려 있음(이 회원의 상담만 보임). 회원 상담은 local_search로 찾음.")
+        lines.append("회원 필터가 이미 걸려 있음(이 회원의 상담만 보임). 회원 상담은 local_search로 찾음. "
+                     "한 회원의 질문이라 global_search는 쓸 수 없음.")
     if ids["card_names"]:
         lines.append(f"카드 필터가 걸려 있음: {', '.join(ids['card_names'])}")
-    if not ctx["allow_global"]:
+    if not ctx["allow_global"] and not ctx["filters"]["member_pseudo_id"]:
         lines.append("이 세대에는 커뮤니티 보고서가 없어 global_search를 쓸 수 없음.")
     return "\n".join(lines)
 
@@ -1727,6 +1649,11 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
 
     # ② 질문 분석: 코드가 식별자로 검색 필터를 만들고, Jev 확률을 코드가 기준값과 비교해 결정함
     route = step2_analyze(res, data, ctx)
+
+    # --- 회원 필터가 걸린 질문(한 회원의 상담)은 global_search(여러 상담의 경향)를 막음.
+    #     주제마다 재확인이 쉽게 통과해, 그 회원에게 없는 요청도 다른 상담의 경향으로 답할 수 있기 때문(함정 Q21)
+    if ctx["filters"]["member_pseudo_id"]:
+        ctx["allow_global"] = False
 
     # --- 화면 출력: 코드가 만든 결과(식별자를 지운 질문, 회원과 카드 필터, 볼 수 있는 청크 수, 핵심 낱말)
     ids = ctx["identifiers"]

@@ -1,4 +1,4 @@
-"""교육생용 뼈대: core_search.py와 같은 이름, 같은 인자의 실습 함수 13개(+ 선택 1개)를 본인 코드로 채우는 파일임.
+"""교육생용 뼈대: core_search.py와 같은 이름, 같은 인자의 실습 함수 13개를 본인 코드로 채우는 파일임.
 
 채우는 순서(워크플로우 순서). "직접"은 NotImplementedError 자리에 본인 코드를 쓰고, "빈칸"은 거의 완성된 코드의 빈칸만 채움
   [교시 2: ① ~ ④ 래퍼]
@@ -11,7 +11,6 @@
    6 narrow_entities         (직접)      ④ L1 갈래 A 엔티티 16개로 줄이기
    7 diagnose_signals        (빈칸 3곳)  ⑤ 진단 신호 규칙
    8 force_stop_reason       (직접)      ⑤ 강제 종료 조건
-   + normalize_entity_key    (선택, 직접) ④ E1 레이블마다 키를 같은 꼴로
   [교시 4: ⑥ ~ ⑩]
    9 select_final_chunks     (직접)      ⑥ 주제마다 1자리 먼저, 8자리
   10 recheck_question        (빈칸 2곳)  ⑦ 원 질문 재확인 조건 ①, ②
@@ -133,19 +132,6 @@ def narrow_entities(candidates: list[dict], limit: int = 16) -> list[dict]:
     방법: ① 청크마다(처음 나온 청크 순서) 유사도가 가장 높은 엔티티 1개
           ② 남은 자리를 전체 유사도 순으로. 같은 id는 한 번만, 합계 limit개까지.
     인자: candidates는 [{"id", "chunk_id", "score", ...}]
-    """
-    raise NotImplementedError("여기에 본인 코드를 작성함")
-
-
-# ===========================================================================
-# 선택 과제. ④ E 엔티티 찾기: 키 정규화 — 직접 작성
-# ===========================================================================
-def normalize_entity_key(label: str, text: str) -> str:
-    """찾을 대상의 글을 레이블별 키 속성과 같은 꼴로 맞춤(E1 정규화).
-
-    규칙: ProductGuide는 「한빛」과 끝의 「카드」를 떼고 공백을 지움. Clause는 「제N조」(「의M」은 남기고 항 번호는 뗌).
-          Benefit은 공백과 괄호를 지움. 그 밖은 앞뒤 공백만 지움.
-    예시: ("Clause", "16조의2 1항") → "제16조의2" / ("ProductGuide", "한빛 모아생활 카드") → "모아생활"
     """
     raise NotImplementedError("여기에 본인 코드를 작성함")
 
@@ -279,7 +265,7 @@ import core_search as _teacher  # noqa: E402
 
 USE_TEACHER_CODE = [
     "check_ready", "decide_question_route", "build_agent", "run_tool",
-    "rrf_merge", "narrow_entities", "diagnose_signals", "force_stop_reason", "normalize_entity_key",
+    "rrf_merge", "narrow_entities", "diagnose_signals", "force_stop_reason",
     "select_final_chunks", "recheck_question", "generate_answer", "verify_answer", "make_end_state",
 ]
 for _name in USE_TEACHER_CODE:

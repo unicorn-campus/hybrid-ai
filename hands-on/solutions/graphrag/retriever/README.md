@@ -27,14 +27,14 @@ python search_graph.py --qid Q19
 | 목표 | 내용 |
 |---|---|
 | 개념을 코드로 | 교재 70쪽 워크플로우(① 요청 접수 → ② 질문 분석 → ③ 검색 에이전트 ⇄ ④ 툴 실행 → ⑤ 채점과 상한 판정 → ⑥ 리랭킹 → ⑦ 수집 종료 판정 → ⑧ 답변 생성 ⇄ ⑨ 근거 검증 → ⑩ 종료 상태)를 함수 하나씩으로 봄 |
-| 클론 코딩 | 단계마다 실습 함수 1개 이상, 모두 13개(직접 7개, 빈칸 6개) + 선택 1개. `my_search.py`에 채우고 `--mine` 옵션으로 바꿔 끼움 |
+| 클론 코딩 | 단계마다 실습 함수 1개 이상, 모두 13개(직접 7개, 빈칸 6개). `my_search.py`에 채우고 `--mine` 옵션으로 바꿔 끼움 |
 | 눈으로 확인 | Jev 확률과 코드의 결정, 회차마다 에이전트가 고른 툴과 질의, 진단 신호, 강제 종료 이유, 8자리, 코드 재확인, 인용 검증, 종료 상태, 에이전트 실제 비용을 화면에 찍음 |
 
 주요 기능
 
 - ③ ~ ⑤(반복 1)는 LangChain `create_agent` + 미들웨어 2개로 돎. `GuardMiddleware`(모델 호출 전 강제 종료, 모델이 고른 호출의 상한)와  
   `ToolWrapperMiddleware`(막힌 호출은 오류 표시, 실행한 결과에는 Jev 판정과 진단 신호)가 「막는 일은 코드」를 맡음  
-- 툴 6개(`search_vector-bm25`, `local_search`, `global_search`, `find_entities`, `get_source_chunks`, `finish`)는  
+- 툴 5개(`search_vector-bm25`, `local_search`, `global_search`, `get_source_chunks`, `finish`)는  
   입력에 필터 칸이 없음.  
   세대, 역할, 회원, 카드 필터는 래퍼가 강제로 붙임  
 - 검색과 그래프는 청크 id만 돌려주고, 청크 글은 그 id로 검색엔진에서 그때그때 읽음(`read_chunk_texts`, Chunk 노드에는 글이 없음)  
@@ -53,9 +53,9 @@ hands-on/solutions/graphrag/
 ├─ indexer/                    (읽기만) 활성 세대 파일(data/active_generation.json), kr_tokenizer.py(질의 토큰화)
 └─ retriever/
    ├─ README.md                이 문서
-   ├─ search_graph.py          main: 설정 상수, 프롬프트와 스키마, 시작 검사, 저장소 접속, 외부 호출, 서브 워크플로우 O, L, G, E, R,
-   │                           툴 6개, 미들웨어 2개, run_workflow(① ~ ⑩), 화면 출력, 평가셋 일괄 실행
-   ├─ core_search.py           핵심(클론 코딩 대상): 실습 함수 13개 + 선택 1개 + 제공 함수
+   ├─ search_graph.py          main: 설정 상수, 프롬프트와 스키마, 시작 검사, 저장소 접속, 외부 호출, 서브 워크플로우 O, L, G, R,
+   │                           툴 5개, 미들웨어 2개, run_workflow(① ~ ⑩), 화면 출력, 평가셋 일괄 실행
+   ├─ core_search.py           핵심(클론 코딩 대상): 실습 함수 13개 + 제공 함수
    ├─ my_search.template.py    교육생 작업 파일의 뼈대(강사 템플릿). --mine 실행 때 my_search.py로 복사됨. 맨 아래 USE_TEACHER_CODE 목록의 함수는 강사 코드가 대신 돎
    └─ data/logs/               실행 기록(Git에 올리지 않음). 질문마다 JSON, --eval은 문항마다 한 줄(jsonl)
 ```
@@ -202,7 +202,6 @@ python search_graph.py --eval --only Q18,Q19,Q20,Q21,Q22 --repeat 3
 | 6 | `narrow_entities` | 직접 | ④ L2 엔티티 16개 | 71 |
 | 7 | `diagnose_signals` | 빈칸 3 | ⑤ 진단 신호 | 74 |
 | 8 | `force_stop_reason` | 직접 | ⑤ 강제 종료 | 75 |
-| 선택 | `normalize_entity_key` | 직접 | ④ E1 키 정규화 | 73 |
 | 9 | `select_final_chunks` | 직접 | ⑥ 주제마다 1자리, 8자리 | 76 |
 | 10 | `recheck_question` | 빈칸 2 | ⑦ 코드 재확인 조건 ①, ② | 77 |
 | 11 | `generate_answer` | 빈칸 2 | ⑧ LCEL 체인 + 구조화 출력 | 78 |
@@ -366,8 +365,6 @@ L2 엔티티 품질은 `eval-set-full.json`의 답이 있는 20문항을 local_s
   참 상위 8개 중 37/80만 찾았음. 그래서 이번 세대 엔티티와 코사인을 직접 비교함  
 - **회원 상담 고정 엔티티 삭제**(2026-11-23): 회원이 지정되면 첫 상담과 최근 상담을 L2 맨 앞에 넣던 장치를 없앰.  
   평가셋에 맞춘 조정이었고, 없애도 회원 상담 문항(Q14 ~ Q17)의 L2 결과가 나빠지지 않았음  
-- **find_entities는 키 찾기만**(2026-11-23 변경): 0건일 때 벡터 후보(옛 E3)를 내지 않음. 뜻으로 찾는 일은 local_search가 맡음.  
-  ② Jev 첫 툴 보기에서도 뺌(보기 3개: local_search, global_search, search_vector-bm25)
 - 그래프의 Chunk 노드에 권한 속성이 없어 검색엔진 메타데이터로 「볼 수 있는 청크 표」를 만들어 거름. 인덱싱 세대가 바뀌면 다시 읽음(실행할 때마다 읽음)
 - **청크 글은 id로 그때그때 읽음**(2026-11-24 변경): Chunk 노드에는 글이 없고 글은 검색엔진(벡터 저장소)에만 있음.  
   ①에서는 메타데이터만 읽고(글 제외, `scan`으로 건수 상한 없이), 툴이 청크 id를 얻은 뒤 `read_chunk_texts`가  
