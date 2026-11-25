@@ -42,7 +42,7 @@ import cohere
 import neo4j
 from dotenv import dotenv_values
 from kiwipiepy import Kiwi
-from langchain.agents.middleware import AgentMiddleware, hook_config
+from langchain.agents.middleware import AgentMiddleware, ModelRetryMiddleware, hook_config
 from langchain.tools import ToolRuntime
 from langchain_cohere import CohereEmbeddings
 from langchain_core.messages import AIMessage, ToolMessage
@@ -88,7 +88,7 @@ warnings.filterwarnings("ignore", message="Pydantic serializer warnings")
 # ---------------------------------------------------------------------------
 ROOT_DIR = BASE_DIR.parents[3]  # retriever → graphrag → solutions → hands-on → 저장소 루트
 ACTIVE_FILE = BASE_DIR.parent / "indexer" / "data" / "active_generation.json"  # 인덱싱이 게시한 활성 세대(읽기만)
-EVAL_SET_PATH = ROOT_DIR / "hands-on" / "solutions" / "eval-set.json"  # 평가셋 25문항
+EVAL_SET_PATH = ROOT_DIR / "hands-on" / "solutions" / "eval-set-full.json"  # 평가셋 25문항
 LOG_DIR = BASE_DIR / "data" / "logs"  # 실행 기록(Git 제외)
 
 # 비밀값. 키 값은 코드, 주석, 화면에 절대 적지 않음. 환경변수에 올리지 않고 클라이언트마다 인자로 넘김
@@ -307,8 +307,10 @@ class Resources:
         self.jev = TypeSafeClient(api_key=keys["JEV_API_KEY"], model=JEV_MODEL, timeout=JEV_TIMEOUT)
         self.groq = ChatGroq(model=LLM_MODEL, api_key=keys["GROQ_API_KEY"], temperature=0, max_retries=GROQ_RETRIES,
                              request_timeout=GROQ_TIMEOUT, reasoning_effort="medium")
+        # disable_tool_validation: 목록에 없는 툴 이름도 Groq가 400으로 거절하지 않고 돌려줌. after_model이 막고 바른 이름을 알려 줌
         self.agent = ChatGroq(model=AGENT_MODEL, api_key=keys["GROQ_API_KEY"], temperature=0,
-                              max_retries=AGENT_RETRIES, request_timeout=AGENT_TIMEOUT, reasoning_effort=AGENT_REASONING)
+                              max_retries=AGENT_RETRIES, request_timeout=AGENT_TIMEOUT, reasoning_effort=AGENT_REASONING,
+                              model_kwargs={"disable_tool_validation": True})
         self.kiwi_plain = Kiwi()  # 핵심 낱말 고르기용 형태소 분석기(품사가 필요해 따로 둠)
         self.ready_data = None  # load_generation_data가 채움
 
@@ -1124,6 +1126,7 @@ def tool_finish(status: Literal["sufficient", "unverifiable", "need_clarificatio
 
 
 AGENT_TOOLS = [tool_search, tool_local, tool_global, tool_sources, tool_finish]  # 검색 툴 4개 + finish
+AGENT_TOOL_NAMES = {t.name for t in AGENT_TOOLS}  # after_model이 없는 툴 이름을 거를 때 씀
 
 
 # ---------------------------------------------------------------------------
@@ -1195,7 +1198,12 @@ class GuardMiddleware(AgentMiddleware):
         ctx["blocked"].update(core.block_calls(calls, counters, CALL_LIMITS))
         ctx["global_used"] = counters["global_used"]
 
-        # (4) 화면 출력: 고른 툴 호출(막힌 것은 이유와 함께)
+        # (4) 없는 툴: gpt-oss는 가끔 finish를 목록에 없는 이름(json)으로 부름. 실행하지 않고 툴 결과로 바른 이름을 알려 줌
+        for call in calls:
+            if call["name"] not in AGENT_TOOL_NAMES:
+                ctx["blocked"][call["id"]] = f"없는 툴 {call['name']}. 툴 목록의 이름으로 부름(수집을 끝내려면 finish)"
+
+        # (5) 화면 출력: 고른 툴 호출(막힌 것은 이유와 함께)
         for call in calls:
             note = f"  (막힘: {ctx['blocked'][call['id']]})" if call["id"] in ctx["blocked"] else ""
             say(f"   W3 → {call['name']} {json.dumps(call['args'], ensure_ascii=False)}{note}")
@@ -1242,6 +1250,17 @@ class ToolWrapperMiddleware(AgentMiddleware):
             note = "채점 중 오류(요청을 끝냄)"
         message.content = f"{message.content}\n{note}"
         return message
+
+
+def is_rejected_generation(error: Exception) -> bool:
+    """Groq가 모델 출력을 읽지 못해 거절한 오류(400, failed_generation)인지 봄. 맞으면 모델 호출을 다시 보냄.
+
+    예: 툴 호출의 인자 꼴이 틀리거나 출력을 해석하지 못함(Parsing failed). Groq 공식 문서(Local Tool Calling)도 다시 요청을 권함.
+    """
+    rejected = getattr(error, "status_code", None) == 400 and "failed_generation" in str(error)
+    if rejected:
+        say(f"   W3 Groq가 모델 출력을 거절함(400): {short(error, 70)} → 재시도가 남았으면 다시 보냄")
+    return rejected
 
 
 def record_outcome(ctx: dict, failed: bool, no_new: bool) -> None:
@@ -1687,7 +1706,9 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
     #   create_agent + 미들웨어 2개(실습 함수 build_agent). 막는 일(상한, 강제 종료, 필터, 채점)은 미들웨어가 함
 
     # --- 에이전트 실행: finish를 부르거나 미들웨어가 강제 종료할 때까지 「추론 → 툴 호출 → 관찰」 루프를 돎(최대 6회차)
-    middleware = [GuardMiddleware(), ToolWrapperMiddleware()]
+    #     Groq가 모델 출력을 거절하면(400) LangChain 내장 ModelRetryMiddleware가 모델 호출만 2번까지 다시 보냄
+    retry = ModelRetryMiddleware(max_retries=2, retry_on=is_rejected_generation, on_failure="error", initial_delay=0.5)
+    middleware = [GuardMiddleware(), ToolWrapperMiddleware(), retry]
     try:
         state = core.build_agent(res.agent, AGENT_TOOLS, AGENT_SYSTEM, middleware, first_message(ctx, route), ctx,
                                  RECURSION_LIMIT)
@@ -2011,7 +2032,7 @@ def main_cli() -> None:
     parser = argparse.ArgumentParser(description="GraphRAG 검색 예제")
     parser.add_argument("question", nargs="?", help="질문. --qid를 주면 생략")
     parser.add_argument("--qid", help="평가셋 질문 번호(예: Q01). 역할과 회원은 평가셋 filters대로")
-    parser.add_argument("--role", default=None, help="agent(공개 문서만) 또는 auditor(상담 기록까지)")
+    parser.add_argument("--role", default="auditor", help="agent(공개 문서만) 또는 auditor(상담 기록까지)")
     parser.add_argument("--member-id", default=None, help="회원번호(예: M-1042). auditor일 때 그 회원 상담만 봄")
     parser.add_argument("--mine", action="store_true", help="강사 코드 대신 교육생 코드(my_search.py)로 실행함")
     parser.add_argument("--until", type=str.upper, choices=list(UNTIL_STEPS), default="W10",

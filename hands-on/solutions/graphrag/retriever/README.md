@@ -326,6 +326,8 @@ L2 엔티티 품질은 `eval-set-full.json`의 답이 있는 20문항을 local_s
 | `Neo4j 접속 실패`, `OpenSearch 접속 실패` | `backing-services`에서 `docker compose ... up -d`, `ps`로 healthy 확인 |
 | `[실습 함수 오류]`와 Traceback | 본인 함수의 예외임. 고치거나 이름을 `USE_TEACHER_CODE`에 다시 넣음 |
 | 429(호출 제한) | 잠시 뒤 다시 실행 |
+| `W3 → json …(막힘: 없는 툴 json…)` | gpt-oss가 가끔 finish를 목록에 없는 이름(json)으로 부름. 실행하지 않고 「없는 툴」 결과를 돌려주면 모델이 다음 회차에 고쳐 부름(오류 아님) |
+| `W3 Groq가 모델 출력을 거절함(400)` | 모델 출력 꼴이 틀려 Groq가 거절함. 내장 재시도(ModelRetryMiddleware)가 2번까지 다시 보내고, 그래도 안 되면 모은 근거로 W6에 감 |
 | 강사와 툴 경로가 다름 | 정상임(temperature 0이어도 LLM은 실행마다 고르는 툴이 다를 수 있음). 신호, 판정, 종료 상태를 비교함 |
 
 ## 10. 한계

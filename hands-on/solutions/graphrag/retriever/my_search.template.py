@@ -201,9 +201,11 @@ def recheck_question(terms: list[str], chunks: list[dict], chunk_entities: dict,
     반환값: {"passed": bool, "rule": 「조건 ①」 등, "detail": 한 줄}
     """
     texts = [chunk["text"] for chunk in chunks]
+    if not terms:  # 핵심 낱말이 없으면 코드로 확인할 것이 없어 통과(Jev 판정에 맡김)
+        return {"passed": True, "rule": "낱말 없음", "detail": "핵심 낱말이 없어 Jev 판정에 맡김"}
     if len(terms) < 2:
-        found = bool(terms) and any(terms[0].replace(" ", "") in t.replace(" ", "") for t in texts)
-        return {"passed": found, "rule": "낱말 1개", "detail": f"「{terms[0] if terms else '-'}」 {'있음' if found else '없음'}"}
+        found = any(terms[0].replace(" ", "") in t.replace(" ", "") for t in texts)
+        return {"passed": found, "rule": "낱말 1개", "detail": f"「{terms[0]}」 {'있음' if found else '없음'}"}
     a, b = terms[0], terms[1]
     # 빈칸 1: count_cooccur(a, b, texts)로 두 낱말이 함께 나온 문장 수를 together에 받음
     raise NotImplementedError("빈칸 1을 채울 것")

@@ -701,14 +701,18 @@ def recheck_question(terms: list[str], chunks: list[dict], chunk_entities: dict,
             후보 쌍은 제공 함수 candidate_pairs가 만듦
     인자: terms는 핵심 낱말(앞 2개를 씀), chunks는 [{"chunk_id", "text"}], chunk_entities는 {chunk_id: [엔티티 id]},
           entity_texts는 {엔티티 id: 속성 글}, links는 관계 하나로 이어진 엔티티 쌍의 집합 {frozenset({id1, id2})}.
-    반환값: passed, rule(「조건 ①」, 「조건 ②」, 「낱말 1개」), detail(한 줄)
+    반환값: passed, rule(「조건 ①」, 「조건 ②」, 「낱말 1개」, 「낱말 없음」), detail(한 줄)
     """
     texts = [chunk["text"] for chunk in chunks]
 
-    # 짧은 질문: 핵심 낱말이 1개 이하면 그 낱말이 원문에 있는지만 봄(낱말이 0개면 불통과)
+    # 짧은 질문 1: 핵심 낱말이 없으면(예: 「이 회원이 가장 최근 상담에서 요청한 것은?」) 코드로 확인할 것이 없어 통과.
+    #             판정은 다음의 Jev(답 근거)가 맡음
+    if not terms:
+        return {"passed": True, "rule": "낱말 없음", "detail": "핵심 낱말이 없어 Jev 판정에 맡김"}
+    # 짧은 질문 2: 핵심 낱말이 1개면 그 낱말이 원문에 있는지만 봄
     if len(terms) < 2:
-        found = bool(terms) and any(terms[0].replace(" ", "") in t.replace(" ", "") for t in texts)
-        return {"passed": found, "rule": "낱말 1개", "detail": f"「{terms[0] if terms else '-'}」 {'있음' if found else '없음'}"}
+        found = any(terms[0].replace(" ", "") in t.replace(" ", "") for t in texts)
+        return {"passed": found, "rule": "낱말 1개", "detail": f"「{terms[0]}」 {'있음' if found else '없음'}"}
     a, b = terms[0], terms[1]
 
     # 빈칸 1: 조건 ① 두 낱말이 한 문장에 함께 나온 문장 수. 1문장 이상이면 바로 통과
