@@ -1,6 +1,6 @@
 {
- "run_id": "lab-v4@20261123212348",
- "generation": "gen-lab-lab-v4-cc97a472",
+ "run_id": "v1@20261125232712",
+ "generation": "gen-lab-v1-3bfc2695",
  "chunks": 260,
  "units": 297,
  "k2": {
@@ -8,25 +8,25 @@
   "reused": 0,
   "usage": {
    "calls": 297,
-   "total_tokens": 1029505
+   "total_tokens": 1030548
   }
  },
  "k4": {
-  "nodes": 2182,
-  "relationships": 3491
+  "nodes": 2187,
+  "relationships": 3487
  },
- "k5_merged_groups": 100,
- "k6_embedded": 1646,
+ "k5_merged_groups": 101,
+ "k6_embedded": 1650,
  "k8": {
-  "entities": 1646,
-  "relations": 1569,
-  "groups": 83,
-  "summarized": 79,
-  "llm_calls": 79,
+  "entities": 1650,
+  "relations": 1560,
+  "groups": 101,
+  "summarized": 77,
+  "llm_calls": 77,
   "reused": 0,
   "usage": {
-   "calls": 79,
-   "total_tokens": 239845
+   "calls": 77,
+   "total_tokens": 227159
   }
  },
  "s1_new_embeddings": 260,
@@ -46,7 +46,7 @@
   "ok": true,
   "failed_units": [],
   "communities": {
-   "communities": 79,
+   "communities": 77,
    "incomplete": 0,
    "empty": 0,
    "foreign_members": 0,
@@ -54,20 +54,20 @@
   }
  },
  "labels": {
-  "BenefitCondition": 371,
-  "BenefitLimit": 310,
-  "Benefit": 273,
-  "BenefitExclusion": 265,
-  "Proposal": 92,
-  "Handling": 75,
-  "ProductGuide": 65,
+  "BenefitCondition": 366,
+  "BenefitLimit": 311,
+  "Benefit": 271,
+  "BenefitExclusion": 268,
+  "Proposal": 96,
+  "Handling": 80,
+  "ProductGuide": 64,
   "Clause": 52,
+  "Complaint": 49,
   "Consultation": 48,
-  "Complaint": 47,
+  "Deadline": 18,
   "ReconsiderCondition": 18,
-  "Deadline": 17,
-  "Requirement": 12,
+  "Requirement": 8,
   "TermsDocument": 1
  },
- "elapsed_seconds": 870
+ "elapsed_seconds": 859
 }
