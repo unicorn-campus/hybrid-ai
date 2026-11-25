@@ -14,13 +14,13 @@ W3 ~ W5(반복 1)는 LangChain create_agent와 미들웨어 2개가 맡고, 나�
 파일 안의 순서(위에서 아래로)
   설정값 → 프롬프트와 스키마 → 작은 도구 → 자원(Resources) → 외부 호출(임베딩, 리랭크, Jev)
   → W4 서브 워크플로우(O, L, G, R) → 툴 결과를 작업 기록으로 → 툴 5개 → 미들웨어 2개 → W5 채점
-  → 단계 함수(W1, W2, W6, W7) → run_workflow(전체 흐름) → 시작 검사, 평가셋, 명령행
+  → 단계 함수(W1, W2, W6, W7) → run_workflow(전체 흐름) → 단계별 결과 화면(--until) → 시작 검사, 명령행
 
 실행(이 폴더에서):
   ../.venv/Scripts/python.exe search_graph.py --qid Q01                       평가셋 질문(역할은 평가셋 filters대로)
   ../.venv/Scripts/python.exe search_graph.py "할부 철회는 며칠 안에 하나요?" --role agent
-  ../.venv/Scripts/python.exe search_graph.py --eval                          평가셋 25문항 일괄(강사용, API 비용 듦)
-옵션: --role agent|auditor, --member-id M-1042, --no-answer(W8 끔), --eval --start Q10 --only Q18,Q19 --repeat 3
+  ../.venv/Scripts/python.exe search_graph.py --qid Q01 --until W5            W5 채점과 상한 판정까지 하고 결과를 모아 보임
+옵션: --role agent|auditor, --member-id M-1042, --until W2|W5|W7|W10(기본 W10), --mine
 """
 
 import argparse
@@ -118,9 +118,8 @@ CALL_LIMITS = {"parallel": 5, "global": 1, "queries": 8}  # 한 회차 병렬, g
 MAX_REWRITES = 2  # 반복 2: W8 재작성 상한
 REQUEST_TIMEOUT = 180  # 요청 하나의 하드 상한(초). 넘으면 모은 근거로 W6에 감
 
-# --until: 워크플로우 단계 번호. 그 단계까지만 수행하고 결과를 보임(10은 끝까지)
-UNTIL_STEPS = {5: "W5 채점과 상한 판정", 7: "W7 수집 종료 판정", 10: "W10 종료 상태"}
-EVAL_REQUEST_TIMEOUT = 600  # --eval 때는 정상 문항이 잘리지 않게 넉넉히 둠
+# --until: 그 단계까지만 수행하고 그 단계까지의 결과를 모아 보임(W10은 끝까지)
+UNTIL_STEPS = {"W2": "W2 질문 분석", "W5": "W5 채점과 상한 판정", "W7": "W7 수집 종료 판정", "W10": "W10 종료 상태"}
 RECURSION_LIMIT = 60  # 프레임워크 쪽 안전 상한(노드 실행 수). 코드 상한(6회차)보다 넉넉함
 
 # 외부 호출 제한 시간(초)과 재시도(계획서 4.5)
@@ -1390,7 +1389,7 @@ def topic_terms(ctx: dict, topic_id: str) -> list[str]:
     return question_terms(RES, DATA, ctx["topics"][topic_id]["follow_up"], [])
 
 
-def new_context(res: Resources, data: dict, question: str, role: str, member_id: str | None, timeout: int) -> dict:
+def new_context(res: Resources, data: dict, question: str, role: str, member_id: str | None) -> dict:
     """요청 하나의 작업 기록(ctx)을 만듦. 툴과 미들웨어가 함께 보고 씀(create_agent의 context로 넘김).
 
     W2 질문 분석이 identifiers, clean_question, terms, filters를 더 채움.
@@ -1398,7 +1397,7 @@ def new_context(res: Resources, data: dict, question: str, role: str, member_id:
     return {
         # 요청 정보
         "question": question, "role": role, "member_id": member_id, "started": time.time(),
-        "timeout": timeout,
+        "timeout": REQUEST_TIMEOUT,
         # 모은 근거: 원문, 엔티티, 보고서, Global 주제, 엔티티 짧은 id 표(e1 ↔ elementId)
         "chunks": {}, "entities": {}, "evidence_reports": {}, "topics": {}, "entity_short": {}, "entity_long": {},
         # W5 상한 판정용 셈: 회차, 쓴 질의, global 사용 수, 막은 호출, 회차별 호출과 결과, 연속 횟수
@@ -1626,15 +1625,15 @@ def first_message(ctx: dict, route: dict) -> str:
     return "\n".join(lines)
 
 
-def run_workflow(res: Resources, data: dict, question: str, role: str, member_id: str | None, answer_on: bool,
-                 timeout: int = REQUEST_TIMEOUT, until: int = 10) -> dict:
+def run_workflow(res: Resources, data: dict, question: str, role: str, member_id: str | None,
+                 until: str = "W10") -> dict:
     """질문 하나를 W1 ~ W10 순서로 처리하고 종료 상태(make_end_state 결과)와 기록을 돌려줌.
 
-    until: 5면 W5 채점과 상한 판정까지, 7이면 W7 수집 종료 판정까지 수행하고 그 결과를 화면에 보인 뒤 멈춤(10은 끝까지).
-    끝나는 자리는 여러 곳이지만 어디서 끝나든 finish_request가 W10 종료 상태를 찍고 돌려줌.
+    until: "W2", "W5", "W7"이면 그 단계까지 수행하고 그 단계까지의 결과를 모아 보인 뒤 멈춤("W10"은 끝까지).
+    끝나는 자리는 여러 곳이지만 어디서 끝나든 finish_request가 결과를 찍고 돌려줌.
     """
     # 준비: 이 요청의 작업 기록(ctx)을 만듦. 툴, 미들웨어, 단계 함수가 모두 이 기록을 함께 보고 씀
-    ctx = new_context(res, data, question, role, member_id, timeout)
+    ctx = new_context(res, data, question, role, member_id)
     warnings = ctx["warnings"]
 
     # W1 요청 접수: 검색 권한, 활성 세대 인덱스, 커뮤니티 보고서 유무를 확인(실습 함수 check_ready)
@@ -1672,6 +1671,14 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
             f"({a['first_tool_swapped'][1]:.2f})")
     say(f"   W2 코드의 결정: {route['reason']}")
 
+    # --- --until W2: W1 ~ W2 결과(필터, 핵심 낱말, Jev 확률, 코드의 결정, W3에 넘길 첫 메시지)를 모아 보이고 멈춤
+    if until == "W2":
+        until_banner("W2")
+        show_analyzed(ctx, route)
+        next_step = (f"W10 종료 상태 「{core.END_STATES[route['end']][0]}」(검색하지 않음)" if route["end"]
+                     else "W3 검색 에이전트(위 첫 메시지를 받고 툴을 고름)")
+        return finish_request(ctx, until_end(ctx, "W2", f"W2 코드의 결정: {route['reason']}", [], next_step), [])
+
     # --- 잡담이면 W10 「검색 불필요」, 모호하면 W10 「확인 필요」로 끝냄(검색하지 않음)
     if route["end"]:
         return finish_request(ctx, core.make_end_state(route["end"], route["reason"], "", [], warnings), [])
@@ -1703,15 +1710,15 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
     say(f"\n── W3 수집 끝: {finish['status'] or '코드가 정함'} - {finish['reason']} "
         f"(회차 {ctx['rounds']}, 원문 {len(ctx['chunks'])}개, 엔티티 {len(ctx['entities'])}개)")
 
-    # --- --until 5: W3 ~ W5 반복이 모은 것(진단 신호, 남은 원문과 뺀 원문, 엔티티, 보고서)을 보이고 멈춤
-    if until == 5:
-        until_banner(5)
+    # --- --until W5: W3 ~ W5 반복이 모은 것(진단 신호, 남은 원문과 뺀 원문, 엔티티, 보고서)을 모아 보이고 멈춤
+    if until == "W5":
+        until_banner("W5")
         evidence_list = show_collected(ctx)
         if finish["status"] == "need_clarification":
             next_step = "W10 종료 상태 「확인 필요」(에이전트가 need_clarification으로 끝냄)"
         else:
             next_step = "W6 리랭킹 → W7 수집 종료 판정"
-        return finish_request(ctx, until_end(ctx, 5, f"W3 수집 끝: {finish['reason']}", evidence_list, next_step),
+        return finish_request(ctx, until_end(ctx, "W5", f"W3 수집 끝: {finish['reason']}", evidence_list, next_step),
                               messages)
 
     # --- 에이전트가 need_clarification으로 끝냈으면 W6 ~ W9를 건너뛰고 W10 「확인 필요」로 끝냄
@@ -1762,22 +1769,19 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
         decision = {**decision, "passed": False, "reason": f"에이전트가 확인 불가로 끝냄: {finish['reason']}"}
         say("   W7 에이전트가 unverifiable로 끝냈으므로 더 엄격한 쪽을 따름 → W10")
 
-    # --- --until 7: W6 최종 근거와 W7 판정을 보이고 멈춤
-    if until == 7:
-        until_banner(7)
+    # --- --until W7: W6 최종 근거와 W7 판정을 모아 보이고 멈춤
+    if until == "W7":
+        until_banner("W7")
         show_judged(picked, decision, texts)
         next_step = ("W8 답변 생성 ⇄ W9 근거 검증" + ("(전제를 바로잡는 답)" if decision.get("premise_conflict") else "")
                      if decision["passed"] else "W10 종료 상태 「확인할 수 없음」")
         verdict = "통과" if decision["passed"] else "불통과"
         reason = f"W7 판정: {verdict}" + (f" ({decision['reason']})" if decision["reason"] != verdict else "")
-        return finish_request(ctx, until_end(ctx, 7, reason, evidence_list, next_step), messages)
+        return finish_request(ctx, until_end(ctx, "W7", reason, evidence_list, next_step), messages)
 
-    # --- 불통과면 W10 「확인할 수 없음」, 답변 생성을 껐으면(--no-answer) W10 「검색 결과」로 끝냄
+    # --- 불통과면 W10 「확인할 수 없음」으로 끝냄
     if not decision["passed"]:
         return finish_request(ctx, core.make_end_state("unverifiable", decision["reason"], "", evidence_list, warnings),
-                              messages)
-    if not answer_on:
-        return finish_request(ctx, core.make_end_state("evidence_only", "답변 생성 끔", "", evidence_list, warnings),
                               messages)
 
     # W8 답변 생성 ⇄ W9 근거 검증(반복 2): 근거만으로 답하고, 인용과 숫자를 코드가 확인해 틀리면
@@ -1823,18 +1827,48 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
                                                    answer_text(answer), evidence_list, warnings), messages)
 
 
-def until_banner(until: int) -> None:
+def until_banner(until: str) -> None:
     """--until 결과 머리줄."""
     say(f"\n{'═' * 16} --until {until}: {UNTIL_STEPS[until]}까지 수행한 결과 {'═' * 16}")
 
 
-def until_end(ctx: dict, until: int, reason: str, evidence_list: list[dict], next_step: str) -> dict:
-    """--until로 멈출 때의 종료 기록. 코드는 evidence_only(근거 목록만)로 두고 이름과 뜻을 바꿈."""
+def until_end(ctx: dict, until: str, reason: str, evidence_list: list[dict], next_step: str) -> dict:
+    """--until로 중간에 멈출 때의 기록. W10 종료 상태가 아니라서 종료 상태 표(END_STATES)를 쓰지 않음."""
     say(f"[다음 단계] 끝까지 돌렸다면: {next_step}")
-    say(f"여기서 멈춤. 다음 단계는 수행하지 않음(끝까지 보려면 --until 10)")
-    end = core.make_end_state("evidence_only", reason, "", evidence_list, ctx["warnings"])
-    return {**end, "status": f"{UNTIL_STEPS[until]}까지 수행", "until": until,
-            "meaning": f"--until {until}로 중간에 멈춤. 근거 목록은 이 단계까지 모은 것"}
+    say("여기서 멈춤. 다음 단계는 수행하지 않음(끝까지 보려면 --until W10)")
+    return {"status": f"{UNTIL_STEPS[until]}까지 수행", "code": "stopped", "until": until,
+            "meaning": f"--until {until}로 중간에 멈춤. 근거 목록은 이 단계까지 모은 것", "reason": reason,
+            "answer": "", "evidence": evidence_list, "warnings": ctx["warnings"]}
+
+
+def show_analyzed(ctx: dict, route: dict) -> None:
+    """--until W2: W1 ~ W2 결과(식별자로 만든 필터, 핵심 낱말, Jev 확률, 코드의 결정, W3에 넘길 첫 메시지)를 모아 보임."""
+    ids, filters = ctx["identifiers"], ctx["filters"]
+    say(f"[W1 요청 접수] 역할 {ctx['role']}, global_search {'쓸 수 있음' if ctx['allow_global'] else '쓸 수 없음'}")
+    say("[W2 코드: 식별자로 검색 필터 만들기]")
+    say(f"   원 질문       {core.MEMBER_ID_PATTERN.sub('M-****', ctx['question'])}")
+    say(f"   지운 질문     {ctx['clean_question']}")
+    say(f"   회원 필터     {'있음(회원번호 → 가명 키)' if filters['member_pseudo_id'] else '없음'}")
+    say(f"   카드 필터     {', '.join(ids['card_names']) or '없음'}")
+    say(f"   볼 수 있는 것 청크 {len(filters['allowed_ids'])}개, 보고서 {len(filters['allowed_reports'])}개")
+    if ids["version_asked"]:
+        missing = "색인에 없어 W7에서 불통과" if ids["version_missing"] else "색인에 있음"
+        say(f"   약관 버전     {ids['version_asked']} 물음({missing})")
+    say(f"   핵심 낱말     {', '.join(ctx['terms']) or '-'}")
+    a = route["answers"]
+    say("[W2 Jev 확률]")
+    if a:
+        say(f"   잡담 {a['is_smalltalk']:.2f}, 모호 {a['needs_clarification']:.2f} "
+            f"(기준값 {ROUTE_THRESHOLDS['end_noul']} 이상이면 검색하지 않고 끝냄)")
+        say(f"   첫 툴 {a['first_tool'][0]}(확신 {a['first_tool'][1]:.2f}) / 보기 순서를 바꿔 {a['first_tool_swapped'][0]}"
+            f"(확신 {a['first_tool_swapped'][1]:.2f}). 같은 답이고 둘 다 {ROUTE_THRESHOLDS['choice_confidence']} 이상이면 후보")
+    else:
+        say("   Jev 실패: 규칙만으로 검색을 이어 감")
+    say(f"[W2 코드의 결정] {route['reason']}")
+    if not route["end"]:
+        say("[W3 검색 에이전트에 넘길 첫 메시지]")
+        for line in first_message(ctx, route).splitlines():
+            say(f"   {line}")
 
 
 def show_collected(ctx: dict) -> list[dict]:
@@ -1912,18 +1946,24 @@ def show_judged(picked: dict, decision: dict, texts: dict) -> None:
 
 
 def finish_request(ctx: dict, end: dict, messages: list) -> dict:
-    """W10 종료 상태를 화면에 찍고, W3 에이전트 실제 비용과 호출 수, 툴 경로를 붙여 돌려줌."""
+    """W10 종료 상태(또는 --until로 멈춘 자리)를 찍고, W3 에이전트 실제 비용과 호출 수, 툴 경로를 붙여 돌려줌."""
     cost = agent_cost(messages)
     path = [tool for calls in ctx["round_calls"] for tool, _ in calls]
     if end.get("until"):  # --until로 멈춘 경우: W10 종료 상태가 아니라 멈춘 자리를 찍음
         say(f"\n── 멈춤(--until {end['until']}): {end['status']} - {end['reason']}")
-    else:
-        say(f"\n── W10 종료 상태: {end['status']} - {end['reason']}")
+    else:  # W10까지 수행: 종료 상태, 답, 근거를 모아 보임
+        until_banner("W10")
+        say(f"[W10 종료 상태] {end['status']} - {end['reason']}")
         say(f"   뜻: {end['meaning']}")
-    if end["answer"]:
-        say(f"   답: {end['answer']}")
+        if end["answer"]:
+            say(f"[답] {end['answer']}")
+        if end["evidence"]:
+            say(f"[근거] {len(end['evidence'])}개(W6이 고른 순서. 답의 c1, c2 …와 같은 번호)")
+            for number, item in enumerate(end["evidence"], start=1):
+                say(f"   c{number} {item['id']} {short(item['text'], 70)}")
     for warning in end["warnings"]:
         say(f"   경고: {short(warning, 120)}")
+    say("[비용과 호출 수]")
     say(f"   에이전트(Groq) 비용 ${cost['usd']:.5f} (호출 {cost['calls']}번, 입력 {cost['input']}, 캐시 읽기 {cost['cache_read']}, "
         f"출력 {cost['output']} 토큰)")
     say(f"   호출 수: 에이전트 {ctx['calls']['agent']}번, Jev {ctx['calls']['jev']}번, Groq(G1, G2, W8) {ctx['calls']['groq']}번, Cohere {ctx['calls']['cohere']}번, "
@@ -1954,8 +1994,8 @@ def start_check(res: Resources) -> dict:
     return load_generation_data(res)
 
 
-def eval_item_role(item: dict) -> tuple[str, str | None]:
-    """평가셋 문항의 역할: 회원 필터가 있으면 auditor + 그 회원, 경향 문항(Q23 ~ Q25)은 auditor, 나머지는 agent."""
+def qid_role(item: dict) -> tuple[str, str | None]:
+    """--qid로 고른 평가셋 문항의 역할: 회원 필터가 있으면 auditor + 그 회원, 경향 문항(Q23 ~ Q25)은 auditor, 나머지는 agent."""
     for flt in item.get("filters", []):
         if flt.get("member_id"):
             return "auditor", flt["member_id"]
@@ -1965,85 +2005,19 @@ def eval_item_role(item: dict) -> tuple[str, str | None]:
     return "agent", None
 
 
-def hit_check(item: dict, result: dict, data: dict) -> bool | None:
-    """근거 적중: 평가셋 relevance.clues(정답 단서) 하나 이상이 W6 뒤 원문에 그대로 있으면 적중(답 없는 문항은 None)."""
-    if not item.get("answerable"):
-        return None
-    texts = " ".join(e["text"] for e in result["evidence"]).replace(" ", "")
-    for rel in item.get("relevance", []):
-        for phrase in rel.get("clues", []):
-            if phrase.replace(" ", "") in texts:
-                return True
-    return False
-
-
-def run_eval(res: Resources, data: dict, args) -> None:
-    """평가셋 일괄 실행: 문항별 종료 상태, 근거 적중, 함정 거절, 툴 경로, 에이전트 비용. 문항마다 바로 로그에 씀."""
-    items = load_json(EVAL_SET_PATH)["questions"]
-    if args.only:
-        wanted = set(args.only.split(","))
-        items = [i for i in items if i["id"] in wanted]
-    if args.start:
-        items = items[[i["id"] for i in items].index(args.start):]
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
-    stamp = time.strftime("%Y%m%d-%H%M%S")
-    log_path = LOG_DIR / f"eval-{stamp}.jsonl"
-    rows = []
-    for repeat in range(1, args.repeat + 1):
-        for item in items:
-            role, member = eval_item_role(item)
-            say(f"\n{'=' * 100}\n[{item['id']}] ({role}{', 회원 지정' if member else ''}) 반복 {repeat}/{args.repeat}")
-            try:
-                result = run_workflow(res, data, item["question"], role, member, not args.no_answer,
-                                      EVAL_REQUEST_TIMEOUT)
-            except Exception as error:
-                result = {"status": "실행 예외", "code": "exception", "reason": short(error, 200), "evidence": [],
-                          "agent_cost": {"usd": 0}, "tool_path": [], "rounds": 0, "answer": ""}
-            hit = hit_check(item, result, data)
-            trap_ok = None if item.get("answerable") else result.get("code") in ("unverifiable", "need_clarification")
-            row = {"id": item["id"], "repeat": repeat, "role": role, "status": result["status"],
-                   "code": result.get("code"),
-                   "reason": result.get("reason"), "hit": hit, "trap_ok": trap_ok, "tools": result.get("tool_path"),
-                   "rounds": result.get("rounds"), "agent_usd": result["agent_cost"]["usd"],
-                   "seconds": result.get("seconds"), "answer": result.get("answer", "")}
-            rows.append(row)
-            with log_path.open("a", encoding="utf-8") as handle:  # 문항마다 바로 씀(중간에 멈춰도 남음)
-                handle.write(json.dumps(row, ensure_ascii=False) + "\n")
-            if args.sleep:
-                time.sleep(args.sleep)
-    say(f"\n{'=' * 100}\n평가 요약({log_path.name})")
-    for row in rows:
-        mark = {True: "적중", False: "빗나감", None: "-"}[row["hit"]]
-        trap = {True: "거절 성공", False: "거절 실패", None: ""}[row["trap_ok"]]
-        say(f"  {row['id']} r{row['repeat']} {row['status']:<14} {mark:<4} {trap:<6} 회차 {row['rounds']} "
-            f"${row['agent_usd']:.4f} {row['tools']}")
-    answerable = [r for r in rows if r["hit"] is not None]
-    traps = [r for r in rows if r["trap_ok"] is not None]
-    say(f"  근거 적중 {sum(1 for r in answerable if r['hit'])}/{len(answerable)}, "
-        f"함정 거절 {sum(1 for r in traps if r['trap_ok'])}/{len(traps)}, "
-        f"에이전트 비용 합계 ${sum(r['agent_usd'] for r in rows):.4f}")
-
-
 def main_cli() -> None:
-    """명령행 인자를 읽어 질문 하나 또는 평가셋을 실행함."""
+    """명령행 인자를 읽어 질문 하나를 실행함."""
     # 명령행 인자
     parser = argparse.ArgumentParser(description="GraphRAG 검색 예제")
-    parser.add_argument("question", nargs="?", help="질문. --qid나 --eval을 주면 생략")
+    parser.add_argument("question", nargs="?", help="질문. --qid를 주면 생략")
     parser.add_argument("--qid", help="평가셋 질문 번호(예: Q01). 역할과 회원은 평가셋 filters대로")
     parser.add_argument("--role", default=None, help="agent(공개 문서만) 또는 auditor(상담 기록까지)")
     parser.add_argument("--member-id", default=None, help="회원번호(예: M-1042). auditor일 때 그 회원 상담만 봄")
-    parser.add_argument("--no-answer", action="store_true", help="W8 답변 생성을 끄고 근거 목록만(W10 검색 결과)")
-    parser.add_argument("--eval", action="store_true", help="평가셋 일괄 실행(강사용)")
-    parser.add_argument("--start", help="--eval을 이 문항부터(이어 하기)")
-    parser.add_argument("--only", help="--eval에서 이 문항만(쉼표로). 예: Q18,Q19")
-    parser.add_argument("--repeat", type=int, default=1, help="--eval 반복 횟수(LLM은 실행마다 결과가 다를 수 있음)")
-    parser.add_argument("--sleep", type=float, default=0, help="--eval 문항 사이 쉬는 초(호출 제한 대비)")
     parser.add_argument("--mine", action="store_true", help="강사 코드 대신 교육생 코드(my_search.py)로 실행함")
-    parser.add_argument("--until", type=int, choices=sorted(UNTIL_STEPS), default=10,
-                        help="워크플로우 단계 번호. 5: W5 채점과 상한 판정까지, 7: W7 수집 종료 판정까지, 10: 끝까지(기본)")
+    parser.add_argument("--until", type=str.upper, choices=list(UNTIL_STEPS), default="W10",
+                        help="이 단계까지 수행하고 그 단계까지의 결과를 모아 보임. W2: 질문 분석, W5: 채점과 상한 판정, "
+                             "W7: 수집 종료 판정, W10: 끝까지(기본)")
     args = parser.parse_args()
-    if args.eval and args.until != 10:
-        raise SystemExit("--until은 질문 하나를 실행할 때만 씀(--eval은 끝까지 돌려야 채점함)")
 
     # 자원 준비: 접속과 모델을 만들고, 시작 검사 뒤 활성 세대 자료를 읽어 둠. 함수 표(TOOL_FUNCTIONS)를 여기서 채움
     global RES
@@ -2053,11 +2027,6 @@ def main_cli() -> None:
     DATA.update(data)
     TOOL_FUNCTIONS.update(make_tool_functions(res))
 
-    # 평가셋 일괄 실행(--eval)
-    if args.eval:
-        run_eval(res, data, args)
-        return
-
     # 질문 하나 실행: 질문과 역할을 정함(--qid면 평가셋의 질문과 역할, 회원)
     question, role, member = args.question, args.role or "agent", args.member_id
     if args.qid:
@@ -2065,14 +2034,14 @@ def main_cli() -> None:
         if not item:
             raise SystemExit(f"평가셋에 {args.qid}가 없음")
         question = item["question"]
-        default_role, default_member = eval_item_role(item)
+        default_role, default_member = qid_role(item)
         role, member = args.role or default_role, args.member_id or default_member
     if not question:
         raise SystemExit("질문을 주거나 --qid Q01 처럼 평가셋 번호를 줌")
     say(f"질문: {core.MEMBER_ID_PATTERN.sub('M-****', question)} (역할 {role}{', 회원 지정' if member else ''})")
 
     # 워크플로우 실행(W1 ~ W10)
-    result = run_workflow(res, data, question, role, member, not args.no_answer, until=args.until)
+    result = run_workflow(res, data, question, role, member, until=args.until)
 
     # 실행 기록 저장
     LOG_DIR.mkdir(parents=True, exist_ok=True)
