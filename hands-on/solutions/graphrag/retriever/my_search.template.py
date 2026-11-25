@@ -4,17 +4,17 @@
   [교시 2]
    1 jev_route                (직접)       W2 질문 분석: Jev에 판정 요청
    2 build_agent              (직접)       W3 검색 에이전트: create_agent로 ReAct 루프
-   3 ToolWrapperMiddleware    (직접)       W4 래퍼와 W5 채점: 툴 호출 감싸기(wrap_tool_call)
+   3 ToolWrapperMiddleware    (빈칸 3곳)    W4 래퍼와 W5 채점: 툴 호출 감싸기(wrap_tool_call)
    4 run_tool                 (직접)       W4 툴 실행: 래퍼
   [교시 3]
-   5 read_chunk_texts         (직접)       W4 원문 글 읽기
+   5 read_chunk_texts         (빈칸 1곳)    W4 원문 글 읽기
    6 search_engine            (빈칸 2곳)    W4 O 검색엔진 검색: O1 벡터, O2 BM25, O3, O4
    7 rrf_merge                (직접)       W4 O 검색엔진 검색: RRF
    8 local_search             (빈칸 2곳)    W4 L Local 검색: L1 두 갈래, L2, L3, L4
    9 narrow_entities          (직접)       W4 L Local 검색: L1 갈래 A 엔티티 축소
   10 global_search            (빈칸 3곳)    W4 G Global 검색: G1, G2, G3
   [교시 4]
-  11 jev_judge_passages       (직접)       W5 채점: Jev 청크 판정
+  11 jev_judge_passages       (빈칸 1곳)    W5 채점: Jev 청크 판정
   12 rerank                   (직접)       W6 리랭킹(O4 포함): Cohere 리랭커
   13 generate_answer          (직접)       W8 답변 생성: LCEL 체인 + 구조화 출력
   제공(완성본, 읽기만): 상수, 프롬프트와 스키마, 도구, 제공 함수는 core_search에서 그대로 가져옴(아래 import)
@@ -88,7 +88,7 @@ def build_agent(model, tools: list, system_prompt: str, middleware: list, first_
 
 
 # ===========================================================================
-# 3. W4 래퍼와 W5 채점: 툴 호출 감싸기(wrap_tool_call) — 직접 작성
+# 3. W4 래퍼와 W5 채점: 툴 호출 감싸기(wrap_tool_call) — 빈칸 3곳(툴 실행, 채점 글 받기, 관찰에 덧붙이기)
 # ===========================================================================
 class ToolWrapperMiddleware(AgentMiddleware):
     """W4 래퍼와 W5 채점: 막힌 호출은 실행하지 않고 오류 표시로 돌려주고, 실행한 결과에는 Jev 판정과 진단 신호를 붙임.
@@ -114,7 +114,42 @@ class ToolWrapperMiddleware(AgentMiddleware):
                   채점 중 예외가 나면 traceback을 ctx["fatal"]에 적음
         반환값: ToolMessage(에이전트가 받는 관찰)
         """
-        raise NotImplementedError("여기에 본인 코드를 작성함")
+        ctx = request.runtime.context
+        call = request.tool_call
+
+        # (1) 막힌 호출: after_model이 표시한 호출은 실행하지 않고 오류 표시 + 「더 부를 수 없음」
+        if call["id"] in ctx["blocked"]:
+            record_outcome(ctx, failed=True, no_new=True)
+            return ToolMessage(content=f"더 부를 수 없음. 지금 근거로 finish할 것({ctx['blocked'][call['id']]})",
+                               tool_call_id=call["id"], name=call["name"], status="error")
+
+        # (2) 툴 실행: handler가 @tool 함수를 실행함(→ call_wrapper → run_tool → 서브 워크플로우)
+        # 빈칸 1: handler(request)로 툴을 실제로 실행하고, 돌아온 ToolMessage를 message에 받음
+        raise NotImplementedError("빈칸 1을 채울 것")
+
+        # (3) finish는 수집을 끝내는 툴이라 채점하지 않고 그대로 돌려줌
+        if call["name"] == "finish":
+            say(f"   W4 finish: {call['args'].get('status')} - {call['args'].get('reason')}")
+            return message
+
+        # (4) 입력 오류: run_tool이 입력 오류를 내면 오류 표시만 붙여 돌려줌
+        out = ctx["call_results"].get(call["id"], {})
+        if out.get("error"):
+            message.status = "error"
+            record_outcome(ctx, failed=True, no_new=True)
+            say(f"   W4 {call['name']}: {out['text']}")
+            return message
+
+        # (5) W5 채점 붙이기: Jev 원문 판정과 진단 신호를 관찰 끝에 덧붙임(관련 없는 원문은 근거에서 뺌)
+        try:
+            # 빈칸 2: 만들 때 넘겨받은 self.score_result(ctx, call, out["result"])로 W5 채점 글을 note에 받음
+            raise NotImplementedError("빈칸 2를 채우고 이 줄을 지울 것")
+        except Exception:
+            ctx["fatal"] = traceback.format_exc()
+            note = "채점 중 오류(요청을 끝냄)"
+        # 빈칸 3: message.content 끝에 줄을 바꿔 note를 덧붙임(에이전트가 관찰 끝에서 채점 글을 읽게 함)
+        raise NotImplementedError("빈칸 3을 채우고 이 줄을 지울 것")
+        return message
 
 
 # ===========================================================================
@@ -131,7 +166,7 @@ def run_tool(name: str, args: dict, ctx: dict, tool_functions: dict) -> dict:
 
 
 # ===========================================================================
-# 5. W4 원문 글 읽기 — 직접 작성
+# 5. W4 원문 글 읽기 — 빈칸 1곳(검색엔진에서 한 번에 읽기)
 # ===========================================================================
 def read_chunk_texts(res, ctx: dict, chunk_ids: list[str]) -> dict:
     """청크 id로 원문 글을 검색엔진에서 읽음(mget 한 번). 이 요청 안에서 한 번 읽은 글은 다시 읽지 않음.
@@ -141,7 +176,31 @@ def read_chunk_texts(res, ctx: dict, chunk_ids: list[str]) -> dict:
     쓰는 곳: 관찰 글, W5 채점, W6 리랭킹, W7 수집 종료 판정(재확인), W8 답변 생성(근거 묶음)
     반환값: {chunk_id: 글}. 못 읽은 청크는 빈 글("")로 돌려주고 경고를 남김(다음에 다시 읽어 봄).
     """
-    raise NotImplementedError("여기에 본인 코드를 작성함")
+    # (1) 이 요청에서 이미 읽은 청크는 건너뛰고, 모자란 청크만 고름(순서는 지키고 중복은 뺌)
+    cache = ctx["texts"]
+    missing = [cid for cid in dict.fromkeys(chunk_ids) if cid not in cache]
+
+    if missing:
+        # (2) 모자란 청크를 id로 한 번에 읽음. 글(text)만 받고 벡터는 받지 않음
+        try:
+            # 빈칸 1: res.os.mget로 모자란 청크(missing)의 글만 한 번에 읽고, 결과의 ["docs"]를 docs에 받음
+            #   index는 이 요청의 세대 인덱스 ctx["filters"]["index"], body는 {"ids": missing},
+            #   벡터는 받지 않게 _source_includes=["text"]
+            raise NotImplementedError("빈칸 1을 채울 것")
+            with PRINT_LOCK:
+                ctx["calls"]["text_reads"] += 1
+            for doc in docs:
+                if doc.get("found"):
+                    cache[doc["_id"]] = doc["_source"].get("text") or ""
+        # (3) 못 읽으면 멈추지 않고 경고만 남김. 캐시에 넣지 않아 다음 호출에서 다시 읽음
+        except Exception as error:
+            ctx["warnings"].append(f"원문 읽기 실패: {short(error, 60)}")
+        lost = [cid for cid in missing if cid not in cache]
+        if lost:
+            ctx["warnings"].append(f"원문을 못 읽은 청크 {len(lost)}개: {', '.join(lost[:3])}")
+
+    # (4) 부른 순서대로 {청크 id: 글}. 못 읽은 청크는 빈 글
+    return {cid: cache.get(cid, "") for cid in chunk_ids}
 
 
 # ===========================================================================
@@ -351,7 +410,7 @@ def global_search(res, query: str, filters: dict, ctx: dict) -> dict:
 
 
 # ===========================================================================
-# 11. W5 채점: Jev 청크 판정 — 직접 작성
+# 11. W5 채점: Jev 청크 판정 — 빈칸 1곳(청크 하나 판정)
 # ===========================================================================
 def jev_judge_passages(res, question: str, chunk_ids: list[str], ctx: dict) -> dict:
     """W5, W7 원문마다 Jev Noul 4개를 묻고 표시를 붙임. 판정은 (판정 질문, 청크 id)로 캐시해 두 번 묻지 않음.
@@ -366,7 +425,44 @@ def jev_judge_passages(res, question: str, chunk_ids: list[str], ctx: dict) -> d
     짧은 id는 res.ready_data["chunk_meta"][청크 id]["short_id"](예: D1-0007).
     반환값: {chunk_id: 표시 dict}. Jev가 실패한 원문은 결과에 없음(호출한 쪽이 「모두 관련」으로 셈).
     """
-    raise NotImplementedError("여기에 본인 코드를 작성함")
+    # (1) 캐시 확인: 같은 질문과 원문으로 이미 판정했으면 그 결과를 쓰고, 처음 보는 원문만 todo에 모음
+    results = {}
+    todo = []
+    for chunk_id in chunk_ids:
+        key = f"{question}|{chunk_id}"
+        if key in ctx["jev_cache"]:
+            results[chunk_id] = ctx["jev_cache"][key]
+        else:
+            todo.append(chunk_id)
+
+    # (2) 판정할 원문 글을 한 번에 읽음
+    texts = read_chunk_texts(res, ctx, todo)
+
+    # (3) 원문 하나를 판정하는 함수: 질문(query)과 원문(passage)을 넣고 Noul 4개를 한 번에 물어 확률만 받음
+    def ask(chunk_id: str):
+        # 빈칸 1: 청크 하나를 Jev로 판정함
+        #   (1) 짧은 id(예: D1-0007)는 res.ready_data["chunk_meta"][chunk_id]["short_id"]
+        #   (2) 자료 state = {"query": question, "passage": {"id": 짧은 id, "text": texts[chunk_id]}}
+        #   (3) res.jev.system_one(state=state, questions=PASSAGE_QUESTIONS)로 Noul 4개를 한 번에 물음
+        #   (4) (chunk_id, {질문 이름: 답의 .noul 확률})을 돌려줌. 질문 이름은 PASSAGE_QUESTIONS의 키
+        raise NotImplementedError("빈칸 1을 채울 것")
+
+    # (4) 6개씩 동시에 부르고, 확률을 기준값과 비교해 표시를 붙임(결정은 코드: apply_passage_judgments)
+    if todo:
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            futures = [pool.submit(ask, chunk_id) for chunk_id in todo]
+            for future in futures:
+                try:
+                    chunk_id, probs = future.result()
+                except Exception as error:  # 실패한 원문은 결과에서 빠짐(호출한 쪽이 관련 있음으로 셈)
+                    ctx["warnings"].append(f"Jev 원문 판정 실패: {short(error, 60)}")
+                    continue
+                with PRINT_LOCK:
+                    ctx["calls"]["jev"] += 1
+                mark = apply_passage_judgments(probs, PASSAGE_THRESHOLDS)
+                ctx["jev_cache"][f"{question}|{chunk_id}"] = mark
+                results[chunk_id] = mark
+    return results
 
 
 # ===========================================================================

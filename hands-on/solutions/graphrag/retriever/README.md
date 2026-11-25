@@ -3,7 +3,7 @@
 하이브리드 AI 교육 「그래프 검색」(교재 『W05 ~ W07』 64 ~ 79쪽) 실습용 예제임.  
 인덱싱 실습(`../indexer`)이 게시한 활성 세대(Neo4j 그래프 + OpenSearch 검색엔진)를 읽어,  
 **Groq 에이전트(gpt-oss-120b)가 툴을 골라 근거를 모으고(ReAct), 판단은 의사결정AI Jev가 확률로, 막는 일은 코드가 맡는** 검색 워크플로우 10단계를 돌림.  
-레이어드 아키텍처 없이 **main 1개 + 핵심 모듈 1개**로 짰고, 교육생은 핵심 모듈의 실습 함수 13개(직접 작성 10개, 빈칸 채우기 3개)를 채운 뒤 본인 코드로 바꿔 끼움.
+레이어드 아키텍처 없이 **main 1개 + 핵심 모듈 1개**로 짰고, 교육생은 핵심 모듈의 실습 함수 13개(직접 작성 7개, 빈칸 채우기 6개)를 채운 뒤 본인 코드로 바꿔 끼움.
 
 ## 수업용 명령 2개
 
@@ -27,7 +27,7 @@ python search_graph.py --qid Q19
 | 목표 | 내용 |
 |---|---|
 | 개념을 코드로 | 교재 70쪽 워크플로우(W1 요청 접수 → W2 질문 분석 → W3 검색 에이전트 ⇄ W4 툴 실행 → W5 채점과 상한 판정 → W6 리랭킹 → W7 수집 종료 판정 → W8 답변 생성 ⇄ W9 근거 검증 → W10 종료 상태)를 함수 하나씩으로 봄 |
-| 클론 코딩 | 실습 함수 13개(직접 작성 10개, 빈칸 채우기 3개: `search_engine`, `local_search`, `global_search`). `my_search.py`에 채우고 `--mine` 옵션으로 바꿔 끼움 |
+| 클론 코딩 | 실습 함수 13개(직접 작성 7개, 빈칸 채우기 6개: `ToolWrapperMiddleware`, `read_chunk_texts`, `search_engine`, `local_search`, `global_search`, `jev_judge_passages`). `my_search.py`에 채우고 `--mine` 옵션으로 바꿔 끼움 |
 | 눈으로 확인 | Jev 확률과 코드의 결정, 회차마다 에이전트가 고른 툴과 질의, 진단 신호, 강제 종료 이유, 8자리, 코드 재확인, 인용 검증, 종료 상태, 에이전트 실제 비용을 화면에 찍음 |
 
 주요 기능
@@ -189,20 +189,23 @@ python search_graph.py --qid Q01 --until W10  # 끝까지(기본): 종료 상태
 |---|---|---|---|---|
 | 1 | 2 | `jev_route` | 직접 | W2 Jev에 잡담, 모호, 첫 툴을 묻고 확률만 받음(보기 순서를 뒤집어 한 번 더) |
 | 2 | 2 | `build_agent` | 직접 | W3 create_agent로 ReAct 루프를 만들고 돌림 |
-| 3 | 2 | `ToolWrapperMiddleware` | 직접 | W4 래퍼와 W5 채점: 막힌 호출은 오류 표시, 실행 결과에는 채점 글 |
+| 3 | 2 | `ToolWrapperMiddleware` | 빈칸 3 | W4 래퍼와 W5 채점: 툴 실행(handler), 채점 글 받기(score_result), 관찰에 덧붙이기 |
 | 4 | 2 | `run_tool` | 직접 | W4 입력 검사, 질의 속 식별자 지우기, 필터 강제 |
-| 5 | 3 | `read_chunk_texts` | 직접 | W4 청크 id로 검색엔진에서 글 읽기(요청 안 캐시) |
+| 5 | 3 | `read_chunk_texts` | 빈칸 1 | W4 청크 id로 검색엔진에서 글 읽기(요청 안 캐시): 모자란 청크를 mget으로 한 번에 읽기 |
 | 6 | 3 | `search_engine` | 빈칸 2 | W4 O 검색엔진 검색: O1 벡터 검색, O2 BM25 검색 |
 | 7 | 3 | `rrf_merge` | 직접 | W4 O3 RRF로 두 순위 합치기 |
 | 8 | 3 | `local_search` | 빈칸 2 | W4 L Local 검색: L1 갈래 A 후보, L1 갈래 B |
 | 9 | 3 | `narrow_entities` | 직접 | W4 L1 갈래 A 엔티티 16개로 줄이기 |
 | 10 | 3 | `global_search` | 빈칸 3 | W4 G Global 검색: G1 보고서 고르기, G2 주제와 Follow-up 질문, G3 주제별 Local 검색 |
-| 11 | 4 | `jev_judge_passages` | 직접 | W5 청크마다 Jev Noul 4개를 묻고 표시를 붙임 |
+| 11 | 4 | `jev_judge_passages` | 빈칸 1 | W5 청크마다 Jev Noul 4개를 묻고 표시를 붙임: 청크 하나 판정(자료 만들기, system_one, 확률 꺼내기) |
 | 12 | 4 | `rerank` | 직접 | W6 리랭킹(O4 포함): Cohere 리랭커 점수 |
 | 13 | 4 | `generate_answer` | 직접 | W8 LCEL 체인 + 구조화 출력 |
 
 - 함수끼리 부르는 것도 같은 파일의 것을 씀. 예를 들어 `local_search`를 채우면 그 안의 `search_engine`, `narrow_entities`도
   `my_search.py`의 것이 불림(목록에 남은 이름이면 강사 코드)
+- `read_chunk_texts`, `jev_judge_passages`의 빈칸과 `ToolWrapperMiddleware`의 빈칸 2는 예외를 잡는 try 안에 있음.  
+  채우지 않고 목록에서 지우면 실행이 멈추지 않고 경고(「원문 읽기 실패: 빈칸 1을 채울 것」, 「Jev 원문 판정 실패: …」)나
+  「[실습 함수 오류]」로 보이므로, 화면의 경고 줄을 함께 봄
 - 나머지 함수(`check_ready`, `decide_question_route`, `diagnose_signals`, `force_stop_reason`, `select_final_chunks`,
   `recheck_question`, `verify_answer`, `make_end_state` 등)는 `core_search.py`의 제공 함수로 읽기만 함
 

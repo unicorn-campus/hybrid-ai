@@ -1,18 +1,18 @@
-"""GraphRAG 검색 핵심 모듈: 교육생이 작성하는 실습 함수 13개(직접 작성 10개, 빈칸 채우기 3개)와 제공 상수, 도구, 함수임.
+"""GraphRAG 검색 핵심 모듈: 교육생이 작성하는 실습 함수 13개(직접 작성 7개, 빈칸 채우기 6개)와 제공 상수, 도구, 함수임.
 
 이 파일의 함수는 main(search_graph.py)이 순서대로 부름. 실습 함수와 단계의 대응은 아래와 같음.
   교시   단계                     함수                     실습 방식       하는 일
   2      W2 질문 분석              jev_route                직접 작성      Jev에 잡담, 모호, 첫 툴을 묻고 확률만 받음
   2      W3 검색 에이전트          build_agent              직접 작성      create_agent로 ReAct 루프를 만들고 돌림
-  2      W4 래퍼와 W5 채점         ToolWrapperMiddleware    직접 작성      막힌 호출은 오류 표시, 실행 결과에는 채점
+  2      W4 래퍼와 W5 채점         ToolWrapperMiddleware    빈칸 3곳       막힌 호출은 오류 표시, 실행 결과에는 채점
   2      W4 툴 실행               run_tool                 직접 작성      입력 검사, 질의 속 식별자 지우기, 필터 강제
-  3      W4 원문 글 읽기           read_chunk_texts         직접 작성      청크 id로 검색엔진에서 글을 읽음(요청 안 캐시)
+  3      W4 원문 글 읽기           read_chunk_texts         빈칸 1곳       청크 id로 검색엔진에서 글을 읽음(요청 안 캐시)
   3      W4 O 검색엔진 검색        search_engine            빈칸 2곳       O1 벡터 검색, O2 BM25 검색
   3      W4 O3 RRF                rrf_merge                직접 작성      RRF로 두 순위 합치기
   3      W4 L Local 검색          local_search             빈칸 2곳       L1 갈래 A 후보, L1 갈래 B
   3      W4 L1 갈래 A 축소         narrow_entities          직접 작성      청크에서 나온 엔티티를 16개로 줄이기
   3      W4 G Global 검색         global_search            빈칸 3곳       G1 보고서 고르기, G2 주제와 Follow-up, G3 주제별 Local
-  4      W5 채점                  jev_judge_passages       직접 작성      청크마다 Jev Noul 4개를 묻고 표시를 붙임
+  4      W5 채점                  jev_judge_passages       빈칸 1곳       청크마다 Jev Noul 4개를 묻고 표시를 붙임
   4      W6 리랭킹(O4 포함)        rerank                   직접 작성      Cohere 리랭커로 글마다 질의 관련도 점수
   4      W8 답변 생성             generate_answer          직접 작성      LCEL 체인 + 구조화 출력
   제공(읽기만): 제공 상수, 스키마, 도구(say, short, record_outcome), 「제공 함수」 구역의 함수들
@@ -938,7 +938,7 @@ def build_agent(model, tools: list, system_prompt: str, middleware: list, first_
 
 
 # ===========================================================================
-# 실습 함수 3. W4 래퍼와 W5 채점: 툴 호출 감싸기(wrap_tool_call) — 직접 작성
+# 실습 함수 3. W4 래퍼와 W5 채점: 툴 호출 감싸기(wrap_tool_call) — 빈칸 3곳(툴 실행, 채점 글 받기, 관찰에 덧붙이기)
 # ===========================================================================
 class ToolWrapperMiddleware(AgentMiddleware):
     """W4 래퍼와 W5 채점: 막힌 호출은 실행하지 않고 오류 표시로 돌려주고, 실행한 결과에는 Jev 판정과 진단 신호를 붙임.
@@ -1030,7 +1030,7 @@ def run_tool(name: str, args: dict, ctx: dict, tool_functions: dict) -> dict:
 
 
 # ===========================================================================
-# 실습 함수 5. W4 원문 글 읽기 — 직접 작성
+# 실습 함수 5. W4 원문 글 읽기 — 빈칸 1곳(검색엔진에서 한 번에 읽기)
 # ===========================================================================
 def read_chunk_texts(res, ctx: dict, chunk_ids: list[str]) -> dict:
     """청크 id로 원문 글을 검색엔진에서 읽음(mget 한 번). 이 요청 안에서 한 번 읽은 글은 다시 읽지 않음.
@@ -1331,7 +1331,7 @@ def global_search(res, query: str, filters: dict, ctx: dict) -> dict:
 
 
 # ===========================================================================
-# 실습 함수 11. W5 채점: Jev 청크 판정 — 직접 작성
+# 실습 함수 11. W5 채점: Jev 청크 판정 — 빈칸 1곳(청크 하나 판정)
 # ===========================================================================
 def jev_judge_passages(res, question: str, chunk_ids: list[str], ctx: dict) -> dict:
     """W5, W7 원문마다 Jev Noul 4개를 묻고 표시를 붙임. 판정은 (판정 질문, 청크 id)로 캐시해 두 번 묻지 않음.
