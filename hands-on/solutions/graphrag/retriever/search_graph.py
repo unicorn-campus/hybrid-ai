@@ -67,7 +67,6 @@ else:
 BASE_DIR = Path(__file__).resolve().parent  # 이 파일이 있는 retriever 폴더
 sys.path.insert(0, str(BASE_DIR.parent / "indexer"))  # 인덱싱 실습의 토크나이저를 그대로 씀(색인과 같은 규칙이어야 BM25가 맞음)
 import kr_tokenizer  # noqa: E402
-import consult_aggregate as agg  # noqa: E402  상담 집계 경로(README 7.8). 교육생 실습 함수가 아님
 
 sys.stdout.reconfigure(encoding="utf-8")  # Windows 콘솔에서 한글이 깨지지 않게 함
 # create_agent가 context(작업 기록)를 기록용으로 직렬화할 때 내는 형식 경고를 숨김(동작에는 영향 없음)
@@ -107,6 +106,8 @@ MAX_ROUNDS = 6  # 툴 호출 회차(= 에이전트 모델 호출) 상한
 CALL_LIMITS = {"parallel": 5, "global": 1, "queries": 8}  # 한 회차 병렬, global_search 요청당, 서로 다른 질의 수
 MAX_REWRITES = 2  # 반복 2: ⑧ 재작성 상한(교재 95쪽)
 REQUEST_TIMEOUT = 180  # 요청 하나의 하드 상한(초). 넘으면 모은 근거로 ⑥에 감
+# --until: 교재 91쪽 단계 번호. 그 단계까지만 수행하고 결과를 보임(10은 끝까지)
+UNTIL_STEPS = {5: "⑤ 채점과 상한 판정", 7: "⑦ 수집 종료 판정", 10: "⑩ 종료 상태"}
 EVAL_REQUEST_TIMEOUT = 600  # --eval 때는 정상 문항이 잘리지 않게 넉넉히 둠
 RECURSION_LIMIT = 60  # 프레임워크 쪽 안전 상한(노드 실행 수). 코드 상한(6회차)보다 넉넉함
 
@@ -132,11 +133,7 @@ FINAL_CHUNKS_TOPICS = 14  # ⑥ Global 주제가 있을 때 원문 자리 수(�
 REPORT_RELEVANCE_MIN = 0.25  # 보고서 관련도(질문과 보고서 요약 임베딩의 코사인) 하한. NO_REPORTS 판정에 씀
 
 # 판단 기준값(가정값. 평가셋으로 조정 예정)
-# ② Jev 결정(교재 71쪽). aggregation: 「상담 집계 질문인가」 확률이 이 값 이상이면 상담 집계 질문(실측: 집계 0.43 이상,
-# 그 밖 0.18 이하, README 7.8)
-ROUTE_THRESHOLDS = {"end_noul": 0.7, "choice_confidence": 0.5, "aggregation": 0.3}
-# 상담 집계 경로(README 7.8): off(끔), route(② 판정으로 바로 감), tool(에이전트 툴), both(둘 다)
-AGGREGATION_MODE = os.environ.get("AGGREGATION_MODE", "both")  # 혼합 질문 비교로 정함(README 7.8)
+ROUTE_THRESHOLDS = {"end_noul": 0.7, "choice_confidence": 0.5}  # ② Jev 결정(교재 71쪽)
 PASSAGE_THRESHOLDS = {"relevant_min": 0.45, "answer_evidence_over": 0.55,  # ⑤ Jev 원문 판정(TypeSafe 쿡북 출발값)
                       "premise_conflict_over": 0.7, "injection_over": 0.7}
 EVIDENCE_RELEVANT_MIN = 0.7  # ⑦ 답 근거로 셀 때 요구하는 관련 확률(평가셋 실측으로 정함: 정답 근거는 0.9 이상, 함정은 0.6대)
@@ -341,8 +338,6 @@ def load_generation_data(res: Resources) -> dict:
             names[meta["card_name"].replace(" ", "")] = meta["card_id"]
     data["name_to_card_id"] = names
 
-    # 상담 집계 경로(README 7.8)용 상담 표: 인덱싱 K2가 그래프에 넣은 상담 구조를 읽음. 옛 세대면 None(경로 꺼짐)
-    data["consult_table"] = agg.load_consult_rows(res.run, generation, data["chunk_meta"], customer_group)
     data["graph_chunk_count"] = res.run("MATCH (c:Chunk {generation: $g}) RETURN count(c) AS n", g=generation)[0]["n"]
     data["versions"] = [r["v"] for r in res.run("MATCH (t:TermsDocument {generation: $g}) RETURN t.version AS v",
                                                 g=generation) if r["v"]]
@@ -388,12 +383,6 @@ def rerank(res: Resources, query: str, texts: list[str], ctx: dict) -> list[floa
         return None
 
 
-AGGREGATION_QUESTION = ("Answering requires reading many different customers' consultation records and collecting or "
-                        "grouping what they said or decided (complaints, inquiries, how they responded to counselor "
-                        "proposals, or contact preferences), rather than looking up a card, a terms clause, or a single "
-                        "customer's consultations")  # 문장 3개를 질문 78개로 비교해 고름(README 7.8)
-
-
 def jev_route(res: Resources, question: str, ctx: dict) -> dict | None:
     """② Jev 한 요청(잡담, 모호, 첫 툴) + 보기 순서를 뒤집은 첫 툴 한 요청. 실패하면 None.
 
@@ -417,8 +406,6 @@ def jev_route(res: Resources, question: str, ctx: dict) -> dict | None:
                                                      "guides, and consultation records"),
             "first_tool": Choice(instructions="Which search tool should be tried first for this question",
                                  criteria=criteria),
-            # 상담 집계 질문인가(README 7.8). decide_question_route(실습 함수)가 기준값과 비교해 aggregate를 정함
-            "is_aggregation": Noul(instructions=AGGREGATION_QUESTION),
         })
         second = res.jev.system_one(state=state, questions={
             "first_tool": Choice(instructions="Which search tool should be tried first for this question",
@@ -429,7 +416,6 @@ def jev_route(res: Resources, question: str, ctx: dict) -> dict | None:
     a = first.answers
     b = second.answers["first_tool"]
     return {"is_smalltalk": a["is_smalltalk"].noul, "needs_clarification": a["needs_clarification"].noul,
-            "is_aggregation": a["is_aggregation"].noul,
             "first_tool": (a["first_tool"].choice, a["first_tool"].confidence),
             "first_tool_swapped": (b.choice, b.confidence)}
 
@@ -1016,61 +1002,7 @@ def tool_finish(status: Literal["sufficient", "unverifiable", "need_clarificatio
     return "수집 종료"
 
 
-@tool("aggregated_consult_search")
-def tool_consult(question: str, runtime: ToolRuntime) -> str:
-    """상담 구조화 표 집계: 여러 상담의 불만·문의·제안 결정(수용·거절·보류)·이유·안내 방식을 고객군·채널·기간으로 모으고,
-    필요하면 관련 약관 조항·카드 혜택까지 찾음. 요청당 1회(다시 부르지 않음). 결과 전체가 답변 단계에 그대로 들어감.
-
-    Args:
-        question: 표에 물을 질문(원 질문을 그대로 쓰거나 범위를 좁힌 문장).
-    """
-    return consult_tool_body(question, runtime)
-
-
 AGENT_TOOLS = [tool_search, tool_local, tool_global, tool_find, tool_sources, tool_finish]
-CONSULT_TOOL_GUIDE = ("- 여러 상담의 불만·일반 문의·제안 결정(수용·거절·보류)과 이유·후속 안내 방식을 모으거나 고객군·채널·기간으로 "
-                      "나누는 질문, 특정 고객군·상담 주제의 문의와 관련된 약관 조항·카드 혜택 찾기: aggregated_consult_search(요청당 1회). "
-                      "결과 전체가 답변 단계에 그대로 들어가므로 다시 부르거나 같은 내용을 다른 툴로 더 찾지 말고, 표 밖의 사실을 따로 묻지 않으면 바로 finish(sufficient)\n")
-
-
-def agent_tools_and_prompt(data: dict) -> tuple[list, str]:
-    """③에 넘길 툴과 시스템 프롬프트. 에이전트 툴이 켜져 있고(tool, both) 표가 있으면 aggregated_consult_search 툴과 안내 줄을 더함."""
-    if AGGREGATION_MODE in ("tool", "both") and data.get("consult_table") is not None:
-        prompt = AGENT_SYSTEM.replace("- 질문에 사실이 둘이면", CONSULT_TOOL_GUIDE + "- 질문에 사실이 둘이면", 1)
-        return AGENT_TOOLS[:-1] + [tool_consult, tool_finish], prompt
-    return AGENT_TOOLS, AGENT_SYSTEM
-
-
-def consult_tool_body(question: str, runtime: ToolRuntime) -> str:
-    """aggregated_consult_search 툴 몸통. 실습 함수 run_tool(입력 검사표에 이 툴이 없음)을 거치지 않고 여기서 직접 실행함.
-
-    요청당 1회: ② 판정으로 바로 가서 이미 표를 봤거나(줄 없음) 앞 회차에서 불렀으면 실행하지 않음. 질의 속 식별자는 지우고,
-    권한은 ② 필터(볼 수 있는 청크 표)를 그대로 씀. ⑤ 채점은 하지 않음(표의 줄은 원문 대조를 마친 값).
-    """
-    ctx = runtime.context
-    if ctx.get("aggregation") is not None:
-        text = f"입력 오류: aggregated_consult_search는 요청당 1회(이미 부름, 상담 {ctx['aggregation']['rows']}건)"
-        ctx["call_results"][runtime.tool_call_id] = {"text": text, "result": None, "error": True}
-        return text
-    query = core.strip_identifiers(question)
-    try:
-        result = agg.aggregate_consults(RES.groq, DATA["consult_table"], query, ctx, DATA["chunk_meta"],
-                                        lambda q, f, c: search_engine(RES, q, f, c), read_chunk_texts)
-    except Exception as error:
-        text = f"툴 실패: {short(error, 80)}"
-        ctx["call_results"][runtime.tool_call_id] = {"text": text, "result": None, "error": True}
-        return text
-    ctx["aggregation"] = result
-    plan = result["plan"]
-    if result["rows"]:
-        head = (f"상담 표 {result['rows']}건(고객군 {plan['segments'] or '전체'}, 채널 {plan['channels'] or '전체'}, "
-                f"묻는 것 {plan['focus']}), 약관·혜택 확인 {result['hops']}건. 이 결과 전체가 답변 단계에 그대로 들어가니 같은 내용을 더 찾지 말고, 표 밖의 사실이 필요 없으면 바로 finish(sufficient).")
-        lines = [ln[:200] for ln in result["evidence"].split("\n")[:12]]  # 에이전트에게는 앞부분만
-        text = head + "\n" + "\n".join(lines)
-    else:
-        text = "상담 표에 해당하는 줄 없음(볼 수 있는 상담이 없거나 범위 밖). 다른 툴로 찾음."
-    ctx["call_results"][runtime.tool_call_id] = {"text": text, "result": None, "error": False, "consult": True}
-    return text
 
 
 # ---------------------------------------------------------------------------
@@ -1146,10 +1078,6 @@ class ToolWrapperMiddleware(AgentMiddleware):
             say(f"   ④ finish: {call['args'].get('status')} - {call['args'].get('reason')}")
             return message
         out = ctx["call_results"].get(call["id"], {})
-        if out.get("consult") and not out.get("error"):  # aggregated_consult_search: 표의 줄은 원문 대조를 마친 값이라 ⑤ 채점 없음
-            record_outcome(ctx, failed=False, no_new=not ctx["aggregation"]["rows"])
-            say(f"   ④ aggregated_consult_search: {short(out['text'].splitlines()[0], 160)}")
-            return message
         if out.get("error"):
             message.status = "error"
             record_outcome(ctx, failed=True, no_new=True)
@@ -1481,91 +1409,12 @@ def first_message(ctx: dict, route: dict) -> str:
     return "\n".join(lines)
 
 
-def aggregation_route(route: dict, data: dict) -> bool:
-    """② 판정으로 바로 감: ②(실습 함수 decide_question_route)가 상담 집계 질문으로 정했고, 집계 경로가 켜져 있고, 상담 표가 있으면 True.
-
-    교육생 함수가 aggregate를 돌려주지 않으면(예전 my_search.py) False로 보고 기존 흐름(③)으로 감.
-    """
-    return (route.get("aggregate", False) and AGGREGATION_MODE in ("route", "both")
-            and data.get("consult_table") is not None)
-
-
-def run_aggregation(res: Resources, data: dict, ctx: dict, answer_on: bool) -> dict | None:
-    """집계 경로: 상담 구조화 표 → 근거 묶음 → ⑧ ⇄ ⑨ → ⑩ 종료 상태. 볼 수 있는 상담 줄이 없으면 None(③ 에이전트로 돌아감)."""
-    warnings = ctx["warnings"]
-    try:
-        result = agg.aggregate_consults(res.groq, data["consult_table"], ctx["clean_question"], ctx, data["chunk_meta"],
-                                        lambda q, f, c: search_engine(res, q, f, c), read_chunk_texts)
-    except Exception as error:
-        warnings.append(f"집계 경로 실패(에이전트로 진행): {short(error, 100)}")
-        say(f"── 집계 경로 실패 → ③ 에이전트로: {short(error, 100)}")
-        return None
-    ctx["aggregation"] = result
-    plan = result["plan"]
-    say(f"── 집계 경로(② 판정): 고객군 {plan['segments'] or '전체'}, 채널 {plan['channels'] or '전체'}, 묻는 것 {plan['focus']}, "
-        f"공통점 {plan['asks_pattern']}, 약관 {plan['needs_terms']}, 혜택 {plan['needs_benefits']} → "
-        f"상담 {result['rows']}건, 약관·혜택 확인 {result['hops']}건")
-    if not result["rows"]:
-        say("   볼 수 있는 상담 줄이 없음 → ③ 에이전트로")
-        return None
-    return aggregation_answer(res, ctx, result, answer_on)
-
-
-def with_search_chunks(ctx: dict, result: dict, chunk_rows: list[dict]) -> dict:
-    """aggregated_consult_search 툴: 집계 근거 뒤에 ⑥이 고른 검색 원문을 이어 붙임(id는 표 근거 다음 번호부터)."""
-    if not chunk_rows:
-        return result
-    out = {**result, "table": dict(result["table"]), "evidence_list": list(result["evidence_list"])}
-    lines = [result["evidence"]]
-    texts = read_chunk_texts(ctx, [row["chunk_id"] for row in chunk_rows])
-    number = len(result["table"])
-    for row in chunk_rows:
-        meta = DATA["chunk_meta"][row["chunk_id"]]
-        text = texts[row["chunk_id"]]
-        number += 1
-        cid = f"c{number}"
-        out["table"][cid] = {"kind": "chunk", "text": text, "short_id": meta["short_id"]}
-        out["evidence_list"].append({"id": meta["short_id"], "text": text})
-        lines.append(f'<근거 id="{cid}" 출처="{meta["short_id"]}" 종류="검색 원문">{" ".join(text.split())}</근거>')
-    out["evidence"] = "\n".join(lines)
-    return out
-
-
-def aggregation_answer(res: Resources, ctx: dict, result: dict, answer_on: bool) -> dict:
-    """집계 근거로 ⑧ 답변 생성 ⇄ ⑨ 근거 검증(실습 함수 generate_answer, verify_answer 그대로) → ⑩ 종료 상태."""
-    warnings = ctx["warnings"]
-    evidence_list = result["evidence_list"]
-    if not answer_on:
-        return core.make_end_state("evidence_only", "답변 생성 끔", "", evidence_list, warnings)
-    feedback, answer = "", None
-    for attempt in range(MAX_REWRITES + 1):
-        try:
-            ctx["calls"]["groq"] += 1
-            answer = core.generate_answer(res.groq, agg.ANSWER_PROMPT, ctx["clean_question"], result["evidence"],
-                                          feedback, "")
-        except Exception as error:
-            warnings.append(f"⑧ 답변 생성 실패: {short(error, 100)}")
-            if attempt < MAX_REWRITES:
-                continue  # 구조화 출력 검증 실패는 다시 물어 봄
-            return core.make_end_state("generation_failed", short(error, 100), "", evidence_list, warnings)
-        text = answer_text(answer)
-        say(f"── ⑧ 답변({'첫 시도' if attempt == 0 else f'재작성 {attempt}/{MAX_REWRITES}'}): {short(text, 300)}")
-        if not answer.sentences:
-            return core.make_end_state("unverifiable", "답변 LLM이 근거로 답할 수 없다고 함", "", evidence_list, warnings)
-        failures = core.verify_answer(answer, result["table"])  # ⑨ 실습 함수 그대로
-        if not failures:
-            say("── ⑨ 근거 검증: 통과")
-            return core.make_end_state("answered", f"상담 표 {result['rows']}건으로 답함", text, evidence_list, warnings)
-        say(f"── ⑨ 근거 검증: 실패 {failures}")
-        feedback = "; ".join(failures)
-    warnings.append(f"인용 검증을 통과하지 못함: {feedback}")
-    return core.make_end_state("answered_with_warning", "재작성 2회 뒤에도 검증 실패",
-                               answer_text(answer) if answer else "", evidence_list, warnings)
-
-
 def run_workflow(res: Resources, data: dict, question: str, role: str, member_id: str | None, answer_on: bool,
-                 timeout: int = REQUEST_TIMEOUT) -> dict:
-    """질문 하나를 ① ~ ⑩ 순서로 처리하고 종료 상태(make_end_state 결과)와 기록을 돌려줌."""
+                 timeout: int = REQUEST_TIMEOUT, until: int = 10) -> dict:
+    """질문 하나를 ① ~ ⑩ 순서로 처리하고 종료 상태(make_end_state 결과)와 기록을 돌려줌.
+
+    until: 5면 ⑤ 채점과 상한 판정까지, 7이면 ⑦ 수집 종료 판정까지 수행하고 그 결과를 화면에 보인 뒤 멈춤(10은 끝까지).
+    """
     ctx = new_context(res, data, question, role, member_id, timeout)
     warnings = ctx["warnings"]
 
@@ -1588,31 +1437,24 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
             f"{'(없음: ⑦에서 불통과)' if ids['version_missing'] else ''}")
     if route["answers"]:
         a = route["answers"]
-        say(f"   ② Jev: 잡담 {a['is_smalltalk']:.2f}, 모호 {a['needs_clarification']:.2f}, 집계 {a['is_aggregation']:.2f}, "
+        say(f"   ② Jev: 잡담 {a['is_smalltalk']:.2f}, 모호 {a['needs_clarification']:.2f}, "
             f"첫 툴 {a['first_tool'][0]}({a['first_tool'][1]:.2f}) / 순서 바꿔 {a['first_tool_swapped'][0]}"
             f"({a['first_tool_swapped'][1]:.2f})")
     say(f"   ② 코드의 결정: {route['reason']}")
     if route["end"]:
         return finish_request(ctx, core.make_end_state(route["end"], route["reason"], "", [], warnings), [])
 
-    # ② 판정으로 바로: 여러 상담에 걸친 목록·집계 질문이면 상담 구조화 표로 바로 근거를 만듦(README 7.8). 못 하면 ③으로 감
-    if aggregation_route(route, data):
-        end = run_aggregation(res, data, ctx, answer_on)
-        if end is not None:
-            return finish_request(ctx, end, [])
-
     # ③ ~ ⑤ 검색 에이전트(반복 1): create_agent + 미들웨어 2개(실습 함수 build_agent)
     middleware = [GuardMiddleware(), ToolWrapperMiddleware()]
-    tools, system_prompt = agent_tools_and_prompt(data)  # 에이전트 툴이 켜져 있으면 aggregated_consult_search가 더해짐
     try:
-        state = core.build_agent(res.agent, tools, system_prompt, middleware, first_message(ctx, route), ctx,
+        state = core.build_agent(res.agent, AGENT_TOOLS, AGENT_SYSTEM, middleware, first_message(ctx, route), ctx,
                                  RECURSION_LIMIT)
         messages = state["messages"]
     except Exception as error:  # 에이전트 모델 장애: 모은 근거로 ⑥에 감(첫 회차면 ⑩ 오류)
         messages = []
         warnings.append(f"③ 에이전트 실패: {short(error, 100)}")
         say(f"   ③ 에이전트 실패: {short(error, 100)}")
-        if not ctx["chunks"] and not ctx["entities"] and not (ctx.get("aggregation") or {}).get("rows"):
+        if not ctx["chunks"] and not ctx["entities"]:
             return finish_request(ctx, core.make_end_state("error", f"검색 에이전트 실패: {short(error, 100)}", "", [],
                                                            warnings), messages)
     if ctx["fatal"]:
@@ -1621,17 +1463,18 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
     finish = ctx["finish"] or {"status": None, "reason": ctx["forced_stop"] or "finish 없이 끝남"}
     say(f"\n── ③ 수집 끝: {finish['status'] or '코드가 정함'} - {finish['reason']} "
         f"(회차 {ctx['rounds']}, 원문 {len(ctx['chunks'])}개, 엔티티 {len(ctx['entities'])}개)")
+    if until == 5:  # --until 5: ③ ~ ⑤ 반복이 모은 것을 보이고 멈춤
+        until_banner(5)
+        evidence_list = show_collected(ctx)
+        if finish["status"] == "need_clarification":
+            next_step = "⑩ 종료 상태 「확인 필요」(에이전트가 need_clarification으로 끝냄)"
+        else:
+            next_step = "⑥ 리랭킹 → ⑦ 수집 종료 판정"
+        return finish_request(ctx, until_end(ctx, 5, f"③ 수집 끝: {finish['reason']}", evidence_list, next_step),
+                              messages)
     if finish["status"] == "need_clarification":
         end = core.make_end_state("need_clarification", finish["reason"], "", [], warnings)
         return finish_request(ctx, end, messages)
-
-    # 에이전트가 aggregated_consult_search로 상담 표 줄을 얻었으면 표 근거 + ⑥ 원문으로 ⑧ ⇄ ⑨(표 줄은 ⑦을 거치지 않음)
-    if ctx.get("aggregation") and ctx["aggregation"]["rows"]:
-        has_chunks = any(not c.get("dropped") for c in ctx["chunks"].values())
-        picked = step6_rerank(res, ctx) if has_chunks else {"chunks": []}
-        result = with_search_chunks(ctx, ctx["aggregation"], picked["chunks"])
-        say(f"── 집계 경로(aggregated_consult_search): 상담 표 {ctx['aggregation']['rows']}건 + 검색 원문 {len(picked['chunks'])}개로 ⑧")
-        return finish_request(ctx, aggregation_answer(res, ctx, result, answer_on), messages)
 
     # ⑥ 리랭킹
     picked = step6_rerank(res, ctx)
@@ -1665,6 +1508,14 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
     if finish["status"] == "unverifiable" and decision["passed"]:
         decision = {**decision, "passed": False, "reason": f"에이전트가 확인 불가로 끝냄: {finish['reason']}"}
         say("   ⑦ 에이전트가 unverifiable로 끝냈으므로 더 엄격한 쪽을 따름 → ⑩")
+    if until == 7:  # --until 7: ⑥ 최종 근거와 ⑦ 판정을 보이고 멈춤
+        until_banner(7)
+        show_judged(picked, decision, texts)
+        next_step = ("⑧ 답변 생성 ⇄ ⑨ 근거 검증" + ("(전제를 바로잡는 답)" if decision.get("premise_conflict") else "")
+                     if decision["passed"] else "⑩ 종료 상태 「확인할 수 없음」")
+        verdict = "통과" if decision["passed"] else "불통과"
+        reason = f"⑦ 판정: {verdict}" + (f" ({decision['reason']})" if decision["reason"] != verdict else "")
+        return finish_request(ctx, until_end(ctx, 7, reason, evidence_list, next_step), messages)
     if not decision["passed"]:
         return finish_request(ctx, core.make_end_state("unverifiable", decision["reason"], "", evidence_list, warnings),
                               messages)
@@ -1701,12 +1552,103 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
                                                    answer_text(answer), evidence_list, warnings), messages)
 
 
+def until_banner(until: int) -> None:
+    """--until 결과 머리줄."""
+    say(f"\n{'═' * 16} --until {until}: {UNTIL_STEPS[until]}까지 수행한 결과 {'═' * 16}")
+
+
+def until_end(ctx: dict, until: int, reason: str, evidence_list: list[dict], next_step: str) -> dict:
+    """--until로 멈출 때의 종료 기록. 코드는 evidence_only(근거 목록만)로 두고 이름과 뜻을 바꿈."""
+    say(f"[다음 단계] 끝까지 돌렸다면: {next_step}")
+    say(f"여기서 멈춤. 다음 단계는 수행하지 않음(끝까지 보려면 --until 10)")
+    end = core.make_end_state("evidence_only", reason, "", evidence_list, ctx["warnings"])
+    return {**end, "status": f"{UNTIL_STEPS[until]}까지 수행", "until": until,
+            "meaning": f"--until {until}로 중간에 멈춤. 근거 목록은 이 단계까지 모은 것"}
+
+
+def show_collected(ctx: dict) -> list[dict]:
+    """--until 5: ③ ~ ⑤ 반복이 모은 것(회차별 진단 신호, 남은 원문과 뺀 원문, 엔티티, 보고서, 주제)을 보이고 근거 목록을 돌려줌."""
+    finish = ctx["finish"] or {"status": None, "reason": ctx["forced_stop"] or "finish 없이 끝남"}
+    path = [tool for calls in ctx["round_calls"] for tool, _ in calls]
+    how = f"finish({finish['status']})" if finish["status"] else "코드가 끝냄(강제 종료 또는 상한)"
+    say(f"[③ 검색 에이전트] 끝낸 방법: {how} - {finish['reason']}")
+    say(f"   회차 {ctx['rounds']}/{MAX_ROUNDS}, 툴 경로: {' → '.join(path) or '-'}")
+    say("[④ 툴 실행 → ⑤ 채점] 회차별 진단 신호")
+    for log in ctx["signal_log"]:
+        stats = log["stats"]
+        cooc = "-" if stats.get("cooccur") is None else stats["cooccur"]
+        say(f"   회차 {log['round']} {log['tool']}: {', '.join(log['signals']) or '신호 없음'} (원문 {stats['n_chunks']}개, "
+            f"포함률 {stats['coverage']:.2f}, 공존 문장 {cooc}, 근거로 남은 새 원문 {stats['n_new_relevant']}개)")
+    if not ctx["signal_log"]:
+        say("   (채점한 툴 결과 없음)")
+    kept = [c for c in ctx["chunks"].values() if not c.get("dropped")]
+    dropped = [c for c in ctx["chunks"].values() if c.get("dropped")]
+    texts = read_chunk_texts(ctx, [c["chunk_id"] for c in kept])
+    say(f"[⑤ 근거로 남은 원문] {len(kept)}개 (Jev 확률: 관련 / 답 근거 / 전제 충돌)")
+    for c in sorted(kept, key=lambda c: (c["round"], -c["score"])):
+        p = (c.get("mark") or {}).get("probs")
+        probs = (f"{p['is_relevant']:.2f} / {p['contains_answer_evidence']:.2f} / {p['contradicts_query_premise']:.2f}"
+                 if p else "채점 없음")
+        topics = f" {c['topic_ids']}" if c["topic_ids"] else ""
+        say(f"   {DATA['chunk_meta'][c['chunk_id']]['short_id']} 회차 {c['round']} {', '.join(c['tools'])}{topics} | "
+            f"{probs} | {short(texts[c['chunk_id']], 60)}")
+    if dropped:
+        say(f"[⑤ 근거에서 뺀 원문] {len(dropped)}개")
+        for c in dropped:
+            p = (c.get("mark") or {}).get("probs") or {}
+            say(f"   {DATA['chunk_meta'][c['chunk_id']]['short_id']} {c['dropped']} (관련 {p.get('is_relevant', 0):.2f})")
+    if ctx["entities"]:
+        entities = list(ctx["entities"].values())
+        say(f"[엔티티] {len(entities)}개")
+        for e in entities[:12]:
+            say(f"   {e['short']} {short(entity_text(e['label'], e['props']), 90)}")
+        if len(entities) > 12:
+            say(f"   … 외 {len(entities) - 12}개")
+    if ctx["evidence_reports"]:
+        reports = sorted(ctx["evidence_reports"].values(), key=lambda r: (r["hits"], r["relevance"]), reverse=True)
+        say(f"[보고서] {len(reports)}개")
+        for r in reports[:8]:
+            title = DATA["reports"].get(r["id"], {}).get("title", "")
+            say(f"   {r['id']} {short(title, 50)} (보고서와 연결된 검색결과 엔티티 수 {r['hits']}, 관련도 {r['relevance']:.2f})")
+    if ctx["topics"]:
+        say(f"[Global 주제] {len(ctx['topics'])}개")
+        for topic_id, topic in ctx["topics"].items():
+            say(f"   {topic_id} {short(topic.get('title', ''), 40)} / Follow-up: {short(topic.get('follow_up', ''), 70)}")
+    return [{"id": DATA["chunk_meta"][c["chunk_id"]]["short_id"], "text": texts[c["chunk_id"]]} for c in kept]
+
+
+def show_judged(picked: dict, decision: dict, texts: dict) -> None:
+    """--until 7: ⑥ 최종 근거와 ⑦ 수집 종료 판정을 한곳에 모아 보임."""
+    marks = decision.get("marks") or {}
+    say(f"[⑥ 리랭킹] 원문 {picked['n_before']}개 → {len(picked['chunks'])}자리"
+        f"{'(회차 1회, 자리 수 이하라 건너뜀)' if picked['skipped'] else ''}, 이어진 엔티티 {len(picked['entities'])}개, "
+        f"보고서 {len(picked['reports'])}개")
+    say("[⑥ 최종 근거] 리랭커 점수 / ⑦ Jev 답 근거 확률")
+    for row in picked["chunks"]:
+        p = (marks.get(row["chunk_id"]) or {}).get("probs")
+        answer = f"{p['contains_answer_evidence']:.2f}" if p else "-"
+        topics = f" {row['topic_ids']}" if row["topic_ids"] else ""
+        say(f"   {row['score']:.3f} / {answer} {DATA['chunk_meta'][row['chunk_id']]['short_id']}{topics} "
+            f"{short(texts[row['chunk_id']], 60)}")
+    recheck = decision["recheck"]
+    say(f"[⑦ 코드 재확인] {'통과' if recheck['passed'] else '불통과'} [{recheck['rule']}] {recheck['detail']}")
+    if marks:
+        n_answer = sum(1 for m in marks.values() if m["answer_evidence"])
+        n_conflict = sum(1 for m in marks.values() if m["premise_conflict"])
+        say(f"[⑦ Jev] 답 근거 {n_answer}개, 전제 충돌 {n_conflict}개")
+    verdict = "통과" if decision["passed"] else "불통과"
+    say(f"[⑦ 판정] {verdict}" + (f" - {decision['reason']}" if decision["reason"] != verdict else ""))
+
+
 def finish_request(ctx: dict, end: dict, messages: list) -> dict:
     """⑩ 종료 상태를 화면에 찍고, ③ 에이전트 실제 비용과 호출 수, 툴 경로를 붙여 돌려줌."""
     cost = agent_cost(messages)
     path = [tool for calls in ctx["round_calls"] for tool, _ in calls]
-    say(f"\n── ⑩ 종료 상태: {end['status']} - {end['reason']}")
-    say(f"   뜻: {end['meaning']}")
+    if end.get("until"):  # --until로 멈춘 경우: ⑩ 종료 상태가 아니라 멈춘 자리를 찍음
+        say(f"\n── 멈춤(--until {end['until']}): {end['status']} - {end['reason']}")
+    else:
+        say(f"\n── ⑩ 종료 상태: {end['status']} - {end['reason']}")
+        say(f"   뜻: {end['meaning']}")
     if end["answer"]:
         say(f"   답: {end['answer']}")
     for warning in end["warnings"]:
@@ -1825,7 +1767,11 @@ def main_cli() -> None:
     parser.add_argument("--repeat", type=int, default=1, help="--eval 반복 횟수(LLM은 실행마다 결과가 다를 수 있음)")
     parser.add_argument("--sleep", type=float, default=0, help="--eval 문항 사이 쉬는 초(호출 제한 대비)")
     parser.add_argument("--mine", action="store_true", help="강사 코드 대신 교육생 코드(my_search.py)로 실행함")
+    parser.add_argument("--until", type=int, choices=sorted(UNTIL_STEPS), default=10,
+                        help="교재 91쪽 단계 번호. 5: ⑤ 채점과 상한 판정까지, 7: ⑦ 수집 종료 판정까지, 10: 끝까지(기본)")
     args = parser.parse_args()
+    if args.eval and args.until != 10:
+        raise SystemExit("--until은 질문 하나를 실행할 때만 씀(--eval은 끝까지 돌려야 채점함)")
 
     global RES
     res = Resources()
@@ -1847,7 +1793,7 @@ def main_cli() -> None:
     if not question:
         raise SystemExit("질문을 주거나 --qid Q01 처럼 평가셋 번호를 줌")
     say(f"질문: {core.MEMBER_ID_PATTERN.sub('M-****', question)} (역할 {role}{', 회원 지정' if member else ''})")
-    result = run_workflow(res, data, question, role, member, not args.no_answer)
+    result = run_workflow(res, data, question, role, member, not args.no_answer, until=args.until)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     name = f"{args.qid or 'q'}-{time.strftime('%Y%m%d-%H%M%S')}.json"  # 파일 이름에 회원번호를 쓰지 않음
     (LOG_DIR / name).write_text(json.dumps(result, ensure_ascii=False, indent=1, default=str), encoding="utf-8")

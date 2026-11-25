@@ -59,19 +59,14 @@ def check_ready(role: str, active: dict | None, index_exists: bool, graph_chunk_
 # 2. ② 질문 분석: Jev 확률 → 코드의 결정 (교재 71, 72쪽) — 직접 작성
 # ===========================================================================
 def decide_question_route(answers: dict | None, thresholds: dict) -> dict:
-    """Jev가 낸 확률을 기준값과 비교해 「끝낼지, 상담 집계 질문인지, 첫 툴 후보는 무엇인지」를 정함.
+    """Jev가 낸 확률을 기준값과 비교해 「끝낼지, 첫 툴 후보는 무엇인지」를 정함.
 
-    인자: answers는 {"is_smalltalk": 확률, "needs_clarification": 확률, "is_aggregation": 확률,
-          "first_tool": (답, 확신), "first_tool_swapped": (답, 확신)} 또는 None(Jev 실패).
-          thresholds는 {"end_noul": 0.7, "choice_confidence": 0.5, "aggregation": 0.3}
-    방법: ① answers가 None → end None, aggregate False, first_tool None(규칙만으로 검색)
+    인자: answers는 {"is_smalltalk": 확률, "needs_clarification": 확률, "first_tool": (답, 확신),
+          "first_tool_swapped": (답, 확신)} 또는 None(Jev 실패). thresholds는 {"end_noul": 0.7, "choice_confidence": 0.5}
+    방법: ① answers가 None → end None, first_tool None(규칙만으로 검색)
           ② is_smalltalk ≥ end_noul → end "no_search" ③ needs_clarification ≥ end_noul → end "need_clarification"
-             (②, ③으로 끝날 때 aggregate는 False)
-          ④ is_aggregation ≥ aggregation → aggregate True(상담 집계 질문), 아니면 False
-          ⑤ 두 번의 첫 툴 답이 같고 두 확신이 모두 choice_confidence 이상 → first_tool에 그 답, 아니면 None
-             (aggregate가 True여도 정해 둠. 상담 집계 경로가 못 하면 ③에 넘길 후보)
-    반환값: {"end": None 또는 "no_search" 또는 "need_clarification", "aggregate": True 또는 False,
-             "first_tool": 툴 이름 또는 None, "reason": 한 줄}
+          ④ 두 번의 첫 툴 답이 같고 두 확신이 모두 choice_confidence 이상 → first_tool에 그 답, 아니면 None
+    반환값: {"end": None 또는 "no_search" 또는 "need_clarification", "first_tool": 툴 이름 또는 None, "reason": 한 줄}
     """
     raise NotImplementedError("여기에 본인 코드를 작성함")
 

@@ -57,7 +57,6 @@ if use_student_code("my_graph"):
     import my_graph as core  # 교육생 코드(--mine)
 else:
     import core_graph as core  # 강사 코드(기본)
-import consult_extract  # 상담 기록 K2(코드가 찾고 LLM은 분류만). 교육생 실습 함수가 아님
 import kr_tokenizer
 import stage_view  # --until 옵션의 단계별 결과 보기(제공)
 
@@ -350,8 +349,7 @@ def load_schemas() -> dict:
             "schema": GraphSchema.model_validate(load_json(path)),
             "unit_rule": rules.get("extraction_unit_rule"),  # 없으면 청크를 그대로 추출 청크로 씀
             "header": rules.get("metadata_header", []),
-            # 스키마가 바뀌면 보관한 추출 결과를 다시 쓰지 않음. 상담은 추출 방법 판까지 붙여 방법이 바뀌어도 다시 뽑음
-            "signature": sha256_file(path) + (f"|{consult_extract.EXTRACTOR_VERSION}" if doc_type == "consult_log" else ""),
+            "signature": sha256_file(path),  # 스키마가 바뀌면 보관한 추출 결과를 다시 쓰지 않음
         }
     return schemas
 
@@ -365,8 +363,7 @@ def config_signature() -> str:
             path = SCHEMA_DIR / doc_type / name
             if path.exists():
                 parts.append(sha256_file(path))
-    parts += [LLM_MODEL, EMBEDDING_MODEL, str(EMBED_DIMENSION), str(BM25_K1), str(BM25_B), LEXICAL_RULES,
-              consult_extract.EXTRACTOR_VERSION]
+    parts += [LLM_MODEL, EMBEDDING_MODEL, str(EMBED_DIMENSION), str(BM25_K1), str(BM25_B), LEXICAL_RULES]
     parts.append(json.dumps(DOC_PROFILES, ensure_ascii=False, sort_keys=True))  # 문서 프로필이 바뀌어도 새로 만듦
     if ALIASES_APPROVED_PATH.exists():
         parts.append(sha256_file(ALIASES_APPROVED_PATH))
@@ -495,13 +492,9 @@ def k2_k3_extract(units: list[dict], schemas: dict, previous: dict | None) -> di
     usage = {"calls": 0, "total_tokens": 0}
     if todo:
         llm = make_llm()
-        groq_key = read_secret("GROQ_API_KEY")
 
         def work(unit: dict) -> dict:
             # 리턴값: {"graph": pruned.model_dump(), "raw_nodes": len(graph.nodes), "kept_nodes": len(pruned.nodes)}
-            if unit["doc_type"] == "consult_log":  # 상담 기록은 전용 추출(제안 후보는 코드가 찾고 LLM은 분류만)
-                return consult_extract.extract_consult(unit, schemas["consult_log"], unit["header_text"], groq_key,
-                                                       LLM_RETRIES)
             return core.extract_one(unit, schemas[unit["doc_type"]], llm, LLM_RETRIES)
 
         done = 0

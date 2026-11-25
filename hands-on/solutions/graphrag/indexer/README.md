@@ -169,7 +169,6 @@ python check_graph.py --help
 | `my_graph.template.py` | 교육생 코드인 `my_graph.py`의 뼈대를 제공함 |
 | `check_graph.py` | 활성 세대에 질문하고 검색 연결 결과를 보여 줌 |
 | `stage_view.py` | `--until` 실행의 단계별 결과와 확인 명령을 보여 줌 |
-| `consult_extract.py` | K2에서 상담 기록(consult_log)만 맡는 추출. 제안 후보(물음표가 있는 상담사 말과 바로 뒤 고객 답)는 코드가 찾고, LLM은 제안인지, 결정(수용, 거절, 보류), 이유만 분류하며, 인용은 원문 대조를 통과한 것만 씀. 결과는 다른 문서와 같은 그래프 꼴이라 K3 ~ K8은 그대로 돎(검색 README 7.8) |
 | `data/generations/` | 세대별 중간 결과와 보고서를 저장함 |
 | `data/active_generation.json` | 현재 검색에서 사용할 활성 세대를 가리킴. 임베딩 모델과 차원도 적어 두어, 다음 실행의 S1이 같을 때만 옛 벡터를 다시 씀 |
 

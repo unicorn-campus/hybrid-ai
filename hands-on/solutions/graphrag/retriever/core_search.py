@@ -383,37 +383,30 @@ def check_ready(role: str, active: dict | None, index_exists: bool, graph_chunk_
 # 실습 함수 2. ② 질문 분석: Jev 확률 → 코드의 결정 (교재 71, 72쪽) — 직접 작성
 # ===========================================================================
 def decide_question_route(answers: dict | None, thresholds: dict) -> dict:
-    """Jev가 낸 확률을 기준값과 비교해 「끝낼지, 상담 집계 질문인지, 첫 툴 후보는 무엇인지」를 정함.
-    Jev는 확률만 내고 결정은 여기서 함.
+    """Jev가 낸 확률을 기준값과 비교해 「끝낼지, 첫 툴 후보는 무엇인지」를 정함. Jev는 확률만 내고 결정은 여기서 함.
 
-    인자: answers는 {"is_smalltalk": 확률, "needs_clarification": 확률, "is_aggregation": 확률,
-          "first_tool": (답, 확신), "first_tool_swapped": (답, 확신)}. Jev가 실패했으면 None.
-    반환값: end(None, "no_search", "need_clarification"), aggregate(상담 집계 질문이면 True),
-            first_tool(후보 또는 None), reason(한 줄)
-    예시: 잡담 0.92 → end "no_search" / 잡담 0.5 → 애매하므로 끝내지 않고 검색으로 /
-          집계 0.67 → aggregate True(main이 ③ 대신 상담 집계 경로로 보냄. 첫 툴 후보는 그 경로가 못 할 때만 씀)
+    인자: answers는 {"is_smalltalk": 확률, "needs_clarification": 확률, "first_tool": (답, 확신),
+          "first_tool_swapped": (답, 확신)}. Jev가 실패했으면 None.
+    반환값: end(None, "no_search", "need_clarification"), first_tool(후보 또는 None), reason(한 줄)
+    예시: 잡담 0.92 → end "no_search" / 잡담 0.5 → 애매하므로 끝내지 않고 검색으로
     """
     # Jev가 실패하면 끝내지도, 후보를 주지도 않고 검색으로 감(잘못 끝내는 쪽이 손해가 더 큼)
     if answers is None:
-        return {"end": None, "aggregate": False, "first_tool": None, "reason": "Jev 없음: 규칙만으로 검색 진행"}
+        return {"end": None, "first_tool": None, "reason": "Jev 없음: 규칙만으로 검색 진행"}
     # 잡담과 모호함은 기준값 0.7 이상일 때만 끝냄. 0.3 ~ 0.7은 애매하므로 검색으로 감
     if answers["is_smalltalk"] >= thresholds["end_noul"]:
-        return {"end": "no_search", "aggregate": False, "first_tool": None,
-                "reason": f"잡담 {answers['is_smalltalk']:.2f}"}
+        return {"end": "no_search", "first_tool": None, "reason": f"잡담 {answers['is_smalltalk']:.2f}"}
     if answers["needs_clarification"] >= thresholds["end_noul"]:
-        return {"end": "need_clarification", "aggregate": False, "first_tool": None,
+        return {"end": "need_clarification", "first_tool": None,
                 "reason": f"모호함 {answers['needs_clarification']:.2f}"}
-    # 상담 집계 질문: 기준값(0.3) 이상이면 상담 집계 질문으로 봄(실측: 집계 질문 0.43 이상, 그 밖 0.18 이하)
-    aggregate = answers["is_aggregation"] >= thresholds["aggregation"]
-    note = f", 상담 집계 질문 {answers['is_aggregation']:.2f}" if aggregate else ""
     # 첫 툴: 확신이 기준값 이상이고, 보기 순서를 바꿔 다시 물어도 같은 답일 때만 후보로 씀(첫 보기 쏠림 대비)
     tool, confidence = answers["first_tool"]
     tool_swapped, confidence_swapped = answers["first_tool_swapped"]
     if tool == tool_swapped and min(confidence, confidence_swapped) >= thresholds["choice_confidence"]:
-        reason = f"첫 툴 후보 {tool}(확신 {confidence:.2f}, {confidence_swapped:.2f})" + note
-        return {"end": None, "aggregate": aggregate, "first_tool": tool, "reason": reason}
-    return {"end": None, "aggregate": aggregate, "first_tool": None,
-            "reason": f"첫 툴 후보 없음({tool} {confidence:.2f} / 순서 바꿔 {tool_swapped} {confidence_swapped:.2f})" + note}
+        reason = f"첫 툴 후보 {tool}(확신 {confidence:.2f}, {confidence_swapped:.2f})"
+        return {"end": None, "first_tool": tool, "reason": reason}
+    return {"end": None, "first_tool": None,
+            "reason": f"첫 툴 후보 없음({tool} {confidence:.2f} / 순서 바꿔 {tool_swapped} {confidence_swapped:.2f})"}
 
 
 # ===========================================================================
