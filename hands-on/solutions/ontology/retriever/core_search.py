@@ -92,11 +92,14 @@ def replace_identifiers(question: str, alias_to_name: dict, name_to_card_id: dic
     clean = MEMBER_ID_PATTERN.sub("이", question)  # 「M-1042 회원은」 → 「이 회원은」
 
     card_names = []
-    for alias in sorted(alias_to_name, key=len, reverse=True):  # 긴 별칭부터 봐야 「모아생활 플러스」를 「모아생활」로 잘못 잡지 않음
-        name = alias_to_name[alias]
-        if alias in question.replace(" ", "") or alias in question:
+    flat = question.replace(" ", "").lower()  # 띄어쓰기를 지우고 소문자로(별칭 사전도 같은 꼴)
+    for alias in sorted(alias_to_name, key=lambda a: len(a.replace(" ", "")), reverse=True):
+        key = alias.replace(" ", "").lower()
+        if key and key in flat:
+            name = alias_to_name[alias]
             if name not in card_names:
                 card_names.append(name)
+            flat = flat.replace(key, "|")  # 찾은 부분을 지워 그 안의 짧은 별칭(모아생활 플러스 안의 모아생활)을 다시 잡지 않음
     card_ids = sorted({name_to_card_id[name] for name in card_names if name in name_to_card_id})
 
     version_asked = None
@@ -286,7 +289,7 @@ def coverage(terms: list[str], texts: list[str]) -> float:
 def apply_passage_judgments(probs: dict, thresholds: dict) -> dict:
     """⑤ Jev 원문 판정: 확률 4개를 기준값과 비교해 표시를 붙임(결정은 코드가 함, 교재 87쪽).
 
-    반환값: relevant(관련 있음), answer_evidence(답 근거), premise_conflict(전제 충돌), injection(지시 끼워 넣기), probs
+    반환값: relevant(관련 있음), answer_evidence(답 근거), premise_conflict(질문 전제와 사실 충돌), injection(지시 끼워 넣기), probs
     """
     return {
         "relevant": probs["is_relevant"] >= thresholds["relevant_min"],
@@ -332,7 +335,7 @@ def decide_collection(recheck: dict, marks: dict, version_missing: bool, jev_ok:
     """⑦ Jev 종합(제공): 코드 재확인 결과와 Jev 표시로 통과와 불통과를 정함(교재 93쪽 표).
 
     규칙: 약관 버전이 색인에 없음 → 불통과. 코드 재확인 불통과 → 불통과(Jev가 살리지 않음).
-          답 근거 원문 0개 → 불통과. 전제 충돌 원문이 있으면 통과 + 표시. 그 밖 → 통과.
+          답 근거 원문 0개 → 불통과. 질문 전제와 사실 충돌 원문이 있으면 통과 + 표시. 그 밖 → 통과.
           Jev가 실패했으면(jev_ok False) 코드 재확인 결과만 씀.
     답 근거 원문: Jev가 「바로 답이 됨」으로 본 원문 중 「질문의 주제를 다룸」 확률도 relevant_min 이상인 것.
           관련이 낮은데 답이 된다고 본 판정은 한국어 함정 질문에서 틀린 경우가 많았음(2026-10-25 평가셋 실측).

@@ -374,14 +374,16 @@ def load_generation_data(res: Resources) -> dict:
         meta = res.os.indices.get_mapping(index=index)[index]["mappings"]["_meta"]["tokenizer"]
         data["tokenizer"] = kr_tokenizer.tokenizer_from_meta(meta)  # 색인 때 기록한 사전으로 같은 토크나이저를 만듦
         data["alias_to_name"] = dict(data["tokenizer"].alias_to_name)
-        for name in data["tokenizer"].card_names:
-            data["alias_to_name"].setdefault(name, name)
-            data["alias_to_name"].setdefault(name.replace("한빛 ", ""), name)
+        for name in data["tokenizer"].card_names:  # 값은 모두 정식명(띄어쓰기 없는 꼴). 한 카드가 두 꼴로 잡히지 않게 함
+            canonical = kr_tokenizer.canonical_card_name(name)
+            data["alias_to_name"].setdefault(name, canonical)
+            data["alias_to_name"].setdefault(name.replace("한빛 ", ""), canonical)
     names = {}  # 카드명 → card_id. 별칭표는 띄어쓰기 없는 꼴(한빛가족돌봄)을 돌려주므로 두 꼴을 모두 키로 둠
     for meta in data["chunk_meta"].values():
         if meta.get("card_name") and meta.get("card_id"):
             names[meta["card_name"]] = meta["card_id"]
             names[meta["card_name"].replace(" ", "")] = meta["card_id"]
+            names[kr_tokenizer.canonical_card_name(meta["card_name"])] = meta["card_id"]  # 정식명은 소문자(통신할부 A → a)
     data["name_to_card_id"] = names
 
     data["graph_chunk_count"] = res.run("MATCH (c:Chunk {generation: $g}) RETURN count(c) AS n", g=generation)[0]["n"]
@@ -1399,7 +1401,7 @@ def score_result(ctx: dict, call: dict, result: dict) -> str:
         if mark:
             p = mark["probs"]
             judged.append(f"{DATA['chunk_meta'][chunk_id]['short_id']} 관련 {p['is_relevant']:.2f} "
-                          f"답근거 {p['contains_answer_evidence']:.2f} 전제충돌 {p['contradicts_query_premise']:.2f}")
+                          f"답근거 {p['contains_answer_evidence']:.2f} 사실충돌 {p['contradicts_query_premise']:.2f}")
     left = MAX_ROUNDS - ctx["rounds"]
     say(f"   ④ {tool_name} {json.dumps(call['args'], ensure_ascii=False)} → 원문 {len(result['chunk_ids'])}개"
         f"(새 원문 {len(result['new'])}, 근거에서 뺌 {len(removed)})")
@@ -1787,12 +1789,12 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
     if decision["marks"]:
         n_answer = sum(1 for m in decision["marks"].values() if m["answer_evidence"])
         n_conflict = sum(1 for m in decision["marks"].values() if m["premise_conflict"])
-        say(f"   ⑦ Jev: 답 근거 {n_answer}개, 전제 충돌 {n_conflict}개")
+        say(f"   ⑦ Jev: 답 근거 {n_answer}개, 사실 충돌 {n_conflict}개")
         by_evidence = sorted(decision["marks"].items(), key=lambda kv: -kv[1]["probs"]["contains_answer_evidence"])
         for chunk_id, mark in by_evidence:
             p = mark["probs"]
             say(f"      {DATA['chunk_meta'][chunk_id]['short_id']} 답 근거 {p['contains_answer_evidence']:.2f}, "
-                f"관련 {p['is_relevant']:.2f}, 전제 충돌 {p['contradicts_query_premise']:.2f}")
+                f"관련 {p['is_relevant']:.2f}, 사실 충돌 {p['contradicts_query_premise']:.2f}")
     say(f"   ⑦ 판정: {'통과 → ⑧' if decision['passed'] else '불통과 → ⑩'} ({decision['reason']})")
     if finish["status"] == "unverifiable" and decision["passed"]:
         decision = {**decision, "passed": False, "reason": f"에이전트가 확인 불가로 끝냄: {finish['reason']}"}
