@@ -1,9 +1,10 @@
 """GraphRAG 검색 예제 main: W1 요청 접수 → W2 질문 분석 → W3 검색 에이전트 ⇄ W4 툴 실행 → W5 채점과 상한 판정 →
 W6 리랭킹 → W7 수집 종료 판정 → W8 답변 생성 ⇄ W9 근거 검증 → W10 종료 상태.
 
-W3 ~ W5(반복 1)는 LangChain create_agent와 미들웨어 2개가 맡고, 나머지는 run_workflow가 파이썬 순서로 부름.
-단계마다 알맹이는 core_search.py의 함수가 맡고, 이 파일은 설정값, 저장소 접속, 외부 API 호출, 서브 워크플로우(O, L, G, R),
-미들웨어, 순서, 화면 출력을 맡음. 인덱싱 실습(../indexer)이 만든 활성 세대를 읽기만 함.
+W3 ~ W5(반복 1)는 LangChain create_agent와 미들웨어(상한, 래퍼와 채점, 재시도)가 맡고, 나머지는 run_workflow가 파이썬 순서로 부름.
+단계마다 알맹이는 core_search.py의 함수(실습 함수 13개와 제공 함수, 서브 워크플로우 O, L, G 포함)가 맡고,
+이 파일은 설정값, 저장소 접속, 서브 워크플로우 R, 툴, 미들웨어, 순서, 화면 출력을 맡음. 인덱싱 실습(../indexer)이 만든
+활성 세대를 읽기만 함.
 
 판단을 맡는 쪽
   생성형AI(Groq)      W3 툴 고르기, G1 보고서 고르기, G2 주제 나누기, W8 답변 생성
@@ -12,8 +13,8 @@ W3 ~ W5(반복 1)는 LangChain create_agent와 미들웨어 2개가 맡고, 나�
   서브 워크플로우     O, L, G는 순서가 정해진 코드 함수(툴 안은 고정 순서)
 
 파일 안의 순서(위에서 아래로)
-  설정값 → 프롬프트와 스키마 → 작은 도구 → 자원(Resources) → 외부 호출(임베딩, 리랭크, Jev)
-  → W4 서브 워크플로우(O, L, G, R) → 툴 결과를 작업 기록으로 → 툴 5개 → 미들웨어 2개 → W5 채점
+  설정값 → 프롬프트 → 작은 도구 → 자원(Resources) → W4 서브 워크플로우 R
+  → 툴 결과를 작업 기록으로 → 툴 5개 → 미들웨어(GuardMiddleware, 재시도) → W5 채점
   → 단계 함수(W1, W2, W6, W7) → run_workflow(전체 흐름) → 단계별 결과 화면(--until) → 시작 검사, 명령행
 
 실행(이 폴더에서):
@@ -25,16 +26,13 @@ W3 ~ W5(반복 1)는 LangChain create_agent와 미들웨어 2개가 맡고, 나�
 
 import argparse
 import json
-import math
 import os
 import re
 import shutil
 import sys
-import threading
 import time
 import traceback
 import warnings
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Literal
 
@@ -45,13 +43,12 @@ from kiwipiepy import Kiwi
 from langchain.agents.middleware import AgentMiddleware, ModelRetryMiddleware, hook_config
 from langchain.tools import ToolRuntime
 from langchain_cohere import CohereEmbeddings
-from langchain_core.messages import AIMessage, ToolMessage
+from langchain_core.messages import AIMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
 from langchain_groq import ChatGroq
 from opensearchpy import OpenSearch, helpers
-from pydantic import BaseModel, Field
-from typesafe_sdk import Choice, Noul, TypeSafeClient
+from typesafe_sdk import TypeSafeClient
 
 
 def use_student_code(student_module: str) -> bool:
@@ -106,7 +103,6 @@ AGENT_REASONING = "medium"  # gpt-oss의 추론 강도. 추론 글은 메시지 
 JEV_MODEL = "jev-1.14.0"  # W2, W5, W7 판단. 기준값을 맞춘 버전이 바뀌지 않게 고정(jev-latest 아님)
 LLM_MODEL = "openai/gpt-oss-120b"  # G1, G2, W8(Groq)
 EMBEDDING_MODEL = "embed-v5.0-fast"  # Cohere 임베딩(색인과 같은 모델, 2048차원)
-RERANK_MODEL = "rerank-v4.0-fast"  # Cohere 리랭커(O4, W6)
 
 # W3 에이전트 실제 비용 계산용 단가(100만 토큰당 달러). Groq 공식 모델 문서 2026-10-25 확인
 # (https://console.groq.com/docs/model/openai/gpt-oss-120b: 입력 $0.15, 캐시된 입력 $0.075, 출력 $0.60)
@@ -128,29 +124,12 @@ JEV_TIMEOUT = 20
 GROQ_TIMEOUT, GROQ_RETRIES = 60, 2
 STORE_TIMEOUT = 10  # OpenSearch, Neo4j
 
-# 서브 워크플로우 크기
-# O 검색엔진 검색
-O_CANDIDATES = 25  # O1, O2 각 후보 수와 O3 뒤 남길 수
-O_KEEP = 6  # O4 뒤 청크 수(필터로 6개 이하면 O4 건너뜀)
-# L Local 검색
-L_ENTITIES = 16  # L1 갈래 A 엔티티 축소 상한(L2 합친 뒤에도 16개)
-L2_WEIGHT_ENGINE = 0.7  # L2 가중합에서 검색엔진 점수의 몫. 나머지 0.3은 엔티티 설명 코사인(평가 비교는 README 7.6)
-L_NEIGHBORS = 4  # L3 엔티티마다 이웃 수
-L_REPORTS = 3  # L4 보고서 수
-# G Global 검색
-G_MAX_REPORTS = 12  # G1 고를 보고서 상한
-G_REPORT_TOKENS = 12000  # G1 보고서 본문 몫(대략값: 글자 수 / 2)
-G_FALLBACK_REPORTS = 5  # G1 실패 때 보고서 벡터 상위 수
-G_MAX_TOPICS = 5  # G2 주제 수 상한
 # W6 리랭킹
 FINAL_CHUNKS = 8  # W6 원문 자리 수
 FINAL_CHUNKS_TOPICS = 14  # W6 Global 주제가 있을 때 원문 자리 수(경향 질문은 근거가 여러 주제에 흩어짐. README 7.7)
-REPORT_RELEVANCE_MIN = 0.25  # 보고서 관련도(질문과 보고서 요약 임베딩의 코사인) 하한. NO_REPORTS 판정에 씀
 
 # 판단 기준값(가정값. 평가셋으로 조정 예정)
 ROUTE_THRESHOLDS = {"end_noul": 0.7, "choice_confidence": 0.5}  # W2 Jev 결정
-PASSAGE_THRESHOLDS = {"relevant_min": 0.45, "answer_evidence_over": 0.55,  # W5 Jev 원문 판정(TypeSafe 쿡북 출발값)
-                      "premise_conflict_over": 0.7, "injection_over": 0.7}
 EVIDENCE_RELEVANT_MIN = 0.7  # W7 답 근거로 셀 때 요구하는 관련 확률(평가셋 실측으로 정함: 정답 근거는 0.9 이상, 함정은 0.6대)
 SIGNAL_THRESHOLDS = {"coverage": 0.6, "min_chunks": 2}  # W5 진단 신호(가정값)
 
@@ -161,7 +140,7 @@ STOPWORDS = {"카드", "회원", "상담", "고객", "경우", "때", "것", "�
              "얼마나", "며칠", "안"}  # 기간, 정도, 방법을 묻는 흔한 말
 
 # ---------------------------------------------------------------------------
-# 프롬프트와 구조화 출력 스키마
+# 프롬프트(G1, G2 프롬프트와 스키마는 core_search.py)
 # ---------------------------------------------------------------------------
 AGENT_SYSTEM = """너는 카드사 상담 지원 시스템의 「근거 수집」 에이전트다. 답을 쓰지 않고, 답에 쓸 근거 원문만 모은다.
 툴을 골라 부르고 결과를 본 뒤 다음 툴을 정한다. 근거가 모이면 finish를 부른다.
@@ -189,18 +168,6 @@ AGENT_SYSTEM = """너는 카드사 상담 지원 시스템의 「근거 수집�
 - 같은 툴을 표현만 바꿔 되풀이하지 않는다. 신호가 PASS이거나 답이 되는 원문이 보이면 바로 finish를 부른다.
 - finish의 reason에는 끝내는 이유를 한 줄로 쓴다."""
 
-G1_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", "너는 커뮤니티 보고서 목록에서 질문에 답하는 데 필요한 보고서를 고르는 분석가다. 목록에 있는 id만 고른다."),
-    ("human", "질문: {question}\n\n보고서 목록(id: 제목)\n{titles}\n\n"
-              "질문과 관련된 보고서 id를 최대 {limit}개 고르고, 고른 까닭을 한 줄로 쓴다. 관련 보고서가 없으면 빈 목록."),
-])
-
-G2_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", "너는 커뮤니티 보고서를 주제로 묶고, 주제마다 원문에서 사실로 확인할 질문을 하나씩 만드는 분석가다."),
-    ("human", "질문: {question}\n\n고른 보고서\n{reports}\n\n"
-              "보고서를 주제 1 ~ {limit}개로 묶는다. 주제마다 제목, 묶인 보고서 id, 그 주제에서 원문으로 확인할 "
-              "사실 질문(follow_up) 하나를 쓴다. follow_up은 검색에 쓸 짧은 한국어 문장으로 쓴다."),
-])
 
 ANSWER_PROMPT = ChatPromptTemplate.from_messages([
     ("system", "너는 카드사 상담 지원 답변 작성자다. <근거> 안의 내용만으로 답하고, 근거에 없는 내용은 쓰지 않는다. "
@@ -214,45 +181,14 @@ ANSWER_PROMPT = ChatPromptTemplate.from_messages([
 ])
 
 
-class PickedReports(BaseModel):
-    """G1 보고서 고르기 결과."""
-
-    report_ids: list[str] = Field(description="고른 보고서 id 목록(목록에 있는 id만, 최대 12개)")
-    reason: str = Field(description="고른 까닭 한 줄")
-
-
-class Topic(BaseModel):
-    """G2 주제 하나."""
-
-    title: str = Field(description="주제 제목(30자 이내)")
-    report_ids: list[str] = Field(description="이 주제에 묶인 보고서 id 목록")
-    follow_up: str = Field(description="이 주제에서 원문으로 확인할 사실 질문 한 문장")
-
-
-class TopicPlan(BaseModel):
-    """G2 결과: 주제 1 ~ 5개."""
-
-    topics: list[Topic] = Field(description="주제 목록(1 ~ 5개)")
-
-
 # ---------------------------------------------------------------------------
 # 작은 도구: 출력, 파일, 비밀값
 # ---------------------------------------------------------------------------
-PRINT_LOCK = threading.RLock()  # 병렬 툴 호출의 출력과 작업 기록 쓰기가 섞이지 않게 함(같은 스레드는 다시 잡을 수 있음)
 RES = None  # 실행 동안 함께 쓰는 접속과 모델(Resources). main_cli가 채움
 DATA: dict = {}  # 활성 세대 자료(청크 메타데이터, 보고서, 토크나이저). main_cli가 채움
 
 
-def say(text: str = "") -> None:
-    """한 줄 출력(병렬 툴 호출 중에도 줄이 섞이지 않게 잠금 안에서)."""
-    with PRINT_LOCK:
-        print(text, flush=True)
-
-
-def short(text, width: int = 80) -> str:
-    """한 줄 미리보기: 줄바꿈을 공백으로 바꾸고 width 글자에서 자름."""
-    flat = " ".join(str(text).split())
-    return flat if len(flat) <= width else flat[:width] + "…"
+PRINT_LOCK, say, short = core.PRINT_LOCK, core.say, core.short  # 출력 도구는 core와 함께 씀(잠금 하나)
 
 
 def load_json(path: Path):
@@ -278,13 +214,6 @@ def neo4j_password() -> str:
     if not password:
         raise SystemExit(f"Neo4j 비밀번호가 없음: 환경변수 NEO4J_PASSWORD 또는 {NEO4J_ENV_PATH}에 NEO4J_PASSWORD=...")
     return password
-
-
-def cosine(a: list[float], b: list[float]) -> float:
-    """두 벡터의 코사인 유사도(보고서 관련도 계산에 씀)."""
-    dot = sum(x * y for x, y in zip(a, b))
-    norm = math.sqrt(sum(x * x for x in a)) * math.sqrt(sum(y * y for y in b))
-    return dot / norm if norm else 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -378,454 +307,18 @@ def load_generation_data(res: Resources) -> dict:
         data["reports"][record["id"]] = {"id": record["id"], "title": record["title"], "summary": record["summary"],
                                          "findings": list(record["findings"] or []), "embedding": record["embedding"],
                                          "sources": set(record["sources"])}
+    res.ready_data = data  # 실습 함수(jev_judge_passages 등)가 res로 청크 정보를 봄
     return data
 
 
 # ---------------------------------------------------------------------------
-# 외부 호출: 임베딩, 리랭크, Jev
-# ---------------------------------------------------------------------------
-def embed_query(res: Resources, text: str, ctx: dict | None = None) -> list[float] | None:
-    """질의 하나를 임베딩함(search_query). 실패하면 None(벡터 쪽 없이 계속)."""
-    try:
-        if ctx is not None:
-            ctx["calls"]["cohere"] += 1
-        return res.embedder.embed_query(text)
-    except Exception as error:  # 외부 API 실패는 부분결과로 계속(계획서 4.5)
-        if ctx is not None:
-            ctx["warnings"].append(f"임베딩 실패: {short(error, 60)}")
-        return None
-
-
-def rerank(res: Resources, query: str, texts: list[str], ctx: dict) -> list[float] | None:
-    """Cohere 리랭커로 글마다 질의 관련도 점수를 매김(입력 순서대로 점수 목록). 실패하면 None."""
-    if not texts:
-        return []
-    try:
-        ctx["calls"]["cohere"] += 1
-        response = res.cohere.rerank(model=RERANK_MODEL, query=query, documents=texts, top_n=len(texts))
-        scores = [0.0] * len(texts)
-        for item in response.results:
-            scores[item.index] = item.relevance_score
-        return scores
-    except Exception as error:
-        ctx["warnings"].append(f"리랭크 실패(RRF 순위 그대로): {short(error, 60)}")
-        return None
-
-
-def jev_route(res: Resources, question: str, ctx: dict) -> dict | None:
-    """W2 Jev 한 요청(잡담, 모호, 첫 툴) + 보기 순서를 뒤집은 첫 툴 한 요청. 실패하면 None.
-
-    질문 문장은 영어로 씀(Jev는 영어가 가장 정확). 자료(state)는 식별자를 지운 한국어 질문 그대로 보냄.
-    """
-    # 첫 툴 보기 3개(Choice). 보기 이름은 툴 이름, 설명은 그 툴을 고를 질문 유형
-    criteria = {
-        "local_search": "a fact about a specific card, card benefit, terms clause, or a specific member's consultations",
-        "global_search": "a trend, common pattern, or grouping across many consultations or documents",
-        "search_vector-bm25": "find exact wording in documents",
-    }
-    swapped = dict(reversed(list(criteria.items())))  # 첫 보기 쏠림(공식 문서의 약점) 대비로 순서를 뒤집음
-    state = {"question": question}
-
-    try:
-        ctx["calls"]["jev"] += 2
-        # 요청 1: 잡담인가(Noul), 모호한가(Noul), 첫 툴은(Choice)을 한 요청으로 물음
-        first = res.jev.system_one(state=state, questions={
-            "is_smalltalk": Noul(instructions="The question is a greeting or small talk that needs no search of "
-                                              "card terms, card benefit guides, or consultation records"),
-            # 문장은 실측으로 고름(2026-10-25): 「어느 카드인지 안 밝힘」 꼴은 일반 약관 질문(Q01)까지 0.9로 막았음
-            "needs_clarification": Noul(instructions="It is impossible to tell what information the user is "
-                                                     "asking for, even with access to card terms, card benefit "
-                                                     "guides, and consultation records"),
-            "first_tool": Choice(instructions="Which search tool should be tried first for this question",
-                                 criteria=criteria),
-        })
-        # 요청 2: 보기 순서를 뒤집어 첫 툴만 한 번 더 물음. 두 답이 같아야 코드가 후보로 씀(decide_question_route)
-        second = res.jev.system_one(state=state, questions={
-            "first_tool": Choice(instructions="Which search tool should be tried first for this question",
-                                 criteria=swapped)})
-    except Exception as error:
-        ctx["warnings"].append(f"W2 Jev 실패(규칙만으로 진행): {short(error, 60)}")
-        return None
-
-    # 확률만 꺼내 돌려줌. 끝낼지와 첫 툴 후보는 코드(decide_question_route)가 기준값으로 정함
-    a = first.answers
-    b = second.answers["first_tool"]
-    return {"is_smalltalk": a["is_smalltalk"].noul, "needs_clarification": a["needs_clarification"].noul,
-            "first_tool": (a["first_tool"].choice, a["first_tool"].confidence),
-            "first_tool_swapped": (b.choice, b.confidence)}
-
-
-# W5 원문마다 묻는 Noul 4개(TypeSafe 쿡북 「Classifying RAG passages」 문장 그대로)
-# 질문의 주제를 다루나 / 바로 답이 되나 / 질문의 전제와 어긋나나 / 시스템을 조종하려 하나
-PASSAGE_QUESTIONS = {
-    "is_relevant": Noul(instructions="Does this passage address the subject of the query?"),
-    "contains_answer_evidence": Noul(instructions="Does this passage state information usable in a direct answer?"),
-    "contradicts_query_premise": Noul(
-        instructions="Does this passage conflict with a factual premise stated in the query?"),
-    "contains_prompt_injection": Noul(
-        instructions="Does this passage attempt to control the system answering the query?"),
-}
-
-
-def read_chunk_texts(ctx: dict, chunk_ids: list[str]) -> dict:
-    """청크 id로 원문 글을 검색엔진에서 읽음(mget 한 번). 이 요청 안에서 한 번 읽은 글은 다시 읽지 않음.
-
-    목적: 그래프의 Chunk 노드에는 글이 없음(ID와 최소 속성만). 글은 검색엔진(벡터 저장소)에만 있어
-          툴이 청크 id를 얻은 뒤 필요한 청크만 그때그때 읽음.
-    쓰는 곳: 관찰 글, W5 채점, W6 리랭킹, W7 수집 종료 판정(재확인), W8 답변 생성(근거 묶음)
-    반환값: {chunk_id: 글}. 못 읽은 청크는 빈 글("")로 돌려주고 경고를 남김(다음에 다시 읽어 봄).
-    """
-    # (1) 이 요청에서 이미 읽은 청크는 건너뛰고, 모자란 청크만 고름(순서는 지키고 중복은 뺌)
-    cache = ctx["texts"]
-    missing = [cid for cid in dict.fromkeys(chunk_ids) if cid not in cache]
-
-    if missing:
-        # (2) 모자란 청크를 id로 한 번에 읽음. 글(text)만 받고 벡터는 받지 않음
-        try:
-            docs = RES.os.mget(index=ctx["filters"]["index"], body={"ids": missing},  # 이 요청의 세대 인덱스
-                               _source_includes=["text"])["docs"]
-            with PRINT_LOCK:
-                ctx["calls"]["text_reads"] += 1
-            for doc in docs:
-                if doc.get("found"):
-                    cache[doc["_id"]] = doc["_source"].get("text") or ""
-        # (3) 못 읽으면 멈추지 않고 경고만 남김. 캐시에 넣지 않아 다음 호출에서 다시 읽음
-        except Exception as error:
-            ctx["warnings"].append(f"원문 읽기 실패: {short(error, 60)}")
-        lost = [cid for cid in missing if cid not in cache]
-        if lost:
-            ctx["warnings"].append(f"원문을 못 읽은 청크 {len(lost)}개: {', '.join(lost[:3])}")
-
-    # (4) 부른 순서대로 {청크 id: 글}. 못 읽은 청크는 빈 글
-    return {cid: cache.get(cid, "") for cid in chunk_ids}
-
-
-def jev_judge_passages(res: Resources, question: str, chunk_ids: list[str], ctx: dict) -> dict:
-    """W5, W7 원문마다 Jev Noul 4개를 묻고 표시를 붙임. 판정은 (판정 질문, 청크 id, 모델 버전)으로 캐시해 두 번 묻지 않음.
-
-    반환값: {chunk_id: 표시 dict}. Jev가 실패한 원문은 결과에 없음(호출한 쪽이 「모두 관련」으로 셈).
-    """
-    # (1) 캐시 확인: 같은 질문과 원문으로 이미 판정했으면 그 결과를 쓰고, 처음 보는 원문만 todo에 모음
-    results = {}
-    todo = []
-    for chunk_id in chunk_ids:
-        key = f"{question}|{chunk_id}|{JEV_MODEL}"
-        if key in ctx["jev_cache"]:
-            results[chunk_id] = ctx["jev_cache"][key]
-        else:
-            todo.append(chunk_id)
-
-    # (2) 판정할 원문 글을 한 번에 읽음
-    texts = read_chunk_texts(ctx, todo)
-
-    # (3) 원문 하나를 판정하는 함수: 질문(query)과 원문(passage)을 넣고 Noul 4개를 한 번에 물어 확률만 받음
-    def ask(chunk_id: str):
-        meta = DATA["chunk_meta"][chunk_id]
-        state = {"query": question, "passage": {"id": meta["short_id"], "text": texts[chunk_id]}}
-        response = res.jev.system_one(state=state, questions=PASSAGE_QUESTIONS)
-        return chunk_id, {name: response.answers[name].noul for name in PASSAGE_QUESTIONS}
-
-    # (4) 6개씩 동시에 부르고, 확률을 기준값과 비교해 표시를 붙임(결정은 코드: apply_passage_judgments)
-    if todo:
-        with ThreadPoolExecutor(max_workers=6) as pool:
-            futures = [pool.submit(ask, chunk_id) for chunk_id in todo]
-            for future in futures:
-                try:
-                    chunk_id, probs = future.result()
-                except Exception as error:  # 실패한 원문은 결과에서 빠짐(호출한 쪽이 관련 있음으로 셈)
-                    ctx["warnings"].append(f"Jev 원문 판정 실패: {short(error, 60)}")
-                    continue
-                with PRINT_LOCK:
-                    ctx["calls"]["jev"] += 1
-                mark = core.apply_passage_judgments(probs, PASSAGE_THRESHOLDS)
-                ctx["jev_cache"][f"{question}|{chunk_id}|{JEV_MODEL}"] = mark
-                results[chunk_id] = mark
-    return results
-
-
-# ---------------------------------------------------------------------------
-# W4 서브 워크플로우: O 검색엔진 검색, L Local 검색, G Global 검색, R 원문 붙이기
+# W4 서브 워크플로우 R 원문 붙이기(O, L, G는 core_search.py의 실습 함수)
 #   툴 안은 순서가 정해진 코드 함수임. 모든 함수가 W2 질문 분석이 만든 같은 필터(filters)를 받음
 # ---------------------------------------------------------------------------
-# Cypher 조각: 여러 질의에서 같은 꼴로 씀
-LABEL_OF = "[l IN labels(n) WHERE NOT l STARTS WITH '__'][0]"  # 엔티티의 레이블(관리용 __Entity__ 등 제외)
-PROPS_OF = "apoc.map.removeKeys(properties(n), ['embedding', 'generation', 'run_id'])"  # 화면과 판정에 쓰는 속성만
-# 질문 벡터와 노드 설명 임베딩(K6)의 코사인 유사도. 벡터가 없으면 0
-SIMILARITY_OF = ("CASE WHEN $qv IS NULL OR n.embedding IS NULL THEN 0.0 "
-                 "ELSE vector.similarity.cosine(n.embedding, $qv) END")
-
-
 def entity_text(label: str, props: dict) -> str:
     """엔티티 한 줄 설명: 「레이블: 속성=값, …」(인덱싱 K6의 설명 글과 같은 꼴)."""
     parts = [f"{key}={value}" for key, value in sorted(props.items())]
     return f"{label}: " + ", ".join(parts)
-
-
-def search_engine(res: Resources, query: str, filters: dict, ctx: dict) -> dict:
-    """O 검색엔진 검색: O1 벡터 검색 + O2 BM25 검색(같은 필터) → O3 RRF → O4 리랭킹(최대 6).
-
-    필터(볼 수 있는 청크 표)를 두 검색에 똑같이 걸고, 필터 뒤 후보가 6개 이하면 O4를 건너뜀.
-    한쪽 검색이 실패해도 남은 순위로 결과를 냄(RRF를 코드에서 계산하는 까닭).
-    """
-    # 준비: 두 검색에 똑같이 걸 필터(볼 수 있는 청크 표)와 질의 임베딩
-    index = filters["index"]
-    allowed = sorted(filters["allowed_ids"])
-    id_filter = {"ids": {"values": allowed}}
-    vector_hits, bm25_hits = [], []
-    vector = embed_query(res, query, ctx)
-
-    # --- O1 벡터 검색: 질의 임베딩으로 kNN 25개(lucene 엔진은 필터를 검색 안에서 걺). 실패해도 경고만 남기고 계속
-    try:
-        if vector is not None:
-            body = {"size": O_CANDIDATES, "_source": False,
-                    "query": {"knn": {"embedding": {"vector": vector, "k": O_CANDIDATES, "filter": id_filter}}}}
-            vector_hits = [{"chunk_id": h["_id"]} for h in res.os.search(index=index, body=body)["hits"]["hits"]]
-    except Exception as error:
-        ctx["warnings"].append(f"O1 벡터 검색 실패: {short(error, 60)}")
-
-    # --- O2 BM25 검색: 색인과 같은 토크나이저로 질의를 낱말로 나눠 25개. 실패해도 경고만 남기고 계속
-    try:
-        tokens = DATA["tokenizer"].tokenize(query)
-        body = {"size": O_CANDIDATES, "_source": False,
-                "query": {"bool": {"must": {"match": {"text_tokens": " ".join(tokens)}}, "filter": id_filter}}}
-        bm25_hits = [{"chunk_id": h["_id"]} for h in res.os.search(index=index, body=body)["hits"]["hits"]]
-    except Exception as error:
-        ctx["warnings"].append(f"O2 BM25 검색 실패: {short(error, 60)}")
-
-    # --- O3 RRF 병합: 두 순위를 점수 대신 순위로만 합쳐 25개(실습 함수 rrf_merge)
-    fused = core.rrf_merge(vector_hits, bm25_hits, k=60, top=O_CANDIDATES)
-
-    # --- 글 읽기: 검색은 id만 받았으므로 리랭크 전에 청크 글을 읽어 한 줄씩 만듦(점수는 우선 RRF 점수)
-    texts = read_chunk_texts(ctx, [row["chunk_id"] for row in fused])
-    rows = []
-    for row in fused:
-        meta = DATA["chunk_meta"][row["chunk_id"]]
-        rows.append({"chunk_id": row["chunk_id"], "short_id": meta["short_id"], "text": texts[row["chunk_id"]],
-                     "ranks": row["ranks"], "score": row["rrf"]})
-
-    # --- O4 리랭킹: 후보가 6개보다 많을 때만 Cohere 리랭커로 다시 채점해 줄 세움(실패하면 RRF 순위 그대로)
-    if len(rows) > O_KEEP:
-        scores = rerank(res, query, [r["text"] for r in rows], ctx)
-        if scores is not None:
-            for row, score in zip(rows, scores):
-                row["score"] = score
-            rows.sort(key=lambda r: r["score"], reverse=True)
-
-    # 리턴: 상위 6개 청크와 두 검색의 후보 수(관찰 글에 보임)
-    return {"chunks": rows[:O_KEEP], "n_vector": len(vector_hits), "n_bm25": len(bm25_hits)}
-
-
-def entity_allowed_clause(var: str) -> str:
-    """엔티티가 나온 청크가 모두 「볼 수 있는 청크 표」에 있을 때만 남기는 Cypher 조건(4.4 권한 필터).
-
-    L1 갈래 A와 B, L3 이웃이 모두 이 조건을 씀. $allowed에는 볼 수 있는 청크 id 목록을 넘김.
-    """
-    return (f"ALL(src IN [({var})-[:FROM_CHUNK]->(s:Chunk) | s.chunk_id] WHERE src IN $allowed) "
-            f"AND size([({var})-[:FROM_CHUNK]->(s:Chunk) | s]) > 0")
-
-
-def neighbors_and_reports(res: Resources, entity_ids: list[str], vector: list[float] | None, filters: dict) -> dict:
-    """L3 이웃 탐색(엔티티마다 관계 1개로 이어진 이웃 4개, 관계 이름과 방향 포함) + L4 커뮤니티 보고서 3개."""
-    if not entity_ids:
-        return {"neighbors": {}, "reports": []}
-
-    # --- L3 이웃 탐색: 엔티티마다 관계 1개로 이어진 같은 세대 엔티티(청크, 커뮤니티로 가는 관계와 권한 밖 이웃은 뺌)
-    #     이웃은 거리가 모두 1이라 질문 유사도(SIMILARITY_OF) 순으로 4개. CALL (e) { } 안이라 엔티티마다 따로 셈
-    neighbors = {}
-    records = res.run(
-        "UNWIND $ids AS eid MATCH (e) WHERE elementId(e) = eid "
-        "CALL (e) { MATCH (e)-[r]-(n:__Entity__ {generation: $g}) "
-        "  WHERE NOT type(r) IN ['FROM_CHUNK', 'IN_COMMUNITY'] AND " + entity_allowed_clause("n") + " "
-        "  RETURN type(r) AS rel, startNode(r) = e AS outgoing, elementId(n) AS nid, " + LABEL_OF + " AS label, "
-        "  " + PROPS_OF + " AS props, [(n)-[:FROM_CHUNK]->(s:Chunk) | s.chunk_id] AS chunk_ids, "
-        "  " + SIMILARITY_OF + " AS score "
-        "  ORDER BY score DESC LIMIT $k } "
-        "RETURN eid, collect({rel: rel, outgoing: outgoing, id: nid, label: label, props: props, chunk_ids: chunk_ids, "
-        "score: score}) AS rows",
-        ids=entity_ids, g=filters["generation"], allowed=sorted(filters["allowed_ids"]), qv=vector, k=L_NEIGHBORS)
-    for record in records:
-        neighbors[record["eid"]] = [dict(row) for row in record["rows"]]
-
-    # --- L4 커뮤니티 탐색: L2 엔티티가 속한 커뮤니티를 보고서와 연결된 검색결과 엔티티 수 순으로
-    #     (이웃의 커뮤니티는 보지 않음). 볼 수 있는 보고서만 3개
-    records = res.run(
-        "UNWIND $ids AS eid MATCH (e)-[:IN_COMMUNITY]->(c:Community {generation: $g}) WHERE elementId(e) = eid "
-        "RETURN c.community_id AS id, count(*) AS hits ORDER BY hits DESC",
-        ids=entity_ids, g=filters["generation"])
-    reports = []
-    for record in records:
-        if record["id"] in filters["allowed_reports"] and len(reports) < L_REPORTS:
-            reports.append({"id": record["id"], "hits": record["hits"]})
-    return {"neighbors": neighbors, "reports": reports}
-
-
-def spread(values: dict) -> dict:
-    """점수를 min-max로 0 ~ 1로 폄. 값이 모두 같으면 모두 1."""
-    lo, hi = min(values.values(), default=0.0), max(values.values(), default=0.0)
-    return {key: (value - lo) / (hi - lo) if hi > lo else 1.0 for key, value in values.items()}
-
-
-def merge_entity_lists(list_a: list[dict], list_b: list[dict], chunk_scores: dict, limit: int) -> list[dict]:
-    """L2 합치기: 갈래 A(검색엔진 → 청크 엔티티 축소)와 갈래 B(엔티티 설명 벡터)의 엔티티를 가중합으로 하나로.
-
-    점수 = 0.7 × (검색엔진 점수: 엔티티가 나온 L1 청크의 점수를 0 ~ 1로 편 값. A에 없으면 0)
-         + 0.3 × (질문과 엔티티 설명의 코사인을 0 ~ 1로 편 값)
-    두 갈래 모두 엔티티라 같은 단위로 합침. 검색엔진 점수(리랭커 또는 RRF)와 코사인은 크기가 달라 먼저 0 ~ 1로 폄.
-    반환값: 점수 순 limit개. 각 줄에 merge_score를 붙임.
-    """
-    # (1) 한 줄로 모으기: 두 갈래에 다 나온 엔티티는 한 줄
-    rows = {}
-    for row in list_a + list_b:
-        rows.setdefault(row["id"], row)
-
-    # (2) 0 ~ 1로 펴기: 청크 점수와 코사인은 단위가 달라 따로 폄
-    chunk_norm = spread(chunk_scores)
-    cos_norm = spread({eid: row.get("score") or 0.0 for eid, row in rows.items()})
-
-    # (3) 가중합: 엔티티가 나온 L1 청크 중 가장 큰 점수를 빌려 와 0.7 몫으로, 코사인을 0.3 몫으로
-    ids_a = {row["id"] for row in list_a}
-    score = {}
-    for eid, row in rows.items():
-        engine = max((chunk_norm[c] for c in row.get("chunk_ids") or [] if c in chunk_norm), default=0.0)
-        score[eid] = L2_WEIGHT_ENGINE * (engine if eid in ids_a else 0.0) + (1 - L2_WEIGHT_ENGINE) * cos_norm[eid]
-
-    # (4) 점수 순 상위 limit개에 merge_score를 붙여 돌려줌
-    ordered = sorted(rows.values(), key=lambda row: score[row["id"]], reverse=True)[:limit]
-    return [{**row, "merge_score": score[row["id"]]} for row in ordered]
-
-
-def local_search(res: Resources, query: str, topic_id: str | None, filters: dict, ctx: dict) -> dict:
-    """L Local 검색: L1 두 갈래 검색 → L2 엔티티 합치기(16) → L3 이웃(각 4) → L4 보고서(3).
-
-    갈래 A: 검색엔진 검색(O, 청크 6) → 청크에서 나온 엔티티를 질문 유사도로 16개로 축소(실습 함수 narrow_entities).
-    갈래 B: 이번 세대 엔티티 전체와 질문을 비교해 설명(K6 임베딩)이 가까운 16개.
-    두 갈래 모두 엔티티라 같은 단위로 가중합(검색엔진 0.7, 엔티티 설명 코사인 0.3)해 16개로 합침.
-    G3 주제별 Local 검색은 원 질문 대신 주제의 Follow-up 질문을 query로, 주제 번호를 topic_id로 넘겨 부름.
-    """
-    # --- L1 갈래 A 시작: 검색엔진 검색(O)으로 청크 6개. 같은 필터가 걸림
-    found = search_engine(res, query, filters, ctx)
-    chunks = found["chunks"]
-    vector = embed_query(res, query, ctx)  # 질문 벡터(Cohere). 갈래 A의 유사도와 갈래 B, L3에 씀. 실패하면 None
-
-    # --- L1 갈래 A 후보: 청크 6개에서 FROM_CHUNK를 거꾸로 따라가 엔티티를 찾고, 질문 유사도를 score로 붙임
-    candidates = []
-    if chunks:
-        records = res.run(
-            "UNWIND $cids AS cid MATCH (c:Chunk {generation: $g, chunk_id: cid})<-[:FROM_CHUNK]-(n:__Entity__) "
-            "WHERE " + entity_allowed_clause("n") + " "
-            "RETURN cid AS chunk_id, elementId(n) AS id, " + LABEL_OF + " AS label, " + PROPS_OF + " AS props, "
-            "[(n)-[:FROM_CHUNK]->(s:Chunk) | s.chunk_id] AS chunk_ids, "
-            + SIMILARITY_OF + " AS score",
-            cids=[c["chunk_id"] for c in chunks], g=filters["generation"], allowed=sorted(filters["allowed_ids"]),
-            qv=vector)
-        candidates = [dict(r) for r in records]
-
-    # --- L1 갈래 A 축소: 청크마다 1개를 보장하고 남은 자리는 유사도 순으로 16개(실습 함수 narrow_entities)
-    list_a = core.narrow_entities(candidates, limit=L_ENTITIES)
-
-    # --- L1 갈래 B: 이번 세대 엔티티 전체와 코사인을 직접 비교해 상위 16개(벡터 인덱스를 쓰지 않음)
-    #     인덱스 kg_entity_embedding은 모든 세대가 한 인덱스에 섞여 있어 「상위 k → 세대 거르기」로는 많이 놓침
-    #     (평가셋 10문항 실측 37/80). 직접 비교는 빠짐없이 찾고, 이번 세대 엔티티 약 1,650개라 0.1초 안팎임
-    list_b = []
-    if vector is not None:
-        records = res.run(
-            "MATCH (n:__Entity__ {generation: $g}) WHERE n.embedding IS NOT NULL AND " + entity_allowed_clause("n") + " "
-            "WITH n, vector.similarity.cosine(n.embedding, $qv) AS score ORDER BY score DESC LIMIT $k "
-            "RETURN elementId(n) AS id, " + LABEL_OF + " AS label, " + PROPS_OF + " AS props, "
-            "[(n)-[:FROM_CHUNK]->(s:Chunk) | s.chunk_id] AS chunk_ids, score",
-            g=filters["generation"], allowed=sorted(filters["allowed_ids"]), qv=vector, k=L_ENTITIES)
-        list_b = [dict(r) for r in records]
-
-    # --- L2 두 갈래 합치기: 0.7 × 검색엔진(청크) 점수 + 0.3 × 엔티티 설명 코사인으로 16개
-    chunk_scores = {c["chunk_id"]: c["score"] for c in chunks}
-    entities = merge_entity_lists(list_a, list_b, chunk_scores, L_ENTITIES)
-
-    # --- L3 이웃 탐색(엔티티마다 4개)과 L4 커뮤니티 보고서(3개)
-    graph = neighbors_and_reports(res, [e["id"] for e in entities], vector, filters)
-
-    # 리턴: 청크, 엔티티, 이웃, 보고서와 두 갈래 개수(관찰 글에 보임). topic_id는 G3가 주제를 알아보게 그대로 돌려줌
-    ids_a, ids_b = {e["id"] for e in list_a}, {e["id"] for e in list_b}
-    return {"chunks": chunks, "entities": entities, "neighbors": graph["neighbors"], "reports": graph["reports"],
-            "n_candidates": len(candidates), "n_a": len(list_a), "n_b": len(list_b),
-            "n_both": len(ids_a & ids_b), "topic_id": topic_id}
-
-
-def global_search(res: Resources, query: str, filters: dict, ctx: dict) -> dict:
-    """G Global 검색: G1 보고서 고르기(Groq) → G2 주제와 Follow-up 질문(Groq) → G3 주제별 Local 검색(병렬)
-
-    이 구성은 Microsoft GraphRAG의 Global Search(map-reduce)와 다른 자체 구성임.
-    찾기만 하고, 결과(found)를 작업 기록과 툴 결과로 바꾸는 일은 run_global이 함.
-    """
-    # --- G1 준비: 볼 수 있는 보고서만 남기고, 보고서마다 관련도(질문 벡터와 보고서 요약 임베딩의 코사인)를 셈
-    #     관련도는 G1 실패 대체, 분량 맞추기, 관련 보고서 수(NO_REPORTS 판정)에 씀
-    reports = {rid: r for rid, r in DATA["reports"].items() if rid in filters["allowed_reports"]}
-    vector = embed_query(res, query, ctx)
-    relevance = {}
-    for rid, report in reports.items():
-        relevance[rid] = cosine(vector, report["embedding"]) if vector and report["embedding"] else 0.0
-
-    # --- G1 제목 목록: 보고서 id를 정렬해 r1, r2 …를 붙이고 「r1: 제목」 줄로 이음(긴 id보다 토큰을 아낌)
-    #     short_ids는 LLM 답을 원래 id로 되돌리는 표가 됨
-    short_ids = {f"r{i}": rid for i, rid in enumerate(sorted(reports), start=1)}
-    titles = "\n".join(f"{sid}: {reports[rid]['title']}" for sid, rid in short_ids.items())
-
-    # --- G1 보고서 고르기: LCEL 체인(G1_PROMPT | 구조화 모델)으로 최대 12개. 표에 없는 id는 버림
-    picked = []
-    try:
-        ctx["calls"]["groq"] += 1
-        chain = G1_PROMPT | res.groq.with_structured_output(PickedReports, method="json_schema", strict=True)
-        result = chain.invoke({"question": query, "titles": titles, "limit": G_MAX_REPORTS})
-        picked = [short_ids[s] for s in result.report_ids if s in short_ids][:G_MAX_REPORTS]
-    except Exception as error:
-        ctx["warnings"].append(f"G1 실패(보고서 벡터 상위 {G_FALLBACK_REPORTS}개): {short(error, 60)}")
-
-    # --- G1 실패 대체: 고른 것이 없으면 관련도 상위 5개로 대신함
-    if not picked:
-        picked = sorted(reports, key=lambda rid: relevance[rid], reverse=True)[:G_FALLBACK_REPORTS]
-
-    # --- G1 분량 맞추기: 관련도 순으로 세운 뒤, (요약 + 핵심 발견) 글자 수 / 2가 12,000 토큰을 넘으면 뒤에서 하나씩 뺌
-    picked.sort(key=lambda rid: relevance[rid], reverse=True)
-    while picked and sum(len(reports[r]["summary"] or "") + len(" ".join(reports[r]["findings"])) for r in picked) / 2 \
-            > G_REPORT_TOKENS:
-        picked.pop()
-
-    # --- G2 보고서 목록: 고른 보고서를 다시 r1, r2 …로 바꾸고 「r1: 제목 - 요약 앞 300자」 줄을 만듦
-    back = {rid: sid for sid, rid in short_ids.items()}
-    report_lines = "\n".join(f"{back[r]}: {reports[r]['title']} - {short(reports[r]['summary'], 300)}" for r in picked)
-
-    # --- G2 주제와 Follow-up 질문: 고른 보고서를 주제 1 ~ 5개로 묶고 주제마다 사실 확인 질문 하나(TopicPlan)
-    topics = []
-    try:
-        ctx["calls"]["groq"] += 1
-        chain = G2_PROMPT | res.groq.with_structured_output(TopicPlan, method="json_schema", strict=True)
-        plan = chain.invoke({"question": query, "reports": report_lines, "limit": G_MAX_TOPICS})
-        for topic in plan.topics[:G_MAX_TOPICS]:
-            rids = [short_ids[s] for s in topic.report_ids if s in short_ids]
-            topics.append({"title": topic.title, "report_ids": rids, "follow_up": topic.follow_up})
-    except Exception as error:
-        ctx["warnings"].append(f"G2 실패(보고서마다 주제 1개): {short(error, 60)}")
-
-    # --- G2 실패 대체: 주제가 하나도 없으면 상위 보고서마다 주제 1개, 질문은 제목 + 요약 첫 문장
-    if not topics:
-        for rid in picked[:G_MAX_TOPICS]:
-            first = core.split_sentences(reports[rid]["summary"] or "")[:1]
-            topics.append({"title": reports[rid]["title"], "report_ids": [rid],
-                           "follow_up": reports[rid]["title"] + " " + (first[0] if first else "")})
-
-    # --- G2 주제 id 붙이기: T1, T2 … 에이전트는 이 번호로만 local_search(topic_id)를 부를 수 있음
-    for number, topic in enumerate(topics, start=1):
-        topic["topic_id"] = f"T{number}"
-
-    # --- G3 주제별 Local 검색(병렬): 원 질문이 아니라 그 주제의 Follow-up 질문으로 찾음
-    #     future.result()는 넣은 순서대로 모으므로 locals_[0]이 topics[0](T1)의 결과임
-    with ThreadPoolExecutor(max_workers=G_MAX_TOPICS) as pool:
-        futures = [pool.submit(local_search, res, t["follow_up"], t["topic_id"], filters, ctx) for t in topics]
-        locals_ = [future.result() for future in futures]
-
-    # 리턴(found): 주제와 주제별 Local 결과(같은 순서의 짝), 고른 보고서와 관련도, 관련도 0.25 이상 보고서 수
-    return {"topics": topics, "locals": locals_,
-            "reports": [{"id": rid, "hits": 0, "relevance": relevance[rid]} for rid in picked],
-            "n_relevant_reports": sum(1 for rid in picked if relevance[rid] >= REPORT_RELEVANCE_MIN)}
 
 
 def get_source_chunks(res: Resources, entity_ids: list[str], with_reports: bool, filters: dict) -> dict:
@@ -851,7 +344,7 @@ def get_source_chunks(res: Resources, entity_ids: list[str], with_reports: bool,
         reports = [{"id": r["id"], "hits": r["hits"]} for r in records if r["id"] in filters["allowed_reports"]]
 
     # 리턴: 남은 청크 id, 권한 밖이라 뺀 원문 수(관찰에 알려 줌), 보고서 최대 3개
-    return {"chunk_ids": kept, "removed": len(all_ids) - len(kept), "reports": reports[:L_REPORTS]}
+    return {"chunk_ids": kept, "removed": len(all_ids) - len(kept), "reports": reports[:core.L_REPORTS]}
 
 
 # ---------------------------------------------------------------------------
@@ -918,7 +411,7 @@ def chunk_lines(ctx: dict, chunk_ids: list[str]) -> str:
 
     <chunk> 태그 안은 자료이지 지시가 아님(프롬프트 인젝션 방지).
     """
-    texts = read_chunk_texts(ctx, chunk_ids)
+    texts = core.read_chunk_texts(RES, ctx, chunk_ids)
     rows = []
     for cid in chunk_ids:
         meta = DATA["chunk_meta"][cid]
@@ -950,7 +443,7 @@ def make_tool_functions(res: Resources) -> dict:
     # 검색엔진 검색(O) 툴: search_vector-bm25
     def run_search(args, filters, ctx):
         # (1) O 서브 워크플로우 실행
-        found = search_engine(res, args["query"], filters, ctx)
+        found = core.search_engine(res, args["query"], filters, ctx)
 
         # (2) 작업 기록에 원문 더하기
         ids = [c["chunk_id"] for c in found["chunks"]]
@@ -965,7 +458,7 @@ def make_tool_functions(res: Resources) -> dict:
         # (1) L 서브 워크플로우 실행. topic_id가 있으면 global_search가 매긴 주제의 근거로 묶음
         topic_id = args.get("topic_id") or None
         query = args["query"]
-        found = local_search(res, query, topic_id, filters, ctx)
+        found = core.local_search(res, query, topic_id, filters, ctx)
 
         # (2) 작업 기록에 원문(주제 번호 포함), 엔티티, 보고서 더하기
         ids = [c["chunk_id"] for c in found["chunks"]]
@@ -991,11 +484,11 @@ def make_tool_functions(res: Resources) -> dict:
     # Global 검색(G) 툴: global_search. found를 작업 기록과 툴 결과로 바꿈
     def run_global(args, filters, ctx):
         # (1) G 서브 워크플로우 실행: G1 → G2 → G3
-        found = global_search(res, args["query"], filters, ctx)
+        found = core.global_search(res, args["query"], filters, ctx)
 
         # (2) 보고서 후보 넣기: G1이 고른 보고서를 근거 보고서 후보에 더함
         add_reports(ctx, found["reports"])
-        lines = [f"보고서 {len(found['reports'])}개 고름(관련도 {REPORT_RELEVANCE_MIN} 이상 {found['n_relevant_reports']}개), "
+        lines = [f"보고서 {len(found['reports'])}개 고름(관련도 {core.REPORT_RELEVANCE_MIN} 이상 {found['n_relevant_reports']}개), "
                  f"주제 {len(found['topics'])}개"]
 
         # (3) 주제마다: 주제 기록 → 청크(주제 번호 포함)와 엔티티 기록 → 관찰 글(제목, Follow-up, 원문 3개)
@@ -1130,7 +623,7 @@ AGENT_TOOL_NAMES = {t.name for t in AGENT_TOOLS}  # after_model이 없는 툴 �
 
 
 # ---------------------------------------------------------------------------
-# W3 ~ W5 미들웨어 2개: 막는 일은 코드가 함
+# W3 ~ W5 미들웨어: 막는 일은 코드가 함(ToolWrapperMiddleware는 core_search.py의 실습 함수)
 #   한 회차: before_model → 모델(Groq) → after_model → 툴마다 wrap_tool_call
 #   AgentMiddleware를 상속해 정해진 이름의 메서드를 만들면 LangChain이 그 자리에서 부름
 # ---------------------------------------------------------------------------
@@ -1212,46 +705,6 @@ class GuardMiddleware(AgentMiddleware):
         return None
 
 
-class ToolWrapperMiddleware(AgentMiddleware):
-    """W4 래퍼와 W5 채점: 막힌 호출은 실행하지 않고 오류 표시로 돌려주고, 실행한 결과에는 Jev 판정과 진단 신호를 붙임."""
-
-    def wrap_tool_call(self, request, handler):
-        """툴 호출 하나를 감쌈: 막힌 호출은 오류 표시로 돌려주고, 실행한 결과에는 W5 채점 글을 덧붙임."""
-        ctx = request.runtime.context
-        call = request.tool_call
-
-        # (1) 막힌 호출: after_model이 표시한 호출은 실행하지 않고 오류 표시 + 「더 부를 수 없음」
-        if call["id"] in ctx["blocked"]:
-            record_outcome(ctx, failed=True, no_new=True)
-            return ToolMessage(content=f"더 부를 수 없음. 지금 근거로 finish할 것({ctx['blocked'][call['id']]})",
-                               tool_call_id=call["id"], name=call["name"], status="error")
-
-        # (2) 툴 실행: handler가 @tool 함수를 실행함(→ call_wrapper → run_tool → 서브 워크플로우)
-        message = handler(request)
-
-        # (3) finish는 수집을 끝내는 툴이라 채점하지 않고 그대로 돌려줌
-        if call["name"] == "finish":
-            say(f"   W4 finish: {call['args'].get('status')} - {call['args'].get('reason')}")
-            return message
-
-        # (4) 입력 오류: run_tool이 입력 오류를 내면 오류 표시만 붙여 돌려줌
-        out = ctx["call_results"].get(call["id"], {})
-        if out.get("error"):
-            message.status = "error"
-            record_outcome(ctx, failed=True, no_new=True)
-            say(f"   W4 {call['name']}: {out['text']}")
-            return message
-
-        # (5) W5 채점 붙이기: Jev 원문 판정과 진단 신호를 관찰 끝에 덧붙임(관련 없는 원문은 근거에서 뺌)
-        try:
-            note = score_result(ctx, call, out["result"])
-        except Exception:
-            ctx["fatal"] = traceback.format_exc()
-            note = "채점 중 오류(요청을 끝냄)"
-        message.content = f"{message.content}\n{note}"
-        return message
-
-
 def is_rejected_generation(error: Exception) -> bool:
     """Groq가 모델 출력을 읽지 못해 거절한 오류(400, failed_generation)인지 봄. 맞으면 모델 호출을 다시 보냄.
 
@@ -1261,13 +714,6 @@ def is_rejected_generation(error: Exception) -> bool:
     if rejected:
         say(f"   W3 Groq가 모델 출력을 거절함(400): {short(error, 70)} → 재시도가 남았으면 다시 보냄")
     return rejected
-
-
-def record_outcome(ctx: dict, failed: bool, no_new: bool) -> None:
-    """이번 회차의 호출 결과 하나(실패 여부, NO_NEW 여부)를 기록함. 연속 횟수 계산에 씀."""
-    with PRINT_LOCK:
-        if ctx["round_outcomes"]:
-            ctx["round_outcomes"][-1].append({"failed": failed, "no_new": no_new})
 
 
 def update_streaks(ctx: dict) -> None:
@@ -1311,9 +757,9 @@ def score_result(ctx: dict, call: dict, result: dict) -> str:
     if result["chunk_ids"]:
         if tool_name == "global_search":
             for topic_id, ids in result["per_topic"].items():
-                marks.update(jev_judge_passages(RES, ctx["topics"][topic_id]["follow_up"], ids, ctx))
+                marks.update(core.jev_judge_passages(RES, ctx["topics"][topic_id]["follow_up"], ids, ctx))
         else:
-            marks = jev_judge_passages(RES, result["judge_q"] or ctx["clean_question"], result["chunk_ids"], ctx)
+            marks = core.jev_judge_passages(RES, result["judge_q"] or ctx["clean_question"], result["chunk_ids"], ctx)
 
     # --- (b) 근거에서 빼기: 지시 끼워 넣기는 언제나 빼고, 관련 없음은 빼되 아래 예외는 표시만 함
     #     이번에 새로 들어온 원문만 뺄지 정함
@@ -1340,7 +786,7 @@ def score_result(ctx: dict, call: dict, result: dict) -> str:
     new_relevant = [cid for cid in result["new"] if cid in usable]  # 새로 들어와 근거로 남은 원문
     if result["new"] and not marks:  # Jev 실패: 새 원문을 모두 관련으로 셈(계획서 4.5)
         new_relevant = list(result["new"])
-    by_id = read_chunk_texts(ctx, usable)
+    by_id = core.read_chunk_texts(RES, ctx, usable)
     texts = [by_id[cid] for cid in usable]
     terms = ctx["terms"] if not result.get("topic_id") else topic_terms(ctx, result["topic_id"])
     stats = {
@@ -1360,7 +806,7 @@ def score_result(ctx: dict, call: dict, result: dict) -> str:
     signals = core.diagnose_signals(stats, SIGNAL_THRESHOLDS)
 
     # --- (d) 결과 기록: 이 호출이 NO_NEW인지 적어 둠. before_model이 「NO_NEW 2회 연속」 강제 종료에 씀
-    record_outcome(ctx, failed=False, no_new="NO_NEW" in signals or not new_relevant)
+    core.record_outcome(ctx, failed=False, no_new="NO_NEW" in signals or not new_relevant)
     with PRINT_LOCK:
         ctx["signal_log"].append({"round": ctx["rounds"], "tool": tool_name, "signals": signals, "stats": stats})
 
@@ -1456,10 +902,10 @@ def step2_analyze(res: Resources, data: dict, ctx: dict) -> dict:
     ctx["filters"] = {"generation": res.active["generation"], "index": res.active["search_index"],
                       "allowed_ids": allowed, "allowed_reports": allowed_reports,
                       "member_pseudo_id": ids["member_pseudo_id"] if ctx["role"] == "auditor" else None,
-                      "card_ids": ids["card_ids"], "question_vector": embed_query(res, ids["clean_question"], ctx)}
+                      "card_ids": ids["card_ids"], "question_vector": core.embed_query(res, ids["clean_question"], ctx)}
 
     # --- Jev 판정 → 코드의 결정: 잡담, 모호, 첫 툴 확률을 받아 기준값으로 끝낼지와 첫 툴 후보를 정함(실습 함수)
-    answers = jev_route(res, ids["clean_question"], ctx)
+    answers = core.jev_route(res, ids["clean_question"], ctx)
     route = core.decide_question_route(answers, ROUTE_THRESHOLDS)
     route["answers"] = answers  # 화면 출력용으로 확률도 함께 돌려줌
     return route
@@ -1479,8 +925,8 @@ def step6_rerank(res: Resources, ctx: dict) -> dict:
     #     회차가 1회이고 원문이 자리 수 이하면 건너뜀(O4 결과를 그대로 씀)
     skipped = ctx["rounds"] <= 1 and len(usable) <= limit
     if not skipped:
-        texts = read_chunk_texts(ctx, [c["chunk_id"] for c in usable])
-        scores = rerank(res, ctx["clean_question"], [texts[c["chunk_id"]] for c in usable], ctx)
+        texts = core.read_chunk_texts(res, ctx, [c["chunk_id"] for c in usable])
+        scores = core.rerank(res, ctx["clean_question"], [texts[c["chunk_id"]] for c in usable], ctx)
         if scores is not None:
             for chunk, score in zip(usable, scores):
                 chunk["score"] = score
@@ -1495,7 +941,7 @@ def step6_rerank(res: Resources, ctx: dict) -> dict:
 
     # --- 커뮤니티 보고서: 리랭킹하지 않고 연결된 검색결과 엔티티 수와 관련도 순으로 3개
     reports = sorted(ctx["evidence_reports"].values(), key=lambda r: (r["hits"], r["relevance"]), reverse=True)
-    reports = reports[:L_REPORTS]
+    reports = reports[:core.L_REPORTS]
     return {"chunks": final, "entities": entities, "reports": reports, "skipped": skipped, "n_before": len(usable)}
 
 
@@ -1506,7 +952,7 @@ def step7_judge(res: Resources, ctx: dict, picked: dict) -> dict:
     """
     # --- 재확인 자료 준비: W6이 고른 원문의 글
     chunk_ids = [row["chunk_id"] for row in picked["chunks"]]
-    texts = read_chunk_texts(ctx, chunk_ids)
+    texts = core.read_chunk_texts(res, ctx, chunk_ids)
     chunks = [{"chunk_id": cid, "text": texts[cid]} for cid in chunk_ids]
 
     # --- 재확인 자료 준비: 그래프에서 원문마다 나온 엔티티와 속성 글, 그 엔티티끼리 관계 하나로 이어진 쌍(links)
@@ -1516,7 +962,7 @@ def step7_judge(res: Resources, ctx: dict, picked: dict) -> dict:
     links = set()
     if chunk_ids:
         records = res.run("UNWIND $ids AS cid MATCH (c:Chunk {generation: $g, chunk_id: cid})<-[:FROM_CHUNK]-(n) "
-                          "RETURN cid, collect([elementId(n), " + LABEL_OF + ", " + PROPS_OF + "]) AS rows",
+                          "RETURN cid, collect([elementId(n), " + core.LABEL_OF + ", " + core.PROPS_OF + "]) AS rows",
                           ids=chunk_ids, g=res.active["generation"])
         for record in records:
             chunk_entities[record["cid"]] = [row[0] for row in record["rows"]]
@@ -1558,7 +1004,7 @@ def step7_judge(res: Resources, ctx: dict, picked: dict) -> dict:
                 marks[cid] = ctx["chunks"][cid]["mark"]
         missing = [cid for cid in chunk_ids if cid not in marks]
         if missing:
-            marks.update(jev_judge_passages(res, ctx["clean_question"], missing, ctx))
+            marks.update(core.jev_judge_passages(res, ctx["clean_question"], missing, ctx))
 
     # --- 종합 판정(제공 함수 decide_collection): 코드 재확인 불통과 → 불통과(Jev가 살리지 않음),
     #     답 근거 원문 0개 → 불통과, 질문 전제와 사실 충돌 원문이 있으면 통과 + 표시. 그 회원의 상담 원문은 관련 확률을 보지 않음
@@ -1586,7 +1032,7 @@ def evidence_block(ctx: dict, picked: dict) -> tuple[str, dict]:
     lines, table = [], {}
 
     # (1) 원문: W6이 고른 순서대로 c1, c2 …를 붙임
-    texts = read_chunk_texts(ctx, [row["chunk_id"] for row in picked["chunks"]])
+    texts = core.read_chunk_texts(RES, ctx, [row["chunk_id"] for row in picked["chunks"]])
     for number, row in enumerate(picked["chunks"], start=1):
         meta = DATA["chunk_meta"][row["chunk_id"]]
         text = texts[row["chunk_id"]]
@@ -1708,7 +1154,7 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
     # --- 에이전트 실행: finish를 부르거나 미들웨어가 강제 종료할 때까지 「추론 → 툴 호출 → 관찰」 루프를 돎(최대 6회차)
     #     Groq가 모델 출력을 거절하면(400) LangChain 내장 ModelRetryMiddleware가 모델 호출만 2번까지 다시 보냄
     retry = ModelRetryMiddleware(max_retries=2, retry_on=is_rejected_generation, on_failure="error", initial_delay=0.5)
-    middleware = [GuardMiddleware(), ToolWrapperMiddleware(), retry]
+    middleware = [GuardMiddleware(), core.ToolWrapperMiddleware(score_result), retry]
     try:
         state = core.build_agent(res.agent, AGENT_TOOLS, AGENT_SYSTEM, middleware, first_message(ctx, route), ctx,
                                  RECURSION_LIMIT)
@@ -1755,7 +1201,7 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
     say(f"── W6 리랭킹: 원문 {picked['n_before']}개 → {len(picked['chunks'])}자리"
         f"{'(회차 1회, 8개 이하라 건너뜀)' if picked['skipped'] else ''}, 이어진 엔티티 {len(picked['entities'])}개, "
         f"보고서 {len(picked['reports'])}개")
-    texts = read_chunk_texts(ctx, [row["chunk_id"] for row in picked["chunks"]])
+    texts = core.read_chunk_texts(res, ctx, [row["chunk_id"] for row in picked["chunks"]])
     for row in picked["chunks"]:
         meta = DATA["chunk_meta"][row["chunk_id"]]
         topics = f" {row['topic_ids']}" if row["topic_ids"] else ""
@@ -1909,7 +1355,7 @@ def show_collected(ctx: dict) -> list[dict]:
         say("   (채점한 툴 결과 없음)")
     kept = [c for c in ctx["chunks"].values() if not c.get("dropped")]
     dropped = [c for c in ctx["chunks"].values() if c.get("dropped")]
-    texts = read_chunk_texts(ctx, [c["chunk_id"] for c in kept])
+    texts = core.read_chunk_texts(RES, ctx, [c["chunk_id"] for c in kept])
     say(f"[W5 근거로 남은 원문] {len(kept)}개 (Jev 확률: 관련 / 답 근거 / 사실 충돌)")
     for c in sorted(kept, key=lambda c: (c["round"], -c["score"])):
         p = (c.get("mark") or {}).get("probs")

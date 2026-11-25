@@ -3,7 +3,7 @@
 하이브리드 AI 교육 「그래프 검색」(교재 『W05 ~ W07』 64 ~ 79쪽) 실습용 예제임.  
 인덱싱 실습(`../indexer`)이 게시한 활성 세대(Neo4j 그래프 + OpenSearch 검색엔진)를 읽어,  
 **Groq 에이전트(gpt-oss-120b)가 툴을 골라 근거를 모으고(ReAct), 판단은 의사결정AI Jev가 확률로, 막는 일은 코드가 맡는** 검색 워크플로우 10단계를 돌림.  
-레이어드 아키텍처 없이 **main 1개 + 핵심 모듈 1개**로 짰고, 교육생은 핵심 모듈의 실습 함수 13개를 클론 코딩한 뒤 본인 코드로 바꿔 끼움.
+레이어드 아키텍처 없이 **main 1개 + 핵심 모듈 1개**로 짰고, 교육생은 핵심 모듈의 실습 함수 13개(직접 작성 10개, 빈칸 채우기 3개)를 채운 뒤 본인 코드로 바꿔 끼움.
 
 ## 수업용 명령 2개
 
@@ -27,7 +27,7 @@ python search_graph.py --qid Q19
 | 목표 | 내용 |
 |---|---|
 | 개념을 코드로 | 교재 70쪽 워크플로우(W1 요청 접수 → W2 질문 분석 → W3 검색 에이전트 ⇄ W4 툴 실행 → W5 채점과 상한 판정 → W6 리랭킹 → W7 수집 종료 판정 → W8 답변 생성 ⇄ W9 근거 검증 → W10 종료 상태)를 함수 하나씩으로 봄 |
-| 클론 코딩 | 단계마다 실습 함수 1개 이상, 모두 13개(직접 7개, 빈칸 6개). `my_search.py`에 채우고 `--mine` 옵션으로 바꿔 끼움 |
+| 클론 코딩 | 실습 함수 13개(직접 작성 10개, 빈칸 채우기 3개: `search_engine`, `local_search`, `global_search`). `my_search.py`에 채우고 `--mine` 옵션으로 바꿔 끼움 |
 | 눈으로 확인 | Jev 확률과 코드의 결정, 회차마다 에이전트가 고른 툴과 질의, 진단 신호, 강제 종료 이유, 8자리, 코드 재확인, 인용 검증, 종료 상태, 에이전트 실제 비용을 화면에 찍음 |
 
 주요 기능
@@ -53,9 +53,9 @@ hands-on/solutions/graphrag/
 ├─ indexer/                    (읽기만) 활성 세대 파일(data/active_generation.json), kr_tokenizer.py(질의 토큰화)
 └─ retriever/
    ├─ README.md                이 문서
-   ├─ search_graph.py          main: 설정 상수, 프롬프트와 스키마, 시작 검사, 저장소 접속, 외부 호출, 서브 워크플로우 O, L, G, R,
-   │                           툴 5개, 미들웨어 2개, run_workflow(W1 ~ W10), 단계별 결과 화면(--until)
-   ├─ core_search.py           핵심(클론 코딩 대상): 실습 함수 13개 + 제공 함수
+   ├─ search_graph.py          main: 설정 상수, 프롬프트, 시작 검사, 저장소 접속, 서브 워크플로우 R과 툴 함수 표,
+   │                           툴 5개, 미들웨어(GuardMiddleware, 재시도), W5 채점, run_workflow(W1 ~ W10), 단계별 결과 화면(--until)
+   ├─ core_search.py           핵심(클론 코딩 대상): 실습 함수 13개 + 제공 상수, 프롬프트, 도구, 함수(서브 워크플로우 O, L, G 포함)
    ├─ my_search.template.py    교육생 작업 파일의 뼈대(강사 템플릿). --mine 실행 때 my_search.py로 복사됨. 맨 아래 USE_TEACHER_CODE 목록의 함수는 강사 코드가 대신 돎
    └─ data/logs/               실행 기록(Git에 올리지 않음). 질문마다 JSON
 ```
@@ -179,21 +179,26 @@ python search_graph.py --qid Q01 --until W10  # 끝까지(기본): 종료 상태
 
 실습 함수와 단계(채우는 순서)
 
-| 순서 | 함수 | 방식 | 단계 | 교재 |
+| 순서 | 교시 | 함수 | 방식 | 단계와 하는 일 |
 |---|---|---|---|---|
-| 1 | `check_ready` | 직접 | W1 권한, 같은 세대, 보고서 유무 | 65 |
-| 2 | `decide_question_route` | 직접 | W2 Jev 확률 → 코드의 결정 | 65, 66 |
-| 3 | `build_agent` | 빈칸 2 | W3 create_agent로 ReAct 루프 | 68 |
-| 4 | `run_tool` | 빈칸 2 | W4 래퍼: 식별자 지우기, 필터 강제 | 69 |
-| 5 | `rrf_merge` | 직접 | W4 O3 RRF | 70 |
-| 6 | `narrow_entities` | 직접 | W4 L2 엔티티 16개 | 71 |
-| 7 | `diagnose_signals` | 빈칸 3 | W5 진단 신호 | 74 |
-| 8 | `force_stop_reason` | 직접 | W5 강제 종료 | 75 |
-| 9 | `select_final_chunks` | 직접 | W6 주제마다 1자리, 8자리 | 76 |
-| 10 | `recheck_question` | 빈칸 2 | W7 코드 재확인 조건 ①, ② | 77 |
-| 11 | `generate_answer` | 빈칸 2 | W8 LCEL 체인 + 구조화 출력 | 78 |
-| 12 | `verify_answer` | 직접 | W9 인용, 숫자, 보고서 인용 검사 | 78 |
-| 13 | `make_end_state` | 빈칸 1 | W10 종료 상태 | 79 |
+| 1 | 2 | `jev_route` | 직접 | W2 Jev에 잡담, 모호, 첫 툴을 묻고 확률만 받음(보기 순서를 뒤집어 한 번 더) |
+| 2 | 2 | `build_agent` | 직접 | W3 create_agent로 ReAct 루프를 만들고 돌림 |
+| 3 | 2 | `ToolWrapperMiddleware` | 직접 | W4 래퍼와 W5 채점: 막힌 호출은 오류 표시, 실행 결과에는 채점 글 |
+| 4 | 2 | `run_tool` | 직접 | W4 입력 검사, 질의 속 식별자 지우기, 필터 강제 |
+| 5 | 3 | `read_chunk_texts` | 직접 | W4 청크 id로 검색엔진에서 글 읽기(요청 안 캐시) |
+| 6 | 3 | `search_engine` | 빈칸 2 | W4 O 검색엔진 검색: O1 벡터 검색, O2 BM25 검색 |
+| 7 | 3 | `rrf_merge` | 직접 | W4 O3 RRF로 두 순위 합치기 |
+| 8 | 3 | `local_search` | 빈칸 2 | W4 L Local 검색: L1 갈래 A 후보, L1 갈래 B |
+| 9 | 3 | `narrow_entities` | 직접 | W4 L1 갈래 A 엔티티 16개로 줄이기 |
+| 10 | 3 | `global_search` | 빈칸 3 | W4 G Global 검색: G1 보고서 고르기, G2 주제와 Follow-up 질문, G3 주제별 Local 검색 |
+| 11 | 4 | `jev_judge_passages` | 직접 | W5 청크마다 Jev Noul 4개를 묻고 표시를 붙임 |
+| 12 | 4 | `rerank` | 직접 | W6 리랭킹(O4 포함): Cohere 리랭커 점수 |
+| 13 | 4 | `generate_answer` | 직접 | W8 LCEL 체인 + 구조화 출력 |
+
+- 함수끼리 부르는 것도 같은 파일의 것을 씀. 예를 들어 `local_search`를 채우면 그 안의 `search_engine`, `narrow_entities`도
+  `my_search.py`의 것이 불림(목록에 남은 이름이면 강사 코드)
+- 나머지 함수(`check_ready`, `decide_question_route`, `diagnose_signals`, `force_stop_reason`, `select_final_chunks`,
+  `recheck_question`, `verify_answer`, `make_end_state` 등)는 `core_search.py`의 제공 함수로 읽기만 함
 
 ## 7. 실측값(강사 PC, 2026-10-25)
 
