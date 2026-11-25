@@ -87,6 +87,7 @@ ROOT_DIR = BASE_DIR.parents[3]  # retriever → graphrag → solutions → hands
 ACTIVE_FILE = BASE_DIR.parent / "indexer" / "data" / "active_generation.json"  # 인덱싱이 게시한 활성 세대(읽기만)
 EVAL_SET_PATH = ROOT_DIR / "hands-on" / "solutions" / "eval-set-full.json"  # 평가셋 25문항
 LOG_DIR = BASE_DIR / "data" / "logs"  # 실행 기록(Git 제외)
+RESULT_DIR = BASE_DIR / "results"  # 최종 답변 마크다운 result_{YYMMDD}_{HHMMSS}.md(Git 제외)
 
 # 비밀값. 키 값은 코드, 주석, 화면에 절대 적지 않음. 환경변수에 올리지 않고 클라이언트마다 인자로 넘김
 SECRETS_PATH = ROOT_DIR / "secrets" / ".env"  # JEV_API_KEY, GROQ_API_KEY, COHERE_API_KEY
@@ -870,6 +871,7 @@ def new_context(res: Resources, data: dict, question: str, role: str, member_id:
         "round_outcomes": [], "streak_checked": 0, "no_new_streak": 0, "same_call_streak": 1, "failed_rounds": 0,
         # 끝난 방법(finish, 강제 종료, 치명 오류)과 Jev 캐시, 신호 기록, 경고
         "finish": None, "forced_stop": None, "fatal": None, "jev_cache": {}, "signal_log": [], "warnings": [],
+        "answer": None,  # W8이 마지막으로 만든 구조화 답(결과 파일에 문장과 인용을 그대로 씀)
         "texts": {},  # 이 요청에서 검색엔진에서 읽은 청크 글(청크 id → 글). 한 번 읽은 글은 다시 읽지 않음
         # 외부 호출 수(화면 끝에 찍음)와 global_search 허용 여부(W1 요청 접수가 정함)
         "calls": {"agent": 0, "jev": 0, "groq": 0, "cohere": 0, "text_reads": 0}, "allow_global": False,
@@ -1269,6 +1271,7 @@ def run_workflow(res: Resources, data: dict, question: str, role: str, member_id
             return finish_request(ctx, core.make_end_state("generation_failed", short(error, 100), "", evidence_list,
                                                            warnings), messages)
         text = answer_text(answer)
+        ctx["answer"] = answer
         say(f"── W8 답변({'첫 시도' if attempt == 0 else f'재작성 {attempt}/{MAX_REWRITES}'}): {short(text, 300)}")
 
         # --- 답 문장이 없으면(근거로 답할 수 없다고 함) 지어내지 않고 W10 「확인할 수 없음」
@@ -1412,6 +1415,46 @@ def show_judged(picked: dict, decision: dict, texts: dict) -> None:
     say(f"[W7 판정] {verdict}" + (f" - {decision['reason']}" if decision["reason"] != verdict else ""))
 
 
+def answer_markdown(answer) -> str:
+    """구조화 답을 마크다운으로 바꿈: 문장마다 한 줄. 표 줄(|로 시작)은 이어 붙여 표가 되게 하고 인용은 표 아래에 모음."""
+    lines, table_cites = [], []
+    for sentence in answer.sentences:
+        text = sentence.text.strip()
+        if text.startswith("|"):  # 표 줄: 줄 끝에 인용을 붙이면 표가 깨지므로 표 아래에 모아 적음
+            lines.append(text)
+            table_cites += [c for c in sentence.citation_ids if c not in table_cites]
+            continue
+        if table_cites:
+            lines += ["", f"(표의 근거: {', '.join(table_cites)})", ""]
+            table_cites = []
+        lines += [f"{text} [{', '.join(sentence.citation_ids)}]" if sentence.citation_ids else text, ""]
+    if table_cites:
+        lines += ["", f"(표의 근거: {', '.join(table_cites)})"]
+    return "\n".join(lines).strip()
+
+
+def save_result(ctx: dict, end: dict) -> Path:
+    """W10 결과를 results/result_{YYMMDD}_{HHMMSS}.md로 저장함(질문, 종료 상태, 최종 답, 근거, 경고)."""
+    RESULT_DIR.mkdir(parents=True, exist_ok=True)
+    path = RESULT_DIR / f"result_{time.strftime('%y%m%d_%H%M%S')}.md"
+    lines = ["# GraphRAG 검색 결과", "",
+             f"- 질문: {core.MEMBER_ID_PATTERN.sub('M-****', ctx['question'])}",  # 회원번호는 파일에 남기지 않음
+             f"- 종료 상태: {end['status']} - {end['reason']}",
+             f"- 시각: {time.strftime('%Y-%m-%d %H:%M:%S')}", "", "## 답", ""]
+    if end["answer"] and ctx["answer"]:
+        lines.append(answer_markdown(ctx["answer"]))
+    else:
+        lines.append(f"(답 없음: {end['meaning']})")
+    if end["evidence"]:
+        lines += ["", "## 근거", "", "| 인용 | 청크 | 내용(앞부분) |", "|---|---|---|"]
+        for number, item in enumerate(end["evidence"], start=1):
+            lines.append(f"| c{number} | {item['id']} | {short(item['text'], 120).replace('|', '/')} |")
+    if end["warnings"]:
+        lines += ["", "## 경고", ""] + [f"- {warning}" for warning in end["warnings"]]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
 def finish_request(ctx: dict, end: dict, messages: list) -> dict:
     """W10 종료 상태(또는 --until로 멈춘 자리)를 찍고, W3 에이전트 실제 비용과 호출 수, 툴 경로를 붙여 돌려줌."""
     cost = agent_cost(messages)
@@ -1422,12 +1465,18 @@ def finish_request(ctx: dict, end: dict, messages: list) -> dict:
         until_banner("W10")
         say(f"[W10 종료 상태] {end['status']} - {end['reason']}")
         say(f"   뜻: {end['meaning']}")
-        if end["answer"]:
+        if end["answer"] and ctx["answer"]:  # 결과 파일과 같은 마크다운 모양(표는 표 그대로)
+            say("[답]")
+            for line in answer_markdown(ctx["answer"]).splitlines():
+                say(f"   {line}")
+        elif end["answer"]:
             say(f"[답] {end['answer']}")
         if end["evidence"]:
             say(f"[근거] {len(end['evidence'])}개(W6이 고른 순서. 답의 c1, c2 …와 같은 번호)")
             for number, item in enumerate(end["evidence"], start=1):
                 say(f"   c{number} {item['id']} {short(item['text'], 70)}")
+        end = {**end, "result_file": str(save_result(ctx, end))}
+        say(f"[결과 파일] {end['result_file']}")
     for warning in end["warnings"]:
         say(f"   경고: {short(warning, 120)}")
     say("[비용과 호출 수]")

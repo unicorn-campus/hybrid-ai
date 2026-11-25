@@ -57,7 +57,8 @@ hands-on/solutions/graphrag/
    │                           툴 5개, 미들웨어(GuardMiddleware, 재시도), W5 채점, run_workflow(W1 ~ W10), 단계별 결과 화면(--until)
    ├─ core_search.py           핵심(클론 코딩 대상): 실습 함수 13개 + 제공 상수, 프롬프트, 도구, 함수(서브 워크플로우 O, L, G 포함)
    ├─ my_search.template.py    교육생 작업 파일의 뼈대(강사 템플릿). --mine 실행 때 my_search.py로 복사됨. 맨 아래 USE_TEACHER_CODE 목록의 함수는 강사 코드가 대신 돎
-   └─ data/logs/               실행 기록(Git에 올리지 않음). 질문마다 JSON
+   ├─ data/logs/               실행 기록(Git에 올리지 않음). 질문마다 JSON
+   └─ results/                 최종 답변 마크다운 result_{YYMMDD}_{HHMMSS}.md(Git에 올리지 않음). W10까지 끝나면 만듦
 ```
 
 읽기만 하는 입력
@@ -130,6 +131,10 @@ python search_graph.py "할부로 산 상품의 철회는 며칠 안에 요청�
 python search_graph.py "이 회원이 가장 최근 상담에서 요청한 것은?" --role auditor --member-id M-1042
 ```
 
+```bash
+python search_graph.py "업종별로 혜택이 있는 카드명을 마크다운 표 형식으로 작성해요"
+```
+
 ### 4.3 단계까지만 보기(--until)
 
 그 단계까지만 수행하고, 그 단계까지의 결과를 `══ --until W5: … 까지 수행한 결과 ══` 머리줄 아래에 모아 보임.
@@ -160,6 +165,7 @@ python search_graph.py --qid Q01 --until W10  # 끝까지(기본): 종료 상태
 | `── W7 코드 재확인` / `W7 판정` | W7 | 조건 ①(한 문장 공존), ②(관계 하나로 이어짐) 결과와 통과, 불통과 |
 | `── W8 답변` / `── W9 근거 검증` | W8 W9 | 문장마다 인용 id, 검증 실패 사유, 재작성 횟수 |
 | `══ --until W10 ══` 아래 `[W10 종료 상태]`, `[답]`, `[근거]` | W10 | 종료 상태 이름과 뜻, 답, 근거 목록(답의 c1, c2 …와 같은 번호) |
+| `[결과 파일]` | W10 | 최종 답변을 저장한 마크다운 파일 경로(`results/result_{YYMMDD}_{HHMMSS}.md`). 질문, 종료 상태, 답(표는 표 그대로), 근거, 경고 |
 | `[비용과 호출 수]` | 전체 | 에이전트(Groq) 비용(호출, 입력, 캐시, 출력 토큰), 호출 수(원문 읽기 포함), 툴 경로, 시간 |
 
 ## 6. 교육생 교체 방법
