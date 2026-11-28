@@ -1,0 +1,64 @@
+{
+ "단계": "K8 커뮤니티 요약",
+ "요약": {
+  "엔티티와 관계": "엔티티 1650개, 관계 1560개",
+  "Leiden 묶음": "101개 중 요약 대상 77개",
+  "보고서 LLM": "77번 호출, 재사용 0개, 토큰 230,714"
+ },
+ "보고서_예": [
+  {
+   "title": "카드 서비스 약관 전반 요약",
+   "size": 153,
+   "summary": "본 약관은 카드 발급·갱신·대체, 분실·도난 신고, 이용 원칙·한도, 수수료·포인트·해외 이용 등 전반적인 서비스 규정을 정의한다. 각 조항마다 신고·신청·변경 등에 필요한 기한을 명시하고, 해당 상황별 처리 절차를 상세히 제시한다. 또한 부정 사용 조사, 개인정보 보호, 약관 변경 및 분쟁 해결 방안까지 포함해 카드 이용 전 과정의 권리·의무를 포괄한다.",
+   "findings": [
+    "제11조는 카드 갱신·대체 발급을 규정하며, 유효기간 만료 전에 갱신하고 변경 사항을 안내한다. [근거: Clause(제11조), Deadline(유효기간 만료 전에), Handling(갱신 조건, 연회비 및 혜택 변경 여부를 알립니다)]",
+    "제12조는 카드 분실·도난 시 즉시 신고하도록 요구하고, 신고 후 즉시 이용 정지와 재발급 절차를 진행한다. [근거: Clause(제12조), Deadline(알게 된 즉시), Handling(승인 요청은 원칙적으로 거절하며 이미 접수된 거래는 제28조의 조사 절차), Handling(앱 또는 고객지원 채널로 신고하고 접수번호를 보관)]",
+    "제12조의2는 이용 정지와 한도 감액을 규정하고, 사유 해소 시 재활성화·한도 회복 여부를 판단한다. [근거: Clause(제12조의2), Handling(본인 확인과 위험 재평가를 거쳐 이용정지 해제 또는 한도 회복 여부를 결), Handling(이용 범위나 한도를 조정할 수 있습니다.), Handling(적용 예정일과 사유 범주를 미리 알리며, 회원이 설명이나 재검토를 요청할)]",
+    "제28조는 부정 사용 조사를 규정하며, 조사 중에는 금액 구분·거래 데이터 수집·결과 통보 절차를 따른다. [근거: Clause(제28조), Handling(다툼이 있는 금액과 정상 이용금액을 구분하여 표시합니다.), Handling(신고 시각, 승인 위치, 인증 기록, 기기 정보 및 배송 기록을 함께 조), Handling(전자문 서로 안내합니다.)]",
+    "제31조는 개인정보 처리 방침을 명시하고, 정보 열람·정정·삭제 절차와 재개 여부를 안내한다. [근거: Clause(제30조), Handling(구분하여 안내합니다), Handling(이용을 재개할 수 있습니다), Handling(교육용 보존기간 표에 따라 삭제하거나 다른 정보와 분리합니다)]"
+   ]
+  },
+  {
+   "title": "가상 청소년 교육용 카드 서비스 개요",
+   "size": 39,
+   "summary": "This product is a virtual card named “한빛 청소년생활” intended for youth education accounts and can be used only when linked to a virtual guardian, without regard to legal age. The virtual guardian can choose one of three card designs (새싹, 구름, 별) in the app, set spending limits of up to 25,000 won per transaction and 150,000 won per month, and may pause usage or restrict merchant categories such as alcohol or gambling. The card provides a monthly 2,000 won exchange voucher for a virtual convenience‑store membership and a one‑time 2,000 won mobile voucher, both blocked for prohibited items and cash‑type transactions. The service operates as a pilot from 2027‑01‑15 to 2027‑12‑31; after the pilot new issuance stops while existing vouchers remain valid until their expiration. Transaction history remains viewable after termination and support is offered through a virtual help center.",
+   "findings": [
+    "The card is available only for youth education accounts that are connected to a virtual guardian, and the eligibility does not depend on the legal age. [근거: BenefitCondition(가상 보호자 연결과 이용규칙 확인이 완료된 청소년 교육용 계정만 참여함.), BenefitCondition(가상 보호자와 연결된 청소년 교육용 계정에서만 제공함. 실제 법정 발급 )]",
+    "A virtual guardian can select one of three virtual card designs, set a per‑transaction limit of 25,000 won and a monthly limit of 150,000 won, and may pause usage or restrict merchant categories such as alcohol and gambling. [근거: BenefitCondition(가상 카드 디자인 새싹·구름·별 중 1종을 앱에서 선택함.), BenefitCondition(건별 25,000원·월 150,000원을 기본 상한으로 하며 가상 보호자), BenefitCondition(보호자가 허용 업종을 축소하거나 건별·월별 한도를 낮출 수 있고 이용을 ), BenefitCondition(편의점·서점·대중교통만 허용함. 가상 보호자가 허용 목록에서 업종을 추가), BenefitLimit(가상 디자인 선택 기능은 2027-01-15부터 제공함.)]",
+    "The service includes a monthly 2,000 won exchange voucher for a virtual convenience‑store membership and a one‑time 2,000 won mobile voucher, both prohibited for alcohol, gambling, and cash‑type transactions. [근거: Benefit(월 1회 2,000원 교환권), Benefit(하루상점 전용 2,000원권 1회 사용 가능), BenefitCondition(합성 조건: 교환권은 발급월 말일까지 1회 사용 가능함. 현금 교환·잔액), BenefitCondition(합성 조건: 멤버십 회비는 0원임. 계정 조건: 가상 보호자와 연결된 청), BenefitExclusion(제한 업종: 주류·사행성 업종과 현금성 거래는 제한함. 허용 업종 안의 )]",
+    "The pilot runs from 2027‑01‑15 to 2027‑12‑31; after the period new card issuance stops while existing vouchers remain usable until their expiry. [근거: BenefitLimit(가상 시범운영 기간은 2027-01-15부터 2027-12-31까지임.), BenefitLimit(기간 종료 후 신규 결제·교환권 발급을 중지함. 유효기간이 남은 교환권은)]",
+    "All past transaction, benefit, and cancellation records stay accessible after termination, and inquiries are handled through the virtual help center. [근거: BenefitCondition(기존 거래·혜택·취소 내역은 종료 후에도 조회 가능함. 모의 문의는 가상)]"
+   ]
+  },
+  {
+   "title": "한빛 가족돌봄 카드의 가상 혜택 및 이용 조건",
+   "size": 36,
+   "summary": "한빛 가족돌봄 카드는 병원·약국, 온라인몰, 교육, 식사배달, 영상구독, 쇼핑 멤버십 등 다양한 가상 서비스에 대해 결제액의 4%를 할인해 주는 혜택을 제공한다. 모든 할인 혜택은 전월 국내·외 일시불·무이자 할부 이용액 350,000원 이상이라는 실적 조건을 충족해야 하며, 상품권·선불·현금서비스·취소 거래는 제외된다. 연 1회 제공되는 90,000원 가상 돌봄 바우처와 모의 계좌이체 수수료 면제 등 추가 혜택도 포함된다. 각 혜택은 월 40,000원(각 8,000원 한도)까지 통합 한도 내에서 제공되며, 현금 교환이나 타인 양도는 불가능하다. 이 모든 혜택은 ‘한빛 가족돌봄’ 카드 상품에 연결되어 있다.",
+   "findings": [
+    "병원·약국 결제에 대해 전월 350,000원 이상 사용 시 4% 할인이 적용되며, 상품권·선불·현금서비스·취소 거래는 제외된다. [근거: BenefitCondition(가상 일반 병원·약국 업종의 본인 결제. 전월 국내외 일시불·유이자 할부), Benefit(대상 결제액의 4%를 할인함.), BenefitExclusion(상품권·선불 충전·현금서비스·취소 거래에는 혜택을 제공하지 않음.), BenefitLimit(일반 혜택은 카드별 월 40,000원 상당 내 합산함(1P=1원). 이 )]",
+    "온라인몰 직접 결제에서도 동일한 실적 조건을 만족하면 4% 할인이 제공되고, 동일한 제외 항목이 적용된다. [근거: BenefitCondition(가상 쇼핑몰 달빛상점의 직접 결제. 전월 국내외 일시불·유이자 할부 이용), Benefit(대상 결제액의 4%를 할인함.), BenefitExclusion(상품권·선불 충전·현금서비스·취소 거래에는 혜택을 제공하지 않음.), BenefitLimit(일반 혜택은 카드별 월 40,000원 상당 내 합산함(1P=1원). 이 )]",
+    "교육 관련 결제에 대해 4% 할인이 주어지며, 현금 교환 및 타인 양도는 허용되지 않는다. [근거: BenefitCondition(전월 국내외 일시불·유이자 할부 이용액 350,000원 이상. 세금·연회), Benefit(대상 결제액의 4%를 할인함.), BenefitExclusion(상품권·선불 충전·현금서비스·취소 거래에는 혜택을 제공하지 않음.), BenefitLimit(일반 혜택은 카드별 월 40,000원 상당 내 합산함(1P=1원). 이 )]",
+    "연 1회 90,000원 가상 돌봄 바우처가 제공되며, 이는 현금 교환이 불가하고 등록된 가상 자격코드와 연계된다. [근거: BenefitCondition(교육용 신청 화면에서 돌봄 유형과 가상 자격코드를 등록함. 실제 공공지원), Benefit(연 1회 90,000원 돌봄 바우처 제공함.), BenefitExclusion(현금 교환 및 타인 양도는 불가함.), BenefitLimit(발급일부터 180일간 분할 사용 가능함. 현금 교환 및 타인 양도는 불가)]",
+    "모든 할인·캐시백·포인트 혜택은 월 40,000원 한도 내에서 1포인트=1원으로 합산되며, 각 혜택은 최대 8,000원까지 제공된다. [근거: Benefit(할인·캐시백·일반 포인트를 1P=1원으로 합산하여 카드별 월 40,000), BenefitLimit(통합 한도: 할인·캐시백·일반 포인트를 1P=1원으로 합산하여 카드별 월)]",
+    "가상 은행 한빛생활의 모의 계좌이체 수수료가 월 8회까지 면제되며, 이는 가상 결제계정 연결과 앱 실행을 전제로 한다. [근거: BenefitCondition(전월 국내외 일시불·유이자 할부 이용액 350,000원 이상. 세금·연회), Benefit(가상 은행 한빛생활의 모의 계좌이체 수수료를 월 8회 면제함. 기본 모의), BenefitLimit(일반 월 통합한도와 별도로 제공하며 이체 실행 시 즉시 수수료를 0원으로)]"
+   ]
+  }
+ ],
+ "확인_명령": {
+  "Neo4j Browser에 붙여 넣기": [
+   {
+    "설명": "커뮤니티 목록(큰 순서)",
+    "질의": "MATCH (c:Community {generation: 'gen-lab-v2-fb04dcb6'}) RETURN c.title AS 제목, c.size AS 크기, c.summary AS 요약 ORDER BY 크기 DESC"
+   },
+   {
+    "설명": "그림으로 보기: 커뮤니티와 구성원 엔티티 (결과 창에서 Graph 보기)",
+    "질의": "MATCH p = (e:__Entity__)-[:IN_COMMUNITY]->(c:Community {generation: 'gen-lab-v2-fb04dcb6'}) RETURN p LIMIT 40"
+   },
+   {
+    "설명": "보고서 핵심 사실 전체",
+    "질의": "MATCH (c:Community {generation: 'gen-lab-v2-fb04dcb6'}) RETURN c.title AS 제목, c.findings AS 핵심_사실 LIMIT 3"
+   }
+  ],
+  "터미널에 붙여 넣기": []
+ }
+}

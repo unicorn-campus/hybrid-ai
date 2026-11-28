@@ -1,0 +1,301 @@
+{
+ "단계": "K2 추출 + K3 가지치기",
+ "요약": {
+  "LLM으로 추출": "0개 (재사용 297개, 실패 0개)",
+  "토큰": "0",
+  "가지치기(K3)": "모두 재사용이라 이번에 새로 뽑은 노드가 없음",
+  "남은 노드(재사용 포함)": "1927개",
+  "머리줄 채움률(%)": "{'regulation': 100, 'benefit_guide': 40, 'consult_log': 80}"
+ },
+ "예시": [
+  {
+   "unit_id": "D1_27223010abe31291#제1조",
+   "doc_type": "regulation",
+   "입력_글": "제1조(목적)\n① 이 약관은 가상 사업자인 한빛카드 주식회사와 개인회원 사이의 카드 발급, 이용대금 결제, 안전한 이용\n및 계약 종료에 관한 기본 절차를 정함을 목적으로 합니다.\n② 이 문서에서 정하지 않은 사항은 개별 상품안내서와 교육용 시나리오에 따릅니다. 실제 금융계약이나 민\n원 처리의 근거로 사용할 수 없습니다.",
+   "가지치기": "재사용",
+   "노드": [
+    {
+     "id": "D1_27223010abe31291#제1조:0",
+     "label": "TermsDocument",
+     "properties": {
+      "version": "1.2",
+      "effective_date": "2027-01-15",
+      "supersedes": "1.1"
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D1_27223010abe31291#제1조:1",
+     "label": "Clause",
+     "properties": {
+      "clause_no": "제1조",
+      "title": "목적"
+     },
+     "embedding_properties": {}
+    }
+   ],
+   "관계": [
+    {
+     "start_node_id": "D1_27223010abe31291#제1조:0",
+     "end_node_id": "D1_27223010abe31291#제1조:1",
+     "type": "HAS_CLAUSE",
+     "properties": {},
+     "embedding_properties": {}
+    }
+   ]
+  },
+  {
+   "unit_id": "D2_5a3c0df949be0524_fe1e3f9517d4616e_0000",
+   "doc_type": "benefit_guide",
+   "입력_글": "[카드: 한빛 모아생활 (D2-C001)]\n카드 찾아보기 (1-16)\n자료 ID\n가상 카드명\n안내 항목\n수\nD2-C001\n한빛 모아생활\nD2-C002\n한빛 모아생활 플러스\nD2-C003\n한빛 담백할인\nD2-C004\n한빛 담백할인 플러스\nD2-C005\n한빛 하루절약\nD2-C006\n한빛 하루절약 플러스\nD2-C007\n한빛 주유동행\nD2-C008\n한빛 전기길\nD2-C009\n한빛 드라이브 포인트\nD2-C010\n한빛 대중교통\nD2-C011\n한빛 모음상자 플러스\nD2-C012\n한빛 살림시간\nD2-C013\n한빛 첫걸음\nD2-C014\n한빛 초록생활\nD2-C015\n한빛 디지털짝꿍\nD2-C016\n한빛 얼굴결제",
+   "가지치기": "재사용",
+   "노드": [
+    {
+     "id": "D2_5a3c0df949be0524_fe1e3f9517d4616e_0000:0",
+     "label": "ProductGuide",
+     "properties": {
+      "product_id": "D2-C001",
+      "card_name": "한빛 모아생활"
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D2_5a3c0df949be0524_fe1e3f9517d4616e_0000:1",
+     "label": "ProductGuide",
+     "properties": {
+      "product_id": "D2-C002",
+      "card_name": "한빛 모아생활 플러스"
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D2_5a3c0df949be0524_fe1e3f9517d4616e_0000:2",
+     "label": "ProductGuide",
+     "properties": {
+      "product_id": "D2-C003",
+      "card_name": "한빛 담백할인"
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D2_5a3c0df949be0524_fe1e3f9517d4616e_0000:3",
+     "label": "ProductGuide",
+     "properties": {
+      "product_id": "D2-C004",
+      "card_name": "한빛 담백할인 플러스"
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D2_5a3c0df949be0524_fe1e3f9517d4616e_0000:4",
+     "label": "ProductGuide",
+     "properties": {
+      "product_id": "D2-C005",
+      "card_name": "한빛 하루절약"
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D2_5a3c0df949be0524_fe1e3f9517d4616e_0000:5",
+     "label": "ProductGuide",
+     "properties": {
+      "product_id": "D2-C006",
+      "card_name": "한빛 하루절약 플러스"
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D2_5a3c0df949be0524_fe1e3f9517d4616e_0000:6",
+     "label": "ProductGuide",
+     "properties": {
+      "product_id": "D2-C007",
+      "card_name": "한빛 주유동행"
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D2_5a3c0df949be0524_fe1e3f9517d4616e_0000:7",
+     "label": "ProductGuide",
+     "properties": {
+      "product_id": "D2-C008",
+      "card_name": "한빛 전기길"
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D2_5a3c0df949be0524_fe1e3f9517d4616e_0000:8",
+     "label": "ProductGuide",
+     "properties": {
+      "product_id": "D2-C009",
+      "card_name": "한빛 드라이브 포인트"
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D2_5a3c0df949be0524_fe1e3f9517d4616e_0000:9",
+     "label": "ProductGuide",
+     "properties": {
+      "product_id": "D2-C010",
+      "card_name": "한빛 대중교통"
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D2_5a3c0df949be0524_fe1e3f9517d4616e_0000:10",
+     "label": "ProductGuide",
+     "properties": {
+      "product_id": "D2-C011",
+      "card_name": "한빛 모음상자 플러스"
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D2_5a3c0df949be0524_fe1e3f9517d4616e_0000:11",
+     "label": "ProductGuide",
+     "properties": {
+      "product_id": "D2-C012",
+      "card_name": "한빛 살림시간"
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D2_5a3c0df949be0524_fe1e3f9517d4616e_0000:12",
+     "label": "ProductGuide",
+     "properties": {
+      "product_id": "D2-C013",
+      "card_name": "한빛 첫걸음"
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D2_5a3c0df949be0524_fe1e3f9517d4616e_0000:13",
+     "label": "ProductGuide",
+     "properties": {
+      "product_id": "D2-C014",
+      "card_name": "한빛 초록생활"
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D2_5a3c0df949be0524_fe1e3f9517d4616e_0000:14",
+     "label": "ProductGuide",
+     "properties": {
+      "product_id": "D2-C015",
+      "card_name": "한빛 디지털짝꿍"
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D2_5a3c0df949be0524_fe1e3f9517d4616e_0000:15",
+     "label": "ProductGuide",
+     "properties": {
+      "product_id": "D2-C016",
+      "card_name": "한빛 얼굴결제"
+     },
+     "embedding_properties": {}
+    }
+   ],
+   "관계": []
+  },
+  {
+   "unit_id": "D3_C-20260314-001_825562d46dabc39b_0000",
+   "doc_type": "consult_log",
+   "입력_글": "[상담ID] C-20260314-001 | 2026-03-14 | 채널: 앱 채팅\n[상담주제] 앱 인증 불편 완화\n고객: 인증이 안 되면 제가 뭘 잘못했나 싶어서 불안해요. 제 이름은 [고객]입니다.\n상담사: 어떤 단계에서 안내가 멈추나요?\n고객: 제 2026-02 실제 이용내역도 같이 확인해 주실래요?\n상담사: 가입일은 2026-03-01입니다. 직전월 2026-02은 가입 전이라 이용 비교 대상으로 삼지 않겠습니다.\n고객: 제일 불편한 건 본인 확인을 끝내려 해도 같은 요청 화면으로 계속 되돌아간다는 점이에요.\n상담사: 원인을 단정하지 않고 보이는 문구와 멈춘 단계를 확인하겠습니다.\n고객: 계속 누르지 않아도 되는 거죠?\n상담사: 혼자 반복해서 누르지 마시고 공식 도움 경로로 문의해 보시는 건 어떠세요?\n고객: 그렇게 할게요. 혼자 계속 눌러봐도 똑같이 막혀서 지쳤거든요.\n상담사: 말씀하신 대로 멈춘 단계와 오류 문구만 적어 두는 방법을 안내드릴게요.\n고객: 개인정보가 보이는 화면을 통째로 보내고 싶지는 않아요.\n상담사: 오늘은 민감정보를 제외한 오류 문구와 발생 단계만 설명하는 방법을 정리하겠습니다.\n고객: 앱 인증 불편 완화 때문에 처음 이 내용을 설",
+   "가지치기": "재사용",
+   "노드": [
+    {
+     "id": "D3_C-20260314-001_825562d46dabc39b_0000:0",
+     "label": "Consultation",
+     "properties": {
+      "record_id": "C-20260314-001",
+      "consult_date": "2026-03-14",
+      "channel": "앱 채팅",
+      "member_pseudo_id": "m_03032936a6027b4e",
+      "topic": "앱 인증 불편 완화"
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D3_C-20260314-001_825562d46dabc39b_0000:1",
+     "label": "Complaint",
+     "properties": {
+      "cause": "인증이 안 되면 제가 뭘 잘못했나 싶어서 불안해요."
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D3_C-20260314-001_825562d46dabc39b_0000:2",
+     "label": "Complaint",
+     "properties": {
+      "cause": "본인 확인을 끝내려 해도 같은 요청 화면으로 계속 되돌아간다는 점"
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D3_C-20260314-001_825562d46dabc39b_0000:3",
+     "label": "Complaint",
+     "properties": {
+      "cause": "혼자 계속 눌러봐도 똑같이 막혀서 지쳤거든요."
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D3_C-20260314-001_825562d46dabc39b_0000:4",
+     "label": "Complaint",
+     "properties": {
+      "cause": "개인정보가 보이는 화면을 통째로 보내고 싶지는 않아요."
+     },
+     "embedding_properties": {}
+    },
+    {
+     "id": "D3_C-20260314-001_825562d46dabc39b_0000:5",
+     "label": "Proposal",
+     "properties": {
+      "content": "공식 도움 경로로 문의해 보시는 건 어떠세요?",
+      "decision": "수용"
+     },
+     "embedding_properties": {}
+    }
+   ],
+   "관계": [
+    {
+     "start_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:0",
+     "end_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:1",
+     "type": "HAS_COMPLAINT",
+     "properties": {},
+     "embedding_properties": {}
+    },
+    {
+     "start_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:0",
+     "end_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:2",
+     "type": "HAS_COMPLAINT",
+     "properties": {},
+     "embedding_properties": {}
+    },
+    {
+     "start_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:0",
+     "end_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:3",
+     "type": "HAS_COMPLAINT",
+     "properties": {},
+     "embedding_properties": {}
+    },
+    {
+     "start_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:0",
+     "end_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:4",
+     "type": "HAS_COMPLAINT",
+     "properties": {},
+     "embedding_properties": {}
+    },
+    {
+     "start_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:0",
+     "end_node_id": "D3_C-20260314-001_825562d46dabc39b_0000:5",
+     "type": "HAS_PROPOSAL",
+     "properties": {},
+     "embedding_properties": {}
+    }
+   ]
+  }
+ ],
+ "실패한_추출_청크": [],
+ "전체_결과": "data/generations/gen-lab-v2-fb04dcb6/kg_prepared.json"
+}

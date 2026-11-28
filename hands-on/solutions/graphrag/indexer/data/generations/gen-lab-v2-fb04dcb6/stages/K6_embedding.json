@@ -1,0 +1,92 @@
+{
+ "단계": "K6 엔티티 설명 임베딩",
+ "요약": {
+  "임베딩한 엔티티": "1650개 (embed-v5.0-fast, 2048차원)",
+  "벡터 인덱스": "kg_entity_embedding"
+ },
+ "엔티티_예": [
+  {
+   "label": "BenefitLimit",
+   "속성": {
+    "generation": "gen-lab-v2-fb04dcb6",
+    "description": "승인일 기준 월에 한도를 사용하며 다음 달 18일 지급함.",
+    "run_id": "v2@20261126145744"
+   },
+   "설명_글": "BenefitLimit: description=승인일 기준 월에 한도를 사용하며 다음 달 18일 지급함.",
+   "벡터_차원": 2048,
+   "벡터_앞4개": [
+    0.013565244153141975,
+    -0.020827654749155045,
+    -0.009058509953320026,
+    -0.01929962821304798
+   ]
+  },
+  {
+   "label": "BenefitLimit",
+   "속성": {
+    "generation": "gen-lab-v2-fb04dcb6",
+    "description": "연간·일회성 별도 혜택은 해당 항목의 한도 를 적용함.",
+    "run_id": "v2@20261126145744"
+   },
+   "설명_글": "BenefitLimit: description=연간·일회성 별도 혜택은 해당 항목의 한도 를 적용함.",
+   "벡터_차원": 2048,
+   "벡터_앞4개": [
+    -0.0013883403735235333,
+    -0.028956042602658272,
+    0.027536645531654358,
+    -0.04222598671913147
+   ]
+  },
+  {
+   "label": "BenefitExclusion",
+   "속성": {
+    "generation": "gen-lab-v2-fb04dcb6",
+    "description": "상품권·선불 충전·현금서비스·취소 거래에는 혜택을 제공하지 않음.",
+    "run_id": "v2@20261126145744"
+   },
+   "설명_글": "BenefitExclusion: description=상품권·선불 충전·현금서비스·취소 거래에는 혜택을 제공하지 않음.",
+   "벡터_차원": 2048,
+   "벡터_앞4개": [
+    0.00697006331756711,
+    -0.01922459714114666,
+    0.008914644829928875,
+    -0.017598193138837814
+   ]
+  }
+ ],
+ "가까운_엔티티_예": [
+  {
+   "기준": {
+    "generation": "gen-lab-v2-fb04dcb6",
+    "description": "승인일 기준 월에 한도를 사용하며 다음 달 18일 지급함.",
+    "run_id": "v2@20261126145744"
+   }
+  },
+  {
+   "label": "BenefitLimit",
+   "속성": {
+    "generation": "gen-lab-v2-fb04dcb6",
+    "description": "승인일 기준 월에 한도를 사용하며 다음 달 18일 지급함.",
+    "run_id": "v2@20261126145744"
+   },
+   "유사도": 0.9999536275863647
+  }
+ ],
+ "확인_명령": {
+  "Neo4j Browser에 붙여 넣기": [
+   {
+    "설명": "임베딩이 들어간 엔티티 수",
+    "질의": "MATCH (n:__Entity__ {generation: 'gen-lab-v2-fb04dcb6'}) WHERE n.embedding IS NOT NULL RETURN count(n) AS 개수"
+   },
+   {
+    "설명": "벡터 앞 5개와 차원",
+    "질의": "MATCH (n:__Entity__ {generation: 'gen-lab-v2-fb04dcb6'}) RETURN labels(n) AS 라벨, n.embedding[0..5] AS 벡터_앞5개, size(n.embedding) AS 차원 LIMIT 3"
+   },
+   {
+    "설명": "벡터 검색: 엔티티 하나와 뜻이 가까운 엔티티 3개",
+    "질의": "MATCH (a:__Entity__ {generation: 'gen-lab-v2-fb04dcb6'}) WITH a LIMIT 1 CALL db.index.vector.queryNodes('kg_entity_embedding', 6, a.embedding) YIELD node, score WHERE node.generation = 'gen-lab-v2-fb04dcb6' AND elementId(node) <> elementId(a) RETURN score, labels(node) AS 라벨, apoc.map.removeKey(properties(node), 'embedding') AS 속성 ORDER BY score DESC LIMIT 3"
+   }
+  ],
+  "터미널에 붙여 넣기": []
+ }
+}
