@@ -1,0 +1,355 @@
+# 카드 업무 온톨로지(원본). Class와 뜻, 관계와 역관계, 같은 개체 키, 값 목록을 적음.
+# 사람이 승인하는 파일이며, schema/doc-ontology/{문서 종류}/graph_schema.json은 이 파일과 shapes/에서 만들어 냄.
+# 표준 낱말: owl:Class, rdfs:label, skos:definition(뜻), skos:scopeNote(해당과 비해당), skos:altLabel(동의어),
+#   owl:ObjectProperty, rdfs:domain, rdfs:range, owl:inverseOf(역관계), owl:hasKey(같은 개체 키), skos:OrderedCollection(값 목록)
+#   rdfs:subClassOf card:CommonConcept(공통 개념 층에 드는 Class). 값 목록(card:valueList)이 있는 Class는 분류, 없으면 개체
+# 우리가 지은 낱말(card:)의 뜻은 indexer/core_turtle.py의 CUSTOM_TERMS에 있음.
+
+@prefix card: <https://hanbit-card.example/ontology#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+card:ABOUT a owl:ObjectProperty ;
+    rdfs:domain [ a owl:Class ;
+            owl:unionOf ( card:Complaint card:Article card:Benefit ) ] ;
+    rdfs:range card:Topic ;
+    owl:inverseOf card:TOPIC_OF ;
+    card:docType "benefit_guide",
+        "consult_log",
+        "regulation" ;
+    card:inverseReason "M1, M2는 주제에서 출발해 조항과 혜택을 물음" ;
+    card:order 0 .
+
+card:CardProduct a owl:Class ;
+    rdfs:label "카드상품" ;
+    rdfs:subClassOf card:CommonConcept ;
+    owl:hasKey ( card:product_id ) ;
+    skos:altLabel "Card",
+        "Product" ;
+    skos:definition "카드사가 파는 카드 상품 하나. 회원이 발급받은 카드 한 장이 아님." ;
+    card:identityRule [ card:between "카드 혜택 안내와 정형 DB" ;
+            card:detail "Benefit.product_id와 Product.product_id가 같으면 같은 카드상품(값 꼴 D2-C001)" ;
+            card:rule "값 같음" ],
+        [ card:between "상담 기록과 카드 혜택 안내" ;
+            card:detail "상담 본문의 카드 이름을 카드 혜택 안내 메타데이터의 이름-ID 표(64쌍)로 product_id로 바꿈. 표에 없는 이름은 비워 둠" ;
+            card:rule "바꾸는 규칙" ] ;
+    card:order 0 ;
+    card:sourceKey [ card:keyProperty "product_id" ;
+            card:label "Product" ;
+            card:source "정형 DB(cardlab)" ] .
+
+card:FOLLOWS a owl:ObjectProperty ;
+    rdfs:domain card:Consultation ;
+    rdfs:range card:Consultation ;
+    owl:inverseOf card:FOLLOWED_BY ;
+    card:docType "consult_log" ;
+    card:inverseReason "C5는 첫 상담에서 뒤의 상담으로도 따라감" ;
+    card:order 3 .
+
+card:HAS_COMPLAINT a owl:ObjectProperty ;
+    rdfs:domain card:Consultation ;
+    rdfs:range card:Complaint ;
+    card:docType "consult_log" ;
+    card:order 1 .
+
+card:IN_CATEGORY a owl:ObjectProperty ;
+    rdfs:domain card:Benefit ;
+    rdfs:range card:Category ;
+    owl:inverseOf card:CATEGORY_OF ;
+    card:addedBy "indexer" ;
+    card:docType "benefit_guide" ;
+    card:inverseReason "X1은 업종에서 출발해 혜택을 물음" ;
+    card:order 5 .
+
+card:IN_SEGMENT a owl:ObjectProperty ;
+    rdfs:domain card:Consultation ;
+    rdfs:range card:CustomerSegment ;
+    owl:inverseOf card:SEGMENT_OF ;
+    card:docType "consult_log" ;
+    card:inverseReason "A1은 고객군에서 출발해 상담을 물음" ;
+    card:order 2 .
+
+card:Member a owl:Class ;
+    rdfs:label "회원" ;
+    rdfs:subClassOf card:CommonConcept ;
+    owl:hasKey ( card:member_pseudo_id ) ;
+    skos:altLabel "Customer",
+        "Member" ;
+    skos:definition "카드를 가진 개인 회원 한 명. 문서에는 가명 ID로만 나타남." ;
+    card:identityRule [ card:between "정형 DB와 상담 기록" ;
+            card:detail "member_id를 SHA-256으로 바꾼 16진수 앞 16자리에 m_을 붙이면 member_pseudo_id가 됨(예: 평가 질문의 M-1042, M-3001로 확인함). 반대 방향으로는 바꿀 수 없음" ;
+            card:rule "바꾸는 규칙" ] ;
+    card:order 1 ;
+    card:sourceKey [ card:keyProperty "member_id" ;
+            card:label "Member" ;
+            card:source "정형 DB(cardlab)" ] .
+
+card:P1 a card:CrossingPath ;
+    card:path "Consultation -HAS_COMPLAINT-> Complaint -ABOUT-> Topic <-ABOUT- Article" ;
+    card:question "M1" ;
+    card:rule "개념(ABOUT: 불만, 조항 → 주제)",
+        "동일(주제 맞추기 표)",
+        "역관(TOPIC_OF)" .
+
+card:P2 a card:CrossingPath ;
+    card:path "Complaint -ABOUT-> Topic <-ABOUT- Benefit" ;
+    card:question "M2" ;
+    card:rule "개념(ABOUT: 불만, 혜택 → 주제)",
+        "동일(주제 맞추기 표)",
+        "역관(TOPIC_OF)" .
+
+card:P3 a card:CrossingPath ;
+    card:path "Consultation.product_id = Benefit.product_id" ;
+    card:question "M3" ;
+    card:rule "동일(카드상품: 상담 쪽 바꾸는 규칙, 혜택 쪽 값 같음)" .
+
+card:P4 a card:CrossingPath ;
+    card:path "정형 DB Merchant.category = Category.name <-IN_CATEGORY- Benefit" ;
+    card:question "X1" ;
+    card:rule "동일(값 같음, 문서 쪽은 맞추기 표)",
+        "분류(업종 허용 값 8개)",
+        "역관(CATEGORY_OF)" .
+
+card:P5 a card:CrossingPath ;
+    card:path "정형 DB Member.member_id → (바꾸는 규칙) → Consultation.member_pseudo_id" ;
+    card:question "X2" ;
+    card:rule "동일(회원: 바꾸는 규칙)" .
+
+card:P6 a card:CrossingPath ;
+    card:path "정형 DB Product.product_id = Benefit.product_id" ;
+    card:question "X3" ;
+    card:rule "동일(카드상품: 값 같음)" .
+
+card:Proposal a owl:Class ;
+    skos:definition "제안. 상담사가 고객에게 권한 방법이나 대안 하나와 고객의 반응. 해당: 「~하시는 건 어떠세요?」, 「~를 안내드릴게요」. 비해당: 고객의 요청, 상담사가 사실만 알려 준 것." .
+
+card:REFERS_TO a owl:ObjectProperty ;
+    rdfs:domain card:Article ;
+    rdfs:range card:Article ;
+    card:docType "regulation" ;
+    card:order 4 .
+
+card:Request a owl:Class ;
+    skos:definition "요청. 고객이 상담에서 해 달라고 한 것 하나(비교 기준, 원하는 조건, 기록 요청). 해당: 「비교해 주세요」, 「~이면 옮기겠어요」. 비해당: 불만(Complaint로 씀), 상담사의 제안." .
+
+card:UsageRule a owl:Class ;
+    owl:hasKey ( card:item_id ) ;
+    skos:definition "이용 기준. 카드상품에 걸린 이용 규칙 항목 하나(통합 한도, 결제 한도, 실적 산정, 정산 기준). 해당: 항목 제목이 이용 기준, 통합 한도, 결제 이용 한도, 포인트 운영 기준, 한도 변경인 항목. 비해당: 할인이나 적립을 주는 혜택 항목(Benefit으로 씀)." .
+
+card:ontology a owl:Ontology ;
+    dcterms:creator "hiondal(사용자)" ;
+    dcterms:dateAccepted "2026-11-18T03:02:27" ;
+    dcterms:description "문서 그래프 3종(약관, 카드 혜택 안내, 상담 기록)과 정형 DB를 같은 업무 개념(Class)으로 잇는 공통 개념 층. 뜻 한 줄은 여기에만 적고, graph_schema.json의 노드 타입 설명(description) 첫머리는 build_from_ttl.py가 여기서 가져옴" ;
+    rdfs:comment "8단계에서 스키마와 함께 통과를 승인함(review/step8.md 라운드 3, 4)" ;
+    owl:versionInfo "5" .
+
+card:CATEGORY_OF a owl:ObjectProperty .
+
+card:CategoryValues a skos:OrderedCollection ;
+    rdfs:label "업종" ;
+    skos:memberList ( card:Category_식비 card:Category_쇼핑 card:Category_교통 card:Category_주유 card:Category_여행 card:Category_해외 card:Category_생활 card:Category_교육 ) ;
+    skos:note "없음(값 목록에 상하위 정보가 없음)" .
+
+card:Category_교육 a skos:Concept,
+        card:Category ;
+    skos:prefLabel "교육" .
+
+card:Category_교통 a skos:Concept,
+        card:Category ;
+    skos:prefLabel "교통" .
+
+card:Category_생활 a skos:Concept,
+        card:Category ;
+    skos:prefLabel "생활" .
+
+card:Category_쇼핑 a skos:Concept,
+        card:Category ;
+    skos:prefLabel "쇼핑" .
+
+card:Category_식비 a skos:Concept,
+        card:Category ;
+    skos:prefLabel "식비" .
+
+card:Category_여행 a skos:Concept,
+        card:Category ;
+    skos:prefLabel "여행" .
+
+card:Category_주유 a skos:Concept,
+        card:Category ;
+    skos:prefLabel "주유" .
+
+card:Category_해외 a skos:Concept,
+        card:Category ;
+    skos:prefLabel "해외" .
+
+card:CustomerSegmentValues a skos:OrderedCollection ;
+    rdfs:label "고객군" ;
+    skos:memberList ( card:CustomerSegment_신규_가입 card:CustomerSegment_장기_보유 card:CustomerSegment_VIP card:CustomerSegment_휴면_직전 card:CustomerSegment_다중_카드 card:CustomerSegment_연회비_부담 ) ;
+    skos:note "없음(값 목록에 상하위 정보가 없음)" .
+
+card:CustomerSegment_VIP a skos:Concept,
+        card:CustomerSegment ;
+    skos:prefLabel "VIP" .
+
+card:CustomerSegment_다중_카드 a skos:Concept,
+        card:CustomerSegment ;
+    skos:prefLabel "다중 카드" .
+
+card:CustomerSegment_신규_가입 a skos:Concept,
+        card:CustomerSegment ;
+    skos:prefLabel "신규 가입" .
+
+card:CustomerSegment_연회비_부담 a skos:Concept,
+        card:CustomerSegment ;
+    skos:prefLabel "연회비 부담" .
+
+card:CustomerSegment_장기_보유 a skos:Concept,
+        card:CustomerSegment ;
+    skos:prefLabel "장기 보유" .
+
+card:CustomerSegment_휴면_직전 a skos:Concept,
+        card:CustomerSegment ;
+    skos:prefLabel "휴면 직전" .
+
+card:FOLLOWED_BY a owl:ObjectProperty .
+
+card:SEGMENT_OF a owl:ObjectProperty .
+
+card:TOPIC_OF a owl:ObjectProperty .
+
+card:Topic a owl:Class ;
+    rdfs:label "주제" ;
+    rdfs:subClassOf card:CommonConcept ;
+    owl:hasKey ( card:name ) ;
+    skos:altLabel "Consultation.topic",
+        "IssueTopic" ;
+    skos:definition "단위가 다루는 업무 대상 하나를 짧은 명사로 쓴 것(예: 연회비, 본인 확인, 광고 수신)." ;
+    skos:editorialNote "M1, M2(불만 주제마다 관련 조항과 혜택)는 세 문서 종류를 이어야 답함. 문서를 잇는 공통 노드임" ;
+    skos:scopeNote "해당: 그 단위가 다루는 업무 대상을 2 ~ 8글자의 명사로 씀(예: 연회비, 본인 확인, 광고 수신, 혜택 신청, 이의신청, 결제일, 해외 결제, 카드 해지). 혜택 항목이면 그 혜택이 쓰이는 곳이나 대상을 씀(예: 외식, 대중교통, 디지털 구독, 해외 결제, 전기차 충전, 통합 한도). 단위 하나에 가장 중심 대상부터 1 ~ 3개, 많아야 3개. 비해당: 불편, 불만, 문의, 안내, 계산 같은 말, 혜택, 할인, 적립, 캐시백, 보너스처럼 너무 넓은 말, 카드 이름, 가맹점 이름, 금액, 날짜, 사람." ;
+    card:identityRule [ card:between "문서 3종" ;
+            card:detail "LLM이 지은 주제 이름을 사람이 확정한 주제 맞추기 표(maps/topic.ttl)로 대표 이름에 맞춤. 같은 대표 이름이면 같은 주제 노드. 표에 없거나 확정되지 않은 이름은 띄어쓰기만 맞춰 그대로 둠(다른 문서와 이어지지 않을 수 있음)" ;
+            card:rule "맞추기 표" ] ;
+    card:order 4 .
+
+card:article_no a owl:DatatypeProperty .
+
+card:benefit_id a owl:DatatypeProperty .
+
+card:item_id a owl:DatatypeProperty .
+
+card:member_pseudo_id a owl:DatatypeProperty .
+
+card:product_id a owl:DatatypeProperty .
+
+card:record_id a owl:DatatypeProperty .
+
+card:Benefit a owl:Class ;
+    rdfs:label "혜택" ;
+    rdfs:subClassOf card:CommonConcept ;
+    owl:hasKey ( card:benefit_id ) ;
+    skos:altLabel "Bonus",
+        "Voucher" ;
+    skos:definition "카드상품이 회원에게 주는 혜택 항목 하나(할인, 적립, 캐시백, 바우처, 보너스, 무이자 할부, 제휴 서비스)." ;
+    skos:editorialNote "공통 노드(주제)와 업종에 잇는 Class" ;
+    skos:scopeNote "해당: 머리줄의 항목 ID 하나에 혜택 노드 하나. 항목 제목이 할인, 적립, 캐시백, 바우처, 보너스, 무이자 할부, 쿠폰, 제휴 서비스이면 혜택임. 비해당: 항목 제목이 이용 기준, 통합 한도, 결제 이용 한도, 포인트 운영 기준처럼 혜택을 주지 않고 규칙만 적은 항목(UsageRule로 씀). 머리줄이 「혜택 항목 아님」이면 아무 노드도 만들지 않음." ;
+    card:identityRule [ card:between "카드 혜택 안내 안" ;
+            card:detail "benefit_id(예: D2-C035-B02)가 같으면 같은 혜택" ;
+            card:rule "값 같음" ] ;
+    card:order 6 .
+
+card:Complaint a owl:Class ;
+    rdfs:label "불만" ;
+    rdfs:subClassOf card:CommonConcept ;
+    skos:altLabel "Issue",
+        "IssueTopic" ;
+    skos:definition "고객이 상담에서 분명히 말한 불만이나 불편 하나." ;
+    skos:editorialNote "공통 노드(주제)에 잇는 Class" ;
+    skos:scopeNote "해당: 「불편해요」, 「지쳤어요」, 「혜택이 없어요」처럼 고객이 불만이나 불편을 분명히 말한 것. 상담 하나에 0 ~ 2개. 불만마다 그 불만이 다루는 주제를 하나 이상 ABOUT로 잇는다. 비해당: 단순한 질문이나 요청, 상담사의 말, 고객이 걱정만 한 것." ;
+    card:identityRule [ card:between "상담 기록 안" ;
+            card:detail "같은 상담(record_id) 안에서 content가 같으면 같은 불만" ;
+            card:rule "값 같음" ] ;
+    card:order 8 .
+
+card:Article a owl:Class ;
+    rdfs:label "조항" ;
+    rdfs:subClassOf card:CommonConcept ;
+    owl:hasKey ( card:article_no ) ;
+    skos:altLabel "Clause" ;
+    skos:definition "개인회원 이용약관의 조(제N조) 하나." ;
+    skos:editorialNote "공통 노드(주제)에 잇는 Class" ;
+    skos:scopeNote "해당: 머리줄의 article_no 하나에 조항 노드 하나. 조항 노드에는 article_no와 title 말고도 condition과 action을 원문 문장 그대로 반드시 채움(이 조의 내용이 그래프에 남는 곳임). 본문이 가리키는 다른 조(예: 「제10조에 따릅니다」)도 article_no만 채운 조항 노드로 만듦. 비해당: 표지, 문서 정보, 차례, 각주, 조 안의 항(①, ②)을 따로 나눈 것." ;
+    card:identityRule [ card:between "약관 안" ;
+            card:detail "article_no(예: 제10조, 제16조의2)가 같으면 같은 조항" ;
+            card:rule "값 같음" ] ;
+    card:order 5 .
+
+card:name a owl:DatatypeProperty .
+
+card:Consultation a owl:Class ;
+    rdfs:label "상담" ;
+    rdfs:subClassOf card:CommonConcept ;
+    owl:hasKey ( card:record_id ) ;
+    skos:altLabel "Consultation" ;
+    skos:definition "상담 기록 한 건." ;
+    skos:editorialNote "회원, 카드상품, 고객군을 잇는 키를 가진 Class" ;
+    skos:scopeNote "해당: 머리줄의 record_id 하나에 상담 노드 하나. 본문이 이어진다고 말한 앞선 상담(예: 「C-20260310-018과 이어지는 기록」)도 record_id만 채운 상담 노드로 만듦. 비해당: 상담사, 채널, 카드, 고객을 따로 만든 노드." ;
+    card:identityRule [ card:between "상담 기록 안" ;
+            card:detail "record_id(예: C-20260314-001)가 같으면 같은 상담" ;
+            card:rule "값 같음" ] ;
+    card:order 7 .
+
+card:CustomerSegment a owl:Class ;
+    rdfs:label "고객군" ;
+    rdfs:subClassOf card:CommonConcept ;
+    owl:hasKey ( card:name ) ;
+    skos:altLabel "customer_group",
+        "group" ;
+    skos:definition "회원을 성향에 따라 나눈 무리 하나. 값은 값 목록의 6개뿐임." ;
+    skos:editorialNote "A1(고객군마다 어떤 불만)이 이 값으로 무리를 나누고, 값이 상담 46건에 되풀이됨" ;
+    skos:scopeNote "해당: 머리줄의 고객군 값 하나에 노드 하나. 값은 신규 가입, 장기 보유, VIP, 휴면 직전, 다중 카드, 연회비 부담 중 하나. 비해당: 본문에서 짐작한 고객 성향." ;
+    card:identityRule [ card:between "정형 DB와 상담 기록" ;
+            card:detail "segment_id 번호를 값 목록의 번호-이름 표로 이름에 맞춤(1 신규 가입 ~ 6 연회비 부담)" ;
+            card:rule "바꾸는 규칙" ],
+        [ card:between "상담 기록 안" ;
+            card:detail "name이 같으면 같은 고객군 노드" ;
+            card:rule "값 같음" ] ;
+    card:order 2 ;
+    card:sourceKey [ card:keyProperty "segment_id" ;
+            card:label "Member" ;
+            card:source "정형 DB(cardlab)" ] ;
+    card:valueList card:CustomerSegmentValues .
+
+card:Category a owl:Class ;
+    rdfs:label "업종" ;
+    rdfs:subClassOf card:CommonConcept ;
+    owl:hasKey ( card:name ) ;
+    skos:altLabel "DiscountCategory",
+        "Industry",
+        "MerchantCategory",
+        "TransactionCategory" ;
+    skos:definition "가맹점을 나눈 정해진 갈래 하나. 값은 값 목록의 8개뿐임." ;
+    skos:editorialNote "X1(많이 쓰는 업종에 혜택을 주는 카드)이 이 값으로 혜택을 묶음" ;
+    card:addedBy "indexer" ;
+    card:docType "benefit_guide" ;
+    card:fill "맞추기 표" ;
+    card:fillNote "혜택의 대상(target) 문장을 맞추기 표로 8개 값 중 하나에 맞춤. 표는 8단계에서 만들고 사람이 확정한 행만 이음" ;
+    card:identityRule [ card:between "카드 혜택 안내 안" ;
+            card:detail "혜택 대상 문장 → 업종 값. 분명하지 않으면 미정으로 두고 사람이 정함" ;
+            card:rule "맞추기 표" ],
+        [ card:between "정형 DB와 카드 혜택 안내" ;
+            card:detail "Merchant.category 값과 Category.name이 같으면 같은 업종" ;
+            card:rule "값 같음" ] ;
+    card:order 3 ;
+    card:sourceKey [ card:keyProperty "category" ;
+            card:label "Merchant" ;
+            card:source "정형 DB(cardlab)" ] ;
+    card:valueList card:CategoryValues .
+
+card:CommonConcept a owl:Class ;
+    rdfs:label "공통 개념" ;
+    skos:definition "여러 원천(문서 종류, 정형 DB)에 걸쳐 같은 뜻으로 쓰는 업무 개념. 이 Class의 하위 Class가 공통 개념 층을 이룸. 문서 하나에서만 쓰는 노드 타입(이용 기준, 요청, 제안)은 하위 Class가 아님." .
+

@@ -1,0 +1,28 @@
+@prefix card: <https://hanbit-card.example/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# 고객군 맞추기 표. 상담 파일 이름(청크 메타데이터 source) -> 고객군 코드(C-02). MQ-04 결정(파일 이름의 여섯 가지를 고객군으로 봄)과 코드표 C-02 대조로 버전 2에서 여섯 행을 approved 로 올림
+
+card:SegmentTable a card:MatchTable ;
+    rdfs:label "고객군 맞추기 표"@ko ;
+    rdfs:comment "상담 파일 이름 속 고객군 낱말을 코드표 C-02 의 고객군에 짝지음. 낱말은 띄어쓰기만 다름"@ko ;
+    card:row card:segment_S01 ,
+        card:segment_S02 ,
+        card:segment_S03 ,
+        card:segment_S04 ,
+        card:segment_S05 ,
+        card:segment_S06 .
+
+card:segment_S01 a card:MatchRow ; card:fromValue "D3_S01_신규가입_상담이력_합성.txt" ; card:toValue card:seg_1 ; card:rowStatus "approved" ;
+    card:basis "파일 이름의 고객군 낱말이 코드표 C-02 의 뜻(신규 가입)과 띄어쓰기만 다름. 근거 확인: 파일 이름의 고객군 낱말이 코드표 C-02 의 뜻과 띄어쓰기만 다르고 MQ-04 결정과 같음. 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:segment_S02 a card:MatchRow ; card:fromValue "D3_S02_장기보유_상담이력_합성.txt" ; card:toValue card:seg_2 ; card:rowStatus "approved" ;
+    card:basis "파일 이름의 고객군 낱말이 코드표 C-02 의 뜻(장기 보유)과 띄어쓰기만 다름. 근거 확인: 파일 이름의 고객군 낱말이 코드표 C-02 의 뜻과 띄어쓰기만 다르고 MQ-04 결정과 같음. 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:segment_S03 a card:MatchRow ; card:fromValue "D3_S03_VIP_상담이력_합성.txt" ; card:toValue card:seg_3 ; card:rowStatus "approved" ;
+    card:basis "파일 이름의 고객군 낱말이 코드표 C-02 의 뜻(VIP)과 띄어쓰기만 다름. 근거 확인: 파일 이름의 고객군 낱말이 코드표 C-02 의 뜻과 띄어쓰기만 다르고 MQ-04 결정과 같음. 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:segment_S04 a card:MatchRow ; card:fromValue "D3_S04_휴면직전_상담이력_합성.txt" ; card:toValue card:seg_4 ; card:rowStatus "approved" ;
+    card:basis "파일 이름의 고객군 낱말이 코드표 C-02 의 뜻(휴면 직전)과 띄어쓰기만 다름. 근거 확인: 파일 이름의 고객군 낱말이 코드표 C-02 의 뜻과 띄어쓰기만 다르고 MQ-04 결정과 같음. 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:segment_S05 a card:MatchRow ; card:fromValue "D3_S05_다중카드_상담이력_합성.txt" ; card:toValue card:seg_5 ; card:rowStatus "approved" ;
+    card:basis "파일 이름의 고객군 낱말이 코드표 C-02 의 뜻(다중 카드)과 띄어쓰기만 다름. 근거 확인: 파일 이름의 고객군 낱말이 코드표 C-02 의 뜻과 띄어쓰기만 다르고 MQ-04 결정과 같음. 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:segment_S06 a card:MatchRow ; card:fromValue "D3_S06_연회비부담_상담이력_합성.txt" ; card:toValue card:seg_6 ; card:rowStatus "approved" ;
+    card:basis "파일 이름의 고객군 낱말이 코드표 C-02 의 뜻(연회비 부담)과 띄어쓰기만 다름. 근거 확인: 파일 이름의 고객군 낱말이 코드표 C-02 의 뜻과 띄어쓰기만 다르고 MQ-04 결정과 같음. 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .

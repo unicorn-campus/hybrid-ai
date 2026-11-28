@@ -1,0 +1,117 @@
+{
+  "made_in": "Step 2.8",
+  "base_date": "2026-08-31",
+  "note": "연결 지점은 한 역량 질문의 답이 한 자료에서 다른 자료로 넘어가는 자리임. 세부 규칙은 Step 6.3에서 정함.",
+  "검사한_값의_범위": "회원 M-1042와 M-3001, 기준일 2026-08-31에서 읽은 값으로만 확인함",
+  "crossing_points": [
+    {
+      "id": "CP-01",
+      "name": "카드 상품 키",
+      "competency_questions": ["CQ-16"],
+      "eval_questions": ["Q30"],
+      "from": { "source": "RDB 업무 뷰", "place": "app.customer_cards.product_id" },
+      "to": { "source": "카드 혜택 안내 문서", "place": "청크 메타데이터 card_id" },
+      "lookup_order": [
+        "1. 업무 뷰에서 이 회원이 가진 카드의 상품 키를 읽음",
+        "2. 같은 상품 키를 메타데이터로 가진 혜택 문서 조각을 찾음",
+        "3. 그 조각에서 실적 조건과 한도 구절을 읽음"
+      ],
+      "match_rule": "값 같음",
+      "checked": "M-1042의 상품 키 D2-C059와 D2-C012가 혜택 문서의 card_id 에 그대로 있음을 확인함",
+      "uniqueness": "혜택 문서의 card_id 는 64개가 모두 다름. 한 상품 키에 혜택 문서 조각이 여러 개 붙음(한 대 여러)",
+      "status": "approved_candidate",
+      "risk": "혜택 문서 조각 가운데 2건(D2-0001, D2-0002)은 card_id 가 없는 안내 머리말임. 이 둘은 상품에 잇지 않음"
+    },
+    {
+      "id": "CP-02",
+      "name": "카드 상품 이름",
+      "competency_questions": ["CQ-17"],
+      "eval_questions": ["Q31"],
+      "from": { "source": "상담 기록 문서", "place": "본문 문장에 적힌 카드 이름" },
+      "to": { "source": "카드 혜택 안내 문서", "place": "청크 메타데이터 card_name" },
+      "lookup_order": [
+        "1. 상담 기록 본문에서 카드 이름을 뽑음",
+        "2. 같은 이름을 card_name 으로 가진 혜택 문서 조각을 찾음",
+        "3. 그 조각에서 혜택 항목과 조건을 읽음"
+      ],
+      "match_rule": "변환 규칙(문장에서 이름을 뽑은 뒤 전체 일치로만 맞춤)",
+      "checked": "M-1042 상담에 '한빛 살림시간', M-3001 상담에 '한빛 사업기본'이 나오며 각각 혜택 문서의 D2-C012, D2-C038 과 이름이 같음을 확인함",
+      "uniqueness": "카드 이름 64개는 모두 다름. 다만 한 이름이 다른 이름의 앞부분인 짝이 9쌍 있음(예: '한빛 하루절약'과 '한빛 하루절약 플러스')",
+      "status": "needs_review",
+      "risk": "부분 일치로 맞추면 '한빛 하루절약'이 '한빛 하루절약 플러스'에도 걸려 엉뚱한 혜택을 댈 수 있음. 전체 일치만 쓰도록 Step 6.3에서 못 박아야 함. 관리자 확인 질문 MQ-03 과 이어짐"
+    },
+    {
+      "id": "CP-03",
+      "name": "회원",
+      "competency_questions": ["CQ-18", "CQ-19"],
+      "eval_questions": ["Q32", "Q33"],
+      "from": { "source": "RDB 회원 번호", "place": "세션 조건 app.member_id (M- 로 시작하는 번호)" },
+      "to": { "source": "상담 기록 문서", "place": "청크 메타데이터 member_pseudo_id (m_ 로 시작하는 16자리)" },
+      "lookup_order": [
+        "1. 회원 번호를 받음(상담 화면이 이미 알고 있는 값)",
+        "2. `\"m_\" + sha256(회원번호).hexdigest()[:16]` 로 상담 쪽 회원 표시를 계산함",
+        "3. 그 표시를 가진 상담 조각을 찾아 내용을 읽음",
+        "4. 필요하면 같은 회원 번호로 업무 뷰를 조회해 값을 대조함"
+      ],
+      "match_rule": "변환 규칙",
+      "rule": "member_pseudo_id = \"m_\" + sha256(member_id).hexdigest()[:16]",
+      "rule_source": "hands-on/solutions/rag/indexing/README.md 203줄",
+      "direction": "한쪽 방향만 됨. 회원 번호에서 상담 표시는 계산할 수 있지만, 해시라서 상담 표시에서 회원 번호는 계산할 수 없음. 거꾸로 가려면 후보 회원 번호를 이미 알고 하나씩 넣어 맞춰 봐야 함",
+      "checked": "상담 이력이 있는 회원 12명의 번호에 이 식을 적용해 상담 쪽 회원 표시 12개와 하나씩 대조함. 12명 모두 맞았고 각각 상담 청크 4건이 붙음. 식으로 설명되지 않는 상담 쪽 표시는 없음. README 의 예(M-1042 는 m_59853c3d8e1e3c25)와도 같음",
+      "uniqueness": "상담 쪽 회원 표시 12개는 서로 다르고 회원마다 상담 4건임(한 대 여럿). 회원 번호 하나에 표시 하나가 나오므로 겹칠 일이 없음",
+      "status": "approved_candidate",
+      "risk": "상담 기록이 있는 회원 12명에만 쓸 수 있음. 나머지 588명은 계산한 표시를 가진 상담 조각이 없어 빈 결과가 나옴. 해시 값을 거꾸로 풀 수 없으므로 '상담 조각을 먼저 고른 뒤 그 회원이 누구인지' 묻는 길은 막혀 있음. 관리자 확인 질문 MQ-01 과 이어짐"
+    },
+    {
+      "id": "CP-04",
+      "name": "같은 회원의 상담 기록 묶기",
+      "competency_questions": ["CQ-07", "CQ-08", "CQ-10"],
+      "eval_questions": ["Q14", "Q16", "Q17", "Q23", "Q24"],
+      "from": { "source": "상담 기록 문서", "place": "청크 메타데이터 member_pseudo_id" },
+      "to": { "source": "상담 기록 문서", "place": "같은 값을 가진 다른 상담 조각" },
+      "lookup_order": [
+        "1. 회원 표시가 같은 상담 조각을 모두 모음",
+        "2. 상담 날짜 순서로 줄을 세워 처음과 최근을 가림"
+      ],
+      "match_rule": "값 같음",
+      "checked": "회원 표시 12개 각각에 상담 4건이 붙고 날짜(consult_date)가 모두 있음을 확인함",
+      "uniqueness": "회원 표시 하나에 상담 4건(한 대 여럿)",
+      "status": "approved_candidate",
+      "same_source": true,
+      "risk": "같은 원천(상담 기록) 안에서 잇는 자리라 프롬프트가 말한 '원천에서 다른 원천으로 넘어가는 자리'와는 다름. 이 파일에 남길지 사용자 확인이 필요함"
+    },
+    {
+      "id": "CP-05",
+      "name": "업종",
+      "competency_questions": ["CQ-11", "CQ-15"],
+      "eval_questions": ["Q25", "Q29"],
+      "from": { "source": "RDB 업무 뷰", "place": "app.merchant_usage.category" },
+      "to": { "source": "카드 혜택 안내 문서", "place": "혜택 항목의 대상 업종 문장" },
+      "lookup_order": [
+        "1. 업무 뷰에서 이 회원이 많이 쓴 업종 이름을 읽음",
+        "2. 그 업종을 대상으로 삼는 혜택 항목을 문서에서 찾음"
+      ],
+      "match_rule": "맞추기 표가 필요함",
+      "checked": "업무 뷰의 업종은 교육, 쇼핑, 주유, 해외, 식비, 생활, 여행, 교통 여덟 가지임. 문서의 대상 업종은 '가상 편의점 하루상점', '마트 살림곳', '커피점 나무잔'처럼 가맹점 이름 섞인 문장이라 그대로 맞지 않음",
+      "uniqueness": "미검증. 두 쪽 낱말이 서로 달라 맞추기 표를 만들기 전에는 셀 수 없음",
+      "status": "needs_review",
+      "risk": "지금 역량 질문 가운데 두 쪽을 동시에 쓰는 것은 없음(CQ-11은 문서만, CQ-15는 표만 씀). 다음 Phase에서 필요해지면 맞추기 표를 만들어야 함"
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "approved_candidate": 3,
+    "needs_review": 2,
+    "not_linked": 0,
+    "crossing_two_sources": 4,
+    "inside_one_source": 1
+  },
+  "changelog": [
+    {
+      "when": "2026-11-28 검수 반영",
+      "what": "CP-03 을 '끊김'에서 '쓸 수 있음'으로 고침",
+      "why": "상담 쪽 회원 표시가 회원 번호의 sha256 앞 16자리로 만들어진 것을 안내 문서에서 확인하고, 회원 12명 전부로 대조해 맞음을 확인함",
+      "effect": "보류 문항 H02 와 H03 이 확정 문항 Q32 와 Q33 으로 올라가고 역량 질문 CQ-18, CQ-19 가 생김"
+    }
+  ]
+}

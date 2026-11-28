@@ -1,0 +1,35 @@
+{
+  "node_types": [
+    {
+      "label": "Clause",
+      "description": "약관 조항. 개인회원 이용약관의 조항 하나. 가지 조항(제16조의2)은 따로 셈. 약관 질문(연회비 면제, 철회 기한, 변경 안내, 휴면카드 처리와 그 밖의 처음 보는 약관 질문)은 조항을 찾은 뒤 조항 본문에서 답함",
+      "properties": [
+        {
+          "name": "clause_no",
+          "type": "STRING",
+          "description": "[메타데이터로 채움, 추출하지 않음] 조항 번호. 약관 조항 번호(제10조, 제16조의2)"
+        },
+        {
+          "name": "clause_title",
+          "type": "STRING",
+          "description": "[메타데이터로 채움, 추출하지 않음] 조항 제목. 조항 제목 줄의 괄호 안 말"
+        }
+      ],
+      "additional_properties": false
+    }
+  ],
+  "relationship_types": [],
+  "patterns": [],
+  "constraints": [
+    {
+      "type": "UNIQUENESS",
+      "node_type": "Clause",
+      "property_names": [
+        "clause_no"
+      ]
+    }
+  ],
+  "additional_node_types": false,
+  "additional_relationship_types": false,
+  "additional_patterns": false
+}

@@ -1,133 +1,63 @@
-# 문서 종류 benefit_guide의 허용 목록(원본). 이 문서에서 쓰는 노드 타입의 속성과 허용 패턴을 SHACL로 적음.
-# 노드 타입의 뜻과 키는 card.ttl에 있음. 이 파일과 card.ttl에서 schema/doc-ontology/benefit_guide/graph_schema.json을 만들어 냄.
-#   sh:NodeShape + sh:targetClass  이 문서에서 쓰는 노드 타입
-#   sh:property + sh:datatype      노드 타입 속성(이름, 자료형, 설명, 필수이면 sh:minCount 1)
-#   sh:property + sh:class         허용 패턴: 이 노드가 이 관계로 가리킬 수 있는 Class
-#   sh:order                       목록에서의 순서
-# 관계의 이 문서용 설명과 순서는 이 파일에만 적음. 문서 종류 파일끼리는 합쳐 읽지 않음.
-
 @prefix card: <https://hanbit-card.example/ontology#> .
-@prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix sh: <http://www.w3.org/ns/shacl#> .
-@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 
-card:benefit_guide_BenefitShape a sh:NodeShape ;
-    sh:closed true ;
-    sh:ignoredProperties ( rdf:type ) ;
-    sh:order 0 ;
-    sh:property [ sh:datatype xsd:string ;
-            sh:description "받으려면 채울 조건(전월 실적, 등록, 신청)을 원문 표현으로. 예: 전월 국내외 일시불, 유이자 할부 이용액 350,000원 이상" ;
-            sh:order 7 ;
-            sh:path card:condition ],
-        [ sh:datatype xsd:string ;
-            sh:description "머리줄의 product_id 값(카드상품 키). 예: D2-C035. 본문에서 찾지 않음" ;
-            sh:order 2 ;
-            sh:path card:product_id ;
-            card:fill "머리줄 값" ;
-            card:fillNote "청크 메타데이터 card_id를 product_id로 넣음 추출 뒤 스크립트가 넣음(header_fill_rule)" ],
-        [ sh:datatype xsd:string ;
-            sh:description "머리줄의 항목 제목. 예: 주말 외식 적립" ;
-            sh:order 1 ;
-            sh:path card:name ],
-        [ sh:datatype xsd:string ;
-            sh:description "머리줄의 항목 ID 값. 예: D2-C035-B02" ;
-            sh:order 0 ;
-            sh:path card:benefit_id ],
-        [ sh:datatype xsd:string ;
-            sh:description "머리줄의 card_name 값. 예: 한빛 일상포인트" ;
-            sh:order 3 ;
-            sh:path card:card_name ],
-        [ sh:datatype xsd:string ;
-            sh:description "혜택 종류 한 낱말: 할인, 적립, 캐시백, 바우처, 보너스, 무이자 할부, 쿠폰, 서비스 중 하나" ;
-            sh:order 4 ;
-            sh:path card:kind ],
-        [ sh:datatype xsd:string ;
-            sh:description "지급하거나 차감하는 시점을 원문 표현으로. 예: 다음 달 18일 일반 포인트로 지급함" ;
-            sh:order 10 ;
-            sh:path card:payout ],
-        [ sh:class card:Topic ;
-            sh:order 0 ;
-            sh:path card:ABOUT ],
-        [ sh:datatype xsd:string ;
-            sh:description "이 혜택의 한도를 원문 표현으로. 예: 월 8,000원 상당까지" ;
-            sh:order 8 ;
-            sh:path card:limit ],
-        [ sh:datatype xsd:string ;
-            sh:description "혜택에서 빠지는 거래를 원문 표현으로. 예: 상품권, 선불 충전, 현금서비스, 취소 거래" ;
-            sh:order 11 ;
-            sh:path card:exclusion ],
-        [ sh:datatype xsd:string ;
-            sh:description "혜택을 받는 가맹점, 업종, 결제 방식을 원문 표현으로. 예: 일반 음식점 업종의 매장 직접 결제. 업종 맞추기 표의 입력이 됨" ;
-            sh:order 6 ;
-            sh:path card:target ],
-        [ sh:datatype xsd:string ;
-            sh:description "주는 양을 원문 표현으로(비율, 금액, 횟수). 예: 대상 결제액의 1.2%를 적립함" ;
-            sh:order 5 ;
-            sh:path card:amount ],
-        [ sh:datatype xsd:string ;
-            sh:description "사용 기한이나 유효기간을 원문 표현으로. 예: 발급일부터 180일. 없으면 비움" ;
-            sh:order 9 ;
-            sh:path card:validity ] ;
-    sh:targetClass card:Benefit ;
-    card:fill "LLM 추출" ;
-    card:fillNote "benefit_id, product_id, card_name은 머리줄 값 추출 뒤 스크립트가 넣음(header_fill_rule)" ;
-    card:keyOrder 0 .
+# 문서 Shape: 카드 혜택 안내서(benefit_guide). Step 6.4
+# 본문에 없고 메타데이터에만 있는 값: 카드 이름(card_name). 혜택 항목 270건 모두 메타데이터에 card_id 와 card_name 이 있고
+# 항목 키 앞 일곱 글자가 card_id 와 같음을 확인함. 그래서 카드 이름 머리말 한 줄은 넣지 않고(Phase 5 승인 3번의 (가) 유지)
+# 카드상품의 키와 이름을 메타데이터로 채움. 카드상품 노드는 채우는 단계가 본문 추출 청크에서만 만듦(되돌아가기 3번).
+# 혜택 이름은 항목 키 줄에서 분할 규칙의 식으로 읽음(되돌아가기 3번). 나머지 혜택 내용은 LLM 이 뽑음.
+# sh:description 은 LLM 이 그대로 읽는 지시임. 값이 없으면 속성을 내지 않게 적음(null 을 내면 응답 전체가 거부됨).
 
-card:benefit_guide_TopicShape a sh:NodeShape ;
-    sh:closed true ;
-    sh:ignoredProperties ( rdf:type ) ;
-    sh:order 2 ;
-    sh:property [ sh:datatype xsd:string ;
-            sh:description "주제의 대표 이름. 띄어쓰기는 낱말 사이에 한 칸. 예: 연회비, 본인 확인" ;
-            sh:order 0 ;
-            sh:path card:name ] ;
-    sh:targetClass card:Topic ;
-    card:fill "LLM 추출" ;
-    card:fillNote "이름은 LLM이 짓고, 인덱싱이 맞추기 표로 대표 이름에 맞춤" ;
-    card:keyOrder 2 .
+card:benefit_guide_CardProductShape a sh:NodeShape ;
+    sh:targetClass card:CardProduct ;
+    card:nodeMadeBy "채우는 단계" ; card:onlyBodyUnits true ;
+    sh:closed true ; sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:path card:productId ; sh:datatype xsd:string ; sh:order 0 ; card:keyOrder 0 ;
+            card:fill "메타데이터" ; card:fillNote "청크 메타데이터 card_id" ] ,
+        [ sh:path card:productName ; sh:datatype xsd:string ; sh:order 1 ;
+            card:fill "메타데이터" ; card:fillNote "청크 메타데이터 card_name" ] ,
+        [ sh:path card:offersBenefit ; sh:class card:BenefitItem ; sh:order 2 ;
+            card:fill "메타데이터" ; card:fillNote "같은 추출 청크의 card_id 와 항목 키 앞 일곱 글자로 이음" ] .
 
-card:benefit_guide_UsageRuleShape a sh:NodeShape ;
-    sh:closed true ;
-    sh:ignoredProperties ( rdf:type ) ;
-    sh:order 1 ;
-    sh:property [ sh:datatype xsd:string ;
-            sh:description "머리줄의 항목 제목. 예: 결제 이용 한도" ;
-            sh:order 1 ;
-            sh:path card:title ],
-        [ sh:datatype xsd:string ;
-            sh:description "머리줄의 card_name 값" ;
-            sh:order 3 ;
-            sh:path card:card_name ],
-        [ sh:datatype xsd:string ;
-            sh:description "머리줄의 항목 ID 값. 예: D2-C055-B04" ;
-            sh:order 0 ;
-            sh:path card:item_id ],
-        [ sh:datatype xsd:string ;
-            sh:description "막는 업종이나 거래, 계정 조건을 원문 표현으로. 예: 주류, 사행성 업종과 현금성 거래는 제한함" ;
-            sh:order 5 ;
-            sh:path card:restriction ],
-        [ sh:datatype xsd:string ;
-            sh:description "머리줄의 product_id 값(카드상품 키). 본문에서 찾지 않음" ;
-            sh:order 2 ;
-            sh:path card:product_id ;
-            card:fill "머리줄 값" ;
-            card:fillNote "청크 메타데이터 card_id를 product_id로 넣음 추출 뒤 스크립트가 넣음(header_fill_rule)" ],
-        [ sh:datatype xsd:string ;
-            sh:description "한도를 원문 표현으로. 예: 건별 25,000원, 월 150,000원을 기본 상한으로 함" ;
-            sh:order 4 ;
-            sh:path card:limit ] ;
-    sh:targetClass card:UsageRule ;
-    card:keyOrder 1 .
+card:benefit_guide_BenefitItemShape a sh:NodeShape ;
+    sh:targetClass card:BenefitItem ;
+    sh:closed true ; sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:path card:benefitId ; sh:datatype xsd:string ; sh:order 0 ; card:keyOrder 0 ;
+            card:fill "메타데이터" ; card:fillNote "units.json 의 item_key(항목 단위 분할 규칙이 항목 키 줄에서 읽은 값)" ] ,
+        [ sh:path card:benefitName ; sh:datatype xsd:string ; sh:order 1 ;
+            card:fill "메타데이터" ; card:fillNote "추출 청크 본문의 항목 키 줄에서 분할 규칙의 식(title 묶음)으로 읽음" ;
+            card:fillRuleRef "doc/benefit_guide/unit_text_rules.json#marker_regex" ;
+            card:fillRegex "^(?P<card>D2-C\\d{3})-(?P<item>B\\d{2}) \\| (?P<title>.+)$" ; card:fillRegexGroup "title" ;
+            card:fillRegexBasis "설계용 혜택 항목 25건 모두에서 이 식이 한 번씩 걸리고 걸린 키가 item_key 와 같음(되돌아가기 3번에서 확인)" ] ,
+        [ sh:path card:benefitMethod ; sh:datatype xsd:string ; sh:order 2 ; card:fill "LLM 추출" ;
+            sh:description "이 혜택이 주는 것의 종류. '혜택'이나 '지원 내용' 줄에 나온 낱말을 그대로 옮김(예: 할인, 적립, 캐시백, 바우처, 교환권). 한 항목에 하나만 냄. 실적 조건이나 한도에 나오는 '포인트' 같은 낱말은 종류가 아님. 종류를 나타내는 낱말이 본문에 없으면 속성을 내지 않음" ] ,
+        [ sh:path card:ratePercent ; sh:datatype xsd:decimal ; sh:order 3 ; card:fill "LLM 추출" ;
+            sh:description "결제액에 곱하는 할인율이나 적립률을 퍼센트 숫자로(예: 대상 결제액의 4% 이면 4). 실적 기준액, 한도 금액, 포인트 수는 비율이 아님. 비율이 없는 정액 혜택이면 속성을 내지 않음" ] ,
+        [ sh:path card:benefitAmountText ; sh:datatype xsd:string ; sh:order 4 ; card:fill "LLM 추출" ;
+            sh:description "비율이 아닌 정액 혜택(예: 700P 고정 리필, 연 1회 90,000원 바우처)을 원문 문장 그대로 한 문장 옮김. 비율 혜택이면 속성을 내지 않음" ] ,
+        [ sh:path card:requiredSpend ; sh:datatype xsd:integer ; sh:order 5 ; card:fill "LLM 추출" ;
+            sh:description "'실적 조건' 줄에 적힌 기준 금액을 원 단위 정수로(예: 350,000원 이상 이면 350000). 한도 금액이나 달성 보너스 금액은 해당하지 않음. 실적 조건 줄이 없으면 속성을 내지 않음" ] ,
+        [ sh:path card:spendCondition ; sh:datatype xsd:string ; sh:order 6 ; card:fill "LLM 추출" ;
+            sh:description "혜택을 받으려고 채워야 하는 조건 문장만 원문 그대로 옮김(예: 전월 국내외 일시불, 유이자 할부 이용액 350,000원 이상). 실적에서 빼는 금액, 예외, 제외 내용은 여기에 넣지 않고 혜택 제외(exclusion_text)에 둠. 조건이 없으면 속성을 내지 않음" ] ,
+        [ sh:path card:monthlyLimitAmount ; sh:datatype xsd:integer ; sh:order 7 ; card:fill "LLM 추출" ;
+            sh:description "이 항목 하나가 한 달에 주는 최대 금액을 원 단위 정수로(예: 이 항목은 월 8,000원 상당까지 이면 8000). 카드 전체의 통합 한도(예: 월 40,000원)는 이 항목의 한도가 아님. 항목 한도가 없으면 속성을 내지 않음" ] ,
+        [ sh:path card:limitText ; sh:datatype xsd:string ; sh:order 8 ; card:fill "LLM 추출" ;
+            sh:description "'한도', '횟수, 한도', '이용 한도' 줄을 원문 그대로 옮김. 통합 한도와 횟수 제한을 포함함. 한도 줄이 없으면 속성을 내지 않음" ] ,
+        [ sh:path card:payoutTiming ; sh:datatype xsd:string ; sh:order 9 ; card:fill "LLM 추출" ;
+            sh:description "'지급 시점' 줄을 원문 그대로 옮김(예: 다음 달 청구금액에서 차감함). 사용 기한은 여기에 넣지 않음. 지급 시점 줄이 없으면 속성을 내지 않음" ] ,
+        [ sh:path card:usageValidity ; sh:datatype xsd:string ; sh:order 10 ; card:fill "LLM 추출" ;
+            sh:description "받은 바우처나 포인트를 쓸 수 있는 기한을 원문 그대로 옮김(예: 발급일부터 180일간 분할 사용 가능함). 혜택 시행일이나 지급 시점은 사용 기한이 아님. 기한이 적혀 있지 않으면 속성을 내지 않음" ] ,
+        [ sh:path card:exclusionText ; sh:datatype xsd:string ; sh:order 11 ; card:fill "LLM 추출" ;
+            sh:description "혜택을 주지 않는 거래와 실적에서 빼는 금액을 원문 그대로 옮김('혜택 제외', '대상 제외', '취소, 제외' 줄과 실적 조건 줄의 '실적에서 제외함' 문장). 제외 내용이 없으면 속성을 내지 않음" ] ,
+        [ sh:path card:targetText ; sh:datatype xsd:string ; sh:order 12 ; card:fill "LLM 추출" ;
+            sh:description "'대상, 채널'이나 '사용처' 줄을 원문 그대로 옮김. 대상 줄이 없으면 속성을 내지 않음" ] ,
+        [ sh:path card:targetsCategory ; sh:class card:TargetCategory ; sh:order 13 ; card:fill "LLM 추출" ;
+            sh:description "혜택 대상을 적은 줄(대상, 채널 또는 사용처)에 나온 업종마다 하나씩 혜택 대상 업종으로 이음. 제한 업종, 제외 업종, 일반 가맹점 전체처럼 업종을 가리지 않는 표현에는 잇지 않음" ] .
 
-card:profile_benefit_guide a card:GraphSchemaProfile ;
-    card:additional_node_types false ;
-    card:additional_patterns false ;
-    card:additional_relationship_types false .
-
-card:ABOUT a owl:ObjectProperty ;
-    skos:definition "단위가 다루는 주제. 조항, 혜택, 불만마다 주제를 1 ~ 3개 반드시 잇는다(주제 없는 조항, 혜택, 불만을 만들지 않음). 해당: 그 단위의 중심 대상. 비해당: 지나가듯 한 번 나온 낱말." ;
-    card:additionalProperties true ;
-    card:order 0 .
-
+card:benefit_guide_TargetCategoryShape a sh:NodeShape ;
+    sh:targetClass card:TargetCategory ;
+    sh:closed true ; sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:path card:categoryName ; sh:datatype xsd:string ; sh:order 0 ; card:keyOrder 0 ; card:fill "LLM 추출" ; card:pruneIfMissing true ;
+            sh:description "혜택 대상을 적은 줄에 원문 그대로 나온 업종 낱말 하나(예: '가상 편의점 하루상점' 이면 편의점, '가상 동물병원 업종' 이면 동물병원). 뜻으로 새 이름을 짓지 않고 가맹점 고유 이름은 넣지 않음. 제한 업종, 제외 업종, 업종을 가리지 않는 표현(일반 가맹점 전체)은 대상 업종이 아니므로 노드를 만들지 않음" ] .

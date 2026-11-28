@@ -1,0 +1,182 @@
+# 문서 종류 consult_log의 허용 목록(원본). 이 문서에서 쓰는 노드 타입의 속성과 허용 패턴을 SHACL로 적음.
+# 노드 타입의 뜻과 키는 card.ttl에 있음. 이 파일과 card.ttl에서 schema/doc-ontology/consult_log/graph_schema.json을 만들어 냄.
+#   sh:NodeShape + sh:targetClass  이 문서에서 쓰는 노드 타입
+#   sh:property + sh:datatype      노드 타입 속성(이름, 자료형, 설명, 필수이면 sh:minCount 1)
+#   sh:property + sh:class         허용 패턴: 이 노드가 이 관계로 가리킬 수 있는 Class
+#   sh:order                       목록에서의 순서
+# 관계의 이 문서용 설명과 순서는 이 파일에만 적음. 문서 종류 파일끼리는 합쳐 읽지 않음.
+
+@prefix card: <https://hanbit-card.example/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+card:consult_log_ComplaintShape a sh:NodeShape ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:order 2 ;
+    sh:property [ sh:class card:Topic ;
+            sh:order 5 ;
+            sh:path card:ABOUT ],
+        [ sh:datatype xsd:string ;
+            sh:description "고객이 말한 불만을 한 문장으로, 원문 표현을 살려 씀. 예: 본인 확인을 끝내려 해도 같은 요청 화면으로 계속 되돌아감" ;
+            sh:order 0 ;
+            sh:path card:content ] ;
+    sh:targetClass card:Complaint ;
+    card:fill "LLM 추출" .
+
+card:consult_log_ConsultationShape a sh:NodeShape ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:order 0 ;
+    sh:property [ sh:class card:CustomerSegment ;
+            sh:order 1 ;
+            sh:path card:IN_SEGMENT ],
+        [ sh:datatype xsd:string ;
+            sh:description "머리줄의 card_name 값" ;
+            sh:order 5 ;
+            sh:path card:card_name ],
+        [ sh:class card:Proposal ;
+            sh:order 4 ;
+            sh:path card:HAS_PROPOSAL ],
+        [ sh:datatype xsd:string ;
+            sh:description "머리줄의 product_id 값(카드상품 키). 「없음」이면 비움" ;
+            sh:order 4 ;
+            sh:path card:product_id ;
+            card:fill "머리줄 값" ;
+            card:fillNote "본문의 「~ 카드 상담으로 기록」 문장에서 카드 이름을 규칙으로 찾고, 이름-ID 표로 바꿔 머리줄에 넣음 추출 뒤 스크립트가 넣음(header_fill_rule)" ],
+        [ sh:datatype xsd:string ;
+            sh:description "머리줄의 consult_date 값(YYYY-MM-DD)" ;
+            sh:order 1 ;
+            sh:path card:consult_date ],
+        [ sh:datatype xsd:string ;
+            sh:description "반드시 채움. 본문 끝의 「후속 안내는 요청하신 방식(…)을 기준으로 남겼습니다」 줄의 괄호 안 값을 그대로 씀. 예: 오전 전화, 영업점 안내, 이메일 요약" ;
+            sh:order 8 ;
+            sh:path card:follow_up_method ],
+        [ sh:datatype xsd:string ;
+            sh:description "머리줄의 member_pseudo_id 값(회원 가명 키). 본문의 이름이나 번호로 바꾸지 않음" ;
+            sh:order 3 ;
+            sh:path card:member_pseudo_id ;
+            card:fill "머리줄 값" ;
+            card:fillNote "청크 메타데이터 member_pseudo_id 추출 뒤 스크립트가 넣음(header_fill_rule)" ],
+        [ sh:class card:Complaint ;
+            sh:order 2 ;
+            sh:path card:HAS_COMPLAINT ],
+        [ sh:class card:Consultation ;
+            sh:order 0 ;
+            sh:path card:FOLLOWS ],
+        [ sh:datatype xsd:string ;
+            sh:description "머리줄의 record_id 값. 예: C-20260314-001" ;
+            sh:order 0 ;
+            sh:path card:record_id ],
+        [ sh:datatype xsd:string ;
+            sh:description "고객의 일(해지, 전환, 신고, 신청, 취소, 변경)이 이 상담 끝에 어디까지 왔는지 원문 문장 그대로 옮김. 해지, 전환, 신고, 신청, 취소, 변경, 조회처럼 고객이 하려는 일에 관한 줄만 봄. 고객이나 상담사가 그 일의 진행 단계를 말한 줄(예: 「아직 바꿨다고 기록하지는 마세요」, 「아직 접수하지는 않았어요」)과 상담사가 그 일의 다음 단계를 밝힌 줄(예: 「확인한 뒤 결과를 안내드리겠습니다」, 「~ 화면으로 안내드리겠습니다」)을 씀. 그런 줄 가운데 가장 마지막 것을 씀. 비해당: 상담 내용을 기록에 남기는 줄(「~ 상담 기록에 정리하겠습니다」, 「앞선 기록과 연결하고」, 「후속 안내는 ~ 남겼습니다」, 「~ 따로 기록해 주세요」). 고객의 일에 관한 줄이 없으면 비움" ;
+            sh:order 7 ;
+            sh:path card:progress ],
+        [ sh:class card:Request ;
+            sh:order 3 ;
+            sh:path card:HAS_REQUEST ],
+        [ sh:datatype xsd:string ;
+            sh:description "머리줄의 channel 값. 예: 앱 채팅" ;
+            sh:order 2 ;
+            sh:path card:channel ],
+        [ sh:datatype xsd:string ;
+            sh:description "본문 [상담주제] 줄의 값. 예: 앱 인증 불편 완화" ;
+            sh:order 6 ;
+            sh:path card:subject ] ;
+    sh:targetClass card:Consultation ;
+    card:fill "LLM 추출" ;
+    card:fillNote "record_id, consult_date, channel, member_pseudo_id, product_id, card_name은 머리줄 값 추출 뒤 스크립트가 넣음(header_fill_rule)" ;
+    card:keyOrder 0 .
+
+card:consult_log_CustomerSegmentShape a sh:NodeShape ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:order 1 ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:description "머리줄의 고객군 값을 그대로 씀. 예: 신규 가입" ;
+            sh:order 0 ;
+            sh:path card:name ] ;
+    sh:targetClass card:CustomerSegment ;
+    card:fill "머리줄 값" ;
+    card:fillNote "원본 파일 이름의 고객군(예: 신규가입)을 값 목록의 이름(신규 가입)으로 바꿔 머리줄에 넣음 추출 뒤 스크립트가 넣음(header_fill_rule)" ;
+    card:keyOrder 1 .
+
+card:consult_log_ProposalShape a sh:NodeShape ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:order 4 ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:description "고객이 받아들이거나 거절한 까닭을 원문 표현으로. 예: 연회비 하나 때문에 생활비 관리 방식을 바꾸고 싶지 않음" ;
+            sh:order 2 ;
+            sh:path card:reason ],
+        [ sh:datatype xsd:boolean ;
+            sh:description "반드시 채움. 제안 바로 뒤 고객의 말로 판단함. 받아들이면 true(예: 「그렇게 해 주세요」, 「받아 볼게요」, 「그렇게 할게요」), 거절하면 false(예: 「괜찮아요」, 「안 할래요」, 「원하지 않아요」). 「나중에 정할게요」처럼 미룬 때만 비움" ;
+            sh:order 1 ;
+            sh:path card:accepted ],
+        [ sh:datatype xsd:string ;
+            sh:description "상담사가 권한 말을 원문 문장 그대로 옮김" ;
+            sh:order 0 ;
+            sh:path card:content ] ;
+    sh:targetClass card:Proposal .
+
+card:consult_log_RequestShape a sh:NodeShape ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:order 3 ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:description "요청 내용을 한 문장으로, 원문 표현을 살려 씀" ;
+            sh:order 0 ;
+            sh:path card:content ] ;
+    sh:targetClass card:Request .
+
+card:consult_log_TopicShape a sh:NodeShape ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:order 5 ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:description "주제의 대표 이름. 띄어쓰기는 낱말 사이에 한 칸. 예: 연회비, 본인 확인" ;
+            sh:order 0 ;
+            sh:path card:name ] ;
+    sh:targetClass card:Topic ;
+    card:fill "LLM 추출" ;
+    card:fillNote "이름은 LLM이 짓고, 인덱싱이 맞추기 표로 대표 이름에 맞춤" ;
+    card:keyOrder 2 .
+
+card:profile_consult_log a card:GraphSchemaProfile ;
+    card:additional_node_types false ;
+    card:additional_patterns false ;
+    card:additional_relationship_types false .
+
+card:ABOUT a owl:ObjectProperty ;
+    skos:definition "단위가 다루는 주제. 조항, 혜택, 불만마다 주제를 1 ~ 3개 반드시 잇는다(주제 없는 조항, 혜택, 불만을 만들지 않음). 해당: 그 단위의 중심 대상. 비해당: 지나가듯 한 번 나온 낱말." ;
+    card:additionalProperties true ;
+    card:order 5 .
+
+card:FOLLOWS a owl:ObjectProperty ;
+    skos:definition "이 상담이 이어받은 앞선 상담. 해당: 본문이 앞선 상담 ID를 말하며 이어진다고 한 것. 비해당: 같은 회원의 다른 상담이라는 것만으로 잇지 않음." ;
+    card:additionalProperties true ;
+    card:order 0 .
+
+card:HAS_COMPLAINT a owl:ObjectProperty ;
+    skos:definition "상담에서 고객이 말한 불만." ;
+    card:additionalProperties true ;
+    card:order 2 .
+
+card:HAS_PROPOSAL a owl:ObjectProperty ;
+    skos:definition "상담에서 상담사가 한 제안." ;
+    card:additionalProperties true ;
+    card:order 4 .
+
+card:HAS_REQUEST a owl:ObjectProperty ;
+    skos:definition "상담에서 고객이 한 요청." ;
+    card:additionalProperties true ;
+    card:order 3 .
+
+card:IN_SEGMENT a owl:ObjectProperty ;
+    skos:definition "상담한 회원의 고객군. 상담 하나에 정확히 하나." ;
+    card:additionalProperties true ;
+    card:order 1 .
+

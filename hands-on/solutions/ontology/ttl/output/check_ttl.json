@@ -1,16 +1,281 @@
 {
-  "ttl_dir": "ttl",
-  "schema_mode": "saved",
-  "files": 7,
-  "ok": true,
-  "problems": [],
-  "signature": "d6f41b120a145a0db81d2e193ec98d8894c9dd69f62864f75a0ea3490106a6f7",
-  "classes": 9,
-  "relations": 6,
-  "checks": 9,
-  "paths": 6,
-  "topic_approved": 95,
-  "topic_pending": 48,
-  "category_approved": 138,
-  "category_rows": 217
+  "generated_at": "2026-11-29T01:20:55",
+  "made_by": "tools/check_ttl.py (Step 7.1 검사 T1 ~ T14, Step 6.6 사전 검사)",
+  "draft_dir": "../../ttl",
+  "inputs_sha256": {
+    "card.ttl": "09cb3088f83251703f9c75bd3269999bfa75cc97b11cc8aff875b6d526a109bb",
+    "maps/card_name.ttl": "cf053937801c3bb2c6790f7dcfd5fe4e55873c0e2f3de5e4d2258ee47a4440d6",
+    "maps/category.ttl": "d8fce9bc1ab2f8e37c975dadc3860200c648ac15eab86f1678c396424aa907ed",
+    "maps/segment.ttl": "ca1967943851c6cc343eeb299c3fdd5d89c65986cb97f4427d7f1a8bfcf3072e",
+    "shapes/benefit_guide.ttl": "39afbe398d51eb7cfdeea3bf5a78ff0e5d38de94bd93385a53fdd76939c3fcff",
+    "shapes/checks.ttl": "b1595854f7eb2dc0711b21976722e058357beecc68d0872c9858891f731d604a",
+    "shapes/consult_log.ttl": "b444074ffc03c4fa81b8ff66aecf9644d92e2b6b23a003daf902dbb921be7680",
+    "shapes/rdb.ttl": "5df826da690d6089fe5bc759d05178761356a24cee4d3f086dc648fd046a1da2",
+    "shapes/regulation.ttl": "059960d6adc4d91c1bdf998f9bbaba7f1eb86302b1faf606da1c7084cc4d14d2",
+    "value_lists.json": "9ed0cb6fdeb41c9c51a626f694005d934ec11666d191e9ba7143a12db361f0bb",
+    "crossing_points.json": "f0909121b043284dcf08d646e58f742b3edea8ee6ddc026bc81cc0a6a1db74c7"
+  },
+  "settings": {
+    "pyshacl": "0.40.2",
+    "rdflib": "7.6.0",
+    "meta_shacl": {
+      "applied_to": [
+        "shapes/benefit_guide.ttl",
+        "shapes/checks.ttl",
+        "shapes/consult_log.ttl",
+        "shapes/rdb.ttl",
+        "shapes/regulation.ttl"
+      ],
+      "not_applied_to": [
+        "card.ttl"
+      ],
+      "call": "pyshacl.validate(Graph(), shacl_graph=<파일>, meta_shacl=True, advanced=False, inference='none')"
+    },
+    "shacl_run": {
+      "advanced": false,
+      "inference": "none",
+      "fixture_results": {
+        "t_r": [
+          "check_ConsultItemOwner"
+        ],
+        "t_c": [
+          "check_SegmentValues"
+        ],
+        "t_b2": [
+          "check_BenefitBelongsToProduct"
+        ]
+      },
+      "why_not_advanced": "sh:rule 과 SPARQL 대상(sh:target)을 쓰지 않음. sh:sparql 제약은 advanced 없이 돎"
+    },
+    "lexical_defaults": [
+      "Chunk",
+      "Document",
+      "FROM_CHUNK",
+      "FROM_DOCUMENT",
+      "NEXT_CHUNK"
+    ],
+    "doc_shape_run": {
+      "benefit_guide": {
+        "good_nodes": 3,
+        "bad_cases": [
+          {
+            "case": "Shape 밖 속성",
+            "expect": "ClosedConstraintComponent",
+            "caught": true
+          },
+          {
+            "case": "틀린 자료형",
+            "expect": "DatatypeConstraintComponent",
+            "caught": true
+          },
+          {
+            "case": "틀린 클래스 도착",
+            "expect": "ClassConstraintComponent",
+            "caught": true
+          }
+        ],
+        "good_conforms": true
+      },
+      "consult_log": {
+        "good_nodes": 9,
+        "bad_cases": [
+          {
+            "case": "Shape 밖 속성",
+            "expect": "ClosedConstraintComponent",
+            "caught": true
+          },
+          {
+            "case": "틀린 자료형",
+            "expect": "DatatypeConstraintComponent",
+            "caught": true
+          },
+          {
+            "case": "Shape 밖 속성",
+            "expect": "ClosedConstraintComponent",
+            "caught": true
+          },
+          {
+            "case": "틀린 자료형",
+            "expect": "DatatypeConstraintComponent",
+            "caught": true
+          },
+          {
+            "case": "Shape 밖 속성",
+            "expect": "ClosedConstraintComponent",
+            "caught": true
+          },
+          {
+            "case": "틀린 자료형",
+            "expect": "DatatypeConstraintComponent",
+            "caught": true
+          },
+          {
+            "case": "Shape 밖 속성",
+            "expect": "ClosedConstraintComponent",
+            "caught": true
+          },
+          {
+            "case": "틀린 자료형",
+            "expect": "DatatypeConstraintComponent",
+            "caught": true
+          },
+          {
+            "case": "Shape 밖 속성",
+            "expect": "ClosedConstraintComponent",
+            "caught": true
+          },
+          {
+            "case": "틀린 자료형",
+            "expect": "DatatypeConstraintComponent",
+            "caught": true
+          },
+          {
+            "case": "틀린 클래스 도착",
+            "expect": "ClassConstraintComponent",
+            "caught": true
+          }
+        ],
+        "good_conforms": true
+      },
+      "regulation": {
+        "good_nodes": 1,
+        "bad_cases": [
+          {
+            "case": "Shape 밖 속성",
+            "expect": "ClosedConstraintComponent",
+            "caught": true
+          },
+          {
+            "case": "틀린 자료형",
+            "expect": "DatatypeConstraintComponent",
+            "caught": true
+          }
+        ],
+        "good_conforms": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "id": "T1",
+      "name": "Turtle 문법",
+      "violations": [],
+      "count": 0,
+      "pass": true
+    },
+    {
+      "id": "T2",
+      "name": "낱말",
+      "violations": [],
+      "count": 0,
+      "pass": true
+    },
+    {
+      "id": "T3",
+      "name": "값 목록",
+      "violations": [],
+      "count": 0,
+      "pass": true
+    },
+    {
+      "id": "T4",
+      "name": "키",
+      "violations": [],
+      "count": 0,
+      "pass": true
+    },
+    {
+      "id": "T5",
+      "name": "채우는 방법",
+      "violations": [],
+      "count": 0,
+      "pass": true
+    },
+    {
+      "id": "T6",
+      "name": "대표 이름 규칙",
+      "violations": [],
+      "count": 0,
+      "pass": true
+    },
+    {
+      "id": "T7",
+      "name": "관계의 양 끝 Class",
+      "violations": [],
+      "count": 0,
+      "pass": true
+    },
+    {
+      "id": "T8",
+      "name": "연결 지점의 경로",
+      "violations": [],
+      "count": 0,
+      "pass": true
+    },
+    {
+      "id": "T9",
+      "name": "meta-SHACL(shapes/ 만)",
+      "violations": [],
+      "count": 0,
+      "pass": true
+    },
+    {
+      "id": "T10",
+      "name": "SHACL 실행(빈 자료와 고정 시험 자료)",
+      "violations": [],
+      "count": 0,
+      "pass": true
+    },
+    {
+      "id": "T11",
+      "name": "맞추기 표",
+      "violations": [],
+      "count": 0,
+      "pass": true
+    },
+    {
+      "id": "T12",
+      "name": "가지치기 표시(EXISTENCE)",
+      "violations": [],
+      "count": 0,
+      "pass": true
+    },
+    {
+      "id": "T13",
+      "name": "인덱싱 기본 라벨",
+      "violations": [],
+      "count": 0,
+      "pass": true
+    },
+    {
+      "id": "T14",
+      "name": "문서 Shape 종류별 실행(정상 자료와 틀린 자료)",
+      "violations": [],
+      "count": 0,
+      "pass": true
+    },
+    {
+      "id": "T15",
+      "name": "LLM 추출 여부 표시",
+      "violations": [],
+      "count": 0,
+      "pass": true
+    },
+    {
+      "id": "T16",
+      "name": "설명 규칙(LLM 이 읽는 지시)",
+      "violations": [],
+      "count": 0,
+      "pass": true
+    },
+    {
+      "id": "T17",
+      "name": "규칙과 표 채우기, 대표 이름 단계",
+      "violations": [],
+      "count": 0,
+      "pass": true
+    }
+  ],
+  "total_violations": 0,
+  "pass": true
 }

@@ -1,0 +1,25 @@
+{
+  "doc": "consult_log",
+  "doc_type_value": "consult_log",
+  "status": "초안(Phase 4 승인 대기, 표본 규칙 수정 후 다시 뽑음)",
+  "splitter": "whole_chunk",
+  "id_regex": "^\\[상담ID\\] (?P<rid>C-\\d{8}-\\d{3})",
+  "unit_kind": "consult_record",
+  "boundaries": [
+    "원본 청크 하나가 상담 기록 하나(상담ID 한 줄, 주제 한 줄, 고객과 상담사의 말 번갈아)임을 48개 전부에서 확인함",
+    "나누지 않고 원본 청크 그대로 한 건으로 씀. 기록 안의 말 주고받기는 앞뒤 말이 이어져야 뜻이 통해 자르지 않음"
+  ],
+  "reasons": [
+    "기록 하나가 730에서 925자로 짧고 역량 질문(CQ-07, CQ-08, CQ-17, CQ-18)이 기록 안의 요청, 제안, 금액을 함께 봄"
+  ],
+  "group_key": "상담 기록 번호",
+  "bundle": {
+    "by": "none",
+    "name": "all",
+    "why": "파일 이름(여섯 가지)별 추출 청크가 7에서 8건뿐이라 20건 기준에 못 미침. 한 묶음으로 두고 표본은 파일 이름별로 고르게 뽑음"
+  },
+  "stratum": {
+    "by": "metadata.source",
+    "why": "파일 이름(S01에서 S06)이 고객군이고 CQ-10, CQ-19가 고객군을 씀"
+  }
+}

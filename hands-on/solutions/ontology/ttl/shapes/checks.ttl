@@ -1,55 +1,141 @@
-# 검사 규칙 K01 ~ K09(원본). 인덱서가 그래프 노드를 꺼내 이 규칙으로 검사함(SHACL 검사기 pyshacl).
-# 검사는 데이터를 고치지 않고 어긴 개체만 보고함. 규칙의 종류는 rdfs:label, 규칙의 글은 rdfs:comment에 적음.
-# K01, K02의 허용 값은 card.ttl의 값 목록과 같아야 함(tools/check_ttl.py가 대조함).
-
-@prefix sh:   <http://www.w3.org/ns/shacl#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix card: <https://hanbit-card.example/ontology#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix sh:  <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 
-# 허용 값: 분류 노드의 이름이 값 목록 안에 있음
-card:K01 a sh:NodeShape ; rdfs:label "허용 값" ; rdfs:comment "값 목록의 고객군 6개 안에 있음" ;
-    sh:targetClass card:CustomerSegment ;
-    sh:property [ sh:path card:name ; sh:in ( "신규 가입" "장기 보유" "VIP" "휴면 직전" "다중 카드" "연회비 부담" ) ] .
+# 데이터 검사 조건. Step 6.4
+# 1) 반드시 있어야 하는 값(키): 메타데이터를 채운 뒤의 추출 결과를 검사함. 메타데이터로 채우는 키는 추출 직후 비어 있으므로
+#    문서 GraphSchema 의 EXISTENCE(가지치기)로 두지 않고 여기 sh:minCount 로 둠. LLM 추출 키의 EXISTENCE 는 문서 Shape 의 card:pruneIfMissing 이 만듦.
+#    키 꼴(sh:pattern)은 전체 추출 청크와 메타데이터에서 확인한 꼴임
+# 2) 허용 수: 관계의 개수
+# 3) 허용값: Step 5.4 에서 '전체 확인'한 목록만 씀(A-01 ~ A-04, A-06 과 C-02). 전체 미확인 목록(A-07 ~ A-11)은 쓰지 않음
+# 4) 참조 무결성: SPARQL 제약(sh:sparql). sh:rule 과 SPARQL 대상(sh:target)은 쓰지 않으므로 advanced 실행이 필요 없음
 
-card:K02 a sh:NodeShape ; rdfs:label "허용 값" ; rdfs:comment "값 목록의 업종 8개 안에 있음" ;
-    sh:targetClass card:Category ;
-    sh:property [ sh:path card:name ; sh:in ( "식비" "쇼핑" "교통" "주유" "여행" "해외" "생활" "교육" ) ] .
+#################################################################
+# 1) 키
+#################################################################
 
-# 허용 수: 실제 상담(채널이 있는 노드)에만 검. 다른 상담이 가리키기만 한 빈 노드는 통과시킴
-card:K03 a sh:NodeShape ; rdfs:label "허용 수" ; rdfs:comment "IN_SEGMENT가 정확히 1개" ;
-    sh:targetClass card:Consultation ;
-    sh:or ( [ sh:path card:channel ; sh:maxCount 0 ]
-            [ sh:path card:IN_SEGMENT ; sh:minCount 1 ; sh:maxCount 1 ] ) .
+card:check_ClauseKey a sh:NodeShape ; sh:targetClass card:Clause ;
+    sh:property [ sh:path card:clauseNo ; sh:minCount 1 ; sh:maxCount 1 ; sh:pattern "^제[0-9]+조(의[0-9]+)?$" ;
+        sh:message "조항 번호가 없거나 꼴이 다름"@ko ] ,
+      [ sh:path card:clauseTitle ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "조항 제목이 없거나 둘 이상임(분할 규칙으로 채우는 단계의 잘못)"@ko ] .
 
-card:K04 a sh:NodeShape ; rdfs:label "허용 수" ; rdfs:comment "member_pseudo_id와 product_id가 정확히 1개씩" ;
-    sh:targetClass card:Consultation ;
-    sh:or ( [ sh:path card:channel ; sh:maxCount 0 ]
-            [ sh:property [ sh:path card:member_pseudo_id ; sh:minCount 1 ; sh:maxCount 1 ] ;
-              sh:property [ sh:path card:product_id ; sh:minCount 1 ; sh:maxCount 1 ] ] ) .
+card:check_CardProductKey a sh:NodeShape ; sh:targetClass card:CardProduct ;
+    sh:property [ sh:path card:productId ; sh:maxCount 1 ; sh:pattern "^D2-C[0-9]{3}$" ;
+        sh:message "상품 키 꼴이 다르거나 둘 이상임"@ko ] .
 
-card:K05 a sh:NodeShape ; rdfs:label "허용 수" ; rdfs:comment "product_id가 정확히 1개" ;
-    sh:targetClass card:Benefit , card:UsageRule ;
-    sh:property [ sh:path card:product_id ; sh:minCount 1 ; sh:maxCount 1 ] .
+card:check_BenefitItemKey a sh:NodeShape ; sh:targetClass card:BenefitItem ;
+    sh:property [ sh:path card:benefitId ; sh:minCount 1 ; sh:maxCount 1 ; sh:pattern "^D2-C[0-9]{3}-B[0-9]{2}$" ;
+        sh:message "항목 키가 없거나 꼴이 다름"@ko ] ,
+      [ sh:path [ sh:inversePath card:offersBenefit ] ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "혜택 항목은 카드상품 하나에만 이어져야 함"@ko ] ,
+      [ sh:path card:ratePercent ; sh:maxCount 1 ; sh:minInclusive 0 ; sh:maxInclusive 100 ;
+        sh:message "비율은 0 이상 100 이하 하나"@ko ] .
 
-# 허용 수: 주제(ABOUT)가 1 ~ 3개. 조항은 제목이 있는 노드만 봄(K06_Article은 K06에 합쳐 셈)
-card:K06 a sh:NodeShape ; rdfs:label "허용 수" ; rdfs:comment "ABOUT가 1 ~ 3개(주제 없이 떠 있거나 너무 넓게 잇지 않음)" ;
-    sh:targetClass card:Complaint , card:Benefit ;
-    sh:property [ sh:path card:ABOUT ; sh:minCount 1 ; sh:maxCount 3 ] .
+card:check_TargetCategoryKey a sh:NodeShape ; sh:targetClass card:TargetCategory ;
+    sh:property [ sh:path card:categoryName ; sh:minCount 1 ; sh:maxCount 1 ; sh:message "업종 이름이 없음"@ko ] .
 
-card:K06_Article a sh:NodeShape ;
-    sh:targetClass card:Article ;
-    sh:or ( [ sh:path card:title ; sh:maxCount 0 ]
-            [ sh:path card:ABOUT ; sh:minCount 1 ; sh:maxCount 3 ] ) .
+card:check_ConsultationKey a sh:NodeShape ; sh:targetClass card:Consultation ;
+    sh:property [ sh:path card:recordId ; sh:minCount 1 ; sh:maxCount 1 ; sh:pattern "^C-[0-9]{8}-[0-9]{3}$" ;
+        sh:message "상담 번호가 없거나 꼴이 다름"@ko ] ,
+      [ sh:path card:consultDate ; sh:minCount 1 ; sh:maxCount 1 ; sh:message "상담 날짜가 없음"@ko ] ,
+      [ sh:path card:aboutMember ; sh:minCount 1 ; sh:maxCount 1 ; sh:message "상담은 회원 하나에 이어져야 함"@ko ] ,
+      [ sh:path card:customerSegment ; sh:maxCount 1 ; sh:message "고객군은 하나까지"@ko ] .
 
-# 참조 무결성: 가리키는 대상이 실제로 있는 것이어야 함
-card:K07 a sh:NodeShape ; rdfs:label "참조 무결성" ; rdfs:comment "정형 DB의 상품 ID 목록(inputs/key_values.json)에 있는 값" ;
-    sh:targetClass card:Benefit , card:UsageRule , card:Consultation ;
-    sh:property [ sh:path card:ofProduct ; sh:class card:CardProduct ] .
+card:check_MemberPseudo a sh:NodeShape ; sh:targetClass card:Member ;
+    sh:property [ sh:path card:memberPseudoId ; sh:maxCount 1 ; sh:pattern "^m_[0-9a-f]{16}$" ;
+        sh:message "회원 표시 꼴이 다르거나 둘 이상임"@ko ] .
 
-card:K08 a sh:NodeShape ; rdfs:label "참조 무결성" ; rdfs:comment "가리키는 record_id가 상담 기록(사본의 48건)에 있음" ;
-    sh:targetClass card:Consultation ;
-    sh:property [ sh:path card:FOLLOWS ; sh:class card:KnownConsultation ] .
+card:check_ConsultItemKey a sh:NodeShape ;
+    sh:targetClass card:CustomerRequest , card:Complaint , card:AgentSuggestion , card:AvoidRequest , card:StatedUsage ;
+    sh:property [ sh:path card:ownerRecordId ; sh:minCount 1 ; sh:maxCount 1 ; sh:pattern "^C-[0-9]{8}-[0-9]{3}$" ;
+        sh:message "딸린 상담 번호가 없거나 꼴이 다름"@ko ] .
 
-card:K09 a sh:NodeShape ; rdfs:label "참조 무결성" ; rdfs:comment "가리키는 article_no가 약관(사본의 52개 조)에 있음" ;
-    sh:targetClass card:Article ;
-    sh:property [ sh:path card:REFERS_TO ; sh:class card:KnownArticle ] .
+card:check_TopicKey a sh:NodeShape ; sh:targetClass card:Topic ;
+    sh:property [ sh:path card:topicName ; sh:minCount 1 ; sh:maxCount 1 ; sh:message "주제 이름이 없음"@ko ] .
+
+card:check_StatedUsageKey a sh:NodeShape ; sh:targetClass card:StatedUsage ;
+    sh:property [ sh:path card:statedMonth ; sh:minCount 1 ; sh:maxCount 1 ; sh:message "알려 준 대상 월이 없음"@ko ] ,
+      [ sh:path card:statedAmount ; sh:maxCount 1 ; sh:minInclusive 0 ; sh:message "합계는 0 이상 하나"@ko ] ,
+      [ sh:path card:statedCount ; sh:maxCount 1 ; sh:minInclusive 0 ; sh:message "건수는 0 이상 하나"@ko ] .
+
+# RDB 조회 결과(검사할 때만 메모리에 만듦)의 키와 관계 수
+card:check_RdbCard a sh:NodeShape ; sh:targetClass card:Card ;
+    sh:property [ sh:path card:ofProduct ; sh:maxCount 1 ; sh:message "카드 한 장은 상품 하나"@ko ] ,
+      [ sh:path card:cardId ; sh:maxCount 1 ; sh:message "카드 키는 하나"@ko ] .
+
+card:check_RdbMonthlyUsage a sh:NodeShape ; sh:targetClass card:MonthlyUsage , card:MerchantMonthlyUsage ;
+    sh:property [ sh:path card:usageMonth ; sh:minCount 1 ; sh:maxCount 1 ; sh:message "사용 월이 없음"@ko ] ,
+      [ sh:path card:cardRef ; sh:minCount 1 ; sh:maxCount 1 ; sh:message "조회 안 카드 번호가 없음"@ko ] .
+
+card:check_RdbMerchantUsage a sh:NodeShape ; sh:targetClass card:MerchantMonthlyUsage ;
+    sh:property [ sh:path card:atMerchant ; sh:minCount 1 ; sh:maxCount 1 ; sh:message "집계 줄은 가맹점 하나"@ko ] .
+
+card:check_RdbDelinquency a sh:NodeShape ; sh:targetClass card:DelinquencyStatus ;
+    sh:property [ sh:path card:baseMonth ; sh:minCount 1 ; sh:maxCount 1 ; sh:message "기준월이 없음"@ko ] .
+
+#################################################################
+# 3) 허용값 (전체 확인 목록만)
+#################################################################
+
+card:check_CardStatusValues a sh:NodeShape ; sh:targetClass card:Card ;
+    card:valueList "A-01" ;
+    sh:property [ sh:path card:cardStatus ; sh:in ( "ACTIVE" "CLOSED" "SUSPENDED" ) ;
+        sh:message "카드 상태가 허용값 목록(A-01) 밖임"@ko ] .
+
+card:check_BrandValues a sh:NodeShape ; sh:targetClass card:Card ;
+    card:valueList "A-02" ;
+    sh:property [ sh:path card:brand ; sh:in ( "국내전용" "해외 A" "해외 A 모바일" "해외 A 실물" "해외 B" "해외 C" ) ;
+        sh:message "발급 브랜드와 방식이 허용값 목록(A-02) 밖임"@ko ] .
+
+card:check_MerchantCategoryValues a sh:NodeShape ; sh:targetClass card:Merchant ;
+    card:valueList "A-03" ;
+    sh:property [ sh:path card:merchantCategory ; sh:in ( "교육" "교통" "생활" "쇼핑" "식비" "여행" "주유" "해외" ) ;
+        sh:message "업종이 허용값 목록(A-03) 밖임"@ko ] .
+
+card:check_AgeBandValues a sh:NodeShape ; sh:targetClass card:Member ;
+    card:valueList "A-04" ;
+    sh:property [ sh:path card:ageBand ; sh:in ( "20대" "30대" "40대" "50대" "60대 이상" ) ;
+        sh:message "연령대가 허용값 목록(A-04) 밖임"@ko ] .
+
+card:check_SegmentValues a sh:NodeShape ; sh:targetClass card:Consultation ;
+    card:valueList "A-06" ;
+    sh:property [ sh:path card:customerSegment ; sh:in ( "신규 가입" "장기 보유" "VIP" "휴면 직전" "다중 카드" "연회비 부담" ) ;
+        sh:message "고객군이 코드표(C-02)의 여섯 이름 밖임"@ko ] .
+
+#################################################################
+# 4) 참조 무결성
+#################################################################
+
+card:check_BenefitBelongsToProduct a sh:NodeShape ; sh:targetClass card:BenefitItem ;
+    sh:sparql [ a sh:SPARQLConstraint ;
+        sh:message "항목 키 앞 일곱 글자가 이어진 카드상품의 상품 키와 다름"@ko ;
+        sh:prefixes card:prefixes ;
+        sh:select """
+            SELECT $this ?pid ?bid WHERE {
+                ?p card:offersBenefit $this .
+                ?p card:productId ?pid .
+                $this card:benefitId ?bid .
+                FILTER (SUBSTR(STR(?bid), 1, 7) != STR(?pid))
+            }""" ] .
+
+card:check_ConsultItemOwner a sh:NodeShape ;
+    sh:targetClass card:CustomerRequest , card:Complaint , card:AgentSuggestion , card:AvoidRequest , card:StatedUsage ;
+    sh:sparql [ a sh:SPARQLConstraint ;
+        sh:message "딸린 상담 번호가 이 항목을 가진 상담의 번호와 다르거나, 이 항목을 가진 상담이 없음"@ko ;
+        sh:prefixes card:prefixes ;
+        sh:select """
+            SELECT $this ?own WHERE {
+                $this card:ownerRecordId ?own .
+                FILTER NOT EXISTS {
+                    ?c card:recordId ?rid .
+                    ?c ?link $this .
+                    FILTER (?link IN (card:hasRequest, card:hasComplaint, card:hasSuggestion, card:hasAvoidRequest, card:mentionsUsage))
+                    FILTER (STR(?rid) = STR(?own))
+                }
+            }""" ] .
+
+card:prefixes a owl:Ontology ;
+    sh:declare [ sh:prefix "card" ; sh:namespace "https://hanbit-card.example/ontology#"^^xsd:anyURI ] .

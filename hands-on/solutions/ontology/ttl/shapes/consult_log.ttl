@@ -1,182 +1,121 @@
-# 문서 종류 consult_log의 허용 목록(원본). 이 문서에서 쓰는 노드 타입의 속성과 허용 패턴을 SHACL로 적음.
-# 노드 타입의 뜻과 키는 card.ttl에 있음. 이 파일과 card.ttl에서 schema/doc-ontology/consult_log/graph_schema.json을 만들어 냄.
-#   sh:NodeShape + sh:targetClass  이 문서에서 쓰는 노드 타입
-#   sh:property + sh:datatype      노드 타입 속성(이름, 자료형, 설명, 필수이면 sh:minCount 1)
-#   sh:property + sh:class         허용 패턴: 이 노드가 이 관계로 가리킬 수 있는 Class
-#   sh:order                       목록에서의 순서
-# 관계의 이 문서용 설명과 순서는 이 파일에만 적음. 문서 종류 파일끼리는 합쳐 읽지 않음.
-
 @prefix card: <https://hanbit-card.example/ontology#> .
-@prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix sh: <http://www.w3.org/ns/shacl#> .
-@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 
-card:consult_log_ComplaintShape a sh:NodeShape ;
-    sh:closed true ;
-    sh:ignoredProperties ( rdf:type ) ;
-    sh:order 2 ;
-    sh:property [ sh:class card:Topic ;
-            sh:order 5 ;
-            sh:path card:ABOUT ],
-        [ sh:datatype xsd:string ;
-            sh:description "고객이 말한 불만을 한 문장으로, 원문 표현을 살려 씀. 예: 본인 확인을 끝내려 해도 같은 요청 화면으로 계속 되돌아감" ;
-            sh:order 0 ;
-            sh:path card:content ] ;
-    sh:targetClass card:Complaint ;
-    card:fill "LLM 추출" .
+# 문서 Shape: 상담 기록(consult_log). Step 6.4
+# 본문에 없고 메타데이터에만 있는 값: 회원 표시(member_pseudo_id), 상담 번호와 날짜와 채널(record_id, consult_date, channel),
+# 파일 이름의 고객군(source). 회원 표시와 상담 번호는 메타데이터로, 고객군은 파일 이름을 맞추기 표(maps/segment.ttl)로 채움.
+# 되돌아가기 3번: 상담 주제는 머리줄에서, 앞 상담 번호는 번호 꼴에서 규칙으로 읽고, 상담이 말한 카드상품은
+# 카드 이름 맞추기 표(maps/card_name.ttl)의 이름을 본문에서 긴 이름부터 찾아 채움. LLM 은 요청, 불만, 제안, 피해 달라는 안내,
+# 알려 준 사용액만 뽑음. 속성이 모두 LLM 추출이 아닌 클래스(상담, 회원, 카드상품, 상담 주제)는 채우는 단계가 노드를 만듦.
+# sh:description 은 LLM 이 그대로 읽는 지시임. 값이 없으면 속성을 내지 않게 적음(null 을 내면 응답 전체가 거부됨).
 
 card:consult_log_ConsultationShape a sh:NodeShape ;
-    sh:closed true ;
-    sh:ignoredProperties ( rdf:type ) ;
-    sh:order 0 ;
-    sh:property [ sh:class card:CustomerSegment ;
-            sh:order 1 ;
-            sh:path card:IN_SEGMENT ],
-        [ sh:datatype xsd:string ;
-            sh:description "머리줄의 card_name 값" ;
-            sh:order 5 ;
-            sh:path card:card_name ],
-        [ sh:class card:Proposal ;
-            sh:order 4 ;
-            sh:path card:HAS_PROPOSAL ],
-        [ sh:datatype xsd:string ;
-            sh:description "머리줄의 product_id 값(카드상품 키). 「없음」이면 비움" ;
-            sh:order 4 ;
-            sh:path card:product_id ;
-            card:fill "머리줄 값" ;
-            card:fillNote "본문의 「~ 카드 상담으로 기록」 문장에서 카드 이름을 규칙으로 찾고, 이름-ID 표로 바꿔 머리줄에 넣음 추출 뒤 스크립트가 넣음(header_fill_rule)" ],
-        [ sh:datatype xsd:string ;
-            sh:description "머리줄의 consult_date 값(YYYY-MM-DD)" ;
-            sh:order 1 ;
-            sh:path card:consult_date ],
-        [ sh:datatype xsd:string ;
-            sh:description "반드시 채움. 본문 끝의 「후속 안내는 요청하신 방식(…)을 기준으로 남겼습니다」 줄의 괄호 안 값을 그대로 씀. 예: 오전 전화, 영업점 안내, 이메일 요약" ;
-            sh:order 8 ;
-            sh:path card:follow_up_method ],
-        [ sh:datatype xsd:string ;
-            sh:description "머리줄의 member_pseudo_id 값(회원 가명 키). 본문의 이름이나 번호로 바꾸지 않음" ;
-            sh:order 3 ;
-            sh:path card:member_pseudo_id ;
-            card:fill "머리줄 값" ;
-            card:fillNote "청크 메타데이터 member_pseudo_id 추출 뒤 스크립트가 넣음(header_fill_rule)" ],
-        [ sh:class card:Complaint ;
-            sh:order 2 ;
-            sh:path card:HAS_COMPLAINT ],
-        [ sh:class card:Consultation ;
-            sh:order 0 ;
-            sh:path card:FOLLOWS ],
-        [ sh:datatype xsd:string ;
-            sh:description "머리줄의 record_id 값. 예: C-20260314-001" ;
-            sh:order 0 ;
-            sh:path card:record_id ],
-        [ sh:datatype xsd:string ;
-            sh:description "고객의 일(해지, 전환, 신고, 신청, 취소, 변경)이 이 상담 끝에 어디까지 왔는지 원문 문장 그대로 옮김. 해지, 전환, 신고, 신청, 취소, 변경, 조회처럼 고객이 하려는 일에 관한 줄만 봄. 고객이나 상담사가 그 일의 진행 단계를 말한 줄(예: 「아직 바꿨다고 기록하지는 마세요」, 「아직 접수하지는 않았어요」)과 상담사가 그 일의 다음 단계를 밝힌 줄(예: 「확인한 뒤 결과를 안내드리겠습니다」, 「~ 화면으로 안내드리겠습니다」)을 씀. 그런 줄 가운데 가장 마지막 것을 씀. 비해당: 상담 내용을 기록에 남기는 줄(「~ 상담 기록에 정리하겠습니다」, 「앞선 기록과 연결하고」, 「후속 안내는 ~ 남겼습니다」, 「~ 따로 기록해 주세요」). 고객의 일에 관한 줄이 없으면 비움" ;
-            sh:order 7 ;
-            sh:path card:progress ],
-        [ sh:class card:Request ;
-            sh:order 3 ;
-            sh:path card:HAS_REQUEST ],
-        [ sh:datatype xsd:string ;
-            sh:description "머리줄의 channel 값. 예: 앱 채팅" ;
-            sh:order 2 ;
-            sh:path card:channel ],
-        [ sh:datatype xsd:string ;
-            sh:description "본문 [상담주제] 줄의 값. 예: 앱 인증 불편 완화" ;
-            sh:order 6 ;
-            sh:path card:subject ] ;
     sh:targetClass card:Consultation ;
-    card:fill "LLM 추출" ;
-    card:fillNote "record_id, consult_date, channel, member_pseudo_id, product_id, card_name은 머리줄 값 추출 뒤 스크립트가 넣음(header_fill_rule)" ;
-    card:keyOrder 0 .
+    card:nodeMadeBy "채우는 단계" ;
+    sh:closed true ; sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:path card:recordId ; sh:datatype xsd:string ; sh:order 0 ; card:keyOrder 0 ;
+            card:fill "메타데이터" ; card:fillNote "청크 메타데이터 record_id" ] ,
+        [ sh:path card:consultDate ; sh:datatype xsd:date ; sh:order 1 ;
+            card:fill "메타데이터" ; card:fillNote "청크 메타데이터 consult_date" ] ,
+        [ sh:path card:channel ; sh:datatype xsd:string ; sh:order 2 ;
+            card:fill "메타데이터" ; card:fillNote "청크 메타데이터 channel" ] ,
+        [ sh:path card:customerSegment ; sh:datatype xsd:string ; sh:order 3 ;
+            card:fill "맞추기 표" ; card:fillNote "청크 메타데이터 source(파일 이름)를 maps/segment.ttl 로 고객군 이름에 짝지음" ;
+            card:fillTable card:SegmentTable ] ,
+        [ sh:path card:aboutMember ; sh:class card:Member ; sh:order 4 ;
+            card:fill "메타데이터" ; card:fillNote "같은 청크의 member_pseudo_id 를 가진 회원 노드로 이음" ] ,
+        [ sh:path card:continuesFrom ; sh:class card:Consultation ; sh:order 5 ;
+            card:fill "메타데이터" ; card:fillNote "추출 청크 본문에서 상담 번호 꼴을 찾아, 이 기록의 번호가 아닌 번호의 상담으로 이음" ;
+            card:fillRegex "(?P<rid>C-[0-9]{8}-[0-9]{3})" ; card:fillRegexGroup "rid" ;
+            card:fillRegexBasis "설계용 상담 23건 가운데 자기 번호가 아닌 상담 번호가 나온 기록 13건. 13건 모두 번호가 하나씩이고 모두 실제 상담 번호이며 같은 회원의 상담임(되돌아가기 3번에서 확인)" ] ,
+        [ sh:path card:hasRequest ; sh:class card:CustomerRequest ; sh:order 6 ; card:fill "LLM 추출" ;
+            sh:description "이 상담에서 나온 고객 요청마다 하나씩 이음" ] ,
+        [ sh:path card:hasComplaint ; sh:class card:Complaint ; sh:order 7 ; card:fill "LLM 추출" ;
+            sh:description "이 상담에서 고객이 말한 불만마다 하나씩 이음" ] ,
+        [ sh:path card:hasSuggestion ; sh:class card:AgentSuggestion ; sh:order 8 ; card:fill "LLM 추출" ;
+            sh:description "이 상담에서 상담사가 내놓은 제안마다 하나씩 이음" ] ,
+        [ sh:path card:hasAvoidRequest ; sh:class card:AvoidRequest ; sh:order 9 ; card:fill "LLM 추출" ;
+            sh:description "이 상담에서 고객이 앞으로 하지 말아 달라고 분명히 밝힌 안내마다 하나씩 이음" ] ,
+        [ sh:path card:hasTopic ; sh:class card:Topic ; sh:order 10 ;
+            card:fill "메타데이터" ; card:fillNote "같은 추출 청크의 상담 주제 머리줄에서 만든 상담 주제 노드로 이음" ] ,
+        [ sh:path card:mentionsProduct ; sh:class card:CardProduct ; sh:order 11 ;
+            card:fill "맞추기 표" ; card:fillNote "maps/card_name.ttl 의 카드 이름을 본문에서 긴 이름부터 찾아 찾은 카드상품마다 이음" ;
+            card:fillTable card:CardNameTable ; card:matchOrder "긴 이름부터" ] ,
+        [ sh:path card:mentionsUsage ; sh:class card:StatedUsage ; sh:order 12 ; card:fill "LLM 추출" ;
+            sh:description "상담사가 알려 준 한 달의 사용액마다 하나씩 이음" ] .
 
-card:consult_log_CustomerSegmentShape a sh:NodeShape ;
-    sh:closed true ;
-    sh:ignoredProperties ( rdf:type ) ;
-    sh:order 1 ;
-    sh:property [ sh:datatype xsd:string ;
-            sh:description "머리줄의 고객군 값을 그대로 씀. 예: 신규 가입" ;
-            sh:order 0 ;
-            sh:path card:name ] ;
-    sh:targetClass card:CustomerSegment ;
-    card:fill "머리줄 값" ;
-    card:fillNote "원본 파일 이름의 고객군(예: 신규가입)을 값 목록의 이름(신규 가입)으로 바꿔 머리줄에 넣음 추출 뒤 스크립트가 넣음(header_fill_rule)" ;
-    card:keyOrder 1 .
+card:consult_log_MemberShape a sh:NodeShape ;
+    sh:targetClass card:Member ;
+    card:nodeMadeBy "채우는 단계" ;
+    sh:closed true ; sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:path card:memberPseudoId ; sh:datatype xsd:string ; sh:order 0 ; card:keyOrder 0 ;
+            card:fill "메타데이터" ; card:fillNote "청크 메타데이터 member_pseudo_id" ] .
 
-card:consult_log_ProposalShape a sh:NodeShape ;
-    sh:closed true ;
-    sh:ignoredProperties ( rdf:type ) ;
-    sh:order 4 ;
-    sh:property [ sh:datatype xsd:string ;
-            sh:description "고객이 받아들이거나 거절한 까닭을 원문 표현으로. 예: 연회비 하나 때문에 생활비 관리 방식을 바꾸고 싶지 않음" ;
-            sh:order 2 ;
-            sh:path card:reason ],
-        [ sh:datatype xsd:boolean ;
-            sh:description "반드시 채움. 제안 바로 뒤 고객의 말로 판단함. 받아들이면 true(예: 「그렇게 해 주세요」, 「받아 볼게요」, 「그렇게 할게요」), 거절하면 false(예: 「괜찮아요」, 「안 할래요」, 「원하지 않아요」). 「나중에 정할게요」처럼 미룬 때만 비움" ;
-            sh:order 1 ;
-            sh:path card:accepted ],
-        [ sh:datatype xsd:string ;
-            sh:description "상담사가 권한 말을 원문 문장 그대로 옮김" ;
-            sh:order 0 ;
-            sh:path card:content ] ;
-    sh:targetClass card:Proposal .
+card:consult_log_CustomerRequestShape a sh:NodeShape ;
+    sh:targetClass card:CustomerRequest ;
+    sh:closed true ; sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:path card:ownerRecordId ; sh:datatype xsd:string ; sh:order 0 ; card:keyOrder 0 ;
+            card:fill "메타데이터" ; card:fillNote "청크 메타데이터 record_id" ] ,
+        [ sh:path card:requestText ; sh:datatype xsd:string ; sh:order 1 ; card:keyOrder 1 ; card:fill "LLM 추출" ; card:pruneIfMissing true ;
+            sh:description "고객이 이 상담에서 해 달라고 하거나 물어본 일 하나를 고객의 말 그대로 한 문장 옮김. 요청이 여럿이면 문장마다 노드를 따로 만듦. 상담을 시작하며 밝힌 용건을 빠뜨리지 않음. 상담사의 말, 불만만 말한 문장, 하지 말아 달라는 말은 요청이 아니므로 노드를 만들지 않음" ] .
 
-card:consult_log_RequestShape a sh:NodeShape ;
-    sh:closed true ;
-    sh:ignoredProperties ( rdf:type ) ;
-    sh:order 3 ;
-    sh:property [ sh:datatype xsd:string ;
-            sh:description "요청 내용을 한 문장으로, 원문 표현을 살려 씀" ;
-            sh:order 0 ;
-            sh:path card:content ] ;
-    sh:targetClass card:Request .
+card:consult_log_ComplaintShape a sh:NodeShape ;
+    sh:targetClass card:Complaint ;
+    sh:closed true ; sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:path card:ownerRecordId ; sh:datatype xsd:string ; sh:order 0 ; card:keyOrder 0 ;
+            card:fill "메타데이터" ; card:fillNote "청크 메타데이터 record_id" ] ,
+        [ sh:path card:complaintText ; sh:datatype xsd:string ; sh:order 1 ; card:keyOrder 1 ; card:fill "LLM 추출" ; card:pruneIfMissing true ;
+            sh:description "고객이 불편하거나 불만이라고 말한 내용 하나를 고객의 말 그대로 한 문장 옮김. 불만이 여럿이면 문장마다 노드를 따로 만듦. 해 달라는 요청과 상담사의 말은 불만이 아니므로 노드를 만들지 않음" ] .
+
+card:consult_log_AgentSuggestionShape a sh:NodeShape ;
+    sh:targetClass card:AgentSuggestion ;
+    sh:closed true ; sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:path card:ownerRecordId ; sh:datatype xsd:string ; sh:order 0 ; card:keyOrder 0 ;
+            card:fill "메타데이터" ; card:fillNote "청크 메타데이터 record_id" ] ,
+        [ sh:path card:suggestionText ; sh:datatype xsd:string ; sh:order 1 ; card:keyOrder 1 ; card:fill "LLM 추출" ; card:pruneIfMissing true ;
+            sh:description "상담사가 고객에게 내놓은 제안 하나를 상담사의 말 그대로 한 문장 옮김(예: 실적을 채웠는지 알려 주는 알림이 있는지 확인해 안내드릴까요). 제안이 여럿이면 문장마다 노드를 따로 만듦. 고객의 말을 되풀이해 확인하는 말과 기록하겠다는 말은 제안이 아니므로 노드를 만들지 않음" ] ,
+        [ sh:path card:accepted ; sh:datatype xsd:boolean ; sh:order 2 ; card:fill "LLM 추출" ;
+            sh:description "고객이 이 제안을 받아들였으면 true, 거절했으면 false. 본문으로 받아들였는지 알 수 없으면 속성을 내지 않음" ] .
+
+card:consult_log_AvoidRequestShape a sh:NodeShape ;
+    sh:targetClass card:AvoidRequest ;
+    sh:closed true ; sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:path card:ownerRecordId ; sh:datatype xsd:string ; sh:order 0 ; card:keyOrder 0 ;
+            card:fill "메타데이터" ; card:fillNote "청크 메타데이터 record_id" ] ,
+        [ sh:path card:avoidText ; sh:datatype xsd:string ; sh:order 1 ; card:keyOrder 1 ; card:fill "LLM 추출" ; card:pruneIfMissing true ;
+            sh:description "고객이 앞으로 하지 말아 달라고 분명히 밝힌 설명이나 제안 하나를 고객의 말 그대로 옮김(예: 조건이 많으면 비교 대상에서 빼 주세요). 제안을 한 번 거절한 것, 기록 방식이나 연락 방식을 부탁한 것, 하고 싶지 않다는 바람만 말한 것은 해당하지 않으므로 노드를 만들지 않음" ] .
 
 card:consult_log_TopicShape a sh:NodeShape ;
-    sh:closed true ;
-    sh:ignoredProperties ( rdf:type ) ;
-    sh:order 5 ;
-    sh:property [ sh:datatype xsd:string ;
-            sh:description "주제의 대표 이름. 띄어쓰기는 낱말 사이에 한 칸. 예: 연회비, 본인 확인" ;
-            sh:order 0 ;
-            sh:path card:name ] ;
     sh:targetClass card:Topic ;
-    card:fill "LLM 추출" ;
-    card:fillNote "이름은 LLM이 짓고, 인덱싱이 맞추기 표로 대표 이름에 맞춤" ;
-    card:keyOrder 2 .
+    card:nodeMadeBy "채우는 단계" ;
+    sh:closed true ; sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:path card:topicName ; sh:datatype xsd:string ; sh:order 0 ; card:keyOrder 0 ;
+            card:fill "메타데이터" ; card:fillNote "추출 청크 본문의 상담 주제 머리줄에서 식으로 읽음" ;
+            card:fillRegex "^\\[상담주제\\] (?P<topic>.+)$" ; card:fillRegexGroup "topic" ;
+            card:fillRegexBasis "설계용 상담 23건 모두에서 이 머리줄이 정확히 한 번 나옴(되돌아가기 3번에서 확인)" ] .
 
-card:profile_consult_log a card:GraphSchemaProfile ;
-    card:additional_node_types false ;
-    card:additional_patterns false ;
-    card:additional_relationship_types false .
+card:consult_log_CardProductShape a sh:NodeShape ;
+    sh:targetClass card:CardProduct ;
+    card:nodeMadeBy "채우는 단계" ;
+    sh:closed true ; sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:path card:productId ; sh:datatype xsd:string ; sh:order 0 ; card:keyOrder 0 ;
+            card:fill "맞추기 표" ; card:fillNote "maps/card_name.ttl 에서 찾은 이름에 짝지어진 상품 키" ;
+            card:fillTable card:CardNameTable ; card:matchOrder "긴 이름부터" ] ,
+        [ sh:path card:productName ; sh:datatype xsd:string ; sh:order 1 ;
+            card:fill "맞추기 표" ; card:fillNote "maps/card_name.ttl 의 카드 이름을 본문에서 긴 이름부터 찾아 찾은 이름을 그대로 씀(찾은 글자는 다시 쓰지 않음)" ;
+            card:fillTable card:CardNameTable ; card:matchOrder "긴 이름부터" ;
+            card:fillRegexBasis "설계용 상담 23건 모두에서 이름이 하나 이상 찾아지고 2건은 이름이 둘. 짧은 이름이 긴 이름 안에 들어 있어 잘못 걸리는 경우 0건(되돌아가기 3번에서 확인)" ] .
 
-card:ABOUT a owl:ObjectProperty ;
-    skos:definition "단위가 다루는 주제. 조항, 혜택, 불만마다 주제를 1 ~ 3개 반드시 잇는다(주제 없는 조항, 혜택, 불만을 만들지 않음). 해당: 그 단위의 중심 대상. 비해당: 지나가듯 한 번 나온 낱말." ;
-    card:additionalProperties true ;
-    card:order 5 .
-
-card:FOLLOWS a owl:ObjectProperty ;
-    skos:definition "이 상담이 이어받은 앞선 상담. 해당: 본문이 앞선 상담 ID를 말하며 이어진다고 한 것. 비해당: 같은 회원의 다른 상담이라는 것만으로 잇지 않음." ;
-    card:additionalProperties true ;
-    card:order 0 .
-
-card:HAS_COMPLAINT a owl:ObjectProperty ;
-    skos:definition "상담에서 고객이 말한 불만." ;
-    card:additionalProperties true ;
-    card:order 2 .
-
-card:HAS_PROPOSAL a owl:ObjectProperty ;
-    skos:definition "상담에서 상담사가 한 제안." ;
-    card:additionalProperties true ;
-    card:order 4 .
-
-card:HAS_REQUEST a owl:ObjectProperty ;
-    skos:definition "상담에서 고객이 한 요청." ;
-    card:additionalProperties true ;
-    card:order 3 .
-
-card:IN_SEGMENT a owl:ObjectProperty ;
-    skos:definition "상담한 회원의 고객군. 상담 하나에 정확히 하나." ;
-    card:additionalProperties true ;
-    card:order 1 .
-
+card:consult_log_StatedUsageShape a sh:NodeShape ;
+    sh:targetClass card:StatedUsage ;
+    sh:closed true ; sh:ignoredProperties ( rdf:type ) ;
+    sh:property [ sh:path card:ownerRecordId ; sh:datatype xsd:string ; sh:order 0 ; card:keyOrder 0 ;
+            card:fill "메타데이터" ; card:fillNote "청크 메타데이터 record_id" ] ,
+        [ sh:path card:statedMonth ; sh:datatype xsd:gYearMonth ; sh:order 1 ; card:keyOrder 1 ; card:fill "LLM 추출" ; card:pruneIfMissing true ;
+            sh:description "상담사가 금액을 알려 준 대상 달을 YYYY-MM 꼴로(예: 2026-03). 고객이 묻기만 하고 상담사가 금액을 알려 주지 않은 달은 해당하지 않으므로 노드를 만들지 않음" ] ,
+        [ sh:path card:statedCount ; sh:datatype xsd:integer ; sh:order 2 ; card:fill "LLM 추출" ;
+            sh:description "상담사가 알려 준 승인 거래 건수를 정수로(예: 승인 거래는 16건 이면 16). 취소 건수는 해당하지 않음. 건수를 말하지 않았으면 속성을 내지 않음" ] ,
+        [ sh:path card:statedAmount ; sh:datatype xsd:integer ; sh:order 3 ; card:fill "LLM 추출" ;
+            sh:description "상담사가 알려 준 승인 거래 합계를 원 단위 정수로(예: 합계 1,574,000원 이면 1574000). 합계를 말하지 않았으면 속성을 내지 않음" ] .

@@ -1,0 +1,20 @@
+flowchart LR
+  %% consult_log 문서 GraphSchema 초안. build_from_ttl.py 가 Turtle 에서 만듦. 손으로 고치지 않음
+  AgentSuggestion["AgentSuggestion<br/>상담사 제안"]
+  AvoidRequest["AvoidRequest<br/>피해 달라는 안내"]
+  CardProduct["CardProduct<br/>카드상품"]
+  Complaint["Complaint<br/>불만"]
+  Consultation["Consultation<br/>상담"]
+  CustomerRequest["CustomerRequest<br/>고객 요청"]
+  Member["Member<br/>회원"]
+  StatedUsage["StatedUsage<br/>상담에서 알려 준 사용액"]
+  Topic["Topic<br/>상담 주제"]
+  Consultation -- ABOUT_MEMBER --> Member
+  Consultation -- CONTINUES_FROM --> Consultation
+  Consultation -- HAS_AVOID_REQUEST --> AvoidRequest
+  Consultation -- HAS_COMPLAINT --> Complaint
+  Consultation -- HAS_REQUEST --> CustomerRequest
+  Consultation -- HAS_SUGGESTION --> AgentSuggestion
+  Consultation -- HAS_TOPIC --> Topic
+  Consultation -- MENTIONS_PRODUCT --> CardProduct
+  Consultation -- MENTIONS_USAGE --> StatedUsage

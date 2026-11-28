@@ -1,0 +1,111 @@
+@prefix card: <https://hanbit-card.example/ontology#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# RDB 읽기 전용 조회 결과와 온톨로지의 대응, 검사 조건. Step 6.5
+# RDB 적재 스키마가 아님. 업무 뷰를 앱 조회 계정으로 읽은 결과를 검사할 때만 메모리의 개체로 바꾸고 저장하지 않음.
+# 뷰와 열의 대응 원본은 rdb/rdb_mapping.json(Phase 3 승인). 아래 값은 그 파일과 같아야 함.
+# 세션 조건: app.member_id(회원), app.base_date(기준일), app.coverage_start(거래 제공 시작일).
+
+card:rdb_MemberShape a sh:NodeShape ;
+    sh:targetClass card:Member ;
+    card:keyKind "세션 조건" ; card:primaryView "app.customer_profile" ;
+    sh:property [ sh:path card:memberId ; sh:datatype xsd:string ; sh:order 0 ; card:keyOrder 0 ;
+            card:view "app_internal.member_basic" ; card:column "member_id" ; card:sourceColumn "public.member.member_id" ;
+            sh:description "업무 뷰에는 없고 세션 조건 app.member_id 로 줌. 결과 열로 받을 때만 app_internal.member_basic" ] ,
+        [ sh:path card:joinDate ; sh:datatype xsd:date ; sh:order 1 ;
+            card:view "app.customer_profile" ; card:column "join_date" ; card:sourceColumn "public.member.join_date" ] ,
+        [ sh:path card:ageBand ; sh:datatype xsd:string ; sh:order 2 ;
+            card:view "app.customer_profile" ; card:column "age_band" ; card:sourceColumn "public.member.age_band" ] ,
+        [ sh:path card:holdsCard ; sh:class card:Card ; sh:order 3 ;
+            card:view "app.customer_cards" ; sh:description "세션 조건으로 회원을 정하면 그 회원의 카드만 나옴" ] ,
+        [ sh:path card:hasDelinquency ; sh:class card:DelinquencyStatus ; sh:order 4 ;
+            card:view "app.customer_delinquency" ] .
+
+card:rdb_CardShape a sh:NodeShape ;
+    sh:targetClass card:Card ;
+    card:keyKind "결과 열" ; card:primaryView "app.customer_cards" ;
+    sh:property [ sh:path card:cardId ; sh:datatype xsd:string ; sh:order 0 ; card:keyOrder 0 ;
+            card:view "app_internal.customer_cards_full" ; card:column "card_id" ; card:sourceColumn "public.card.card_id" ] ,
+        [ sh:path card:cardRef ; sh:datatype xsd:string ; sh:order 1 ;
+            card:view "app.customer_cards" ; card:column "card_ref" ; card:derived true ;
+            card:validScope "같은 회원과 같은 기준일의 한 번 조회 안" ] ,
+        [ sh:path card:brand ; sh:datatype xsd:string ; sh:order 2 ;
+            card:view "app.customer_cards" ; card:column "brand" ; card:sourceColumn "public.card.brand" ] ,
+        [ sh:path card:issueDate ; sh:datatype xsd:date ; sh:order 3 ;
+            card:view "app.customer_cards" ; card:column "issue_date" ; card:sourceColumn "public.card.issue_date" ] ,
+        [ sh:path card:cardStatus ; sh:datatype xsd:string ; sh:order 4 ;
+            card:view "app.customer_cards" ; card:column "current_status" ; card:sourceColumn "public.card.status" ] ,
+        [ sh:path card:annualFee ; sh:datatype xsd:integer ; sh:order 5 ;
+            card:view "app.customer_cards" ; card:column "annual_fee" ; card:sourceColumn "public.product_annual_fee.total_fee" ] ,
+        [ sh:path card:ofProduct ; sh:class card:CardProduct ; sh:order 6 ; card:view "app.customer_cards" ; card:column "product_id" ] ,
+        [ sh:path card:hasMonthlyUsage ; sh:class card:MonthlyUsage ; sh:order 7 ; card:view "app.monthly_usage" ; card:column "card_ref" ] ,
+        [ sh:path card:hasMerchantUsage ; sh:class card:MerchantMonthlyUsage ; sh:order 8 ; card:view "app.merchant_usage" ; card:column "card_ref" ] .
+
+card:rdb_CardProductShape a sh:NodeShape ;
+    sh:targetClass card:CardProduct ;
+    card:keyKind "결과 열" ; card:primaryView "app.customer_cards" ;
+    sh:property [ sh:path card:productId ; sh:datatype xsd:string ; sh:order 0 ; card:keyOrder 0 ;
+            card:view "app.customer_cards" ; card:column "product_id" ; card:sourceColumn "public.product.product_id" ] ,
+        [ sh:path card:productName ; sh:datatype xsd:string ; sh:order 1 ;
+            card:view "app.customer_cards" ; card:column "product_name" ; card:sourceColumn "public.product.product_name" ] ,
+        [ sh:path card:effectiveDate ; sh:datatype xsd:date ; sh:order 2 ;
+            card:view "app.customer_cards" ; card:column "product_effective_date" ; card:sourceColumn "public.product.effective_date" ] ,
+        [ sh:path card:effectiveOnBaseDate ; sh:datatype xsd:boolean ; sh:order 3 ;
+            card:view "app.customer_cards" ; card:column "is_product_effective_on_base_date" ; card:derived true ] .
+
+card:rdb_DelinquencyStatusShape a sh:NodeShape ;
+    sh:targetClass card:DelinquencyStatus ;
+    card:keyKind "세션 조건과 결과 열의 조합" ; card:primaryView "app.customer_delinquency" ;
+    sh:property [ sh:path card:baseMonth ; sh:datatype xsd:gYearMonth ; sh:order 0 ; card:keyOrder 1 ;
+            card:view "app.customer_delinquency" ; card:column "base_month" ; card:sourceColumn "public.delinquency.base_month" ] ,
+        [ sh:path card:asOfDate ; sh:datatype xsd:date ; sh:order 1 ;
+            card:view "app.customer_delinquency" ; card:column "as_of_date" ; card:derived true ] ,
+        [ sh:path card:overdueAmount ; sh:datatype xsd:integer ; sh:order 2 ;
+            card:view "app.customer_delinquency" ; card:column "overdue_amount" ; card:sourceColumn "public.delinquency.overdue_amount" ] ,
+        [ sh:path card:overdueDays ; sh:datatype xsd:integer ; sh:order 3 ;
+            card:view "app.customer_delinquency" ; card:column "overdue_days" ; card:sourceColumn "public.delinquency.overdue_days" ] ,
+        [ sh:path card:overdueCount12m ; sh:datatype xsd:integer ; sh:order 4 ;
+            card:view "app.customer_delinquency" ; card:column "overdue_count_12m" ; card:sourceColumn "public.delinquency.overdue_count_12m" ] .
+
+card:rdb_MonthlyUsageShape a sh:NodeShape ;
+    sh:targetClass card:MonthlyUsage ;
+    card:keyKind "결과 열" ; card:primaryView "app.monthly_usage" ;
+    sh:property [ sh:path card:cardRef ; sh:datatype xsd:string ; sh:order 0 ; card:keyOrder 0 ;
+            card:view "app.monthly_usage" ; card:column "card_ref" ; card:derived true ;
+            card:validScope "같은 회원과 같은 기준일의 한 번 조회 안" ] ,
+        [ sh:path card:usageMonth ; sh:datatype xsd:gYearMonth ; sh:order 1 ; card:keyOrder 1 ;
+            card:view "app.monthly_usage" ; card:column "month" ; card:derived true ] ,
+        [ sh:path card:periodStart ; sh:datatype xsd:date ; sh:order 2 ; card:view "app.monthly_usage" ; card:column "period_start" ; card:derived true ] ,
+        [ sh:path card:periodEnd ; sh:datatype xsd:date ; sh:order 3 ; card:view "app.monthly_usage" ; card:column "period_end" ; card:derived true ] ,
+        [ sh:path card:approvedAmount ; sh:datatype xsd:integer ; sh:order 4 ;
+            card:view "app.monthly_usage" ; card:column "approved_amount" ; card:sourceColumn "public.card_txn.amount 의 합" ; card:derived true ] ,
+        [ sh:path card:transactionCount ; sh:datatype xsd:integer ; sh:order 5 ;
+            card:view "app.monthly_usage" ; card:column "transaction_count" ; card:sourceColumn "public.card_txn 행 수" ; card:derived true ] .
+
+card:rdb_MerchantMonthlyUsageShape a sh:NodeShape ;
+    sh:targetClass card:MerchantMonthlyUsage ;
+    card:keyKind "결과 열" ; card:primaryView "app.merchant_usage" ;
+    sh:property [ sh:path card:cardRef ; sh:datatype xsd:string ; sh:order 0 ; card:keyOrder 0 ;
+            card:view "app.merchant_usage" ; card:column "card_ref" ; card:derived true ;
+            card:validScope "같은 회원과 같은 기준일의 한 번 조회 안" ] ,
+        [ sh:path card:usageMonth ; sh:datatype xsd:gYearMonth ; sh:order 1 ; card:keyOrder 1 ;
+            card:view "app.merchant_usage" ; card:column "month" ; card:derived true ] ,
+        [ sh:path card:merchantName ; sh:datatype xsd:string ; sh:order 2 ; card:keyOrder 2 ;
+            card:view "app.merchant_usage" ; card:column "merchant_name" ; card:sourceColumn "public.merchant.merchant_name" ] ,
+        [ sh:path card:approvedAmount ; sh:datatype xsd:integer ; sh:order 3 ; card:view "app.merchant_usage" ; card:column "approved_amount" ;
+            card:sourceColumn "public.card_txn.amount 의 합" ; card:derived true ] ,
+        [ sh:path card:transactionCount ; sh:datatype xsd:integer ; sh:order 4 ; card:view "app.merchant_usage" ; card:column "transaction_count" ;
+            card:sourceColumn "public.card_txn 행 수" ; card:derived true ] ,
+        [ sh:path card:firstApprovedDate ; sh:datatype xsd:date ; sh:order 5 ; card:view "app.merchant_usage" ; card:column "first_approved_date" ; card:derived true ] ,
+        [ sh:path card:lastApprovedDate ; sh:datatype xsd:date ; sh:order 6 ; card:view "app.merchant_usage" ; card:column "last_approved_date" ; card:derived true ] ,
+        [ sh:path card:atMerchant ; sh:class card:Merchant ; sh:order 7 ; card:view "app.merchant_usage" ; card:column "merchant_name" ] .
+
+card:rdb_MerchantShape a sh:NodeShape ;
+    sh:targetClass card:Merchant ;
+    card:keyKind "결과 열" ; card:primaryView "app.merchant_usage" ;
+    sh:property [ sh:path card:merchantName ; sh:datatype xsd:string ; sh:order 0 ; card:keyOrder 0 ;
+            card:view "app.merchant_usage" ; card:column "merchant_name" ; card:sourceColumn "public.merchant.merchant_name" ] ,
+        [ sh:path card:merchantCategory ; sh:datatype xsd:string ; sh:order 1 ;
+            card:view "app.merchant_usage" ; card:column "category" ; card:sourceColumn "public.merchant.category" ] .

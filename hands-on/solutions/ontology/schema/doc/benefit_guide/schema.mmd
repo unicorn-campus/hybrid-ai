@@ -1,0 +1,7 @@
+flowchart LR
+  %% benefit_guide 문서 GraphSchema 초안. build_from_ttl.py 가 Turtle 에서 만듦. 손으로 고치지 않음
+  BenefitItem["BenefitItem<br/>혜택 항목"]
+  CardProduct["CardProduct<br/>카드상품"]
+  TargetCategory["TargetCategory<br/>혜택 대상 업종"]
+  BenefitItem -- TARGETS_CATEGORY --> TargetCategory
+  CardProduct -- OFFERS_BENEFIT --> BenefitItem

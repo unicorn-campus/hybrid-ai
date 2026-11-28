@@ -1,355 +1,730 @@
-# 카드 업무 온톨로지(원본). Class와 뜻, 관계와 역관계, 같은 개체 키, 값 목록을 적음.
-# 사람이 승인하는 파일이며, schema/doc-ontology/{문서 종류}/graph_schema.json은 이 파일과 shapes/에서 만들어 냄.
-# 표준 낱말: owl:Class, rdfs:label, skos:definition(뜻), skos:scopeNote(해당과 비해당), skos:altLabel(동의어),
-#   owl:ObjectProperty, rdfs:domain, rdfs:range, owl:inverseOf(역관계), owl:hasKey(같은 개체 키), skos:OrderedCollection(값 목록)
-#   rdfs:subClassOf card:CommonConcept(공통 개념 층에 드는 Class). 값 목록(card:valueList)이 있는 Class는 분류, 없으면 개체
-# 우리가 지은 낱말(card:)의 뜻은 indexer/core_turtle.py의 CUSTOM_TERMS에 있음.
-
 @prefix card: <https://hanbit-card.example/ontology#> .
-@prefix dcterms: <http://purl.org/dc/terms/> .
-@prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 
-card:ABOUT a owl:ObjectProperty ;
-    rdfs:domain [ a owl:Class ;
-            owl:unionOf ( card:Complaint card:Article card:Benefit ) ] ;
-    rdfs:range card:Topic ;
-    owl:inverseOf card:TOPIC_OF ;
-    card:docType "benefit_guide",
-        "consult_log",
-        "regulation" ;
-    card:inverseReason "M1, M2는 주제에서 출발해 조항과 혜택을 물음" ;
-    card:order 0 .
+# 한빛카드 상담 지식 온톨로지 원본 (초안). Phase 6 Step 6.1 ~ Step 6.3.
+# 추론기를 쓰지 않음. owl:equivalentClass, owl:TransitiveProperty 같은 낱말은 쓰지 않음.
+# 표준에 없는 낱말은 아래 '설계용 낱말' 절에서 card: 아래에 두고 뜻을 rdfs:comment 로 적음.
 
-card:CardProduct a owl:Class ;
-    rdfs:label "카드상품" ;
-    rdfs:subClassOf card:CommonConcept ;
-    owl:hasKey ( card:product_id ) ;
-    skos:altLabel "Card",
-        "Product" ;
-    skos:definition "카드사가 파는 카드 상품 하나. 회원이 발급받은 카드 한 장이 아님." ;
-    card:identityRule [ card:between "카드 혜택 안내와 정형 DB" ;
-            card:detail "Benefit.product_id와 Product.product_id가 같으면 같은 카드상품(값 꼴 D2-C001)" ;
-            card:rule "값 같음" ],
-        [ card:between "상담 기록과 카드 혜택 안내" ;
-            card:detail "상담 본문의 카드 이름을 카드 혜택 안내 메타데이터의 이름-ID 표(64쌍)로 product_id로 바꿈. 표에 없는 이름은 비워 둠" ;
-            card:rule "바꾸는 규칙" ] ;
-    card:order 0 ;
-    card:sourceKey [ card:keyProperty "product_id" ;
-            card:label "Product" ;
-            card:source "정형 DB(cardlab)" ] .
+<https://hanbit-card.example/ontology> a owl:Ontology ;
+    rdfs:label "한빛카드 상담 지식 온톨로지"@ko ;
+    rdfs:comment "RDB 업무 뷰의 값과 약관, 혜택 안내서, 상담 기록의 근거를 함께 쓰기 위한 업무 온톨로지. RDB 행은 그래프에 복제하지 않음."@ko ;
+    owl:versionInfo 2 .
 
-card:FOLLOWS a owl:ObjectProperty ;
-    rdfs:domain card:Consultation ;
-    rdfs:range card:Consultation ;
-    owl:inverseOf card:FOLLOWED_BY ;
-    card:docType "consult_log" ;
-    card:inverseReason "C5는 첫 상담에서 뒤의 상담으로도 따라감" ;
-    card:order 3 .
+#################################################################
+# 설계용 낱말 (표준에 없는 것만)
+#################################################################
 
-card:HAS_COMPLAINT a owl:ObjectProperty ;
-    rdfs:domain card:Consultation ;
-    rdfs:range card:Complaint ;
-    card:docType "consult_log" ;
-    card:order 1 .
+card:graphName a owl:AnnotationProperty ;
+    rdfs:label "그래프 이름"@ko ;
+    rdfs:comment "문서 GraphSchema 에 쓰는 이름. 클래스는 라벨, 관계는 관계 유형, 속성은 속성 이름이 됨"@ko .
+card:source a owl:AnnotationProperty ;
+    rdfs:label "온 곳"@ko ;
+    rdfs:comment "클래스나 관계가 나온 원천. 'RDB', '문서:{doc}', '역량 질문으로 추가' 가운데 하나 이상"@ko .
+card:mergedFrom a owl:AnnotationProperty ;
+    rdfs:label "합친 후보"@ko ;
+    rdfs:comment "Phase 3 판정과 Phase 5 후보 가운데 이 항목으로 합친 것과 그 근거"@ko .
+card:splitFrom a owl:AnnotationProperty ;
+    rdfs:label "나눈 근거"@ko ;
+    rdfs:comment "이름이 같거나 비슷한 후보를 다른 항목으로 나눈 근거"@ko .
+card:competencyQuestion a owl:AnnotationProperty ;
+    rdfs:label "답하는 역량 질문"@ko ;
+    rdfs:comment "이 항목이 답에 쓰이는 역량 질문 번호(CQ-nn)"@ko .
+card:scopeIncludes a owl:AnnotationProperty ;
+    rdfs:label "해당 범위"@ko ;
+    rdfs:comment "이 클래스에 드는 대상"@ko .
+card:scopeExcludes a owl:AnnotationProperty ;
+    rdfs:label "비해당 범위"@ko ;
+    rdfs:comment "이 클래스에 들지 않는 대상"@ko .
+card:key a owl:AnnotationProperty ;
+    rdfs:label "키"@ko ;
+    rdfs:comment "한 건을 가려내는 속성. 원천마다 쓰는 키가 다를 수 있어(예: 회원은 RDB 에서 회원 키, 상담 문서에서 회원 표시) 여기에는 모든 원천의 키 속성을 적고, 각 Shape 가 쓰는 키와 조합 순서는 그 Shape 의 card:keyOrder 로 적음. 한 Shape 안에 keyOrder 가 둘 이상이면 함께 써야 하는 조합 키임. 세션 조건으로 주는 키는 Shape 에 속성이 없을 수 있음"@ko .
+card:nameProperty a owl:AnnotationProperty ;
+    rdfs:label "대표 이름 속성"@ko ;
+    rdfs:comment "같은 대상을 한 노드로 모을 때 견주는 속성"@ko .
+card:matchRule a owl:AnnotationProperty ;
+    rdfs:label "맞추는 규칙"@ko ;
+    rdfs:comment "대표 이름 속성 값을 견주기 전에 고르는 규칙(띄어쓰기, 표기 변형, 동의어 표)"@ko .
+card:fill a owl:AnnotationProperty ;
+    rdfs:label "채우는 방법"@ko ;
+    rdfs:comment "문서 Shape 의 속성과 관계를 채우는 방법. 'LLM 추출', '메타데이터', '맞추기 표' 가운데 하나"@ko .
+card:fillNote a owl:AnnotationProperty ;
+    rdfs:label "채우는 방법 설명"@ko ;
+    rdfs:comment "메타데이터나 맞추기 표로 채울 때 어느 칸이나 어느 표에서 읽는지"@ko .
+card:pruneIfMissing a owl:AnnotationProperty ;
+    rdfs:label "값이 빠지면 노드를 지움"@ko ;
+    rdfs:comment "문서 Shape 의 속성에 true 로 달면 문서 GraphSchema 에 EXISTENCE 제약이 생기고, 추출 결과 가지치기(GraphPruning)가 그 값이 빠진 노드를 지움. DB 제약을 만드는 표시가 아님. LLM 추출로 채우는 속성에만 닮(메타데이터나 맞추기 표로 채우는 속성은 추출 직후 비어 있으므로 달지 않음)"@ko .
+card:pruneBasis a owl:AnnotationProperty ;
+    rdfs:label "지움 근거"@ko ;
+    rdfs:comment "키가 아닌 속성에 card:pruneIfMissing 을 달 때, 그 속성이 그 클래스임을 정한다는 근거(설계용 표본의 추출 청크 ID, 문자 범위, 구절)"@ko .
+card:keyOrder a owl:AnnotationProperty ;
+    rdfs:label "키 순서"@ko ;
+    rdfs:comment "조합 키 안에서의 순서(0부터)"@ko .
+card:checkStatus a owl:AnnotationProperty ;
+    rdfs:label "확인 상태"@ko ;
+    rdfs:comment "'확인' 또는 '확인 필요'. 확인 필요는 관리자 확인 질문 번호를 card:managerQuestion 에 적음"@ko .
+card:managerQuestion a owl:AnnotationProperty ;
+    rdfs:label "관리자 확인 질문"@ko ;
+    rdfs:comment "관련된 관리자 확인 질문 번호(MQ-nn)"@ko .
+card:valueList a owl:AnnotationProperty ;
+    rdfs:label "값 목록"@ko ;
+    rdfs:comment "value_lists.json 의 항목 번호(G-, C-, A-)"@ko .
+card:lexical a owl:AnnotationProperty ;
+    rdfs:label "인덱싱 기본 낱말"@ko ;
+    rdfs:comment "true 이면 인덱싱 도구가 스스로 만드는 라벨이나 관계. 추출 대상이 아님"@ko .
+card:view a owl:AnnotationProperty ;
+    rdfs:label "업무 뷰"@ko ;
+    rdfs:comment "앱 조회 계정이 읽는 뷰 이름(스키마.뷰)"@ko .
+card:column a owl:AnnotationProperty ;
+    rdfs:label "뷰의 결과 열"@ko ;
+    rdfs:comment "업무 뷰의 결과 열 이름"@ko .
+card:sourceColumn a owl:AnnotationProperty ;
+    rdfs:label "원본 열"@ko ;
+    rdfs:comment "원본 테이블의 열 또는 뷰가 계산한 방법"@ko .
+card:derived a owl:AnnotationProperty ;
+    rdfs:label "뷰가 계산한 값"@ko ;
+    rdfs:comment "true 이면 뷰가 계산해 만든 값"@ko .
+card:keyKind a owl:AnnotationProperty ;
+    rdfs:label "키 종류"@ko ;
+    rdfs:comment "'결과 열', '세션 조건', '세션 조건과 결과 열의 조합' 가운데 하나"@ko .
+card:primaryView a owl:AnnotationProperty ;
+    rdfs:label "대표 뷰"@ko ;
+    rdfs:comment "한 클래스가 여러 뷰에 걸칠 때 대표로 읽는 뷰"@ko .
+card:validScope a owl:AnnotationProperty ;
+    rdfs:label "같은 값이 보장되는 범위"@ko ;
+    rdfs:comment "뷰가 계산한 키가 같은 대상을 가리킨다고 보장되는 범위"@ko .
 
-card:IN_CATEGORY a owl:ObjectProperty ;
-    rdfs:domain card:Benefit ;
-    rdfs:range card:Category ;
-    owl:inverseOf card:CATEGORY_OF ;
-    card:addedBy "indexer" ;
-    card:docType "benefit_guide" ;
-    card:inverseReason "X1은 업종에서 출발해 혜택을 물음" ;
-    card:order 5 .
+# 연결 지점과 맞추기 표를 적는 설계용 유형. 업무 대상이 아니므로 owl:Class 로 두지 않음
+card:fillRegex a owl:AnnotationProperty ; rdfs:label "채우는 식"@ko ;
+    rdfs:comment "규칙으로 채우는 속성이나 관계에서 추출 청크 본문에 적용할 정규식. 값은 card:fillRegexGroup 의 이름 묶음에서 읽음. 식이 규칙 파일에 있으면 card:fillRuleRef 로 가리키고 여기에는 같은 식을 옮겨 적음"@ko .
+card:fillRegexGroup a owl:AnnotationProperty ; rdfs:label "식의 값 묶음"@ko ; rdfs:comment "card:fillRegex 에서 값을 읽을 이름 묶음"@ko .
+card:fillRuleRef a owl:AnnotationProperty ; rdfs:label "식이 있는 규칙 파일"@ko ; rdfs:comment "식의 원본이 있는 규칙 파일과 칸(예: doc/benefit_guide/unit_text_rules.json#marker_regex)"@ko .
+card:fillRegexBasis a owl:AnnotationProperty ; rdfs:label "식의 확인 근거"@ko ; rdfs:comment "식을 설계용 표본에 적용해 확인한 결과"@ko .
+card:fillTable a owl:AnnotationProperty ; rdfs:label "찾는 맞추기 표"@ko ; rdfs:comment "본문에서 이름을 찾아 채울 때 쓰는 맞추기 표(card:MatchTable)"@ko .
+card:matchOrder a owl:AnnotationProperty ; rdfs:label "찾는 순서"@ko ; rdfs:comment "맞추기 표의 이름을 본문에서 찾는 순서. '긴 이름부터'면 긴 이름을 먼저 찾고 찾은 글자는 다시 쓰지 않음"@ko .
+card:nodeMadeBy a owl:AnnotationProperty ; rdfs:label "노드를 만드는 단계"@ko ;
+    rdfs:comment "문서 Shape 의 NodeShape 에 '채우는 단계'로 적으면 그 클래스의 노드는 채우는 단계가 만들고, LLM 이 만든 같은 라벨의 노드는 버리며 버린 노드에 걸린 관계는 같은 추출 청크의 채운 노드로 옮김. 속성이 모두 LLM 추출이 아닌 클래스에 씀"@ko .
+card:onlyBodyUnits a owl:AnnotationProperty ; rdfs:label "본문 청크에서만 만듦"@ko ; rdfs:comment "true 면 채우는 단계가 본문 추출 청크(units.json 의 body true)에서만 이 클래스의 노드를 만듦"@ko .
+card:nameSteps a owl:AnnotationProperty ; rdfs:label "대표 이름 단계 목록"@ko ;
+    rdfs:comment "card:matchRule 을 도구가 그대로 실행할 수 있게 적은 JSON 목록. 쓸 수 있는 단계: nfc, strip, collapse_spaces, remove_spaces, [strip_prefix, 글], [strip_suffix, 글], [table_exact, 맞추기 표 파일]. 앞에서부터 차례로 적용함"@ko .
 
-card:IN_SEGMENT a owl:ObjectProperty ;
-    rdfs:domain card:Consultation ;
-    rdfs:range card:CustomerSegment ;
-    owl:inverseOf card:SEGMENT_OF ;
-    card:docType "consult_log" ;
-    card:inverseReason "A1은 고객군에서 출발해 상담을 물음" ;
-    card:order 2 .
+card:DocumentKind a rdfs:Class ;
+    rdfs:label "문서 종류"@ko ;
+    rdfs:comment "문서 종류 하나(설계용 유형). shapes/{doc}.ttl 에 개체를 하나 두고 그 문서 종류를 어떻게 채우는지 적음"@ko .
+card:docId a owl:AnnotationProperty ; rdfs:label "문서 종류 식별자"@ko ; rdfs:comment "문서 종류 식별자({doc})"@ko .
+card:llmExtraction a owl:AnnotationProperty ; rdfs:label "LLM 추출 여부"@ko ;
+    rdfs:comment "false 면 그 문서 종류는 LLM 추출을 하지 않고 분할 규칙과 메타데이터로 채우는 단계만 돌림. 이때 그 문서 Shape 에 LLM 추출 속성이 있으면 안 됨"@ko .
+
+card:CrossingPoint a rdfs:Class ;
+    rdfs:label "연결 지점"@ko ;
+    rdfs:comment "한 역량 질문의 답이 한 원천에서 다른 원천으로, 또는 한 문서 조각에서 다른 조각으로 넘어가는 자리(설계용 유형)"@ko .
+card:MatchTable a rdfs:Class ;
+    rdfs:label "맞추기 표"@ko ;
+    rdfs:comment "문서의 값과 온톨로지의 대상을 짝지은 표(설계용 유형). 행은 card:MatchRow"@ko .
+card:MatchRow a rdfs:Class ;
+    rdfs:label "맞추기 표의 행"@ko ;
+    rdfs:comment "맞추기 표의 한 줄. 상태는 approved, needs_review, not_linked 가운데 하나"@ko .
+
+card:matchKind a owl:AnnotationProperty ; rdfs:label "식별 규칙 종류"@ko ;
+    rdfs:comment "'값 같음', '변환 규칙', '맞추기 표' 가운데 하나"@ko .
+card:fromPlace a owl:AnnotationProperty ; rdfs:label "출발 자리"@ko ; rdfs:comment "연결이 시작하는 원천의 속성"@ko .
+card:toPlace a owl:AnnotationProperty ; rdfs:label "도착 자리"@ko ; rdfs:comment "연결이 닿는 원천의 속성"@ko .
+card:fromSource a owl:AnnotationProperty ; rdfs:label "출발 원천"@ko ; rdfs:comment "출발 자리가 있는 원천"@ko .
+card:toSource a owl:AnnotationProperty ; rdfs:label "도착 원천"@ko ; rdfs:comment "도착 자리가 있는 원천"@ko .
+card:rule a owl:AnnotationProperty ; rdfs:label "변환 식"@ko ; rdfs:comment "변환 규칙의 식"@ko .
+card:direction a owl:AnnotationProperty ; rdfs:label "방향"@ko ; rdfs:comment "한쪽으로만 갈 수 있으면 그 방향"@ko .
+card:lookupOrder a owl:AnnotationProperty ; rdfs:label "조회 순서"@ko ; rdfs:comment "연결을 따라가는 순서"@ko .
+card:uniqueness a owl:AnnotationProperty ; rdfs:label "유일성 확인 결과"@ko ; rdfs:comment "Step 6.3 의 조회 결과 요약"@ko .
+card:linkStatus a owl:AnnotationProperty ; rdfs:label "연결 상태"@ko ;
+    rdfs:comment "'승인 후보', 'needs_review', '끊김' 가운데 하나. 승인은 Phase 6 승인과 Phase 8 결과로 정함"@ko .
+card:sameSource a owl:AnnotationProperty ; rdfs:label "같은 원천 안"@ko ; rdfs:comment "true 이면 같은 원천 안의 자리끼리 잇는 연결"@ko .
+card:matchTable a owl:AnnotationProperty ; rdfs:label "쓰는 맞추기 표"@ko ; rdfs:comment "이 연결이 쓰는 맞추기 표"@ko .
+card:row a owl:AnnotationProperty ; rdfs:label "행"@ko ; rdfs:comment "맞추기 표의 행"@ko .
+card:fromValue a owl:AnnotationProperty ; rdfs:label "문서 쪽 값"@ko ; rdfs:comment "문서나 메타데이터에 나오는 값"@ko .
+card:toValue a owl:AnnotationProperty ; rdfs:label "짝지은 값"@ko ; rdfs:comment "짝지은 온톨로지 쪽 키 값이나 개념"@ko .
+card:rowStatus a owl:AnnotationProperty ; rdfs:label "행 상태"@ko ; rdfs:comment "approved, needs_review, not_linked 가운데 하나"@ko .
+card:basis a owl:AnnotationProperty ; rdfs:label "근거"@ko ; rdfs:comment "짝짓기나 판단의 근거"@ko .
+
+#################################################################
+# 인덱싱 도구가 스스로 만드는 라벨과 관계 (Step 6.4)
+# 입력이 없어 neo4j-graphrag 1.22.0 의 LexicalGraphConfig 기본값을 씀
+# (neo4j_graphrag/components/types.py 236 ~ 240줄)
+#################################################################
+
+card:Document a owl:Class ; rdfs:label "문서(인덱싱 기본)"@ko ; card:graphName "Document" ; card:lexical true ;
+    rdfs:comment "인덱싱 도구가 원본 문서마다 만드는 노드. 추출 대상이 아님"@ko .
+card:Chunk a owl:Class ; rdfs:label "청크(인덱싱 기본)"@ko ; card:graphName "Chunk" ; card:lexical true ;
+    rdfs:comment "인덱싱 도구가 추출 청크마다 만드는 노드. 추출 대상이 아님"@ko .
+card:FROM_DOCUMENT a owl:ObjectProperty ; rdfs:label "청크가 속한 문서(인덱싱 기본)"@ko ; card:graphName "FROM_DOCUMENT" ;
+    card:lexical true ; rdfs:domain card:Chunk ; rdfs:range card:Document ;
+    rdfs:comment "청크에서 문서로 가는 관계. 인덱싱 도구가 만듦"@ko .
+card:NEXT_CHUNK a owl:ObjectProperty ; rdfs:label "다음 청크(인덱싱 기본)"@ko ; card:graphName "NEXT_CHUNK" ;
+    card:lexical true ; rdfs:domain card:Chunk ; rdfs:range card:Chunk ;
+    rdfs:comment "같은 문서 안에서 다음 청크로 가는 관계. 인덱싱 도구가 만듦"@ko .
+card:FROM_CHUNK a owl:ObjectProperty ; rdfs:label "추출된 청크(인덱싱 기본)"@ko ; card:graphName "FROM_CHUNK" ;
+    card:lexical true ; rdfs:range card:Chunk ;
+    rdfs:comment "추출한 노드에서 그 노드가 나온 청크로 가는 관계. 인덱싱 도구가 만들며 출발 클래스는 모든 추출 클래스임"@ko .
+
+#################################################################
+# 클래스 (Step 6.2)
+#################################################################
 
 card:Member a owl:Class ;
-    rdfs:label "회원" ;
-    rdfs:subClassOf card:CommonConcept ;
-    owl:hasKey ( card:member_pseudo_id ) ;
-    skos:altLabel "Customer",
-        "Member" ;
-    skos:definition "카드를 가진 개인 회원 한 명. 문서에는 가명 ID로만 나타남." ;
-    card:identityRule [ card:between "정형 DB와 상담 기록" ;
-            card:detail "member_id를 SHA-256으로 바꾼 16진수 앞 16자리에 m_을 붙이면 member_pseudo_id가 됨(예: 평가 질문의 M-1042, M-3001로 확인함). 반대 방향으로는 바꿀 수 없음" ;
-            card:rule "바꾸는 규칙" ] ;
-    card:order 1 ;
-    card:sourceKey [ card:keyProperty "member_id" ;
-            card:label "Member" ;
-            card:source "정형 DB(cardlab)" ] .
+    rdfs:label "회원"@ko ; card:graphName "Member" ;
+    rdfs:comment "카드를 가진 개인 회원 한 명"@ko ;
+    card:scopeIncludes "RDB 회원 표의 회원 600명. 상담 기록의 회원 표시(m_ 로 시작)가 가리키는 사람"@ko ;
+    card:scopeExcludes "약관 문장 속의 '본인회원', '회원' 같은 일반 지칭(특정 한 명을 가리키지 않음). 가족회원, 상담사"@ko ;
+    card:key card:memberId , card:memberPseudoId ;
+    card:nameProperty card:memberPseudoId ;
+    card:matchRule "문서 쪽은 member_pseudo_id 값이 글자 그대로 같으면 같은 회원. RDB 쪽 회원 키는 CP-03 변환 규칙으로 표시를 계산해 견줌. 동의어 표 없음"@ko ;
+    card:nameSteps '["nfc", "strip"]' ;
+    card:source "RDB" , "문서:consult_log" ;
+    card:mergedFrom "RDB card:Member(public.member), 상담 후보 Customer. 둘 다 '카드를 가진 개인 한 명'을 가리키고, 상담의 회원 표시가 RDB 회원 키의 해시임을 회원 12명으로 확인함(CP-03)"@ko ;
+    card:splitFrom "약관 후보 Member 는 합치지 않고 버림. 약관의 회원은 특정 한 명이 아닌 일반 지칭이라 식별 범위가 다르고, 노드로 만들면 모든 조항이 한 노드에 몰림"@ko ;
+    card:valueList "G-14" ;
+    card:competencyQuestion "CQ-07" , "CQ-08" , "CQ-12" , "CQ-13" , "CQ-14" , "CQ-15" , "CQ-16" , "CQ-18" , "CQ-19" .
 
-card:P1 a card:CrossingPath ;
-    card:path "Consultation -HAS_COMPLAINT-> Complaint -ABOUT-> Topic <-ABOUT- Article" ;
-    card:question "M1" ;
-    card:rule "개념(ABOUT: 불만, 조항 → 주제)",
-        "동일(주제 맞추기 표)",
-        "역관(TOPIC_OF)" .
+card:Card a owl:Class ;
+    rdfs:label "카드"@ko ; card:graphName "Card" ;
+    rdfs:comment "회원이 가진 카드 한 장"@ko ;
+    card:scopeIncludes "RDB 카드 표의 카드 1,200장"@ko ;
+    card:scopeExcludes "카드 종류(카드상품). 문서에 나오는 카드 이름은 카드상품을 가리킴"@ko ;
+    card:key card:cardId ;
+    card:nameProperty card:cardId ;
+    card:matchRule "card_id 값이 같으면 같은 카드. card_ref 는 한 번의 조회 안에서 뷰끼리 잇는 데만 씀"@ko ;
+    card:nameSteps '["strip"]' ;
+    card:source "RDB" ;
+    card:mergedFrom "RDB card:Card(public.card)"@ko ;
+    card:splitFrom "혜택 안내서 후보 Card 와 상담 후보 Card 는 카드 종류(이름, 상품 키)라 카드상품으로 보냄. 약관 후보 Card 는 특정 카드가 아닌 일반 지칭이라 버림"@ko ;
+    card:valueList "G-15" ;
+    card:competencyQuestion "CQ-12" , "CQ-13" , "CQ-15" , "CQ-16" .
 
-card:P2 a card:CrossingPath ;
-    card:path "Complaint -ABOUT-> Topic <-ABOUT- Benefit" ;
-    card:question "M2" ;
-    card:rule "개념(ABOUT: 불만, 혜택 → 주제)",
-        "동일(주제 맞추기 표)",
-        "역관(TOPIC_OF)" .
+card:CardProduct a owl:Class ;
+    rdfs:label "카드상품"@ko ; card:graphName "CardProduct" ;
+    rdfs:comment "혜택 안내서에 실린 카드 종류 한 가지. 상품 키는 안내서 자료 ID(D2-C001 ~ D2-C064)와 같음"@ko ;
+    card:scopeIncludes "RDB 상품 표 64건. 혜택 안내서의 카드 64종. 상담 본문에 이름으로 나오는 카드"@ko ;
+    card:scopeExcludes "회원이 가진 카드 한 장(카드). 카드론 같은 대출 상품"@ko ;
+    card:key card:productId ;
+    card:nameProperty card:productName ;
+    card:matchRule "이름은 유니코드 NFC 로 고르고, 앞뒤 공백을 지우고, 연속 공백을 하나로 줄이고, 끝의 ' 카드'를 뗀 뒤 맞추기 표(maps/card_name.ttl)와 글자 전체가 같을 때만 상품 키를 붙임. 앞부분만 같은 이름(9쌍)은 맞추지 않음(MQ-03)"@ko ;
+    card:nameSteps '["nfc", "strip", "collapse_spaces", ["strip_suffix", " 카드"], ["table_exact", "maps/card_name.ttl"]]' ;
+    card:source "RDB" , "문서:benefit_guide" , "문서:consult_log" ;
+    card:mergedFrom "RDB card:CardProduct(public.product), 혜택 안내서 후보 Card, 상담 후보 Card. 모두 카드 종류를 가리키며 안내서 메타데이터의 card_id 64개가 상품 키와 같고 회원 60명 조회에서 본 상품 56개의 이름이 안내서 card_name 과 모두 같음"@ko ;
+    card:valueList "G-16" ;
+    card:competencyQuestion "CQ-05" , "CQ-06" , "CQ-11" , "CQ-12" , "CQ-16" , "CQ-17" .
 
-card:P3 a card:CrossingPath ;
-    card:path "Consultation.product_id = Benefit.product_id" ;
-    card:question "M3" ;
-    card:rule "동일(카드상품: 상담 쪽 바꾸는 규칙, 혜택 쪽 값 같음)" .
+card:DelinquencyStatus a owl:Class ;
+    rdfs:label "달별 연체 현황"@ko ; card:graphName "DelinquencyStatus" ;
+    rdfs:comment "회원 한 명의 한 달 연체 상태"@ko ;
+    card:scopeIncludes "RDB 연체 표의 회원과 기준월 한 줄"@ko ;
+    card:scopeExcludes "약관의 '연체 없음' 같은 조건 문장(약관 조항 본문의 내용으로 둠)"@ko ;
+    card:key card:memberId , card:baseMonth ;
+    card:nameProperty card:baseMonth ;
+    card:matchRule "같은 회원(세션 조건) 안에서 base_month 값이 같으면 같은 줄"@ko ;
+    card:nameSteps '["strip"]' ;
+    card:source "RDB" ;
+    card:mergedFrom "RDB card:DelinquencyStatus(public.delinquency)"@ko ;
+    card:splitFrom "약관 후보 Delinquency 는 면제 조건 하나(연체 없음)라 뜻은 가깝지만 식별 범위가 달라 합치지 않음"@ko ;
+    card:valueList "G-17" ;
+    card:competencyQuestion "CQ-14" .
 
-card:P4 a card:CrossingPath ;
-    card:path "정형 DB Merchant.category = Category.name <-IN_CATEGORY- Benefit" ;
-    card:question "X1" ;
-    card:rule "동일(값 같음, 문서 쪽은 맞추기 표)",
-        "분류(업종 허용 값 8개)",
-        "역관(CATEGORY_OF)" .
+card:MonthlyUsage a owl:Class ;
+    rdfs:label "달별 사용 집계"@ko ; card:graphName "MonthlyUsage" ;
+    rdfs:comment "카드 한 장의 한 달 승인 거래 건수와 합계. 업무 뷰가 계산한 집계"@ko ;
+    card:scopeIncludes "app.monthly_usage 의 한 줄(기준월에서 다섯 달 전까지)"@ko ;
+    card:scopeExcludes "상담사가 말로 알려 준 금액(상담에서 알려 준 사용액). 거래 한 건"@ko ;
+    card:key card:cardRef , card:usageMonth ;
+    card:nameProperty card:usageMonth ;
+    card:matchRule "같은 회원과 같은 기준일 조회 안에서 card_ref 와 month 가 같으면 같은 줄"@ko ;
+    card:nameSteps '["strip"]' ;
+    card:source "RDB" ;
+    card:mergedFrom "RDB card:MonthlyUsage(집계 뷰에서 둔 클래스)"@ko ;
+    card:splitFrom "상담 후보 TransactionSummary 와 UsageRecord 는 상담 기록 안의 진술이라 실제 집계와 따로 둠. CQ-18 이 둘을 맞대어 봄"@ko ;
+    card:valueList "G-19" ;
+    card:competencyQuestion "CQ-13" , "CQ-18" .
 
-card:P5 a card:CrossingPath ;
-    card:path "정형 DB Member.member_id → (바꾸는 규칙) → Consultation.member_pseudo_id" ;
-    card:question "X2" ;
-    card:rule "동일(회원: 바꾸는 규칙)" .
+card:MerchantMonthlyUsage a owl:Class ;
+    rdfs:label "가맹점 달별 사용 집계"@ko ; card:graphName "MerchantMonthlyUsage" ;
+    rdfs:comment "카드 한 장이 한 달에 한 가맹점에서 쓴 승인 거래의 합"@ko ;
+    card:scopeIncludes "app.merchant_usage 의 한 줄"@ko ;
+    card:scopeExcludes "거래 한 건, 업종별 합계(받은 줄을 다시 모아 구함)"@ko ;
+    card:key card:cardRef , card:usageMonth , card:merchantName ;
+    card:nameProperty card:merchantName ;
+    card:matchRule "같은 조회 안에서 card_ref, month, merchant_name 세 값이 같으면 같은 줄"@ko ;
+    card:nameSteps '["strip"]' ;
+    card:source "RDB" ;
+    card:mergedFrom "RDB card:MerchantMonthlyUsage(집계 뷰에서 둔 클래스)"@ko ;
+    card:competencyQuestion "CQ-15" .
 
-card:P6 a card:CrossingPath ;
-    card:path "정형 DB Product.product_id = Benefit.product_id" ;
-    card:question "X3" ;
-    card:rule "동일(카드상품: 값 같음)" .
+card:Merchant a owl:Class ;
+    rdfs:label "가맹점"@ko ; card:graphName "Merchant" ;
+    rdfs:comment "카드가 쓰인 가게 한 곳"@ko ;
+    card:scopeIncludes "RDB 가맹점 표 80곳 가운데 회원이 쓴 곳"@ko ;
+    card:scopeExcludes "혜택 안내서의 대상 업종 문장 속 가상 가맹점 이름(혜택 대상 업종으로 둠)"@ko ;
+    card:key card:merchantName ;
+    card:nameProperty card:merchantName ;
+    card:matchRule "merchant_name 값이 글자 그대로 같으면 같은 가맹점. 회원 60명 조회에서 이름 80개가 모두 다르고 업종이 하나씩임을 확인함"@ko ;
+    card:nameSteps '["strip"]' ;
+    card:source "RDB" ;
+    card:mergedFrom "RDB card:Merchant(public.merchant)"@ko ;
+    card:splitFrom "약관과 혜택 안내서의 후보 Merchant 는 역량 질문에 쓰이지 않아 Phase 5 에서 버렸음"@ko ;
+    card:competencyQuestion "CQ-15" .
 
-card:Proposal a owl:Class ;
-    skos:definition "제안. 상담사가 고객에게 권한 방법이나 대안 하나와 고객의 반응. 해당: 「~하시는 건 어떠세요?」, 「~를 안내드릴게요」. 비해당: 고객의 요청, 상담사가 사실만 알려 준 것." .
+card:Clause a owl:Class ;
+    rdfs:label "약관 조항"@ko ; card:graphName "Clause" ;
+    rdfs:comment "개인회원 이용약관의 조항 하나. 가지 조항(제16조의2)은 따로 셈. 약관 질문(연회비 면제, 철회 기한, 변경 안내, 휴면카드 처리와 그 밖의 처음 보는 약관 질문)은 조항을 찾은 뒤 조항 본문에서 답함"@ko ;
+    card:scopeIncludes "약관 본문 조항 52개"@ko ;
+    card:scopeExcludes "표지, 문서 메타데이터, 차례, 각주 쪽"@ko ;
+    card:key card:clauseNo ;
+    card:nameProperty card:clauseNo ;
+    card:matchRule "조항 번호의 공백을 모두 지운 꼴(제10조, 제16조의2)이 같으면 같은 조항"@ko ;
+    card:nameSteps '["nfc", "remove_spaces"]' ;
+    card:source "문서:regulation" ;
+    card:mergedFrom "약관 후보 Clause. 연회비 면제(Fee, HAS_FEE, QUALIFIES_FOR_WAIVER, Delinquency, Transaction 의 금액과 기간), 할부 거래 철회(WITHDRAWS), 약관 변경 안내(TermChange, INCLUDES, NOTIFIED_ABOUT), 휴면카드 처리(Suspension, Contract, HAS_SUSPENSION, HAS_CONTRACT, TERMINATES)는 모두 조항 본문의 내용으로 보고 이 클래스에 담음. 답은 조항 본문에서 읽음"@ko ;
+    card:splitFrom "앞선 초안(되돌아가기 2번 전)에는 연회비 면제 조건, 할부 거래 철회 기준, 약관 변경 안내, 휴면카드 처리 단계의 전용 클래스 4개와 관계 STATED_IN, NEXT_STEP 이 있었음. 각각 약관 전체에서 조항 하나에만 나오는 내용이고(가정 P13), CQ-01 ~ CQ-04 는 지식 경로가 '문서 검색'이라 값을 비교, 집계, 연결에 쓰지 않으므로 뺐음(Step 8.1 에서 시험용 약관 청크 31건 가운데 CQ-01 ~ CQ-04 의 답이 있는 청크가 0건이고 시험용 약관 문항 3개가 어느 역량 질문에도 들지 않음이 드러남)"@ko ;
+    card:valueList "G-01" , "G-02" , "G-03" , "G-04" , "G-05" ;
+    card:checkStatus "확인 필요" ; card:managerQuestion "MQ-06" ;
+    card:competencyQuestion "CQ-01" , "CQ-02" , "CQ-03" , "CQ-04" .
 
-card:REFERS_TO a owl:ObjectProperty ;
-    rdfs:domain card:Article ;
-    rdfs:range card:Article ;
-    card:docType "regulation" ;
-    card:order 4 .
+card:BenefitItem a owl:Class ;
+    rdfs:label "혜택 항목"@ko ; card:graphName "BenefitItem" ;
+    rdfs:comment "한 카드상품의 혜택 한 줄. 비율이나 금액, 실적 조건, 한도, 지급 시점, 사용 기한, 제외 거래를 함께 가짐"@ko ;
+    card:scopeIncludes "혜택 안내서의 항목 270개(D2-Cnnn-Bnn)"@ko ;
+    card:scopeExcludes "카드 머리글과 연회비 표, 문서 적용 기준"@ko ;
+    card:key card:benefitId ;
+    card:nameProperty card:benefitId ;
+    card:matchRule "항목 키 값이 글자 그대로 같으면 같은 항목"@ko ;
+    card:nameSteps '["strip"]' ;
+    card:source "문서:benefit_guide" ;
+    card:mergedFrom "혜택 안내서 후보 Benefit, Voucher(혜택 방식의 하나), Condition(4개 이름), Limit, Exclusion. 조건, 한도, 제외 조건은 자기 키 없이 항목 하나를 설명하는 값이라 속성으로 접음. 글자로 합치면 350,000원 실적 조건 같은 공통 노드에 모든 항목이 몰림"@ko ;
+    card:valueList "G-06" , "G-07" , "G-08" , "G-09" , "G-10" ;
+    card:competencyQuestion "CQ-05" , "CQ-06" , "CQ-11" , "CQ-16" , "CQ-17" .
 
-card:Request a owl:Class ;
-    skos:definition "요청. 고객이 상담에서 해 달라고 한 것 하나(비교 기준, 원하는 조건, 기록 요청). 해당: 「비교해 주세요」, 「~이면 옮기겠어요」. 비해당: 불만(Complaint로 씀), 상담사의 제안." .
-
-card:UsageRule a owl:Class ;
-    owl:hasKey ( card:item_id ) ;
-    skos:definition "이용 기준. 카드상품에 걸린 이용 규칙 항목 하나(통합 한도, 결제 한도, 실적 산정, 정산 기준). 해당: 항목 제목이 이용 기준, 통합 한도, 결제 이용 한도, 포인트 운영 기준, 한도 변경인 항목. 비해당: 할인이나 적립을 주는 혜택 항목(Benefit으로 씀)." .
-
-card:ontology a owl:Ontology ;
-    dcterms:creator "hiondal(사용자)" ;
-    dcterms:dateAccepted "2026-11-18T03:02:27" ;
-    dcterms:description "문서 그래프 3종(약관, 카드 혜택 안내, 상담 기록)과 정형 DB를 같은 업무 개념(Class)으로 잇는 공통 개념 층. 뜻 한 줄은 여기에만 적고, graph_schema.json의 노드 타입 설명(description) 첫머리는 build_from_ttl.py가 여기서 가져옴" ;
-    rdfs:comment "8단계에서 스키마와 함께 통과를 승인함(review/step8.md 라운드 3, 4)" ;
-    owl:versionInfo "5" .
-
-card:CATEGORY_OF a owl:ObjectProperty .
-
-card:CategoryValues a skos:OrderedCollection ;
-    rdfs:label "업종" ;
-    skos:memberList ( card:Category_식비 card:Category_쇼핑 card:Category_교통 card:Category_주유 card:Category_여행 card:Category_해외 card:Category_생활 card:Category_교육 ) ;
-    skos:note "없음(값 목록에 상하위 정보가 없음)" .
-
-card:Category_교육 a skos:Concept,
-        card:Category ;
-    skos:prefLabel "교육" .
-
-card:Category_교통 a skos:Concept,
-        card:Category ;
-    skos:prefLabel "교통" .
-
-card:Category_생활 a skos:Concept,
-        card:Category ;
-    skos:prefLabel "생활" .
-
-card:Category_쇼핑 a skos:Concept,
-        card:Category ;
-    skos:prefLabel "쇼핑" .
-
-card:Category_식비 a skos:Concept,
-        card:Category ;
-    skos:prefLabel "식비" .
-
-card:Category_여행 a skos:Concept,
-        card:Category ;
-    skos:prefLabel "여행" .
-
-card:Category_주유 a skos:Concept,
-        card:Category ;
-    skos:prefLabel "주유" .
-
-card:Category_해외 a skos:Concept,
-        card:Category ;
-    skos:prefLabel "해외" .
-
-card:CustomerSegmentValues a skos:OrderedCollection ;
-    rdfs:label "고객군" ;
-    skos:memberList ( card:CustomerSegment_신규_가입 card:CustomerSegment_장기_보유 card:CustomerSegment_VIP card:CustomerSegment_휴면_직전 card:CustomerSegment_다중_카드 card:CustomerSegment_연회비_부담 ) ;
-    skos:note "없음(값 목록에 상하위 정보가 없음)" .
-
-card:CustomerSegment_VIP a skos:Concept,
-        card:CustomerSegment ;
-    skos:prefLabel "VIP" .
-
-card:CustomerSegment_다중_카드 a skos:Concept,
-        card:CustomerSegment ;
-    skos:prefLabel "다중 카드" .
-
-card:CustomerSegment_신규_가입 a skos:Concept,
-        card:CustomerSegment ;
-    skos:prefLabel "신규 가입" .
-
-card:CustomerSegment_연회비_부담 a skos:Concept,
-        card:CustomerSegment ;
-    skos:prefLabel "연회비 부담" .
-
-card:CustomerSegment_장기_보유 a skos:Concept,
-        card:CustomerSegment ;
-    skos:prefLabel "장기 보유" .
-
-card:CustomerSegment_휴면_직전 a skos:Concept,
-        card:CustomerSegment ;
-    skos:prefLabel "휴면 직전" .
-
-card:FOLLOWED_BY a owl:ObjectProperty .
-
-card:SEGMENT_OF a owl:ObjectProperty .
-
-card:TOPIC_OF a owl:ObjectProperty .
-
-card:Topic a owl:Class ;
-    rdfs:label "주제" ;
-    rdfs:subClassOf card:CommonConcept ;
-    owl:hasKey ( card:name ) ;
-    skos:altLabel "Consultation.topic",
-        "IssueTopic" ;
-    skos:definition "단위가 다루는 업무 대상 하나를 짧은 명사로 쓴 것(예: 연회비, 본인 확인, 광고 수신)." ;
-    skos:editorialNote "M1, M2(불만 주제마다 관련 조항과 혜택)는 세 문서 종류를 이어야 답함. 문서를 잇는 공통 노드임" ;
-    skos:scopeNote "해당: 그 단위가 다루는 업무 대상을 2 ~ 8글자의 명사로 씀(예: 연회비, 본인 확인, 광고 수신, 혜택 신청, 이의신청, 결제일, 해외 결제, 카드 해지). 혜택 항목이면 그 혜택이 쓰이는 곳이나 대상을 씀(예: 외식, 대중교통, 디지털 구독, 해외 결제, 전기차 충전, 통합 한도). 단위 하나에 가장 중심 대상부터 1 ~ 3개, 많아야 3개. 비해당: 불편, 불만, 문의, 안내, 계산 같은 말, 혜택, 할인, 적립, 캐시백, 보너스처럼 너무 넓은 말, 카드 이름, 가맹점 이름, 금액, 날짜, 사람." ;
-    card:identityRule [ card:between "문서 3종" ;
-            card:detail "LLM이 지은 주제 이름을 사람이 확정한 주제 맞추기 표(maps/topic.ttl)로 대표 이름에 맞춤. 같은 대표 이름이면 같은 주제 노드. 표에 없거나 확정되지 않은 이름은 띄어쓰기만 맞춰 그대로 둠(다른 문서와 이어지지 않을 수 있음)" ;
-            card:rule "맞추기 표" ] ;
-    card:order 4 .
-
-card:article_no a owl:DatatypeProperty .
-
-card:benefit_id a owl:DatatypeProperty .
-
-card:item_id a owl:DatatypeProperty .
-
-card:member_pseudo_id a owl:DatatypeProperty .
-
-card:product_id a owl:DatatypeProperty .
-
-card:record_id a owl:DatatypeProperty .
-
-card:Benefit a owl:Class ;
-    rdfs:label "혜택" ;
-    rdfs:subClassOf card:CommonConcept ;
-    owl:hasKey ( card:benefit_id ) ;
-    skos:altLabel "Bonus",
-        "Voucher" ;
-    skos:definition "카드상품이 회원에게 주는 혜택 항목 하나(할인, 적립, 캐시백, 바우처, 보너스, 무이자 할부, 제휴 서비스)." ;
-    skos:editorialNote "공통 노드(주제)와 업종에 잇는 Class" ;
-    skos:scopeNote "해당: 머리줄의 항목 ID 하나에 혜택 노드 하나. 항목 제목이 할인, 적립, 캐시백, 바우처, 보너스, 무이자 할부, 쿠폰, 제휴 서비스이면 혜택임. 비해당: 항목 제목이 이용 기준, 통합 한도, 결제 이용 한도, 포인트 운영 기준처럼 혜택을 주지 않고 규칙만 적은 항목(UsageRule로 씀). 머리줄이 「혜택 항목 아님」이면 아무 노드도 만들지 않음." ;
-    card:identityRule [ card:between "카드 혜택 안내 안" ;
-            card:detail "benefit_id(예: D2-C035-B02)가 같으면 같은 혜택" ;
-            card:rule "값 같음" ] ;
-    card:order 6 .
-
-card:Complaint a owl:Class ;
-    rdfs:label "불만" ;
-    rdfs:subClassOf card:CommonConcept ;
-    skos:altLabel "Issue",
-        "IssueTopic" ;
-    skos:definition "고객이 상담에서 분명히 말한 불만이나 불편 하나." ;
-    skos:editorialNote "공통 노드(주제)에 잇는 Class" ;
-    skos:scopeNote "해당: 「불편해요」, 「지쳤어요」, 「혜택이 없어요」처럼 고객이 불만이나 불편을 분명히 말한 것. 상담 하나에 0 ~ 2개. 불만마다 그 불만이 다루는 주제를 하나 이상 ABOUT로 잇는다. 비해당: 단순한 질문이나 요청, 상담사의 말, 고객이 걱정만 한 것." ;
-    card:identityRule [ card:between "상담 기록 안" ;
-            card:detail "같은 상담(record_id) 안에서 content가 같으면 같은 불만" ;
-            card:rule "값 같음" ] ;
-    card:order 8 .
-
-card:Article a owl:Class ;
-    rdfs:label "조항" ;
-    rdfs:subClassOf card:CommonConcept ;
-    owl:hasKey ( card:article_no ) ;
-    skos:altLabel "Clause" ;
-    skos:definition "개인회원 이용약관의 조(제N조) 하나." ;
-    skos:editorialNote "공통 노드(주제)에 잇는 Class" ;
-    skos:scopeNote "해당: 머리줄의 article_no 하나에 조항 노드 하나. 조항 노드에는 article_no와 title 말고도 condition과 action을 원문 문장 그대로 반드시 채움(이 조의 내용이 그래프에 남는 곳임). 본문이 가리키는 다른 조(예: 「제10조에 따릅니다」)도 article_no만 채운 조항 노드로 만듦. 비해당: 표지, 문서 정보, 차례, 각주, 조 안의 항(①, ②)을 따로 나눈 것." ;
-    card:identityRule [ card:between "약관 안" ;
-            card:detail "article_no(예: 제10조, 제16조의2)가 같으면 같은 조항" ;
-            card:rule "값 같음" ] ;
-    card:order 5 .
-
-card:name a owl:DatatypeProperty .
+card:TargetCategory a owl:Class ;
+    rdfs:label "혜택 대상 업종"@ko ; card:graphName "TargetCategory" ;
+    rdfs:comment "혜택 항목이 대상으로 삼는 업종(문서의 낱말)"@ko ;
+    card:scopeIncludes "혜택 항목의 '대상' 줄에 적힌 업종(예: 동물병원)"@ko ;
+    card:scopeExcludes "RDB 가맹점 업종 코드 8가지(card:MerchantCategoryScheme). 둘의 대응은 CP-05 맞추기 표가 정함"@ko ;
+    card:key card:categoryName ;
+    card:nameProperty card:categoryName ;
+    card:matchRule "NFC 로 고르고, 앞의 '가상 '과 끝의 ' 업종'을 떼고, 공백을 하나로 줄인 꼴이 같으면 같은 업종. 동의어 표는 확인된 것이 없어 비워 둠"@ko ;
+    card:nameSteps '["nfc", "strip", ["strip_prefix", "가상 "], ["strip_suffix", " 업종"], "collapse_spaces"]' ;
+    card:source "문서:benefit_guide" ;
+    card:mergedFrom "혜택 안내서 후보 Category, IndustryCategory, MerchantCategory. 세 이름 모두 혜택의 대상 업종을 가리킴"@ko ;
+    card:splitFrom "RDB 가맹점 업종 코드와는 낱말이 달라(문서는 동물병원, 마트 등 세부 업종) 합치지 않음"@ko ;
+    card:competencyQuestion "CQ-11" .
 
 card:Consultation a owl:Class ;
-    rdfs:label "상담" ;
-    rdfs:subClassOf card:CommonConcept ;
-    owl:hasKey ( card:record_id ) ;
-    skos:altLabel "Consultation" ;
-    skos:definition "상담 기록 한 건." ;
-    skos:editorialNote "회원, 카드상품, 고객군을 잇는 키를 가진 Class" ;
-    skos:scopeNote "해당: 머리줄의 record_id 하나에 상담 노드 하나. 본문이 이어진다고 말한 앞선 상담(예: 「C-20260310-018과 이어지는 기록」)도 record_id만 채운 상담 노드로 만듦. 비해당: 상담사, 채널, 카드, 고객을 따로 만든 노드." ;
-    card:identityRule [ card:between "상담 기록 안" ;
-            card:detail "record_id(예: C-20260314-001)가 같으면 같은 상담" ;
-            card:rule "값 같음" ] ;
-    card:order 7 .
+    rdfs:label "상담"@ko ; card:graphName "Consultation" ;
+    rdfs:comment "상담 한 번을 적은 기록"@ko ;
+    card:scopeIncludes "상담 이력 여섯 파일의 기록 48건(표본 제외 2건 포함)"@ko ;
+    card:scopeExcludes "후속 안내 방식, 상담사 개인"@ko ;
+    card:key card:recordId ;
+    card:nameProperty card:recordId ;
+    card:matchRule "상담 번호 값이 글자 그대로 같으면 같은 상담"@ko ;
+    card:nameSteps '["strip"]' ;
+    card:source "문서:consult_log" ;
+    card:mergedFrom "상담 후보 Consultation, Conversation"@ko ;
+    card:valueList "G-11" ;
+    card:competencyQuestion "CQ-07" , "CQ-08" , "CQ-10" , "CQ-17" , "CQ-18" , "CQ-19" .
 
-card:CustomerSegment a owl:Class ;
-    rdfs:label "고객군" ;
-    rdfs:subClassOf card:CommonConcept ;
-    owl:hasKey ( card:name ) ;
-    skos:altLabel "customer_group",
-        "group" ;
-    skos:definition "회원을 성향에 따라 나눈 무리 하나. 값은 값 목록의 6개뿐임." ;
-    skos:editorialNote "A1(고객군마다 어떤 불만)이 이 값으로 무리를 나누고, 값이 상담 46건에 되풀이됨" ;
-    skos:scopeNote "해당: 머리줄의 고객군 값 하나에 노드 하나. 값은 신규 가입, 장기 보유, VIP, 휴면 직전, 다중 카드, 연회비 부담 중 하나. 비해당: 본문에서 짐작한 고객 성향." ;
-    card:identityRule [ card:between "정형 DB와 상담 기록" ;
-            card:detail "segment_id 번호를 값 목록의 번호-이름 표로 이름에 맞춤(1 신규 가입 ~ 6 연회비 부담)" ;
-            card:rule "바꾸는 규칙" ],
-        [ card:between "상담 기록 안" ;
-            card:detail "name이 같으면 같은 고객군 노드" ;
-            card:rule "값 같음" ] ;
-    card:order 2 ;
-    card:sourceKey [ card:keyProperty "segment_id" ;
-            card:label "Member" ;
-            card:source "정형 DB(cardlab)" ] ;
-    card:valueList card:CustomerSegmentValues .
+card:CustomerRequest a owl:Class ;
+    rdfs:label "고객 요청"@ko ; card:graphName "CustomerRequest" ;
+    rdfs:comment "상담에서 고객이 해 달라고 한 일"@ko ;
+    card:scopeIncludes "상담 기록 한 건 안의 요청 문장"@ko ;
+    card:scopeExcludes "불만, 하지 말아 달라는 요청(따로 둠)"@ko ;
+    card:key card:ownerRecordId , card:requestText ;
+    card:nameProperty card:requestText ;
+    card:matchRule "같은 상담 번호 안에서만 모음. 상담끼리는 합치지 않음"@ko ;
+    card:nameSteps '["nfc", "strip", "collapse_spaces"]' ;
+    card:source "문서:consult_log" ;
+    card:mergedFrom "상담 후보 Request"@ko ;
+    card:competencyQuestion "CQ-07" , "CQ-10" .
 
-card:Category a owl:Class ;
-    rdfs:label "업종" ;
-    rdfs:subClassOf card:CommonConcept ;
-    owl:hasKey ( card:name ) ;
-    skos:altLabel "DiscountCategory",
-        "Industry",
-        "MerchantCategory",
-        "TransactionCategory" ;
-    skos:definition "가맹점을 나눈 정해진 갈래 하나. 값은 값 목록의 8개뿐임." ;
-    skos:editorialNote "X1(많이 쓰는 업종에 혜택을 주는 카드)이 이 값으로 혜택을 묶음" ;
-    card:addedBy "indexer" ;
-    card:docType "benefit_guide" ;
-    card:fill "맞추기 표" ;
-    card:fillNote "혜택의 대상(target) 문장을 맞추기 표로 8개 값 중 하나에 맞춤. 표는 8단계에서 만들고 사람이 확정한 행만 이음" ;
-    card:identityRule [ card:between "카드 혜택 안내 안" ;
-            card:detail "혜택 대상 문장 → 업종 값. 분명하지 않으면 미정으로 두고 사람이 정함" ;
-            card:rule "맞추기 표" ],
-        [ card:between "정형 DB와 카드 혜택 안내" ;
-            card:detail "Merchant.category 값과 Category.name이 같으면 같은 업종" ;
-            card:rule "값 같음" ] ;
-    card:order 3 ;
-    card:sourceKey [ card:keyProperty "category" ;
-            card:label "Merchant" ;
-            card:source "정형 DB(cardlab)" ] ;
-    card:valueList card:CategoryValues .
+card:Complaint a owl:Class ;
+    rdfs:label "불만"@ko ; card:graphName "Complaint" ;
+    rdfs:comment "상담에서 고객이 말한 불만"@ko ;
+    card:scopeIncludes "상담 기록 한 건 안의 불만 문장"@ko ;
+    card:scopeExcludes "요청"@ko ;
+    card:key card:ownerRecordId , card:complaintText ;
+    card:nameProperty card:complaintText ;
+    card:matchRule "같은 상담 번호 안에서만 모음. 주제별 묶기는 상담 주제로 함"@ko ;
+    card:nameSteps '["nfc", "strip", "collapse_spaces"]' ;
+    card:source "문서:consult_log" ;
+    card:mergedFrom "상담 후보 Complaint, 관계 EXPRESSES"@ko ;
+    card:competencyQuestion "CQ-10" .
 
-card:CommonConcept a owl:Class ;
-    rdfs:label "공통 개념" ;
-    skos:definition "여러 원천(문서 종류, 정형 DB)에 걸쳐 같은 뜻으로 쓰는 업무 개념. 이 Class의 하위 Class가 공통 개념 층을 이룸. 문서 하나에서만 쓰는 노드 타입(이용 기준, 요청, 제안)은 하위 Class가 아님." .
+card:AgentSuggestion a owl:Class ;
+    rdfs:label "상담사 제안"@ko ; card:graphName "AgentSuggestion" ;
+    rdfs:comment "상담사가 고객에게 내놓은 제안과 받아들임 여부"@ko ;
+    card:scopeIncludes "상담 기록 한 건 안의 제안 문장"@ko ;
+    card:scopeExcludes "상담사 개인 정보"@ko ;
+    card:key card:ownerRecordId , card:suggestionText ;
+    card:nameProperty card:suggestionText ;
+    card:matchRule "같은 상담 번호 안에서만 모음"@ko ;
+    card:nameSteps '["nfc", "strip", "collapse_spaces"]' ;
+    card:source "문서:consult_log" , "역량 질문으로 추가" ;
+    card:mergedFrom "상담 후보 Suggestion, 관계 MADE_SUGGESTION. 후보에 없던 받아들임 여부를 CQ-10 으로 추가"@ko ;
+    card:competencyQuestion "CQ-08" , "CQ-10" .
 
+card:AvoidRequest a owl:Class ;
+    rdfs:label "피해 달라는 안내"@ko ; card:graphName "AvoidRequest" ;
+    rdfs:comment "고객이 하지 말아 달라고 한 설명이나 제안"@ko ;
+    card:scopeIncludes "상담 기록 안에서 고객이 원하지 않는다고 밝힌 안내(예: 조건이 많은 선택지 제외)"@ko ;
+    card:scopeExcludes "일반 요청"@ko ;
+    card:key card:ownerRecordId , card:avoidText ;
+    card:nameProperty card:avoidText ;
+    card:matchRule "같은 상담 번호 안에서만 모음"@ko ;
+    card:nameSteps '["nfc", "strip", "collapse_spaces"]' ;
+    card:source "역량 질문으로 추가" ;
+    card:mergedFrom "후보에 없어 CQ-08 로 추가(Phase 5 못 채운 개념)"@ko ;
+    card:competencyQuestion "CQ-08" .
+
+card:Topic a owl:Class ;
+    rdfs:label "상담 주제"@ko ; card:graphName "Topic" ;
+    rdfs:comment "상담 기록의 주제"@ko ;
+    card:scopeIncludes "상담 기록의 '상담주제' 줄과 불만, 제안을 묶는 주제"@ko ;
+    card:scopeExcludes "혜택 대상 업종"@ko ;
+    card:key card:topicName ;
+    card:nameProperty card:topicName ;
+    card:matchRule "NFC 로 고르고 공백을 하나로 줄인 꼴이 같으면 같은 주제. 동의어 표는 비워 둠(A-11 전체 미확인)"@ko ;
+    card:nameSteps '["nfc", "strip", "collapse_spaces"]' ;
+    card:source "문서:consult_log" ;
+    card:mergedFrom "상담 후보 Topic, 관계 ABOUT, ABOUT_TOPIC, HAS_TOPIC"@ko ;
+    card:competencyQuestion "CQ-10" .
+
+card:StatedUsage a owl:Class ;
+    rdfs:label "상담에서 알려 준 사용액"@ko ; card:graphName "StatedUsage" ;
+    rdfs:comment "상담사가 상담 중에 알려 준 한 달의 승인 거래 건수와 합계"@ko ;
+    card:scopeIncludes "상담 본문의 '승인 거래는 N건, 합계 N원' 문장"@ko ;
+    card:scopeExcludes "업무 뷰의 실제 집계(달별 사용 집계)"@ko ;
+    card:key card:ownerRecordId , card:statedMonth ;
+    card:nameProperty card:statedMonth ;
+    card:matchRule "같은 상담 번호 안에서 대상 월이 같으면 같은 진술"@ko ;
+    card:nameSteps '["strip"]' ;
+    card:source "문서:consult_log" ;
+    card:mergedFrom "상담 후보 Transaction, TransactionSummary, UsageRecord(세 이름이 같은 뜻)"@ko ;
+    card:valueList "G-13" ;
+    card:competencyQuestion "CQ-18" .
+
+#################################################################
+# 관계 (Step 6.2). 반대 방향의 역량 질문이 없어 역관계는 두지 않음
+#################################################################
+
+card:holdsCard a owl:ObjectProperty ; rdfs:label "카드를 가짐"@ko ; card:graphName "HOLDS_CARD" ;
+    rdfs:domain card:Member ; rdfs:range card:Card ; card:source "RDB" ;
+    rdfs:comment "회원이 카드 한 장을 가짐. 세션 조건으로 회원을 정하면 app.customer_cards 가 그 회원의 카드만 줌. 회원의 사용액(CQ-13, CQ-15, CQ-18)도 이 관계를 거쳐 카드별 집계로 감"@ko ;
+    card:competencyQuestion "CQ-12" , "CQ-13" , "CQ-15" , "CQ-16" , "CQ-18" .
+card:ofProduct a owl:ObjectProperty ; rdfs:label "어느 상품인가"@ko ; card:graphName "OF_PRODUCT" ;
+    rdfs:domain card:Card ; rdfs:range card:CardProduct ; card:source "RDB" ;
+    rdfs:comment "카드 한 장이 어느 카드상품인지"@ko ;
+    card:competencyQuestion "CQ-12" , "CQ-16" .
+card:hasDelinquency a owl:ObjectProperty ; rdfs:label "연체 현황"@ko ; card:graphName "HAS_DELINQUENCY" ;
+    rdfs:domain card:Member ; rdfs:range card:DelinquencyStatus ; card:source "RDB" ;
+    rdfs:comment "회원의 달별 연체 현황"@ko ; card:competencyQuestion "CQ-14" .
+card:hasMonthlyUsage a owl:ObjectProperty ; rdfs:label "달별 사용"@ko ; card:graphName "HAS_MONTHLY_USAGE" ;
+    rdfs:domain card:Card ; rdfs:range card:MonthlyUsage ; card:source "RDB" ;
+    rdfs:comment "카드의 달별 사용 집계"@ko ; card:competencyQuestion "CQ-13" , "CQ-18" .
+card:hasMerchantUsage a owl:ObjectProperty ; rdfs:label "가맹점 사용"@ko ; card:graphName "HAS_MERCHANT_USAGE" ;
+    rdfs:domain card:Card ; rdfs:range card:MerchantMonthlyUsage ; card:source "RDB" ;
+    rdfs:comment "카드의 가맹점 달별 사용 집계"@ko ; card:competencyQuestion "CQ-15" .
+card:atMerchant a owl:ObjectProperty ; rdfs:label "어느 가맹점"@ko ; card:graphName "AT_MERCHANT" ;
+    rdfs:domain card:MerchantMonthlyUsage ; rdfs:range card:Merchant ; card:source "RDB" ;
+    rdfs:comment "집계 줄이 어느 가맹점의 것인지"@ko ; card:competencyQuestion "CQ-15" .
+
+card:offersBenefit a owl:ObjectProperty ; rdfs:label "혜택을 줌"@ko ; card:graphName "OFFERS_BENEFIT" ;
+    rdfs:domain card:CardProduct ; rdfs:range card:BenefitItem ; card:source "문서:benefit_guide" ;
+    rdfs:comment "카드상품이 혜택 항목을 줌. 후보 CARD_HAS_BENEFIT, CARD_OFFERED_BENEFIT, HAS_BENEFIT, OFFERS 를 합침"@ko ;
+    card:competencyQuestion "CQ-05" , "CQ-06" , "CQ-11" , "CQ-16" , "CQ-17" .
+card:targetsCategory a owl:ObjectProperty ; rdfs:label "대상 업종"@ko ; card:graphName "TARGETS_CATEGORY" ;
+    rdfs:domain card:BenefitItem ; rdfs:range card:TargetCategory ; card:source "문서:benefit_guide" ;
+    rdfs:comment "혜택 항목이 대상으로 삼는 업종. 후보 APPLIES_TO(업종으로 쓰인 것만), APPLIES_TO_CATEGORY, BELONGS_TO_CATEGORY, BENEFIT_APPLIES_TO_CATEGORY, BENEFIT_FOR_CATEGORY, TARGETS 를 합침"@ko ;
+    card:competencyQuestion "CQ-11" .
+card:aboutMember a owl:ObjectProperty ; rdfs:label "상담받은 회원"@ko ; card:graphName "ABOUT_MEMBER" ;
+    rdfs:domain card:Consultation ; rdfs:range card:Member ; card:source "문서:consult_log" ;
+    rdfs:comment "상담 기록이 어느 회원의 것인지. 후보 ATTENDED, HAS_CUSTOMER, INVOLVES_CUSTOMER, PARTICIPATES_IN 을 상담에서 회원 쪽 한 방향으로 합침"@ko ;
+    card:competencyQuestion "CQ-07" , "CQ-08" , "CQ-17" , "CQ-18" , "CQ-19" .
+card:continuesFrom a owl:ObjectProperty ; rdfs:label "앞 상담에서 이어짐"@ko ; card:graphName "CONTINUES_FROM" ;
+    rdfs:domain card:Consultation ; rdfs:range card:Consultation ; card:source "문서:consult_log" ;
+    rdfs:comment "본문에 앞 상담 번호가 적힌 경우의 이어짐. 처음과 최근은 같은 회원의 상담 날짜 순서로 가림(MQ-08 추천 답)"@ko ;
+    card:checkStatus "확인 필요" ; card:managerQuestion "MQ-08" ;
+    card:competencyQuestion "CQ-07" .
+card:hasRequest a owl:ObjectProperty ; rdfs:label "요청"@ko ; card:graphName "HAS_REQUEST" ;
+    rdfs:domain card:Consultation ; rdfs:range card:CustomerRequest ; card:source "문서:consult_log" ;
+    rdfs:comment "상담에 고객 요청이 있음. 후보 HAS_REQUEST, INCLUDES(요청으로 쓰인 것만), INCLUDES_REQUEST, MADE_REQUEST, MAKES_REQUEST 를 합침"@ko ;
+    card:competencyQuestion "CQ-07" , "CQ-10" .
+card:hasComplaint a owl:ObjectProperty ; rdfs:label "불만"@ko ; card:graphName "HAS_COMPLAINT" ;
+    rdfs:domain card:Consultation ; rdfs:range card:Complaint ; card:source "문서:consult_log" ;
+    rdfs:comment "상담에서 나온 불만. 후보 EXPRESSES(고객에서 불만으로)를 상담에서 불만으로 바꿈"@ko ;
+    card:competencyQuestion "CQ-10" .
+card:hasSuggestion a owl:ObjectProperty ; rdfs:label "제안"@ko ; card:graphName "HAS_SUGGESTION" ;
+    rdfs:domain card:Consultation ; rdfs:range card:AgentSuggestion ; card:source "문서:consult_log" ;
+    rdfs:comment "상담에서 나온 상담사 제안. 후보 MADE_SUGGESTION"@ko ;
+    card:competencyQuestion "CQ-08" , "CQ-10" .
+card:hasAvoidRequest a owl:ObjectProperty ; rdfs:label "피해 달라는 안내"@ko ; card:graphName "HAS_AVOID_REQUEST" ;
+    rdfs:domain card:Consultation ; rdfs:range card:AvoidRequest ; card:source "역량 질문으로 추가" ;
+    rdfs:comment "상담에서 고객이 하지 말아 달라고 한 안내"@ko ;
+    card:competencyQuestion "CQ-08" .
+card:hasTopic a owl:ObjectProperty ; rdfs:label "주제"@ko ; card:graphName "HAS_TOPIC" ;
+    rdfs:domain card:Consultation ; rdfs:range card:Topic ; card:source "문서:consult_log" ;
+    rdfs:comment "상담의 주제"@ko ; card:competencyQuestion "CQ-10" .
+card:mentionsProduct a owl:ObjectProperty ; rdfs:label "말한 카드상품"@ko ; card:graphName "MENTIONS_PRODUCT" ;
+    rdfs:domain card:Consultation ; rdfs:range card:CardProduct ; card:source "문서:consult_log" ;
+    rdfs:comment "상담에서 이름으로 말한 카드상품. 후보 DISCUSSES_CARD, INVOLVES_CARD, MENTIONS_CARD, REFERS_TO(카드로 쓰인 것만), TARGETS_CARD 를 합침"@ko ;
+    card:competencyQuestion "CQ-17" .
+card:mentionsUsage a owl:ObjectProperty ; rdfs:label "알려 준 사용액"@ko ; card:graphName "MENTIONS_USAGE" ;
+    rdfs:domain card:Consultation ; rdfs:range card:StatedUsage ; card:source "문서:consult_log" ;
+    rdfs:comment "상담에서 상담사가 알려 준 사용액. 후보 여덟 이름(HAS_SUMMARY 등)을 합침"@ko ;
+    card:competencyQuestion "CQ-18" .
+
+#################################################################
+# 값을 담는 속성
+#################################################################
+
+card:memberId a owl:DatatypeProperty ; rdfs:label "회원 키"@ko ; card:graphName "member_id" ;
+    rdfs:domain card:Member ; rdfs:range xsd:string ;
+    rdfs:comment "RDB 회원 키(가명 ID, M- 로 시작). 업무 뷰에서는 세션 조건 app.member_id 로만 줌"@ko .
+card:memberPseudoId a owl:DatatypeProperty ; rdfs:label "상담 쪽 회원 표시"@ko ; card:graphName "member_pseudo_id" ;
+    rdfs:domain card:Member ; rdfs:range xsd:string ;
+    rdfs:comment "상담 청크 메타데이터의 회원 표시. 회원 키의 sha256 앞 16자리에 m_ 를 붙인 값(CP-03)"@ko .
+card:joinDate a owl:DatatypeProperty ; rdfs:label "가입일"@ko ; card:graphName "join_date" ;
+    rdfs:domain card:Member ; rdfs:range xsd:date ; rdfs:comment "회원 가입일"@ko .
+card:ageBand a owl:DatatypeProperty ; rdfs:label "연령대"@ko ; card:graphName "age_band" ;
+    rdfs:domain card:Member ; rdfs:range xsd:string ; rdfs:comment "회원 연령대 코드값"@ko ; card:valueList "A-04" .
+
+card:cardId a owl:DatatypeProperty ; rdfs:label "카드 키"@ko ; card:graphName "card_id" ;
+    rdfs:domain card:Card ; rdfs:range xsd:string ; rdfs:comment "두고두고 쓰는 카드 키(app_internal.customer_cards_full)"@ko .
+card:cardRef a owl:DatatypeProperty ; rdfs:label "조회 안 카드 번호"@ko ; card:graphName "card_ref" ;
+    rdfs:range xsd:string ;
+    rdfs:comment "조회마다 카드 키 순서로 다시 매기는 번호. 같은 회원과 같은 기준일 조회 안에서만 같은 카드를 가리킴. 카드, 달별 사용 집계, 가맹점 달별 사용 집계를 잇는 데 씀"@ko .
+card:brand a owl:DatatypeProperty ; rdfs:label "발급 브랜드와 방식"@ko ; card:graphName "brand" ;
+    rdfs:domain card:Card ; rdfs:range xsd:string ; rdfs:comment "카드의 발급 브랜드와 방식 코드값"@ko ;
+    card:valueList "A-02" , "C-04" ; card:checkStatus "확인 필요" ; card:managerQuestion "MQ-10" .
+card:issueDate a owl:DatatypeProperty ; rdfs:label "발급일"@ko ; card:graphName "issue_date" ;
+    rdfs:domain card:Card ; rdfs:range xsd:date ; rdfs:comment "카드 발급일"@ko .
+card:cardStatus a owl:DatatypeProperty ; rdfs:label "카드 상태"@ko ; card:graphName "card_status" ;
+    rdfs:domain card:Card ; rdfs:range xsd:string ; rdfs:comment "카드의 현재 상태 코드값"@ko ;
+    card:valueList "A-01" , "C-01" ; card:checkStatus "확인 필요" ; card:managerQuestion "MQ-09" .
+card:annualFee a owl:DatatypeProperty ; rdfs:label "연회비(원)"@ko ; card:graphName "annual_fee" ;
+    rdfs:domain card:Card ; rdfs:range xsd:integer ; rdfs:comment "상품과 브랜드 조합의 합계 연회비"@ko .
+
+card:productId a owl:DatatypeProperty ; rdfs:label "상품 키"@ko ; card:graphName "product_id" ;
+    rdfs:domain card:CardProduct ; rdfs:range xsd:string ; rdfs:comment "카드상품 키(D2-Cnnn). RDB 상품 조회에 쓰는 값"@ko .
+card:productName a owl:DatatypeProperty ; rdfs:label "상품 이름"@ko ; card:graphName "product_name" ;
+    rdfs:domain card:CardProduct ; rdfs:range xsd:string ; rdfs:comment "카드상품 이름(예: 한빛 살림시간)"@ko .
+card:effectiveDate a owl:DatatypeProperty ; rdfs:label "상품 시행일"@ko ; card:graphName "effective_date" ;
+    rdfs:domain card:CardProduct ; rdfs:range xsd:date ; rdfs:comment "카드상품 시행일"@ko .
+card:effectiveOnBaseDate a owl:DatatypeProperty ; rdfs:label "기준일에 시행 중인가"@ko ; card:graphName "effective_on_base_date" ;
+    rdfs:domain card:CardProduct ; rdfs:range xsd:boolean ; rdfs:comment "뷰가 시행일과 기준일을 견주어 계산한 값"@ko .
+
+card:baseMonth a owl:DatatypeProperty ; rdfs:label "기준월"@ko ; card:graphName "base_month" ;
+    rdfs:domain card:DelinquencyStatus ; rdfs:range xsd:gYearMonth ; rdfs:comment "연체 현황의 기준월(YYYY-MM)"@ko ;
+    card:checkStatus "확인 필요" .
+card:asOfDate a owl:DatatypeProperty ; rdfs:label "기준 시점"@ko ; card:graphName "as_of_date" ;
+    rdfs:domain card:DelinquencyStatus ; rdfs:range xsd:date ; rdfs:comment "기준월의 마지막 날"@ko .
+card:overdueAmount a owl:DatatypeProperty ; rdfs:label "연체 금액(원)"@ko ; card:graphName "overdue_amount" ;
+    rdfs:domain card:DelinquencyStatus ; rdfs:range xsd:integer ; rdfs:comment "연체 금액"@ko .
+card:overdueDays a owl:DatatypeProperty ; rdfs:label "연체 일수"@ko ; card:graphName "overdue_days" ;
+    rdfs:domain card:DelinquencyStatus ; rdfs:range xsd:integer ; rdfs:comment "연체 일수"@ko .
+card:overdueCount12m a owl:DatatypeProperty ; rdfs:label "최근 열두 달 연체 월 수"@ko ; card:graphName "overdue_count_12m" ;
+    rdfs:domain card:DelinquencyStatus ; rdfs:range xsd:integer ; rdfs:comment "최근 열두 달 가운데 연체가 있었던 달 수"@ko .
+
+card:usageMonth a owl:DatatypeProperty ; rdfs:label "사용 월"@ko ; card:graphName "usage_month" ;
+    rdfs:range xsd:gYearMonth ; rdfs:comment "집계 대상 달(YYYY-MM). 달별 사용 집계와 가맹점 달별 사용 집계에 씀"@ko ;
+    card:checkStatus "확인 필요" .
+card:periodStart a owl:DatatypeProperty ; rdfs:label "집계 시작일"@ko ; card:graphName "period_start" ;
+    rdfs:domain card:MonthlyUsage ; rdfs:range xsd:date ; rdfs:comment "달의 첫날과 카드 발급일 가운데 뒤의 것"@ko .
+card:periodEnd a owl:DatatypeProperty ; rdfs:label "집계 종료일"@ko ; card:graphName "period_end" ;
+    rdfs:domain card:MonthlyUsage ; rdfs:range xsd:date ; rdfs:comment "달의 마지막 날과 기준일 가운데 앞의 것"@ko .
+card:approvedAmount a owl:DatatypeProperty ; rdfs:label "승인 금액(원)"@ko ; card:graphName "approved_amount" ;
+    rdfs:range xsd:integer ; rdfs:comment "승인 거래 금액의 합. 취소 거래 제외"@ko .
+card:transactionCount a owl:DatatypeProperty ; rdfs:label "승인 건수"@ko ; card:graphName "transaction_count" ;
+    rdfs:range xsd:integer ; rdfs:comment "승인 거래 건수"@ko .
+card:firstApprovedDate a owl:DatatypeProperty ; rdfs:label "첫 승인일"@ko ; card:graphName "first_approved_date" ;
+    rdfs:domain card:MerchantMonthlyUsage ; rdfs:range xsd:date ; rdfs:comment "그 달 그 가맹점의 첫 승인일"@ko .
+card:lastApprovedDate a owl:DatatypeProperty ; rdfs:label "마지막 승인일"@ko ; card:graphName "last_approved_date" ;
+    rdfs:domain card:MerchantMonthlyUsage ; rdfs:range xsd:date ; rdfs:comment "그 달 그 가맹점의 마지막 승인일"@ko .
+card:merchantName a owl:DatatypeProperty ; rdfs:label "가맹점 이름"@ko ; card:graphName "merchant_name" ;
+    rdfs:range xsd:string ; rdfs:comment "가맹점 이름. 업무 뷰에 가맹점 키가 없어 키로 씀"@ko .
+card:merchantCategory a owl:DatatypeProperty ; rdfs:label "업종"@ko ; card:graphName "merchant_category" ;
+    rdfs:domain card:Merchant ; rdfs:range xsd:string ; rdfs:comment "가맹점 업종 코드값(card:MerchantCategoryScheme)"@ko ;
+    card:valueList "A-03" .
+
+card:clauseNo a owl:DatatypeProperty ; rdfs:label "조항 번호"@ko ; card:graphName "clause_no" ;
+    rdfs:domain card:Clause ; rdfs:range xsd:string ; rdfs:comment "약관 조항 번호(제10조, 제16조의2)"@ko .
+card:clauseTitle a owl:DatatypeProperty ; rdfs:label "조항 제목"@ko ; card:graphName "clause_title" ;
+    rdfs:domain card:Clause ; rdfs:range xsd:string ; rdfs:comment "조항 제목 줄의 괄호 안 말"@ko .
+
+card:benefitId a owl:DatatypeProperty ; rdfs:label "항목 키"@ko ; card:graphName "benefit_id" ;
+    rdfs:domain card:BenefitItem ; rdfs:range xsd:string ; rdfs:comment "혜택 항목 키(D2-Cnnn-Bnn)"@ko .
+card:benefitName a owl:DatatypeProperty ; rdfs:label "항목 이름"@ko ; card:graphName "benefit_name" ;
+    rdfs:domain card:BenefitItem ; rdfs:range xsd:string ; rdfs:comment "항목 키 줄의 이름(예: 동물병원 할인)"@ko .
+card:benefitMethod a owl:DatatypeProperty ; rdfs:label "혜택 방식"@ko ; card:graphName "benefit_method" ;
+    rdfs:domain card:BenefitItem ; rdfs:range xsd:string ; rdfs:comment "혜택이 주는 것의 종류(할인, 적립, 캐시백, 바우처, 교환권 등). 목록 밖의 값도 받음(A-09 전체 미확인)"@ko ;
+    card:valueList "A-09" .
+card:ratePercent a owl:DatatypeProperty ; rdfs:label "비율(퍼센트)"@ko ; card:graphName "rate_percent" ;
+    rdfs:domain card:BenefitItem ; rdfs:range xsd:decimal ; rdfs:comment "결제액에 곱하는 할인율이나 적립률. 비율이 없는 항목에는 이 속성을 두지 않음"@ko .
+card:benefitAmountText a owl:DatatypeProperty ; rdfs:label "정액 혜택"@ko ; card:graphName "benefit_amount_text" ;
+    rdfs:domain card:BenefitItem ; rdfs:range xsd:string ; rdfs:comment "비율이 아닌 정액 혜택(예: 700P 고정 리필)을 원문 표현으로"@ko .
+card:requiredSpend a owl:DatatypeProperty ; rdfs:label "실적 기준액(원)"@ko ; card:graphName "required_spend" ;
+    rdfs:domain card:BenefitItem ; rdfs:range xsd:integer ; rdfs:comment "실적 조건 줄의 기준 금액. 값 목록으로 고정하지 않음(A-07 전체 미확인, MQ-07)"@ko ;
+    card:valueList "A-07" ; card:checkStatus "확인 필요" ; card:managerQuestion "MQ-07" .
+card:spendCondition a owl:DatatypeProperty ; rdfs:label "실적 조건"@ko ; card:graphName "spend_condition" ;
+    rdfs:domain card:BenefitItem ; rdfs:range xsd:string ; rdfs:comment "혜택을 받으려면 채울 실적 조건과 예외를 원문 표현으로"@ko .
+card:monthlyLimitAmount a owl:DatatypeProperty ; rdfs:label "항목 월 한도(원)"@ko ; card:graphName "monthly_limit_amount" ;
+    rdfs:domain card:BenefitItem ; rdfs:range xsd:integer ; rdfs:comment "이 항목이 한 달에 주는 최대 금액(원 상당)"@ko .
+card:limitText a owl:DatatypeProperty ; rdfs:label "한도 설명"@ko ; card:graphName "limit_text" ;
+    rdfs:domain card:BenefitItem ; rdfs:range xsd:string ; rdfs:comment "통합 한도, 횟수 한도를 포함한 한도 줄을 원문 표현으로"@ko .
+card:payoutTiming a owl:DatatypeProperty ; rdfs:label "지급 시점"@ko ; card:graphName "payout_timing" ;
+    rdfs:domain card:BenefitItem ; rdfs:range xsd:string ; rdfs:comment "받은 혜택이 반영되는 시점을 원문 표현으로(A-08 전체 미확인)"@ko ;
+    card:valueList "A-08" .
+card:usageValidity a owl:DatatypeProperty ; rdfs:label "사용 기한"@ko ; card:graphName "usage_validity" ;
+    rdfs:domain card:BenefitItem ; rdfs:range xsd:string ; rdfs:comment "받은 바우처나 포인트를 쓸 수 있는 기한을 원문 표현으로. 기한이 없는 항목에는 이 속성을 두지 않음"@ko .
+card:exclusionText a owl:DatatypeProperty ; rdfs:label "혜택 제외"@ko ; card:graphName "exclusion_text" ;
+    rdfs:domain card:BenefitItem ; rdfs:range xsd:string ; rdfs:comment "혜택을 주지 않는 거래를 원문 표현으로"@ko .
+card:targetText a owl:DatatypeProperty ; rdfs:label "대상 설명"@ko ; card:graphName "target_text" ;
+    rdfs:domain card:BenefitItem ; rdfs:range xsd:string ; rdfs:comment "대상과 채널 줄을 원문 표현으로"@ko .
+card:categoryName a owl:DatatypeProperty ; rdfs:label "업종 이름"@ko ; card:graphName "category_name" ;
+    rdfs:domain card:TargetCategory ; rdfs:range xsd:string ; rdfs:comment "혜택 대상 업종 이름(대표 이름 규칙을 적용한 꼴)"@ko .
+
+card:recordId a owl:DatatypeProperty ; rdfs:label "상담 번호"@ko ; card:graphName "record_id" ;
+    rdfs:domain card:Consultation ; rdfs:range xsd:string ; rdfs:comment "상담 기록 번호(C-YYYYMMDD-nnn)"@ko .
+card:consultDate a owl:DatatypeProperty ; rdfs:label "상담 날짜"@ko ; card:graphName "consult_date" ;
+    rdfs:domain card:Consultation ; rdfs:range xsd:date ; rdfs:comment "상담 날짜"@ko .
+card:channel a owl:DatatypeProperty ; rdfs:label "상담 채널"@ko ; card:graphName "channel" ;
+    rdfs:domain card:Consultation ; rdfs:range xsd:string ; rdfs:comment "상담 채널(A-10 전체 미확인)"@ko ; card:valueList "A-10" .
+card:customerSegment a owl:DatatypeProperty ; rdfs:label "고객군"@ko ; card:graphName "customer_segment" ;
+    rdfs:domain card:Consultation ; rdfs:range xsd:string ;
+    rdfs:comment "상담 파일 이름에서 맞추기 표로 읽은 고객군 이름(card:CustomerSegmentScheme 의 skos:prefLabel)"@ko ;
+    card:valueList "C-02" , "A-06" , "G-18" ; card:checkStatus "확인 필요" ; card:managerQuestion "MQ-04" .
+card:ownerRecordId a owl:DatatypeProperty ; rdfs:label "딸린 상담 번호"@ko ; card:graphName "owner_record_id" ;
+    rdfs:range xsd:string ; rdfs:comment "요청, 불만, 제안, 사용액 진술이 나온 상담 번호. 상담 기록 안의 항목을 상담끼리 섞지 않기 위한 키"@ko .
+card:requestText a owl:DatatypeProperty ; rdfs:label "요청 내용"@ko ; card:graphName "request_text" ;
+    rdfs:domain card:CustomerRequest ; rdfs:range xsd:string ; rdfs:comment "고객이 해 달라고 한 일을 원문 표현으로"@ko .
+card:complaintText a owl:DatatypeProperty ; rdfs:label "불만 내용"@ko ; card:graphName "complaint_text" ;
+    rdfs:domain card:Complaint ; rdfs:range xsd:string ; rdfs:comment "고객이 말한 불만을 원문 표현으로"@ko .
+card:suggestionText a owl:DatatypeProperty ; rdfs:label "제안 내용"@ko ; card:graphName "suggestion_text" ;
+    rdfs:domain card:AgentSuggestion ; rdfs:range xsd:string ; rdfs:comment "상담사가 내놓은 제안을 원문 표현으로"@ko .
+card:accepted a owl:DatatypeProperty ; rdfs:label "받아들임"@ko ; card:graphName "accepted" ;
+    rdfs:domain card:AgentSuggestion ; rdfs:range xsd:boolean ; rdfs:comment "고객이 제안을 받아들였으면 true, 거절했으면 false. 본문으로 알 수 없으면 이 속성을 두지 않음"@ko .
+card:avoidText a owl:DatatypeProperty ; rdfs:label "피해 달라는 내용"@ko ; card:graphName "avoid_text" ;
+    rdfs:domain card:AvoidRequest ; rdfs:range xsd:string ; rdfs:comment "고객이 하지 말아 달라고 한 설명이나 제안을 원문 표현으로"@ko .
+card:topicName a owl:DatatypeProperty ; rdfs:label "주제 이름"@ko ; card:graphName "topic_name" ;
+    rdfs:domain card:Topic ; rdfs:range xsd:string ; rdfs:comment "상담 주제 이름(A-11 전체 미확인)"@ko ; card:valueList "A-11" .
+card:statedMonth a owl:DatatypeProperty ; rdfs:label "알려 준 대상 월"@ko ; card:graphName "stated_month" ;
+    rdfs:domain card:StatedUsage ; rdfs:range xsd:gYearMonth ; rdfs:comment "상담사가 금액을 알려 준 대상 달(YYYY-MM)"@ko .
+card:statedCount a owl:DatatypeProperty ; rdfs:label "알려 준 승인 건수"@ko ; card:graphName "stated_count" ;
+    rdfs:domain card:StatedUsage ; rdfs:range xsd:integer ; rdfs:comment "상담사가 알려 준 승인 거래 건수"@ko .
+card:statedAmount a owl:DatatypeProperty ; rdfs:label "알려 준 합계(원)"@ko ; card:graphName "stated_amount" ;
+    rdfs:domain card:StatedUsage ; rdfs:range xsd:integer ; rdfs:comment "상담사가 알려 준 승인 거래 합계"@ko .
+
+#################################################################
+# 코드값과 분류 체계 (클래스로 만들지 않음). 뜻은 Step 5.4 에서 승인한 값 목록을 씀
+#################################################################
+
+card:CardStatusScheme a skos:ConceptScheme ; rdfs:label "카드 상태 코드"@ko ;
+    rdfs:comment "public.card.status. 값 셋은 원본 표 전체 조회로 확인(A-01). 각 코드의 뜻은 확인 필요(C-01, MQ-09)"@ko ;
+    card:valueList "A-01" , "C-01" ; card:checkStatus "확인 필요" ; card:managerQuestion "MQ-09" .
+card:status_ACTIVE a skos:Concept ; skos:inScheme card:CardStatusScheme ; skos:notation "ACTIVE" ; skos:prefLabel "ACTIVE"@ko ; card:checkStatus "확인 필요" .
+card:status_CLOSED a skos:Concept ; skos:inScheme card:CardStatusScheme ; skos:notation "CLOSED" ; skos:prefLabel "CLOSED"@ko ; card:checkStatus "확인 필요" .
+card:status_SUSPENDED a skos:Concept ; skos:inScheme card:CardStatusScheme ; skos:notation "SUSPENDED" ; skos:prefLabel "SUSPENDED"@ko ; card:checkStatus "확인 필요" .
+
+card:BrandScheme a skos:ConceptScheme ; rdfs:label "발급 브랜드와 방식 코드"@ko ;
+    rdfs:comment "public.product_annual_fee.brand. 값 셋은 전체 확인(A-02). 뜻은 확인 필요(C-04, MQ-10)"@ko ;
+    card:valueList "A-02" , "C-04" ; card:checkStatus "확인 필요" ; card:managerQuestion "MQ-10" .
+card:brand_domestic a skos:Concept ; skos:inScheme card:BrandScheme ; skos:notation "국내전용" ; skos:prefLabel "국내전용"@ko ; card:checkStatus "확인 필요" .
+card:brand_A a skos:Concept ; skos:inScheme card:BrandScheme ; skos:notation "해외 A" ; skos:prefLabel "해외 A"@ko ; card:checkStatus "확인 필요" .
+card:brand_A_mobile a skos:Concept ; skos:inScheme card:BrandScheme ; skos:notation "해외 A 모바일" ; skos:prefLabel "해외 A 모바일"@ko ; card:checkStatus "확인 필요" .
+card:brand_A_physical a skos:Concept ; skos:inScheme card:BrandScheme ; skos:notation "해외 A 실물" ; skos:prefLabel "해외 A 실물"@ko ; card:checkStatus "확인 필요" .
+card:brand_B a skos:Concept ; skos:inScheme card:BrandScheme ; skos:notation "해외 B" ; skos:prefLabel "해외 B"@ko ; card:checkStatus "확인 필요" .
+card:brand_C a skos:Concept ; skos:inScheme card:BrandScheme ; skos:notation "해외 C" ; skos:prefLabel "해외 C"@ko ; card:checkStatus "확인 필요" .
+
+card:MerchantCategoryScheme a skos:ConceptScheme ; rdfs:label "가맹점 업종 코드"@ko ;
+    rdfs:comment "public.merchant.category. 원본 표 전체 조회로 확인(A-03)"@ko ; card:valueList "A-03" .
+card:cat_education a skos:Concept ; skos:inScheme card:MerchantCategoryScheme ; skos:notation "교육" ; skos:prefLabel "교육"@ko .
+card:cat_transport a skos:Concept ; skos:inScheme card:MerchantCategoryScheme ; skos:notation "교통" ; skos:prefLabel "교통"@ko .
+card:cat_living a skos:Concept ; skos:inScheme card:MerchantCategoryScheme ; skos:notation "생활" ; skos:prefLabel "생활"@ko .
+card:cat_shopping a skos:Concept ; skos:inScheme card:MerchantCategoryScheme ; skos:notation "쇼핑" ; skos:prefLabel "쇼핑"@ko .
+card:cat_food a skos:Concept ; skos:inScheme card:MerchantCategoryScheme ; skos:notation "식비" ; skos:prefLabel "식비"@ko .
+card:cat_travel a skos:Concept ; skos:inScheme card:MerchantCategoryScheme ; skos:notation "여행" ; skos:prefLabel "여행"@ko .
+card:cat_fuel a skos:Concept ; skos:inScheme card:MerchantCategoryScheme ; skos:notation "주유" ; skos:prefLabel "주유"@ko .
+card:cat_overseas a skos:Concept ; skos:inScheme card:MerchantCategoryScheme ; skos:notation "해외" ; skos:prefLabel "해외"@ko .
+
+card:AgeBandScheme a skos:ConceptScheme ; rdfs:label "연령대 코드"@ko ;
+    rdfs:comment "public.member.age_band. 원본 표 전체 조회로 확인(A-04)"@ko ; card:valueList "A-04" .
+card:age_20s a skos:Concept ; skos:inScheme card:AgeBandScheme ; skos:notation "20대" ; skos:prefLabel "20대"@ko .
+card:age_30s a skos:Concept ; skos:inScheme card:AgeBandScheme ; skos:notation "30대" ; skos:prefLabel "30대"@ko .
+card:age_40s a skos:Concept ; skos:inScheme card:AgeBandScheme ; skos:notation "40대" ; skos:prefLabel "40대"@ko .
+card:age_50s a skos:Concept ; skos:inScheme card:AgeBandScheme ; skos:notation "50대" ; skos:prefLabel "50대"@ko .
+card:age_60plus a skos:Concept ; skos:inScheme card:AgeBandScheme ; skos:notation "60대 이상" ; skos:prefLabel "60대 이상"@ko .
+
+card:ApprovalCodeScheme a skos:ConceptScheme ; rdfs:label "승인 구분 코드"@ko ;
+    rdfs:comment "public.card_txn.approval_code. 집계 필터에만 쓰임(A-05, C-03)"@ko ; card:valueList "A-05" , "C-03" .
+card:approval_APPROVED a skos:Concept ; skos:inScheme card:ApprovalCodeScheme ; skos:notation "APPROVED" ; skos:prefLabel "승인 거래"@ko .
+card:approval_CANCELLED a skos:Concept ; skos:inScheme card:ApprovalCodeScheme ; skos:notation "CANCELLED" ; skos:prefLabel "취소 거래"@ko .
+
+card:CustomerSegmentScheme a skos:ConceptScheme ; rdfs:label "고객군 코드"@ko ;
+    rdfs:comment "public.member.segment_id 의 여섯 값과 뜻(C-02 확인, A-06 전체 확인). 업무 뷰에는 없고 상담 파일 이름으로 읽음(maps/segment.ttl)"@ko ;
+    card:valueList "C-02" , "A-06" , "G-18" ; card:checkStatus "확인 필요" ; card:managerQuestion "MQ-04" .
+card:seg_1 a skos:Concept ; skos:inScheme card:CustomerSegmentScheme ; skos:notation "1" ; skos:prefLabel "신규 가입"@ko .
+card:seg_2 a skos:Concept ; skos:inScheme card:CustomerSegmentScheme ; skos:notation "2" ; skos:prefLabel "장기 보유"@ko .
+card:seg_3 a skos:Concept ; skos:inScheme card:CustomerSegmentScheme ; skos:notation "3" ; skos:prefLabel "VIP"@ko .
+card:seg_4 a skos:Concept ; skos:inScheme card:CustomerSegmentScheme ; skos:notation "4" ; skos:prefLabel "휴면 직전"@ko .
+card:seg_5 a skos:Concept ; skos:inScheme card:CustomerSegmentScheme ; skos:notation "5" ; skos:prefLabel "다중 카드"@ko .
+card:seg_6 a skos:Concept ; skos:inScheme card:CustomerSegmentScheme ; skos:notation "6" ; skos:prefLabel "연회비 부담"@ko .
+
+#################################################################
+# 원천 간 식별 기준 (Step 6.3). 유일성 조회 결과: rdb/key_uniqueness.json
+#################################################################
+
+card:CP-01 a card:CrossingPoint ; rdfs:label "카드 상품 키"@ko ;
+    card:competencyQuestion "CQ-16" ;
+    card:fromSource "RDB 업무 뷰" ; card:fromPlace card:productId ;
+    card:toSource "문서:benefit_guide" ; card:toPlace card:productId ;
+    card:matchKind "값 같음" ;
+    card:lookupOrder "1. app.customer_cards 에서 회원 카드의 product_id 를 읽음. 2. 같은 product_id 를 가진 카드상품 노드에서 혜택 항목으로 감. 3. 혜택 항목의 실적 조건을 읽음"@ko ;
+    card:uniqueness "public.product.product_id 가 PK. 안내서 메타데이터 card_id 64개가 서로 다르고 이름도 하나씩. 회원 60명 조회에서 product_id 하나에 이름 하나(56개), 회원 안에서 겹친 product_id 0건"@ko ;
+    card:linkStatus "승인 후보" .
+
+card:CP-02 a card:CrossingPoint ; rdfs:label "카드 상품 이름"@ko ;
+    card:competencyQuestion "CQ-17" ;
+    card:fromSource "문서:consult_log" ; card:fromPlace card:productName ;
+    card:toSource "문서:benefit_guide" ; card:toPlace card:productId ;
+    card:matchKind "맞추기 표" ; card:matchTable card:CardNameTable ;
+    card:lookupOrder "1. 상담 본문에서 카드 이름을 뽑음. 2. 카드상품 대표 이름 규칙으로 고른 뒤 맞추기 표와 글자 전체가 같을 때만 상품 키를 붙임. 3. 그 상품 키의 혜택 항목을 읽음"@ko ;
+    card:uniqueness "안내서 card_name 64개가 서로 다르고 이름 하나에 card_id 하나. 앞부분만 같은 이름 9쌍이 있어 부분 일치는 쓰지 않음. DB 이름과 문서 이름이 다른 상품 0건(본 상품 56개)"@ko ;
+    card:linkStatus "needs_review" ; card:managerQuestion "MQ-03" ;
+    rdfs:comment "상담에서 줄임말을 쓰는지는 확인 전이라 needs_review 로 남김. 표의 행은 Phase 8 결과를 보고 사람이 approved 로 올림"@ko .
+
+card:CP-03 a card:CrossingPoint ; rdfs:label "회원"@ko ;
+    card:competencyQuestion "CQ-18" , "CQ-19" ;
+    card:fromSource "RDB 업무 뷰" ; card:fromPlace card:memberId ;
+    card:toSource "문서:consult_log" ; card:toPlace card:memberPseudoId ;
+    card:matchKind "변환 규칙" ;
+    card:rule "member_pseudo_id = \"m_\" + sha256(member_id).hexdigest()[:16]" ;
+    card:direction "회원 키에서 상담 표시로만 감. 해시라 거꾸로 계산할 수 없음"@ko ;
+    card:lookupOrder "1. 회원 키를 받음. 2. 식으로 상담 쪽 표시를 계산함. 3. 그 표시를 가진 상담 노드를 찾음. 4. 필요하면 같은 회원 키로 업무 뷰를 조회해 대조함"@ko ;
+    card:uniqueness "public.member.member_id 가 PK. 상담 쪽 표시 12개가 서로 다르고 표시마다 상담 4건. 회원 60명에 식을 적용하니 5명이 상담 표시와 맞았고 두 회원이 같은 표시를 갖는 경우 0건"@ko ;
+    card:linkStatus "승인 후보" ; card:managerQuestion "MQ-01" .
+
+card:CP-04 a card:CrossingPoint ; rdfs:label "같은 회원의 상담 기록 묶기"@ko ;
+    card:competencyQuestion "CQ-07" , "CQ-08" , "CQ-10" ;
+    card:fromSource "문서:consult_log" ; card:fromPlace card:memberPseudoId ;
+    card:toSource "문서:consult_log" ; card:toPlace card:memberPseudoId ;
+    card:matchKind "값 같음" ; card:sameSource true ;
+    card:lookupOrder "1. 같은 회원 노드에 이어진 상담을 모두 모음. 2. 상담 날짜 순서로 세움"@ko ;
+    card:uniqueness "상담 번호 48개 서로 다름. 회원 표시 하나에 상담 4건(한 대 여럿, 의도한 연결)"@ko ;
+    card:linkStatus "승인 후보" ; card:managerQuestion "MQ-08" .
+
+card:CP-05 a card:CrossingPoint ; rdfs:label "업종"@ko ;
+    card:competencyQuestion "CQ-11" , "CQ-15" ;
+    card:fromSource "RDB 업무 뷰" ; card:fromPlace card:merchantCategory ;
+    card:toSource "문서:benefit_guide" ; card:toPlace card:categoryName ;
+    card:matchKind "맞추기 표" ; card:matchTable card:CategoryTable ;
+    card:lookupOrder "1. 업무 뷰에서 업종 코드를 읽음. 2. 맞추기 표에서 그 코드에 짝지은 혜택 대상 업종을 찾음. 3. 그 업종을 대상으로 삼는 혜택 항목을 읽음"@ko ;
+    card:uniqueness "RDB 쪽 가맹점 이름 80개가 업종 하나씩(회원 60명 조회). 문서 쪽 업종은 세부 업종 낱말이라 코드 8가지와 글자로 맞지 않음. 맞추기 표 행 0건이라 유일성은 셀 수 없음(미검증)"@ko ;
+    card:linkStatus "needs_review" ;
+    rdfs:comment "두 쪽을 함께 쓰는 역량 질문이 아직 없어(CQ-11 은 문서만, CQ-15 는 표만) 표를 비워 두고 needs_review 로 남김"@ko .

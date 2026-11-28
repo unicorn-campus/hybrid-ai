@@ -1,0 +1,325 @@
+{
+  "node_types": [
+    {
+      "label": "AgentSuggestion",
+      "description": "상담사 제안. 상담사가 고객에게 내놓은 제안과 받아들임 여부",
+      "properties": [
+        {
+          "name": "owner_record_id",
+          "type": "STRING",
+          "description": "[메타데이터로 채움, 추출하지 않음] 딸린 상담 번호. 요청, 불만, 제안, 사용액 진술이 나온 상담 번호. 상담 기록 안의 항목을 상담끼리 섞지 않기 위한 키"
+        },
+        {
+          "name": "suggestion_text",
+          "type": "STRING",
+          "description": "제안 내용. 상담사가 고객에게 내놓은 제안 하나를 상담사의 말 그대로 한 문장 옮김(예: 실적을 채웠는지 알려 주는 알림이 있는지 확인해 안내드릴까요). 제안이 여럿이면 문장마다 노드를 따로 만듦. 고객의 말을 되풀이해 확인하는 말과 기록하겠다는 말은 제안이 아니므로 노드를 만들지 않음"
+        },
+        {
+          "name": "accepted",
+          "type": "BOOLEAN",
+          "description": "받아들임. 고객이 이 제안을 받아들였으면 true, 거절했으면 false. 본문으로 받아들였는지 알 수 없으면 속성을 내지 않음"
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "AvoidRequest",
+      "description": "피해 달라는 안내. 고객이 하지 말아 달라고 한 설명이나 제안",
+      "properties": [
+        {
+          "name": "owner_record_id",
+          "type": "STRING",
+          "description": "[메타데이터로 채움, 추출하지 않음] 딸린 상담 번호. 요청, 불만, 제안, 사용액 진술이 나온 상담 번호. 상담 기록 안의 항목을 상담끼리 섞지 않기 위한 키"
+        },
+        {
+          "name": "avoid_text",
+          "type": "STRING",
+          "description": "피해 달라는 내용. 고객이 앞으로 하지 말아 달라고 분명히 밝힌 설명이나 제안 하나를 고객의 말 그대로 옮김(예: 조건이 많으면 비교 대상에서 빼 주세요). 제안을 한 번 거절한 것, 기록 방식이나 연락 방식을 부탁한 것, 하고 싶지 않다는 바람만 말한 것은 해당하지 않으므로 노드를 만들지 않음"
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "CardProduct",
+      "description": "카드상품. 혜택 안내서에 실린 카드 종류 한 가지. 상품 키는 안내서 자료 ID(D2-C001 ~ D2-C064)와 같음",
+      "properties": [
+        {
+          "name": "product_id",
+          "type": "STRING",
+          "description": "[맞추기 표로 채움, 추출하지 않음] 상품 키. 카드상품 키(D2-Cnnn). RDB 상품 조회에 쓰는 값"
+        },
+        {
+          "name": "product_name",
+          "type": "STRING",
+          "description": "[맞추기 표로 채움, 추출하지 않음] 상품 이름. 카드상품 이름(예: 한빛 살림시간)"
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Complaint",
+      "description": "불만. 상담에서 고객이 말한 불만",
+      "properties": [
+        {
+          "name": "owner_record_id",
+          "type": "STRING",
+          "description": "[메타데이터로 채움, 추출하지 않음] 딸린 상담 번호. 요청, 불만, 제안, 사용액 진술이 나온 상담 번호. 상담 기록 안의 항목을 상담끼리 섞지 않기 위한 키"
+        },
+        {
+          "name": "complaint_text",
+          "type": "STRING",
+          "description": "불만 내용. 고객이 불편하거나 불만이라고 말한 내용 하나를 고객의 말 그대로 한 문장 옮김. 불만이 여럿이면 문장마다 노드를 따로 만듦. 해 달라는 요청과 상담사의 말은 불만이 아니므로 노드를 만들지 않음"
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Consultation",
+      "description": "상담. 상담 한 번을 적은 기록",
+      "properties": [
+        {
+          "name": "record_id",
+          "type": "STRING",
+          "description": "[메타데이터로 채움, 추출하지 않음] 상담 번호. 상담 기록 번호(C-YYYYMMDD-nnn)"
+        },
+        {
+          "name": "consult_date",
+          "type": "DATE",
+          "description": "[메타데이터로 채움, 추출하지 않음] 상담 날짜. 상담 날짜"
+        },
+        {
+          "name": "channel",
+          "type": "STRING",
+          "description": "[메타데이터로 채움, 추출하지 않음] 상담 채널. 상담 채널(A-10 전체 미확인)"
+        },
+        {
+          "name": "customer_segment",
+          "type": "STRING",
+          "description": "[맞추기 표로 채움, 추출하지 않음] 고객군. 상담 파일 이름에서 맞추기 표로 읽은 고객군 이름(card:CustomerSegmentScheme 의 skos:prefLabel)"
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "CustomerRequest",
+      "description": "고객 요청. 상담에서 고객이 해 달라고 한 일",
+      "properties": [
+        {
+          "name": "owner_record_id",
+          "type": "STRING",
+          "description": "[메타데이터로 채움, 추출하지 않음] 딸린 상담 번호. 요청, 불만, 제안, 사용액 진술이 나온 상담 번호. 상담 기록 안의 항목을 상담끼리 섞지 않기 위한 키"
+        },
+        {
+          "name": "request_text",
+          "type": "STRING",
+          "description": "요청 내용. 고객이 이 상담에서 해 달라고 하거나 물어본 일 하나를 고객의 말 그대로 한 문장 옮김. 요청이 여럿이면 문장마다 노드를 따로 만듦. 상담을 시작하며 밝힌 용건을 빠뜨리지 않음. 상담사의 말, 불만만 말한 문장, 하지 말아 달라는 말은 요청이 아니므로 노드를 만들지 않음"
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Member",
+      "description": "회원. 카드를 가진 개인 회원 한 명",
+      "properties": [
+        {
+          "name": "member_pseudo_id",
+          "type": "STRING",
+          "description": "[메타데이터로 채움, 추출하지 않음] 상담 쪽 회원 표시. 상담 청크 메타데이터의 회원 표시. 회원 키의 sha256 앞 16자리에 m_ 를 붙인 값(CP-03)"
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "StatedUsage",
+      "description": "상담에서 알려 준 사용액. 상담사가 상담 중에 알려 준 한 달의 승인 거래 건수와 합계",
+      "properties": [
+        {
+          "name": "owner_record_id",
+          "type": "STRING",
+          "description": "[메타데이터로 채움, 추출하지 않음] 딸린 상담 번호. 요청, 불만, 제안, 사용액 진술이 나온 상담 번호. 상담 기록 안의 항목을 상담끼리 섞지 않기 위한 키"
+        },
+        {
+          "name": "stated_month",
+          "type": "STRING",
+          "description": "알려 준 대상 월. 상담사가 금액을 알려 준 대상 달을 YYYY-MM 꼴로(예: 2026-03). 고객이 묻기만 하고 상담사가 금액을 알려 주지 않은 달은 해당하지 않으므로 노드를 만들지 않음"
+        },
+        {
+          "name": "stated_count",
+          "type": "INTEGER",
+          "description": "알려 준 승인 건수. 상담사가 알려 준 승인 거래 건수를 정수로(예: 승인 거래는 16건 이면 16). 취소 건수는 해당하지 않음. 건수를 말하지 않았으면 속성을 내지 않음"
+        },
+        {
+          "name": "stated_amount",
+          "type": "INTEGER",
+          "description": "알려 준 합계(원). 상담사가 알려 준 승인 거래 합계를 원 단위 정수로(예: 합계 1,574,000원 이면 1574000). 합계를 말하지 않았으면 속성을 내지 않음"
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "Topic",
+      "description": "상담 주제. 상담 기록의 주제",
+      "properties": [
+        {
+          "name": "topic_name",
+          "type": "STRING",
+          "description": "[메타데이터로 채움, 추출하지 않음] 주제 이름. 상담 주제 이름(A-11 전체 미확인)"
+        }
+      ],
+      "additional_properties": false
+    }
+  ],
+  "relationship_types": [
+    {
+      "label": "ABOUT_MEMBER",
+      "description": "[메타데이터로 채움, 추출하지 않음] 상담받은 회원. 상담 기록이 어느 회원의 것인지. 후보 ATTENDED, HAS_CUSTOMER, INVOLVES_CUSTOMER, PARTICIPATES_IN 을 상담에서 회원 쪽 한 방향으로 합침"
+    },
+    {
+      "label": "CONTINUES_FROM",
+      "description": "[메타데이터로 채움, 추출하지 않음] 앞 상담에서 이어짐. 본문에 앞 상담 번호가 적힌 경우의 이어짐. 처음과 최근은 같은 회원의 상담 날짜 순서로 가림(MQ-08 추천 답)"
+    },
+    {
+      "label": "HAS_AVOID_REQUEST",
+      "description": "피해 달라는 안내. 이 상담에서 고객이 앞으로 하지 말아 달라고 분명히 밝힌 안내마다 하나씩 이음"
+    },
+    {
+      "label": "HAS_COMPLAINT",
+      "description": "불만. 이 상담에서 고객이 말한 불만마다 하나씩 이음"
+    },
+    {
+      "label": "HAS_REQUEST",
+      "description": "요청. 이 상담에서 나온 고객 요청마다 하나씩 이음"
+    },
+    {
+      "label": "HAS_SUGGESTION",
+      "description": "제안. 이 상담에서 상담사가 내놓은 제안마다 하나씩 이음"
+    },
+    {
+      "label": "HAS_TOPIC",
+      "description": "[메타데이터로 채움, 추출하지 않음] 주제. 상담의 주제"
+    },
+    {
+      "label": "MENTIONS_PRODUCT",
+      "description": "[맞추기 표로 채움, 추출하지 않음] 말한 카드상품. 상담에서 이름으로 말한 카드상품. 후보 DISCUSSES_CARD, INVOLVES_CARD, MENTIONS_CARD, REFERS_TO(카드로 쓰인 것만), TARGETS_CARD 를 합침"
+    },
+    {
+      "label": "MENTIONS_USAGE",
+      "description": "알려 준 사용액. 상담사가 알려 준 한 달의 사용액마다 하나씩 이음"
+    }
+  ],
+  "patterns": [
+    [
+      "Consultation",
+      "ABOUT_MEMBER",
+      "Member"
+    ],
+    [
+      "Consultation",
+      "CONTINUES_FROM",
+      "Consultation"
+    ],
+    [
+      "Consultation",
+      "HAS_AVOID_REQUEST",
+      "AvoidRequest"
+    ],
+    [
+      "Consultation",
+      "HAS_COMPLAINT",
+      "Complaint"
+    ],
+    [
+      "Consultation",
+      "HAS_REQUEST",
+      "CustomerRequest"
+    ],
+    [
+      "Consultation",
+      "HAS_SUGGESTION",
+      "AgentSuggestion"
+    ],
+    [
+      "Consultation",
+      "HAS_TOPIC",
+      "Topic"
+    ],
+    [
+      "Consultation",
+      "MENTIONS_PRODUCT",
+      "CardProduct"
+    ],
+    [
+      "Consultation",
+      "MENTIONS_USAGE",
+      "StatedUsage"
+    ]
+  ],
+  "constraints": [
+    {
+      "type": "EXISTENCE",
+      "node_type": "AgentSuggestion",
+      "property_names": [
+        "suggestion_text"
+      ]
+    },
+    {
+      "type": "EXISTENCE",
+      "node_type": "AvoidRequest",
+      "property_names": [
+        "avoid_text"
+      ]
+    },
+    {
+      "type": "UNIQUENESS",
+      "node_type": "CardProduct",
+      "property_names": [
+        "product_id"
+      ]
+    },
+    {
+      "type": "EXISTENCE",
+      "node_type": "Complaint",
+      "property_names": [
+        "complaint_text"
+      ]
+    },
+    {
+      "type": "UNIQUENESS",
+      "node_type": "Consultation",
+      "property_names": [
+        "record_id"
+      ]
+    },
+    {
+      "type": "EXISTENCE",
+      "node_type": "CustomerRequest",
+      "property_names": [
+        "request_text"
+      ]
+    },
+    {
+      "type": "UNIQUENESS",
+      "node_type": "Member",
+      "property_names": [
+        "member_pseudo_id"
+      ]
+    },
+    {
+      "type": "EXISTENCE",
+      "node_type": "StatedUsage",
+      "property_names": [
+        "stated_month"
+      ]
+    },
+    {
+      "type": "UNIQUENESS",
+      "node_type": "Topic",
+      "property_names": [
+        "topic_name"
+      ]
+    }
+  ],
+  "additional_node_types": false,
+  "additional_relationship_types": false,
+  "additional_patterns": false
+}

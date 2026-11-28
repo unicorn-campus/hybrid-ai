@@ -1,0 +1,160 @@
+{
+  "node_types": [
+    {
+      "label": "BenefitItem",
+      "description": "혜택 항목. 한 카드상품의 혜택 한 줄. 비율이나 금액, 실적 조건, 한도, 지급 시점, 사용 기한, 제외 거래를 함께 가짐",
+      "properties": [
+        {
+          "name": "benefit_id",
+          "type": "STRING",
+          "description": "[메타데이터로 채움, 추출하지 않음] 항목 키. 혜택 항목 키(D2-Cnnn-Bnn)"
+        },
+        {
+          "name": "benefit_name",
+          "type": "STRING",
+          "description": "[메타데이터로 채움, 추출하지 않음] 항목 이름. 항목 키 줄의 이름(예: 동물병원 할인)"
+        },
+        {
+          "name": "benefit_method",
+          "type": "STRING",
+          "description": "혜택 방식. 이 혜택이 주는 것의 종류. '혜택'이나 '지원 내용' 줄에 나온 낱말을 그대로 옮김(예: 할인, 적립, 캐시백, 바우처, 교환권). 한 항목에 하나만 냄. 실적 조건이나 한도에 나오는 '포인트' 같은 낱말은 종류가 아님. 종류를 나타내는 낱말이 본문에 없으면 속성을 내지 않음"
+        },
+        {
+          "name": "rate_percent",
+          "type": "FLOAT",
+          "description": "비율(퍼센트). 결제액에 곱하는 할인율이나 적립률을 퍼센트 숫자로(예: 대상 결제액의 4% 이면 4). 실적 기준액, 한도 금액, 포인트 수는 비율이 아님. 비율이 없는 정액 혜택이면 속성을 내지 않음"
+        },
+        {
+          "name": "benefit_amount_text",
+          "type": "STRING",
+          "description": "정액 혜택. 비율이 아닌 정액 혜택(예: 700P 고정 리필, 연 1회 90,000원 바우처)을 원문 문장 그대로 한 문장 옮김. 비율 혜택이면 속성을 내지 않음"
+        },
+        {
+          "name": "required_spend",
+          "type": "INTEGER",
+          "description": "실적 기준액(원). '실적 조건' 줄에 적힌 기준 금액을 원 단위 정수로(예: 350,000원 이상 이면 350000). 한도 금액이나 달성 보너스 금액은 해당하지 않음. 실적 조건 줄이 없으면 속성을 내지 않음"
+        },
+        {
+          "name": "spend_condition",
+          "type": "STRING",
+          "description": "실적 조건. 혜택을 받으려고 채워야 하는 조건 문장만 원문 그대로 옮김(예: 전월 국내외 일시불, 유이자 할부 이용액 350,000원 이상). 실적에서 빼는 금액, 예외, 제외 내용은 여기에 넣지 않고 혜택 제외(exclusion_text)에 둠. 조건이 없으면 속성을 내지 않음"
+        },
+        {
+          "name": "monthly_limit_amount",
+          "type": "INTEGER",
+          "description": "항목 월 한도(원). 이 항목 하나가 한 달에 주는 최대 금액을 원 단위 정수로(예: 이 항목은 월 8,000원 상당까지 이면 8000). 카드 전체의 통합 한도(예: 월 40,000원)는 이 항목의 한도가 아님. 항목 한도가 없으면 속성을 내지 않음"
+        },
+        {
+          "name": "limit_text",
+          "type": "STRING",
+          "description": "한도 설명. '한도', '횟수, 한도', '이용 한도' 줄을 원문 그대로 옮김. 통합 한도와 횟수 제한을 포함함. 한도 줄이 없으면 속성을 내지 않음"
+        },
+        {
+          "name": "payout_timing",
+          "type": "STRING",
+          "description": "지급 시점. '지급 시점' 줄을 원문 그대로 옮김(예: 다음 달 청구금액에서 차감함). 사용 기한은 여기에 넣지 않음. 지급 시점 줄이 없으면 속성을 내지 않음"
+        },
+        {
+          "name": "usage_validity",
+          "type": "STRING",
+          "description": "사용 기한. 받은 바우처나 포인트를 쓸 수 있는 기한을 원문 그대로 옮김(예: 발급일부터 180일간 분할 사용 가능함). 혜택 시행일이나 지급 시점은 사용 기한이 아님. 기한이 적혀 있지 않으면 속성을 내지 않음"
+        },
+        {
+          "name": "exclusion_text",
+          "type": "STRING",
+          "description": "혜택 제외. 혜택을 주지 않는 거래와 실적에서 빼는 금액을 원문 그대로 옮김('혜택 제외', '대상 제외', '취소, 제외' 줄과 실적 조건 줄의 '실적에서 제외함' 문장). 제외 내용이 없으면 속성을 내지 않음"
+        },
+        {
+          "name": "target_text",
+          "type": "STRING",
+          "description": "대상 설명. '대상, 채널'이나 '사용처' 줄을 원문 그대로 옮김. 대상 줄이 없으면 속성을 내지 않음"
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "CardProduct",
+      "description": "카드상품. 혜택 안내서에 실린 카드 종류 한 가지. 상품 키는 안내서 자료 ID(D2-C001 ~ D2-C064)와 같음",
+      "properties": [
+        {
+          "name": "product_id",
+          "type": "STRING",
+          "description": "[메타데이터로 채움, 추출하지 않음] 상품 키. 카드상품 키(D2-Cnnn). RDB 상품 조회에 쓰는 값"
+        },
+        {
+          "name": "product_name",
+          "type": "STRING",
+          "description": "[메타데이터로 채움, 추출하지 않음] 상품 이름. 카드상품 이름(예: 한빛 살림시간)"
+        }
+      ],
+      "additional_properties": false
+    },
+    {
+      "label": "TargetCategory",
+      "description": "혜택 대상 업종. 혜택 항목이 대상으로 삼는 업종(문서의 낱말)",
+      "properties": [
+        {
+          "name": "category_name",
+          "type": "STRING",
+          "description": "업종 이름. 혜택 대상을 적은 줄에 원문 그대로 나온 업종 낱말 하나(예: '가상 편의점 하루상점' 이면 편의점, '가상 동물병원 업종' 이면 동물병원). 뜻으로 새 이름을 짓지 않고 가맹점 고유 이름은 넣지 않음. 제한 업종, 제외 업종, 업종을 가리지 않는 표현(일반 가맹점 전체)은 대상 업종이 아니므로 노드를 만들지 않음"
+        }
+      ],
+      "additional_properties": false
+    }
+  ],
+  "relationship_types": [
+    {
+      "label": "OFFERS_BENEFIT",
+      "description": "[메타데이터로 채움, 추출하지 않음] 혜택을 줌. 카드상품이 혜택 항목을 줌. 후보 CARD_HAS_BENEFIT, CARD_OFFERED_BENEFIT, HAS_BENEFIT, OFFERS 를 합침"
+    },
+    {
+      "label": "TARGETS_CATEGORY",
+      "description": "대상 업종. 혜택 대상을 적은 줄(대상, 채널 또는 사용처)에 나온 업종마다 하나씩 혜택 대상 업종으로 이음. 제한 업종, 제외 업종, 일반 가맹점 전체처럼 업종을 가리지 않는 표현에는 잇지 않음"
+    }
+  ],
+  "patterns": [
+    [
+      "BenefitItem",
+      "TARGETS_CATEGORY",
+      "TargetCategory"
+    ],
+    [
+      "CardProduct",
+      "OFFERS_BENEFIT",
+      "BenefitItem"
+    ]
+  ],
+  "constraints": [
+    {
+      "type": "UNIQUENESS",
+      "node_type": "BenefitItem",
+      "property_names": [
+        "benefit_id"
+      ]
+    },
+    {
+      "type": "UNIQUENESS",
+      "node_type": "CardProduct",
+      "property_names": [
+        "product_id"
+      ]
+    },
+    {
+      "type": "EXISTENCE",
+      "node_type": "TargetCategory",
+      "property_names": [
+        "category_name"
+      ]
+    },
+    {
+      "type": "UNIQUENESS",
+      "node_type": "TargetCategory",
+      "property_names": [
+        "category_name"
+      ]
+    }
+  ],
+  "additional_node_types": false,
+  "additional_relationship_types": false,
+  "additional_patterns": false
+}

@@ -1,0 +1,203 @@
+@prefix card: <https://hanbit-card.example/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# CP-02 카드 상품 이름 맞추기 표. 근거: 혜택 안내서 청크 메타데이터에서 card_name 과 card_id 가 같은 청크에 함께 있음
+# 이름은 카드상품 대표 이름 규칙으로 고른 꼴. 전체 일치만 씀(MQ-03). 버전 2에서 근거가 확인된 64행을 approved 로 올림(MQ-03 결정과 RDB 상품 표 대조)
+
+card:CardNameTable a card:MatchTable ;
+    rdfs:label "카드 상품 이름 맞추기 표"@ko ;
+    rdfs:comment "상담 본문에서 뽑은 카드 이름을 상품 키로 바꾸는 표. 이름 하나에 상품 키 하나"@ko ;
+    card:row card:cardname_D2_C039 ,
+        card:cardname_D2_C040 ,
+        card:cardname_D2_C063 ,
+        card:cardname_D2_C021 ,
+        card:cardname_D2_C028 ,
+        card:cardname_D2_C037 ,
+        card:cardname_D2_C046 ,
+        card:cardname_D2_C059 ,
+        card:cardname_D2_C003 ,
+        card:cardname_D2_C004 ,
+        card:cardname_D2_C010 ,
+        card:cardname_D2_C062 ,
+        card:cardname_D2_C060 ,
+        card:cardname_D2_C009 ,
+        card:cardname_D2_C015 ,
+        card:cardname_D2_C019 ,
+        card:cardname_D2_C001 ,
+        card:cardname_D2_C002 ,
+        card:cardname_D2_C061 ,
+        card:cardname_D2_C011 ,
+        card:cardname_D2_C058 ,
+        card:cardname_D2_C034 ,
+        card:cardname_D2_C056 ,
+        card:cardname_D2_C020 ,
+        card:cardname_D2_C038 ,
+        card:cardname_D2_C012 ,
+        card:cardname_D2_C026 ,
+        card:cardname_D2_C025 ,
+        card:cardname_D2_C054 ,
+        card:cardname_D2_C018 ,
+        card:cardname_D2_C049 ,
+        card:cardname_D2_C031 ,
+        card:cardname_D2_C016 ,
+        card:cardname_D2_C051 ,
+        card:cardname_D2_C041 ,
+        card:cardname_D2_C064 ,
+        card:cardname_D2_C050 ,
+        card:cardname_D2_C047 ,
+        card:cardname_D2_C035 ,
+        card:cardname_D2_C036 ,
+        card:cardname_D2_C042 ,
+        card:cardname_D2_C024 ,
+        card:cardname_D2_C032 ,
+        card:cardname_D2_C017 ,
+        card:cardname_D2_C008 ,
+        card:cardname_D2_C044 ,
+        card:cardname_D2_C045 ,
+        card:cardname_D2_C007 ,
+        card:cardname_D2_C043 ,
+        card:cardname_D2_C052 ,
+        card:cardname_D2_C013 ,
+        card:cardname_D2_C055 ,
+        card:cardname_D2_C014 ,
+        card:cardname_D2_C048 ,
+        card:cardname_D2_C027 ,
+        card:cardname_D2_C029 ,
+        card:cardname_D2_C030 ,
+        card:cardname_D2_C057 ,
+        card:cardname_D2_C022 ,
+        card:cardname_D2_C023 ,
+        card:cardname_D2_C005 ,
+        card:cardname_D2_C006 ,
+        card:cardname_D2_C033 ,
+        card:cardname_D2_C053 .
+
+card:cardname_D2_C039 a card:MatchRow ; card:fromValue "한빛 가게모음" ; card:toValue "D2-C039" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C040 a card:MatchRow ; card:fromValue "한빛 가게모음 프리미엄" ; card:toValue "D2-C040" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C063 a card:MatchRow ; card:fromValue "한빛 가벼운하루" ; card:toValue "D2-C063" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C021 a card:MatchRow ; card:fromValue "한빛 가족돌봄" ; card:toValue "D2-C021" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C028 a card:MatchRow ; card:fromValue "한빛 가족통신" ; card:toValue "D2-C028" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C037 a card:MatchRow ; card:fromValue "한빛 간편생활" ; card:toValue "D2-C037" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C046 a card:MatchRow ; card:fromValue "한빛 내차생활" ; card:toValue "D2-C046" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C059 a card:MatchRow ; card:fromValue "한빛 단골생활" ; card:toValue "D2-C059" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C003 a card:MatchRow ; card:fromValue "한빛 담백할인" ; card:toValue "D2-C003" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C004 a card:MatchRow ; card:fromValue "한빛 담백할인 플러스" ; card:toValue "D2-C004" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C010 a card:MatchRow ; card:fromValue "한빛 대중교통" ; card:toValue "D2-C010" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C062 a card:MatchRow ; card:fromValue "한빛 돌봄상자" ; card:toValue "D2-C062" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C060 a card:MatchRow ; card:fromValue "한빛 돌봄상자 플러스" ; card:toValue "D2-C060" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C009 a card:MatchRow ; card:fromValue "한빛 드라이브 포인트" ; card:toValue "D2-C009" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C015 a card:MatchRow ; card:fromValue "한빛 디지털짝꿍" ; card:toValue "D2-C015" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C019 a card:MatchRow ; card:fromValue "한빛 맑은렌탈" ; card:toValue "D2-C019" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C001 a card:MatchRow ; card:fromValue "한빛 모아생활" ; card:toValue "D2-C001" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C002 a card:MatchRow ; card:fromValue "한빛 모아생활 플러스" ; card:toValue "D2-C002" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C061 a card:MatchRow ; card:fromValue "한빛 모음상자" ; card:toValue "D2-C061" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C011 a card:MatchRow ; card:fromValue "한빛 모음상자 플러스" ; card:toValue "D2-C011" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C058 a card:MatchRow ; card:fromValue "한빛 반려동행" ; card:toValue "D2-C058" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C034 a card:MatchRow ; card:fromValue "한빛 배달모음" ; card:toValue "D2-C034" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C056 a card:MatchRow ; card:fromValue "한빛 배움살림" ; card:toValue "D2-C056" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C020 a card:MatchRow ; card:fromValue "한빛 배움플러스" ; card:toValue "D2-C020" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C038 a card:MatchRow ; card:fromValue "한빛 사업기본" ; card:toValue "D2-C038" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C012 a card:MatchRow ; card:fromValue "한빛 살림시간" ; card:toValue "D2-C012" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C026 a card:MatchRow ; card:fromValue "한빛 섬나라휴식" ; card:toValue "D2-C026" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C025 a card:MatchRow ; card:fromValue "한빛 세계산책" ; card:toValue "D2-C025" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C054 a card:MatchRow ; card:fromValue "한빛 소소캐시백" ; card:toValue "D2-C054" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C018 a card:MatchRow ; card:fromValue "한빛 쇼핑나들이" ; card:toValue "D2-C018" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C049 a card:MatchRow ; card:fromValue "한빛 수소길" ; card:toValue "D2-C049" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C031 a card:MatchRow ; card:fromValue "한빛 알뜰통신" ; card:toValue "D2-C031" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C016 a card:MatchRow ; card:fromValue "한빛 얼굴결제" ; card:toValue "D2-C016" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C051 a card:MatchRow ; card:fromValue "한빛 여섯선택" ; card:toValue "D2-C051" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C041 a card:MatchRow ; card:fromValue "한빛 온라인사업" ; card:toValue "D2-C041" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C064 a card:MatchRow ; card:fromValue "한빛 우리장터" ; card:toValue "D2-C064" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C050 a card:MatchRow ; card:fromValue "한빛 우리집" ; card:toValue "D2-C050" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C047 a card:MatchRow ; card:fromValue "한빛 이동결제" ; card:toValue "D2-C047" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C035 a card:MatchRow ; card:fromValue "한빛 일상포인트" ; card:toValue "D2-C035" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C036 a card:MatchRow ; card:fromValue "한빛 일상포인트 플러스" ; card:toValue "D2-C036" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C042 a card:MatchRow ; card:fromValue "한빛 자동맞춤" ; card:toValue "D2-C042" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C024 a card:MatchRow ; card:fromValue "한빛 자유여행" ; card:toValue "D2-C024" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C032 a card:MatchRow ; card:fromValue "한빛 잔돈모음" ; card:toValue "D2-C032" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C017 a card:MatchRow ; card:fromValue "한빛 장보기" ; card:toValue "D2-C017" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C008 a card:MatchRow ; card:fromValue "한빛 전기길" ; card:toValue "D2-C008" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C044 a card:MatchRow ; card:fromValue "한빛 정기모음" ; card:toValue "D2-C044" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C045 a card:MatchRow ; card:fromValue "한빛 정기모음 플러스" ; card:toValue "D2-C045" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C007 a card:MatchRow ; card:fromValue "한빛 주유동행" ; card:toValue "D2-C007" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C043 a card:MatchRow ; card:fromValue "한빛 직접맞춤" ; card:toValue "D2-C043" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C052 a card:MatchRow ; card:fromValue "한빛 집콕취미" ; card:toValue "D2-C052" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C013 a card:MatchRow ; card:fromValue "한빛 첫걸음" ; card:toValue "D2-C013" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C055 a card:MatchRow ; card:fromValue "한빛 청소년생활" ; card:toValue "D2-C055" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C014 a card:MatchRow ; card:fromValue "한빛 초록생활" ; card:toValue "D2-C014" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C048 a card:MatchRow ; card:fromValue "한빛 출퇴근" ; card:toValue "D2-C048" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C027 a card:MatchRow ; card:fromValue "한빛 통신할부 A" ; card:toValue "D2-C027" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C029 a card:MatchRow ; card:fromValue "한빛 통신할부 B" ; card:toValue "D2-C029" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C030 a card:MatchRow ; card:fromValue "한빛 통신할부 C" ; card:toValue "D2-C030" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C057 a card:MatchRow ; card:fromValue "한빛 패션선택" ; card:toValue "D2-C057" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C022 a card:MatchRow ; card:fromValue "한빛 하늘여정" ; card:toValue "D2-C022" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C023 a card:MatchRow ; card:fromValue "한빛 하늘여정 프리미엄" ; card:toValue "D2-C023" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C005 a card:MatchRow ; card:fromValue "한빛 하루절약" ; card:toValue "D2-C005" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C006 a card:MatchRow ; card:fromValue "한빛 하루절약 플러스" ; card:toValue "D2-C006" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C033 a card:MatchRow ; card:fromValue "한빛 한끼친구" ; card:toValue "D2-C033" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .
+card:cardname_D2_C053 a card:MatchRow ; card:fromValue "한빛 해오름마을" ; card:toValue "D2-C053" ; card:rowStatus "approved" ;
+    card:basis "혜택 안내서 청크 메타데이터의 card_name 과 card_id. 근거 확인: RDB 상품 표의 상품 이름과 상품 키가 글자까지 같고 이름이 하나뿐임(읽기 전용 대조). 승인: 사용자(담당자 역할), 2026-11-29, 답 원문 '추천안대로 확정'"@ko .

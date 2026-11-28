@@ -1,0 +1,1269 @@
+{
+  "schema_version": 2,
+  "made_at": "2026-11-29T01:24:17",
+  "made_by": "지식니(design/phase9/make_approval_v2.py)",
+  "decision": {
+    "result": "조건부 통과",
+    "full_pass": false,
+    "statement": "Phase 8 재시험 미달 2개를 알려진 한계로 두고 승인본으로 올림. 모든 기준을 채운 통과가 아님",
+    "approver": "사용자",
+    "approved_at": "2026-11-29 00:55",
+    "user_answer": "여기서 멈춤 / Phase9로 진행하라는 의미였어요.",
+    "decision_record": "design/decisions.json 의 item phase8_retest_result",
+    "review_file": "review/step8.md",
+    "review_sha256": "b4765e15eb2363b16d7eada101a599692abd02382fcbb6fed0487b8f57d52585",
+    "note": "Phase 9 에는 따로 사용자 승인 질문이 없음. 승인 일시는 Phase 8 조건부 통과 승인 일시를 씀. 처음 시험 기록(phase8_test_result)의 검토 파일 지문은 재시험이 같은 파일을 덮어써 현재 파일과 다름 버전 2: 조건부 통과와 알려진 한계 2건은 그대로이고 이번 일로 바뀌지 않음",
+    "first_test": {
+      "decision": "미달(되돌아가기 승인)",
+      "datetime": "2026-11-29 00:17",
+      "failed_items": [
+        "benefit_guide CQ-11(값 같은 비율, 잘못 뽑은 비율)",
+        "benefit_guide CQ-17(값 같은 비율)",
+        "consult_log CQ-07(값 같은 비율)",
+        "consult_log CQ-08(값 같은 비율, 잘못 뽑은 비율)",
+        "consult_log CQ-10(뽑은 비율, 값 같은 비율)",
+        "consult_log CQ-17(뽑은 비율)",
+        "CP-02 키 채움",
+        "SHACL 위반 18건"
+      ]
+    },
+    "follow_up_decisions": [
+      {
+        "item": "담당자 확인 질문 MQ-01 ~ MQ-10 확정",
+        "decided_by": "사용자(담당자 역할)",
+        "decided_at": "2026-11-29",
+        "answer": "추천안대로 확정",
+        "record": "decisions.json 의 item phase9_manager_questions_confirmed",
+        "file": "manager_questions.md"
+      },
+      {
+        "item": "맞추기 표 줄 승인(근거가 확인된 줄만)",
+        "decided_by": "사용자(담당자 역할)",
+        "decided_at": "2026-11-29",
+        "answer": "추천안대로 확정",
+        "record": "decisions.json 의 item phase9_match_rows_approved",
+        "rows_approved": 70
+      }
+    ]
+  },
+  "promotion": {
+    "promoted_at": "2026-11-29T01:20:44",
+    "tool": "design/tools/draft.py promote --approved",
+    "approved_dir": "ttl",
+    "was_first_version": false,
+    "previous_version": 1,
+    "previous_content_fingerprint": "816cf2ec30d7e1292b8d90e857b4a1003a0bd3cced9b5df90d6ea37a4a75f912",
+    "approved_fingerprint_at_draft_start": "816cf2ec30d7e1292b8d90e857b4a1003a0bd3cced9b5df90d6ea37a4a75f912",
+    "draft_version": 2,
+    "step_9_1_check": "초안 시작 뒤 승인본 지문이 그대로이고 초안 버전(2)이 승인본 버전(1)보다 정확히 1 큼. draft.py promote 가 확인함",
+    "identical_to_draft": true,
+    "draft_dir_deleted": true,
+    "archive": {
+      "dir": "design/archive/v2/",
+      "contents": "초안의 output/(검사 결과, 생성물, diff.json 포함), .draft_state.json, draft-ttl_fingerprints.txt",
+      "v1_archive": "design/archive/v1/(버전 1 승인본의 재검사 결과와 초안 때 output/)"
+    }
+  },
+  "ontology": {
+    "version": 2,
+    "content_fingerprint": "75c741a2c0c639c23fa47ad2b2ef4484b97fdca1478cde9c76c0c3dc6968f73f",
+    "fingerprint_method": "tools/draft.py fingerprint(): 파일별 SHA-256 맵을 키 정렬 JSON 으로 만든 뒤 SHA-256",
+    "files_sha256": {
+      "card.ttl": "09cb3088f83251703f9c75bd3269999bfa75cc97b11cc8aff875b6d526a109bb",
+      "shapes/benefit_guide.ttl": "39afbe398d51eb7cfdeea3bf5a78ff0e5d38de94bd93385a53fdd76939c3fcff",
+      "shapes/checks.ttl": "b1595854f7eb2dc0711b21976722e058357beecc68d0872c9858891f731d604a",
+      "shapes/consult_log.ttl": "b444074ffc03c4fa81b8ff66aecf9644d92e2b6b23a003daf902dbb921be7680",
+      "shapes/rdb.ttl": "5df826da690d6089fe5bc759d05178761356a24cee4d3f086dc648fd046a1da2",
+      "shapes/regulation.ttl": "059960d6adc4d91c1bdf998f9bbaba7f1eb86302b1faf606da1c7084cc4d14d2",
+      "maps/card_name.ttl": "cf053937801c3bb2c6790f7dcfd5fe4e55873c0e2f3de5e4d2258ee47a4440d6",
+      "maps/category.ttl": "d8fce9bc1ab2f8e37c975dadc3860200c648ac15eab86f1678c396424aa907ed",
+      "maps/segment.ttl": "ca1967943851c6cc343eeb299c3fdd5d89c65986cb97f4427d7f1a8bfcf3072e"
+    },
+    "class_count_total": 19,
+    "class_count_domain": 17,
+    "class_count_lexical": 2,
+    "relation_count_total": 20,
+    "relation_count_domain": 17,
+    "relation_count_lexical": 3,
+    "datatype_property_count": 58,
+    "count_note": "도메인 클래스 17개와 관계 17개에 인덱싱 기본 라벨(Document, Chunk, FROM_DOCUMENT, NEXT_CHUNK, FROM_CHUNK)이 더해져 19개와 20개로 셈",
+    "classes": [
+      "AgentSuggestion",
+      "AvoidRequest",
+      "BenefitItem",
+      "Card",
+      "CardProduct",
+      "Chunk",
+      "Clause",
+      "Complaint",
+      "Consultation",
+      "CustomerRequest",
+      "DelinquencyStatus",
+      "Document",
+      "Member",
+      "Merchant",
+      "MerchantMonthlyUsage",
+      "MonthlyUsage",
+      "StatedUsage",
+      "TargetCategory",
+      "Topic"
+    ],
+    "relations": [
+      "FROM_CHUNK",
+      "FROM_DOCUMENT",
+      "NEXT_CHUNK",
+      "aboutMember",
+      "atMerchant",
+      "continuesFrom",
+      "hasAvoidRequest",
+      "hasComplaint",
+      "hasDelinquency",
+      "hasMerchantUsage",
+      "hasMonthlyUsage",
+      "hasRequest",
+      "hasSuggestion",
+      "hasTopic",
+      "holdsCard",
+      "mentionsProduct",
+      "mentionsUsage",
+      "ofProduct",
+      "offersBenefit",
+      "targetsCategory"
+    ],
+    "version_history": [
+      {
+        "version": 1,
+        "content_fingerprint": "816cf2ec30d7e1292b8d90e857b4a1003a0bd3cced9b5df90d6ea37a4a75f912",
+        "approval_record": "approval.v1.json"
+      },
+      {
+        "version": 2,
+        "content_fingerprint": "75c741a2c0c639c23fa47ad2b2ef4484b97fdca1478cde9c76c0c3dc6968f73f",
+        "approval_record": "approval.json",
+        "changes": "맞추기 표 줄 상태(needs_review에서 approved로)와 버전 번호만"
+      }
+    ]
+  },
+  "generated_from_approved": {
+    "files_sha256": {
+      "doc/benefit_guide": {
+        "graph_schema.json": "db7e3c277fd3b37f98e7d04d9a3bb69853271c04037d2076c79ce31d1022d3f4",
+        "schema.mmd": "634caa55bceed81c1777975c3e05f2ed727d75af5395166aba723d69fe017d43"
+      },
+      "doc/consult_log": {
+        "graph_schema.json": "80e51ff9a85677882fe79e91b1e5be56fadf29bdaf1174fb16a4b4b6b3e36857",
+        "schema.mmd": "a7852f0aa6c2cc4bd867d6cefc2da42417694cf59e1973227065b061bd07c6c8"
+      },
+      "doc/regulation": {
+        "graph_schema.json": "cce0f08cb04a0f8b5f61bb648ef606016cbf15e783f4b9588d7dc2af7553a8bf",
+        "schema.mmd": "ba07ccb14ef660c4532841752fd439b07ba766d976c1395008f7ae5c36e90148"
+      }
+    },
+    "identical_to_draft_outputs": {
+      "benefit_guide": true,
+      "consult_log": true,
+      "regulation": true
+    },
+    "generator": "design/tools/build_from_ttl.py",
+    "note": "문서 GraphSchema와 그림은 버전 1과 바이트까지 같음(문서 스키마가 바뀌지 않음)",
+    "identical_to_version_1": {
+      "benefit_guide": true,
+      "consult_log": true,
+      "regulation": true
+    }
+  },
+  "unit_text_rules": {
+    "matches_phase4_approval": {
+      "doc/regulation/unit_text_rules.json": true,
+      "doc/benefit_guide/unit_text_rules.json": true,
+      "doc/consult_log/unit_text_rules.json": true
+    },
+    "sha256": {
+      "doc/regulation/unit_text_rules.json": "db99b658dd6dd716ff20ffb222d50274ee286ad5f764763389735ef43068183c",
+      "doc/benefit_guide/unit_text_rules.json": "911179bfe74ec2441eb25ff066fa49a6755ddce07c0b52ad1b5498eb20b89108",
+      "doc/consult_log/unit_text_rules.json": "1d9611f4cb890f145e2fbbc9a512203455d1cb090d07fc7254787770c084b253"
+    }
+  },
+  "input_files_sha256": {
+    "design/input/structure.json": "606165158d12603f80963ffdac8c7e6373111f8d30b15d8a98ee6e45c33ad9e8",
+    "design/input/rdb_samples.json": "8f041f678b425770ce61da8615e71cc1433bd5028c2177d56f2976ad6796ac56",
+    "design/input/chunks_snapshot.json": "87cd28e8c694c00d8da2d52d488ecd564f6c29d528ac6f72aa53c5fdcc53fdee",
+    "design/input/sources.json": "e209c3f9dcdda2148a299a0a479f17f42f5db9f45b2c9bd12256b17e02c4559f",
+    "design/input/evidence_step2.json": "82816f423e2372798aee4b63b147d4459e5145f58f4910a124af39660358870e",
+    "design/input/split_report.json": "275c621d94dd3ac8bc515438e9383f1a961c97fe1248740e1341fffa7caf887e",
+    "eval/eval-set-design.json": "71779be2d79bc68c10f6a30ffc82840c1c18b7a438f48d98a93610df0c3c4935",
+    "eval/eval-set-test.json": "4ad67f1d597f008686e92cca7982107f1742698e21a96d7a4f834940f38ccb90",
+    "design/competency_questions.md": "a2ad63d18520a2abbeaa1913d83f3df5ee1fab006dd5fcaa4280fb327817380f",
+    "design/crossing_points.json": "f0909121b043284dcf08d646e58f742b3edea8ee6ddc026bc81cc0a6a1db74c7",
+    "design/manager_questions.md": "0431560c2ba72589976052843721d036bf2f70b66911111eb05bb014b0ff28a4",
+    "design/value_lists.json": "9ed0cb6fdeb41c9c51a626f694005d934ec11666d191e9ba7143a12db361f0bb",
+    "design/rdb/rdb_mapping.json": "798a6dd3852dd394e83ed5cf1f66d465bbd7061211718ec6bca580f3d7eaa469",
+    "design/rdb/rdb_judgment.md": "5c99f1465a2ba9cdbebf408bd324db14c50e5035abaab9181514eaed1f22226e",
+    "design/rdb/key_uniqueness.json": "30753043b762bfa27f9a4dca670d3a5653df0c88b653fe4abbf787e23c35a5b9",
+    "design/rdb/probe_step3.json": "de3afed5a2c24951b09bb7ef3123b982b589a7753d93084fe6d6e2e887ff3b03",
+    "design/doc/regulation/unit_text_rules.json": "db99b658dd6dd716ff20ffb222d50274ee286ad5f764763389735ef43068183c",
+    "design/doc/benefit_guide/unit_text_rules.json": "911179bfe74ec2441eb25ff066fa49a6755ddce07c0b52ad1b5498eb20b89108",
+    "design/doc/consult_log/unit_text_rules.json": "1d9611f4cb890f145e2fbbc9a512203455d1cb090d07fc7254787770c084b253",
+    "design/doc/regulation/units.json": "07e48817684c0d17ad224b819ba3015b0bcc073517d4f89533e798573f683fbe",
+    "design/doc/benefit_guide/units.json": "2f2883029649a1205c39417119b504679e6be82b3c2772f5dd1134181ab32100",
+    "design/doc/consult_log/units.json": "1560bbd8aae81317488a7c03225680e6f29e388eae1a5f103b0a17dbd7208fe0",
+    "design/doc/regulation/sample_plan.json": "36d65e0cc93e12c5fbd824451ad478249c3a0fcb8cd49ebef1a7562ae527b363",
+    "design/doc/benefit_guide/sample_plan.json": "76e93041a62bf53bec3af0621f68a8026f8b6b2c39420c879506d56573b19f0e",
+    "design/doc/consult_log/sample_plan.json": "5f54bbc79cf4c4ded167697b40df41222e28a6e2b648e0c2bd7401c0d4c1b289",
+    "design/test/expected_answers.json": "d06f846e6b2cff98b0072f21d5e5cab1bc987bfafbdc44c42ea14756075bfb8f",
+    "design/test/pass_criteria.json": "f241112dc3e79541e29f5a5ca92be14e4774786cce5a0984d1682ee1fb1dbc99",
+    "design/test/fill_config.json": "8ac320feaa7a0d218315137b9df9d3716726f51d31cef2a466e193d0eaf049a6",
+    "design/test/fill_scores.json": "e729c0f0888ea482d278f060b972c023e7ec20a857ea87c40fad9a19e48d960e",
+    "design/test/fill_report.md": "943bbbe235e842c6bce721607fd71ba51c644225e207842c12c176157d65a3ed",
+    "design/tools/phase5_config.json": "15027fe70daf05ca78f8fef30edba77e477d77159ecbdd206bd1f2a55e609955",
+    "design/phase9/match_rows_check.json": "f625e24fd9d94a6d627e5ee129ff1a872ee397fb31f1b7ea8d961ca71483f773",
+    "design/review/step1.md": "aedabf329d303b790f2b2ef3b7c936a236f46db96900fb0d627ca4b40ac373ca",
+    "design/review/step2.md": "e8cba801496e6d239d64587bbe6f2748f29d0b3f50fd0eeb457f40a2fc9a65c5",
+    "design/review/step3.md": "23aa5e5f000e46d1583c518732f12f967176d2d9486fc1a778c07cb883fe2c72",
+    "design/review/step4.md": "a2219be31eb800c285c1ce7b70c4fc672881588981e16229a562a8bd2c163eb6",
+    "design/review/step5.md": "29dbd308809ab14f7dfff59b44e8a54959e78572db77f8f5fe8842bce6f3e50b",
+    "design/review/step6.md": "985413d6f7c14b5e32974566eb2f42dc4d81f675efeb49159032391116b1cccb",
+    "design/review/step8.md": "b4765e15eb2363b16d7eada101a599692abd02382fcbb6fed0487b8f57d52585",
+    "design/review/step8-criteria.md": "1b92a82fd7eb9878ef280b3e207ab8544bb64793ce50ce04bfcfc7bfb11a5c51",
+    "design/review/step9.md": "87186d36d72a72d221fc755279b89fbf4add94a0e3e931deaeaf544a413e38b9"
+  },
+  "source_fingerprints_recorded_in_phase1": {
+    "note": "Phase 1 이 sources.json 에 적은 값. Phase 9 에서 다시 읽지 않음(원천 Chroma 와 SQL 초기화 파일은 읽지 않기로 함)",
+    "fingerprints_sha256": {
+      "input/structure.json": "606165158d12603f80963ffdac8c7e6373111f8d30b15d8a98ee6e45c33ad9e8",
+      "input/rdb_samples.json": "8f041f678b425770ce61da8615e71cc1433bd5028c2177d56f2976ad6796ac56",
+      "input/chunks_snapshot.json": "87cd28e8c694c00d8da2d52d488ecd564f6c29d528ac6f72aa53c5fdcc53fdee",
+      "chroma.sqlite3(원천, 읽기 전후 동일)": "7c26b75da87c5e3fe7bae57c0adde2492056db813f2358540cba4a679d95c21f",
+      "eval-set-full.json": "4411691d05f9231f1d4a7014dc259cb2f070a7dc9352c99fe865a23465c374cd",
+      "backing-services/rdb/init/*.sql": {
+        "01_schema.sql": "7700308a6a862b49fbb3eb2a4a21ac0f231945958d9ec0bbfde55b2afaf3cbc8",
+        "02_seed.sql": "e49fc0f616ff643317a442efa22b160102054139a7d6df130a55622f1ae11b3b",
+        "03_consultation_transactions.sql": "b72737d8bce8222392750764084086c1db82a251da7d0552308665fedfa844a5",
+        "04_views_rls.sql": "2bcaa6dd0fa66ff219ec119d1b5276c5310ac74248f195bc9f71f6593c4a3a23",
+        "05_merchant_usage.sql": "543cbe67051377e81fce29ac118f883fdf2b9b49cb432d7d29aee33fe6965aa9",
+        "06_history_daily_usage.sql": "e52756f737e9558709d463dfd71ac6a233974bc69cf0fcfc98b6e7af50eded03"
+      },
+      "app SQL 위치 sql와 json 파일": {
+        "hands-on/solutions/sql-retriever/app/infrastructure/sql/cards_select.sql": "90a72901129c627761587b62080c999b9569fe332e61deb886647b201d0d187b",
+        "hands-on/solutions/sql-retriever/app/infrastructure/sql/delinquency_select.sql": "2fd22138a3a4f0ff0bea32bf12bc6ea28dd6016a3a2bbbc3dfd158a0c07a6466",
+        "hands-on/solutions/sql-retriever/app/infrastructure/sql/guarded_query.sql": "b388ff463c51bf36a8fca6e01c098a07936104ba6907c813132dbc0d8e00ddeb",
+        "hands-on/solutions/sql-retriever/app/infrastructure/sql/member_select.sql": "1bfe37e8e2f91cfd7bbf4ba1d55667e6456cd1053f1823646500df7040f8e62f",
+        "hands-on/solutions/sql-retriever/app/infrastructure/sql/metadata_select.sql": "5f30fed57cb180501d1f9d2e64cb213fa388b326c41731b780dfec8233ba0f9d",
+        "hands-on/solutions/sql-retriever/app/infrastructure/sql/profile_select.sql": "aa72ac6249e1effc2aa285504f1f042fb0198b908719c9d38758e07dee12c5f9",
+        "hands-on/solutions/sql-retriever/app/infrastructure/sql/query_config.json": "d8279e59001dd0932ae24f545b12606ac2e35e1b98e569e83297e4757e34a9f4",
+        "hands-on/solutions/sql-retriever/app/infrastructure/sql/schema_columns_select.sql": "177b5138225818d4fce6146a53b9924b90e029ec1175d4425153ccd06ea1243b",
+        "hands-on/solutions/sql-retriever/app/infrastructure/sql/search_metadata_select.sql": "55a89fa60eea0cd2836a7a0a4677a086f446fb4d155348958250dd9a8c8808da",
+        "hands-on/solutions/sql-retriever/app/infrastructure/sql/usage_select.sql": "0e43fc6a13f1e002fd282fcf3fc40468aa55e6bb388ccee921ea38da0ab87502"
+      },
+      "비밀값 파일": "해시를 남기지 않음(secrets/.env, compose.yml)"
+    }
+  },
+  "checks_rerun_on_approved": {
+    "check_ttl(T1 ~ T17, 승인본 버전 2)": {
+      "executed": true,
+      "result_file": "ttl/output/check_ttl.json",
+      "total_violations": 0,
+      "items": [
+        {
+          "id": "T1",
+          "name": "Turtle 문법",
+          "violations": 0
+        },
+        {
+          "id": "T2",
+          "name": "낱말",
+          "violations": 0
+        },
+        {
+          "id": "T3",
+          "name": "값 목록",
+          "violations": 0
+        },
+        {
+          "id": "T4",
+          "name": "키",
+          "violations": 0
+        },
+        {
+          "id": "T5",
+          "name": "채우는 방법",
+          "violations": 0
+        },
+        {
+          "id": "T6",
+          "name": "대표 이름 규칙",
+          "violations": 0
+        },
+        {
+          "id": "T7",
+          "name": "관계의 양 끝 Class",
+          "violations": 0
+        },
+        {
+          "id": "T8",
+          "name": "연결 지점의 경로",
+          "violations": 0
+        },
+        {
+          "id": "T9",
+          "name": "meta-SHACL(shapes/ 만)",
+          "violations": 0
+        },
+        {
+          "id": "T10",
+          "name": "SHACL 실행(빈 자료와 고정 시험 자료)",
+          "violations": 0
+        },
+        {
+          "id": "T11",
+          "name": "맞추기 표",
+          "violations": 0
+        },
+        {
+          "id": "T12",
+          "name": "가지치기 표시(EXISTENCE)",
+          "violations": 0
+        },
+        {
+          "id": "T13",
+          "name": "인덱싱 기본 라벨",
+          "violations": 0
+        },
+        {
+          "id": "T14",
+          "name": "문서 Shape 종류별 실행(정상 자료와 틀린 자료)",
+          "violations": 0
+        },
+        {
+          "id": "T15",
+          "name": "LLM 추출 여부 표시",
+          "violations": 0
+        },
+        {
+          "id": "T16",
+          "name": "설명 규칙(LLM 이 읽는 지시)",
+          "violations": 0
+        },
+        {
+          "id": "T17",
+          "name": "규칙과 표 채우기, 대표 이름 단계",
+          "violations": 0
+        }
+      ]
+    },
+    "check_doc_schema(D1 ~ D8, 재생성 비교 D8 포함)": {
+      "executed": true,
+      "result_file": "design/phase9/v2/check_doc_schema.json",
+      "total_violations": 0,
+      "items": [
+        {
+          "id": "D1",
+          "name": "라이브러리 검증",
+          "violations": 0
+        },
+        {
+          "id": "D2",
+          "name": "이름 중복",
+          "violations": 0
+        },
+        {
+          "id": "D3",
+          "name": "이름 규칙",
+          "violations": 0
+        },
+        {
+          "id": "D4",
+          "name": "설명(description)",
+          "violations": 0
+        },
+        {
+          "id": "D5",
+          "name": "제약",
+          "violations": 0
+        },
+        {
+          "id": "D6",
+          "name": "닫힘(additional 값)",
+          "violations": 0
+        },
+        {
+          "id": "D7",
+          "name": "패턴과 관계",
+          "violations": 0
+        },
+        {
+          "id": "D8",
+          "name": "재생성과 UTF-8",
+          "violations": 0
+        }
+      ]
+    },
+    "check_rdb_mapping(R1 ~ R13, 읽기 전용 조회 포함)": {
+      "executed": true,
+      "result_file": "design/phase9/v2/check_rdb_mapping.json",
+      "total_violations": 0,
+      "items": [
+        {
+          "id": "R1",
+          "name": "테이블과 열",
+          "violations": 0
+        },
+        {
+          "id": "R2",
+          "name": "뷰와 열",
+          "violations": 0
+        },
+        {
+          "id": "R3",
+          "name": "키",
+          "violations": 0
+        },
+        {
+          "id": "R4",
+          "name": "조인 조건",
+          "violations": 0
+        },
+        {
+          "id": "R5",
+          "name": "자료형 대응",
+          "violations": 0
+        },
+        {
+          "id": "R6",
+          "name": "집계와 단위",
+          "violations": 0
+        },
+        {
+          "id": "R7",
+          "name": "원본 열 계보",
+          "violations": 0
+        },
+        {
+          "id": "R8",
+          "name": "제공하지 못하는 열",
+          "violations": 0
+        },
+        {
+          "id": "R9",
+          "name": "빠짐 없음",
+          "violations": 0
+        },
+        {
+          "id": "R10",
+          "name": "Turtle 일치",
+          "violations": 0
+        },
+        {
+          "id": "R11",
+          "name": "뷰 열의 실제 모습(조회)",
+          "violations": 0
+        },
+        {
+          "id": "R12",
+          "name": "한 줄의 단위(조회)",
+          "violations": 0
+        },
+        {
+          "id": "R13",
+          "name": "코드 목록(조회)",
+          "violations": 0
+        }
+      ]
+    },
+    "render_preview(그림 글 모양 M1 ~ M7)": {
+      "executed": true,
+      "result_file": "design/phase9/v2/schema_preview_check.json",
+      "total_violations": 0
+    },
+    "mmdc 그림 파일 만들기": {
+      "executed": true,
+      "result_files": [
+        "design/phase9/v2/benefit_guide.svg",
+        "design/phase9/v2/consult_log.svg",
+        "design/phase9/v2/regulation.svg"
+      ],
+      "note": "svg 3개 생성, 구문 오류 문구 0"
+    },
+    "조회문 결과 열과 RDB 매핑 대응": {
+      "executed": true,
+      "result_file": "design/phase9/v2/check_queries_columns.json",
+      "queries_checked": 13,
+      "violations": 1,
+      "remaining": [
+        {
+          "file": "rdb/rdb_queries.sql",
+          "line": 10,
+          "view": "app_internal.customer_cards_full",
+          "columns": [
+            "card_id",
+            "card_ref"
+          ],
+          "ok": false
+        }
+      ],
+      "note": "버전 1과 같은 1건(card_ref). 매핑은 이번에도 고치지 않음"
+    },
+    "버전 1과 버전 2의 차이(draft.py diff)": {
+      "executed": true,
+      "result_file": "design/archive/v2/output/diff.json",
+      "changed_files": [
+        "card.ttl",
+        "maps/card_name.ttl",
+        "maps/segment.ttl"
+      ],
+      "unchanged_files": 6
+    }
+  },
+  "last_test": {
+    "source_files": [
+      "test/fill_scores.json",
+      "test/fill_report.md",
+      "test/pass_criteria.json"
+    ],
+    "label": "재시험",
+    "generated_at": "2026-11-29 00:44:51",
+    "overall": "미달 2개(상담 기록 CQ-08, CQ-10). 사용자가 조건부 통과로 승인",
+    "cq": [
+      {
+        "doc": "benefit_guide",
+        "cq": "CQ-05",
+        "answer_chunks": 11,
+        "no_answer_chunks": 12,
+        "hit": 10,
+        "same": 10,
+        "false_positive": 0,
+        "need_hit": 9,
+        "max_fp": 2,
+        "recall_ok": true,
+        "same_ok": true,
+        "fp_ok": true,
+        "final": {
+          "recall": "통과",
+          "same": "통과",
+          "fp": "통과"
+        }
+      },
+      {
+        "doc": "benefit_guide",
+        "cq": "CQ-06",
+        "answer_chunks": 16,
+        "no_answer_chunks": 8,
+        "hit": 16,
+        "same": 16,
+        "false_positive": 0,
+        "need_hit": 13,
+        "max_fp": 1,
+        "recall_ok": true,
+        "same_ok": true,
+        "fp_ok": true,
+        "final": {
+          "recall": "통과",
+          "same": "통과",
+          "fp": "통과"
+        }
+      },
+      {
+        "doc": "benefit_guide",
+        "cq": "CQ-11",
+        "answer_chunks": 7,
+        "no_answer_chunks": 23,
+        "hit": 7,
+        "same": 7,
+        "false_positive": 3,
+        "need_hit": 6,
+        "max_fp": 4,
+        "recall_ok": true,
+        "same_ok": true,
+        "fp_ok": true,
+        "final": {
+          "recall": "통과",
+          "same": "통과",
+          "fp": "통과"
+        }
+      },
+      {
+        "doc": "benefit_guide",
+        "cq": "CQ-16",
+        "answer_chunks": 5,
+        "no_answer_chunks": 1,
+        "hit": 5,
+        "same": 5,
+        "false_positive": 0,
+        "need_hit": 4,
+        "max_fp": 0,
+        "recall_ok": true,
+        "same_ok": true,
+        "fp_ok": true,
+        "final": {
+          "recall": "통과(두 번 모두)",
+          "same": "통과",
+          "fp": "통과(두 번 모두)"
+        }
+      },
+      {
+        "doc": "benefit_guide",
+        "cq": "CQ-17",
+        "answer_chunks": 6,
+        "no_answer_chunks": 1,
+        "hit": 6,
+        "same": 6,
+        "false_positive": 0,
+        "need_hit": 5,
+        "max_fp": 0,
+        "recall_ok": true,
+        "same_ok": true,
+        "fp_ok": true,
+        "final": {
+          "recall": "통과",
+          "same": "통과",
+          "fp": "통과(두 번 모두)"
+        }
+      },
+      {
+        "doc": "consult_log",
+        "cq": "CQ-07",
+        "answer_chunks": 23,
+        "no_answer_chunks": 0,
+        "hit": 23,
+        "same": 23,
+        "false_positive": 0,
+        "need_hit": 19,
+        "max_fp": null,
+        "recall_ok": true,
+        "same_ok": true,
+        "fp_ok": null,
+        "final": {
+          "recall": "통과",
+          "same": "통과",
+          "fp": "판정 불가"
+        }
+      },
+      {
+        "doc": "consult_log",
+        "cq": "CQ-08",
+        "answer_chunks": 6,
+        "no_answer_chunks": 17,
+        "hit": 4,
+        "same": 3,
+        "false_positive": 7,
+        "need_hit": 5,
+        "max_fp": 3,
+        "recall_ok": false,
+        "same_ok": false,
+        "fp_ok": false,
+        "final": {
+          "recall": "미달",
+          "same": "미달",
+          "fp": "미달"
+        }
+      },
+      {
+        "doc": "consult_log",
+        "cq": "CQ-10",
+        "answer_chunks": 18,
+        "no_answer_chunks": 5,
+        "hit": 11,
+        "same": 5,
+        "false_positive": 1,
+        "need_hit": 15,
+        "max_fp": 1,
+        "recall_ok": false,
+        "same_ok": false,
+        "fp_ok": true,
+        "final": {
+          "recall": "미달",
+          "same": "미달",
+          "fp": "통과(두 번 모두)"
+        }
+      },
+      {
+        "doc": "consult_log",
+        "cq": "CQ-18",
+        "answer_chunks": 23,
+        "no_answer_chunks": 0,
+        "hit": 23,
+        "same": 23,
+        "false_positive": 0,
+        "need_hit": 19,
+        "max_fp": null,
+        "recall_ok": true,
+        "same_ok": true,
+        "fp_ok": null,
+        "final": {
+          "recall": "통과",
+          "same": "통과",
+          "fp": "판정 불가"
+        }
+      }
+    ],
+    "rule_fill": [
+      {
+        "item": "Topic.topic_name(상담 주제)",
+        "expected": 23,
+        "matched": 23,
+        "wrong_nodes": 0,
+        "verdict": "통과"
+      },
+      {
+        "item": "CONTINUES_FROM(앞 상담 연결)",
+        "expected": 21,
+        "matched": 21,
+        "wrong_nodes": 0,
+        "verdict": "통과"
+      },
+      {
+        "item": "MENTIONS_PRODUCT 와 CardProduct.product_id(상담이 말한 카드상품)",
+        "expected": 25,
+        "matched": 25,
+        "wrong_nodes": 0,
+        "verdict": "통과"
+      },
+      {
+        "item": "BenefitItem.benefit_name(혜택 이름)",
+        "expected": 23,
+        "matched": 23,
+        "wrong_nodes": 0,
+        "verdict": "통과"
+      },
+      {
+        "item": "CardProduct(혜택 안내서)",
+        "expected": 24,
+        "matched": 24,
+        "wrong_nodes": 0,
+        "verdict": "통과"
+      },
+      {
+        "item": "Consultation 과 Member(상담과 회원)",
+        "expected": 23,
+        "matched": 23,
+        "wrong_nodes": 0,
+        "verdict": "통과"
+      },
+      {
+        "item": "Clause(약관 조항)",
+        "expected": 26,
+        "matched": 26,
+        "wrong_nodes": 0,
+        "verdict": "통과"
+      }
+    ],
+    "links": {
+      "CP-01": {
+        "denominator": 24,
+        "key_filled": 24,
+        "rate": 1.0,
+        "verdict": "통과"
+      },
+      "CP-02": {
+        "denominator": 23,
+        "key_filled": 23,
+        "rate": 1.0,
+        "verdict": "통과"
+      },
+      "CP-03": {
+        "denominator": 23,
+        "key_filled": 23,
+        "rate": 1.0,
+        "verdict": "통과"
+      },
+      "CP-04": {
+        "denominator": 23,
+        "key_filled": 23,
+        "rate": 1.0,
+        "verdict": "통과"
+      },
+      "CP-05": {
+        "denominator": 0,
+        "key_filled": null,
+        "rate": null,
+        "verdict": "해당 없음"
+      }
+    },
+    "hubs": {
+      "benefit_guide": {
+        "hub_over": [],
+        "key_over": [],
+        "threshold": 0.3
+      },
+      "consult_log": {
+        "hub_over": [],
+        "key_over": [
+          {
+            "label": "CardProduct",
+            "name": "한빛 가족돌봄",
+            "chunks": 8,
+            "share": 0.34782608695652173
+          }
+        ],
+        "threshold": 0.3
+      }
+    },
+    "shacl_total": 0,
+    "key_only_nodes": {
+      "count": 10,
+      "excluded_violations": 20
+    },
+    "criteria": {
+      "questions": {
+        "recall_min": 0.8,
+        "same_min": 0.7,
+        "false_max": 0.2,
+        "basis": "프롬프트 Step 8.1 제안값 그대로"
+      },
+      "links": {
+        "key_fill_min": {
+          "CP-01": 1.0,
+          "CP-02": 1.0,
+          "CP-03": 1.0,
+          "CP-04": 1.0,
+          "CP-05": null
+        },
+        "hub_share_max": 0.3
+      },
+      "shacl": {
+        "violations_max": 0
+      }
+    },
+    "criteria_approved": {
+      "judge": "사용자",
+      "datetime": "2026-11-29 00:19",
+      "user_answer": "추천안대로 승인 (Recommended)",
+      "review_file": "review/step8-criteria.md",
+      "note": "첫 시험 미달 뒤 보강한 기준의 다시 승인"
+    },
+    "criteria_sha256": "f241112dc3e79541e29f5a5ca92be14e4774786cce5a0984d1682ee1fb1dbc99",
+    "expected_answers_sha256": "d06f846e6b2cff98b0072f21d5e5cab1bc987bfafbdc44c42ea14756075bfb8f"
+  },
+  "llm_and_extraction": {
+    "extraction_test": {
+      "provider": "Groq",
+      "model": "openai/gpt-oss-120b",
+      "settings": {
+        "label": "출력 한도 16,000(입력 글은 태그로 감싸지 않음)",
+        "temperature": 0,
+        "max_tokens": 16000,
+        "json_mode": false,
+        "wrap_tags": false,
+        "request_timeout": 180
+      },
+      "extractor": "neo4j_graphrag LLMEntityRelationExtractor(create_lexical_graph=False, on_error=RAISE, max_concurrency=1), run(chunks=한 건, schema=초안 GraphSchema, examples='')",
+      "response_cleaning": "LLM 응답의 빈 값(null, 빈 글, 빈 목록)은 검증에 넘기기 전에 뺌(원문은 fill_raw.jsonl 에 그대로 남김)",
+      "prune": "채운 뒤 GraphPruning().run(graph, schema)",
+      "retry_rule": "형식 오류는 같은 입력으로 두 번까지만 다시 부름. 한도 초과(429)는 서버가 알려 준 시간만큼 기다려 세 번까지 다시 부름",
+      "groq_http_attempts": 106,
+      "source": "test/fill_config.json, decisions.json"
+    },
+    "candidate_discovery_phase5": {
+      "provider": "Groq",
+      "model": "openai/gpt-oss-120b",
+      "chat_params": {
+        "request_timeout": 100,
+        "max_retries": 0
+      },
+      "budget": {
+        "max_attempts": 120,
+        "max_retries_429": 3,
+        "long_wait_abort_seconds": 180
+      },
+      "stop_rule": {
+        "consecutive_zero_needed": 3,
+        "streak_counts_only_after_start_sample": true
+      },
+      "source": "tools/phase5_config.json"
+    },
+    "external_llm_calls_in_phase9": 0,
+    "note": "비밀값 파일 이름과 키 값은 적지 않음. Phase 9 에서는 LLM 을 부르지 않았고 시험을 다시 돌리지 않았음"
+  },
+  "known_limits": {
+    "decision": "조건부 통과 승인",
+    "decided_at": "2026-11-29 00:55",
+    "items": [
+      {
+        "item": "상담 기록 CQ-08",
+        "class_or_property": [
+          "card:AvoidRequest",
+          "card:avoidText",
+          "card:HAS_AVOID_REQUEST"
+        ],
+        "last_test": {
+          "recall": "4/6",
+          "same": "3/6",
+          "false_positive": "7/17",
+          "second_run": "뽑음 5/6, 값 같음 5/6"
+        },
+        "cause": "하지 말아 달라는 뜻과 바람의 경계가 사람이 봐도 갈리고 같은 입력에도 결과가 크게 흔들림",
+        "affected_competency_questions": [
+          "CQ-08"
+        ]
+      },
+      {
+        "item": "상담 기록 CQ-10",
+        "class_or_property": [
+          "card:accepted"
+        ],
+        "last_test": {
+          "recall": "11/18",
+          "same": "5/18",
+          "false_positive": "1/5"
+        },
+        "cause": "제안을 받아들였는지를 LLM이 거의 채우지 않음(제안 64개 가운데 2개)",
+        "affected_competency_questions": [
+          "CQ-10"
+        ]
+      }
+    ],
+    "implementation_instruction": "인덱싱과 검색 구현은 items 와 do_not_trust 에 적힌 클래스와 속성 값을 믿고 쓰지 않음. 값이 비었거나 틀릴 수 있음을 전제로 하고, 이 값만으로 답이 정해지는 기능을 만들지 않음. 해당 역량 질문(CQ-08, CQ-10)은 원문 구절을 함께 보여 주는 경로로만 답함",
+    "do_not_trust": [
+      "card:AvoidRequest",
+      "card:HAS_AVOID_REQUEST",
+      "card:accepted",
+      "card:avoidText"
+    ],
+    "other_cautions": [
+      {
+        "item": "기대 답 의심 X1, X2",
+        "detail": "test/fill_report.md 9절. 고치지 않고 모아 둠. 상담 CQ-08과 CQ-10의 미달에 영향을 줬을 수 있음"
+      },
+      {
+        "item": "몰림 정보 표시",
+        "detail": "상담 기록의 CardProduct '한빛 가족돌봄'이 청크의 34.8%에 나옴. 몰림 기준은 이름으로 적은 6개 클래스에만 적용하므로 통과로 셌음(승인 항목 3번)"
+      },
+      {
+        "item": "문항 단위 일부와 못 맞춤",
+        "detail": "Q15 못 맞춤(역량 질문 밖), Q36 일부(역량 질문 밖). 통과 기준에 넣지 않았음(승인 항목 12번)"
+      },
+      {
+        "item": "처음 결과와 재시험 숫자",
+        "detail": "처음 결과는 옛 기대 답과 옛 규칙으로 센 값이라 같은 잣대의 비교가 아님(fill_report.md 11절)"
+      }
+    ]
+  },
+  "backtracks": {
+    "used": 3,
+    "limit": 5,
+    "items": [
+      {
+        "no": 1,
+        "datetime": "2026-11-28 23:11",
+        "found_in_step": "7.3",
+        "returned_to_step": "3.5",
+        "cause_row": "RDB 조회 매핑",
+        "reapproval_needed": [
+          "3",
+          "6"
+        ]
+      },
+      {
+        "no": 2,
+        "datetime": "2026-11-28 23:17",
+        "found_in_step": "8.1",
+        "returned_to_step": "6.2",
+        "cause_row": "클래스, 관계, 속성의 설명(description)이나 온톨로지 구조",
+        "reapproval_needed": [
+          "6"
+        ]
+      },
+      {
+        "no": 3,
+        "datetime": "2026-11-29 00:14",
+        "found_in_step": "8.2 ~ 8.4",
+        "returned_to_step": [
+          "6.2",
+          "6.4"
+        ],
+        "cause_row": [
+          "클래스, 관계, 속성의 설명(description)이나 온톨로지 구조",
+          "문서별 추출 방식이나 검사 조건"
+        ],
+        "reapproval_needed": [
+          "6"
+        ]
+      }
+    ],
+    "fourth_backtrack_proposed_in_phase8": "제안만 있었고 사용자가 하지 않음. 승인본에 반영되지 않음"
+  },
+  "open_items": {
+    "manager_questions": {
+      "status_by_id": {
+        "MQ-01": "반영 완료",
+        "MQ-02": "결정 기록 완료, 반영할 것 남음",
+        "MQ-03": "반영 완료",
+        "MQ-04": "반영 완료",
+        "MQ-05": "반영 완료",
+        "MQ-06": "반영 완료",
+        "MQ-07": "반영 완료",
+        "MQ-08": "결정 기록 완료, 일부 반영할 것 남음",
+        "MQ-09": "반영 완료(뜻은 추정으로 남음)",
+        "MQ-10": "반영 완료(뜻은 추정으로 남음)"
+      },
+      "pending_count": 0,
+      "decided_count": 10,
+      "decided_but_reflection_remaining": [
+        "MQ-02",
+        "MQ-08"
+      ],
+      "file": "manager_questions.md",
+      "sha256": "0431560c2ba72589976052843721d036bf2f70b66911111eb05bb014b0ff28a4",
+      "note": "10건 모두 사용자가 담당자 역할로 추천안대로 확정함. MQ-02(열두 달 집계 뷰)와 MQ-08(continuesFrom 채우는 방식)은 반영할 것이 남음. MQ-09와 MQ-10의 뜻은 추정"
+    },
+    "assumptions_needing_user_check_by_phase": {
+      "2": [
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "A5",
+        "A6",
+        "A7",
+        "A8",
+        "A9",
+        "A10",
+        "A11",
+        "A12"
+      ],
+      "3": [
+        "B1",
+        "B2",
+        "B3",
+        "B4",
+        "B5",
+        "B6",
+        "B7",
+        "B8"
+      ],
+      "4": [
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "A5",
+        "A6",
+        "A7",
+        "A8",
+        "A9",
+        "A10",
+        "A11"
+      ],
+      "5": [
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "A5",
+        "A6",
+        "A7",
+        "A8",
+        "A9",
+        "A10"
+      ],
+      "6": [
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+        "P9",
+        "P10",
+        "P11",
+        "P12",
+        "P14",
+        "P15"
+      ],
+      "8(8.1)": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6",
+        "G7"
+      ],
+      "8(첫 시험)": [
+        "H1 LLM 설정 C",
+        "H2 값 같은 비율 분모와 묶음",
+        "H3 버린 노드의 관계 옮김과 앞 상담 노드",
+        "H4 빈 값 범위",
+        "H5 needs_review 행 사용",
+        "H6 SHACL 변환 규칙",
+        "H7 연결 지점별 정의",
+        "H8 문항 단위는 참고",
+        "H9 DB 문항 기대 답은 현업 확인값 아님"
+      ],
+      "8(재시험, review/step8.md 2절)": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9"
+      ]
+    },
+    "assumption_note": "각 Phase 승인이 추천안대로 이뤄졌고, 이 가정들이 사용자나 현업에게 하나씩 확인됐다는 기록은 없음",
+    "match_table_rows": {
+      "counts_by_status": {
+        "needs_review": 0,
+        "approved": 70,
+        "not_linked": 0
+      },
+      "by_table": {
+        "card_name.ttl": {
+          "needs_review": 0,
+          "approved": 64,
+          "not_linked": 0
+        },
+        "category.ttl": {
+          "needs_review": 0,
+          "approved": 0,
+          "not_linked": 0
+        },
+        "segment.ttl": {
+          "needs_review": 0,
+          "approved": 6,
+          "not_linked": 0
+        }
+      },
+      "all_before_approval": false,
+      "note": "70줄 모두 approved(카드 이름 64줄, 고객군 6줄, 업종 0줄). 근거를 확인하지 못해 그대로 둔 줄은 0줄"
+    },
+    "remaining_work": [
+      "MQ-02: 열두 달 집계 업무 뷰가 RDB에 생긴 뒤 RDB 매핑과 Turtle을 고쳐 새 버전으로 올림",
+      "MQ-08: card:continuesFrom 을 본문 번호만으로 채우는 설계와 결정(번호는 보조 단서)의 차이를 다음 버전에서 맞춤",
+      "알려진 한계 2건(상담 기록 CQ-08, CQ-10)은 그대로임"
+    ]
+  },
+  "tool_changes_in_phase9": {
+    "note": "승인본 폴더를 대상으로 돌리려고 아래 도구에 선택 인자를 보탬(기본 동작은 그대로). 원본 사본은 backup_before_phase9/tools_original/",
+    "items": [
+      {
+        "file": "design/tools/check_doc_schema.py",
+        "sha256_before": "54992fbcc2f12dd213805d69fe26f372281a9fd2b306bfc8a45fb1d135279e7a",
+        "sha256_after": "393a4b720c7c55d477b3430782a4c025c576c44c7745e42ba503c06c58616342"
+      },
+      {
+        "file": "design/tools/check_ttl.py",
+        "sha256_before": "5e938fbed58af531523ffd83cc58c0877499715e7423c2d687e92c3781e3dae8",
+        "sha256_after": "f4a78533dfe1287d2a8de728e1b201f222494d865631e3f630b7f125c075d53a"
+      },
+      {
+        "file": "design/tools/render_preview.py",
+        "sha256_before": "cb58c0167db06ff5512bfc348cf18c6d62fd13b46c20bc34149c6e90b465d0ec",
+        "sha256_after": "17a5da24024e0c1a82019f131a9765658d5b1fd099a0bc713672be5b52594d59"
+      }
+    ]
+  },
+  "not_executed_or_unverified": [
+    {
+      "item": "Phase 8 시험(추출, SHACL, 연결, 몰림)을 승인본에 대해 다시 돌림",
+      "status": "실행하지 않음",
+      "why": "외부 LLM 0번 원칙이고 승인본은 초안과 바이트가 같아 마지막 시험 결과를 그대로 인용함"
+    },
+    {
+      "item": "일반 테이블 수와 원본 청크 수를 Phase 9 에서 다시 셈",
+      "status": "실행하지 않음",
+      "why": "Phase 1 기록(structure.json, chunks_snapshot.json)을 지문으로만 확인. 원천 Chroma 는 읽지 않음"
+    },
+    {
+      "item": "미리보기 HTML 을 브라우저에서 열어 그림 확인",
+      "status": "실행하지 않음",
+      "why": "mmdc 로 svg 를 만들어 대신 확인함. 새 미리보기 파일은 design/phase9/schema_preview_phase9.html"
+    },
+    {
+      "item": "Neo4j 에 제약과 라벨을 실제로 만들어 보기",
+      "status": "실행하지 않음",
+      "why": "Phase 9 범위 밖. 인덱싱 구현이 정함"
+    },
+    {
+      "item": "기대 답과 청크 판정의 교차 판정, 현업 확인",
+      "status": "미검증",
+      "why": "fill_report.md 11절"
+    },
+    {
+      "item": "관리자 확인 질문 답변의 현업 확인",
+      "status": "미검증",
+      "why": "사용자가 담당자 역할로 확정했을 뿐 현업 담당자가 따로 확인한 것은 아님. MQ-09와 MQ-10의 뜻은 추정"
+    },
+    {
+      "item": "맞추기 표 승인 근거 중 고객군 줄의 DB 쪽 대조",
+      "status": "실행하지 않음",
+      "why": "고객군 열이 허용된 뷰에 없어 읽지 못함. 파일 이름의 낱말과 코드표 C-02 대조와 MQ-04 결정으로만 확인함"
+    },
+    {
+      "item": "Phase 8 시험을 버전 2로 다시 돌림",
+      "status": "실행하지 않음",
+      "why": "Turtle 내용(Shape와 설명)이 버전 1과 같고 외부 LLM 0번 원칙"
+    }
+  ],
+  "supersedes": {
+    "file": "approval.v1.json",
+    "sha256": "5bdf7757cf75dc2f4bfc5962438a5fced08316496733d38b5b4c40217dd140a4",
+    "ontology_version": 1,
+    "ontology_fingerprint": "816cf2ec30d7e1292b8d90e857b4a1003a0bd3cced9b5df90d6ea37a4a75f912"
+  },
+  "input_files_changed_since_v1": {
+    "design/manager_questions.md": {
+      "before": "636efc6dd3d0822ab581b67e83d2776d069bcb550d983543510048225f34d47f",
+      "after": "0431560c2ba72589976052843721d036bf2f70b66911111eb05bb014b0ff28a4"
+    },
+    "design/value_lists.json": {
+      "before": "2f7e14101faa562fa5726a2fdb45beda4f3f3b987be69d1939ca9cef98b7141e",
+      "after": "9ed0cb6fdeb41c9c51a626f694005d934ec11666d191e9ba7143a12db361f0bb"
+    },
+    "design/phase9/match_rows_check.json": {
+      "before": null,
+      "after": "f625e24fd9d94a6d627e5ee129ff1a872ee397fb31f1b7ea8d961ca71483f773"
+    },
+    "design/review/step9.md": {
+      "before": null,
+      "after": "87186d36d72a72d221fc755279b89fbf4add94a0e3e931deaeaf544a413e38b9"
+    }
+  },
+  "version_2_changes": {
+    "turtle_changed": {
+      "card.ttl": {
+        "v1": "d491a4c4f5a84c9f4c38e8e7e2ecc5f1da7eeef3671332c7f1d02e4d4a3782d6",
+        "v2": "09cb3088f83251703f9c75bd3269999bfa75cc97b11cc8aff875b6d526a109bb"
+      },
+      "maps/card_name.ttl": {
+        "v1": "69227bd949a042debaba500d978942d50590938915739d945ea268a136d88ce9",
+        "v2": "cf053937801c3bb2c6790f7dcfd5fe4e55873c0e2f3de5e4d2258ee47a4440d6"
+      },
+      "maps/segment.ttl": {
+        "v1": "b6ca7985bd3dd3bcc558e30941fbd6ba76a14cccd19fecb0415713c530696c71",
+        "v2": "ca1967943851c6cc343eeb299c3fdd5d89c65986cb97f4427d7f1a8bfcf3072e"
+      }
+    },
+    "turtle_unchanged": [
+      "maps/category.ttl",
+      "shapes/benefit_guide.ttl",
+      "shapes/checks.ttl",
+      "shapes/consult_log.ttl",
+      "shapes/rdb.ttl",
+      "shapes/regulation.ttl"
+    ],
+    "card_ttl_change": "owl:versionInfo 1 을 2로 바꾼 한 줄뿐(diff 로 확인)",
+    "match_rows": {
+      "approved_card_name": 64,
+      "kept_card_name": 0,
+      "approved_segment": 6,
+      "kept_segment": 0,
+      "category_rows": 0,
+      "evidence_file": "design/phase9/match_rows_check.json",
+      "evidence_sha256": "f625e24fd9d94a6d627e5ee129ff1a872ee397fb31f1b7ea8d961ca71483f773",
+      "rdb_read": "읽기 전용 세션, 구조 조사 계정, public.product 의 product_id 와 product_name 두 열만 SELECT(LIMIT 200, 64줄), 회원 자료는 읽지 않음",
+      "approver": "사용자(담당자 역할)",
+      "approved_at": "2026-11-29(시각은 받지 못함)",
+      "approver_record": "각 줄의 card:basis 끝에 승인 근거와 승인자와 일시를 적음"
+    },
+    "non_turtle_changed": [
+      "manager_questions.md",
+      "value_lists.json"
+    ]
+  },
+  "external_llm_calls_in_version_2_work": 0
+}

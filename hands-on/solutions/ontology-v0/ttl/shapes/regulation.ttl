@@ -1,0 +1,82 @@
+# 문서 종류 regulation의 허용 목록(원본). 이 문서에서 쓰는 노드 타입의 속성과 허용 패턴을 SHACL로 적음.
+# 노드 타입의 뜻과 키는 card.ttl에 있음. 이 파일과 card.ttl에서 schema/doc-ontology/regulation/graph_schema.json을 만들어 냄.
+#   sh:NodeShape + sh:targetClass  이 문서에서 쓰는 노드 타입
+#   sh:property + sh:datatype      노드 타입 속성(이름, 자료형, 설명, 필수이면 sh:minCount 1)
+#   sh:property + sh:class         허용 패턴: 이 노드가 이 관계로 가리킬 수 있는 Class
+#   sh:order                       목록에서의 순서
+# 관계의 이 문서용 설명과 순서는 이 파일에만 적음. 문서 종류 파일끼리는 합쳐 읽지 않음.
+
+@prefix card: <https://hanbit-card.example/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+card:profile_regulation a card:GraphSchemaProfile ;
+    card:additional_node_types false ;
+    card:additional_patterns false ;
+    card:additional_relationship_types false .
+
+card:regulation_ArticleShape a sh:NodeShape ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:order 0 ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:description "원문에 기준 금액, 비율, 횟수가 있으면 반드시 그대로 옮김. 예: 3,000,000원 이상. 없으면 비움" ;
+            sh:order 5 ;
+            sh:path card:amount ],
+        [ sh:class card:Article ;
+            sh:order 0 ;
+            sh:path card:REFERS_TO ],
+        [ sh:datatype xsd:string ;
+            sh:description "원문에 기한이나 알림 시점(일, 영업일, 개월, 전, 이내)이 있으면 반드시 그대로 옮김. 예: 명세서가 게시된 날부터 45일 이내. 없으면 비움" ;
+            sh:order 4 ;
+            sh:path card:deadline ],
+        [ sh:class card:Topic ;
+            sh:order 1 ;
+            sh:path card:ABOUT ],
+        [ sh:datatype xsd:string ;
+            sh:description "조 번호. 머리줄의 article_no 값을 그대로 씀. 예: 제10조, 제16조의2" ;
+            sh:order 0 ;
+            sh:path card:article_no ],
+        [ sh:datatype xsd:string ;
+            sh:description "반드시 채움. 카드사나 회원이 하는 일과 절차를 원문 문장 그대로 1 ~ 3문장 옮김. 예: 다음 연도의 기본 연회비를 전액 면제합니다. 결과를 알리는 방법도 여기에 씀" ;
+            sh:order 3 ;
+            sh:path card:action ],
+        [ sh:datatype xsd:string ;
+            sh:description "조 제목. 머리줄의 title 값. 예: 연회비 면제 및 계약 해지에 따른 반환" ;
+            sh:order 1 ;
+            sh:path card:title ],
+        [ sh:datatype xsd:string ;
+            sh:description "반드시 채움. 이 조가 적용되는 경우나 조건을 원문 문장 그대로 옮김. 예: 본인회원의 직전 12개월 이용금액이 3,000,000원 이상이고 다음 연회비 청구일까지 연체가 없으면. 조건 없이 늘 적용되는 조이면 그 조가 다루는 대상을 쓴 첫 문장을 옮김" ;
+            sh:order 2 ;
+            sh:path card:condition ] ;
+    sh:targetClass card:Article ;
+    card:fill "LLM 추출" ;
+    card:fillNote "article_no와 title은 머리줄 값 추출 뒤 스크립트가 넣음(header_fill_rule)" ;
+    card:keyOrder 0 .
+
+card:regulation_TopicShape a sh:NodeShape ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) ;
+    sh:order 1 ;
+    sh:property [ sh:datatype xsd:string ;
+            sh:description "주제의 대표 이름. 띄어쓰기는 낱말 사이에 한 칸. 예: 연회비, 본인 확인" ;
+            sh:order 0 ;
+            sh:path card:name ] ;
+    sh:targetClass card:Topic ;
+    card:fill "LLM 추출" ;
+    card:fillNote "이름은 LLM이 짓고, 인덱싱이 맞추기 표로 대표 이름에 맞춤" ;
+    card:keyOrder 1 .
+
+card:ABOUT a owl:ObjectProperty ;
+    skos:definition "단위가 다루는 주제. 조항, 혜택, 불만마다 주제를 1 ~ 3개 반드시 잇는다(주제 없는 조항, 혜택, 불만을 만들지 않음). 해당: 그 단위의 중심 대상. 비해당: 지나가듯 한 번 나온 낱말." ;
+    card:additionalProperties true ;
+    card:order 1 .
+
+card:REFERS_TO a owl:ObjectProperty ;
+    skos:definition "조항이 본문에서 따르라고 가리키는 다른 조항. 해당: 「제N조에 따릅니다」, 「제N조의 기준을 적용합니다」. 비해당: 자기 자신." ;
+    card:additionalProperties true ;
+    card:order 0 .
+
